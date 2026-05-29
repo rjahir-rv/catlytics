@@ -12,5 +12,7 @@ repositories {
 
 dependencies {
     implementation(libs.android.gradle.plugin)
+    implementation(libs.hilt.android.gradle.plugin)
+    implementation(libs.ksp.gradle.plugin)
     implementation(libs.kotlin.gradle.plugin)
 }

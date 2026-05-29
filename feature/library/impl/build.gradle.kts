@@ -1,5 +1,6 @@
 plugins {
     id("catlytics.android.feature")
+    id("catlytics.android.hilt")
 }
 
 android {

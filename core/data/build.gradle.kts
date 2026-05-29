@@ -1,0 +1,14 @@
+plugins {
+    id("catlytics.android.library")
+    id("catlytics.android.hilt")
+}
+
+android {
+    namespace = "com.catlytics.core.data"
+}
+
+dependencies {
+    api(project(":core:domain"))
+    implementation(project(":core:model"))
+    implementation(libs.kotlinx.coroutines.core)
+}

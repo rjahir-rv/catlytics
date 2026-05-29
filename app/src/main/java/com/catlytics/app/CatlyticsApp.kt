@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.catlytics.app.navigation.TopLevelDestination
@@ -63,7 +64,7 @@ private fun CatlyticsBottomBar(
                 onClick = { onDestinationSelected(destination.route) },
                 icon = {
                     Icon(
-                        imageVector = destination.icon,
+                        painter = painterResource(destination.iconRes),
                         contentDescription = destination.label,
                     )
                 },

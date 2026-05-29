@@ -26,7 +26,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "catlytics"
 include(":app")
+include(":core:data")
 include(":core:designsystem")
+include(":core:domain")
+include(":core:model")
 include(":core:navigation")
 include(":feature:home:api")
 include(":feature:home:impl")

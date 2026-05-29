@@ -1,5 +1,6 @@
 plugins {
     id("catlytics.android.application")
+    id("catlytics.android.hilt")
 }
 
 android {
@@ -23,7 +24,9 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:data"))
     implementation(project(":core:designsystem"))
+    implementation(project(":core:domain"))
     implementation(project(":core:navigation"))
     implementation(project(":feature:home:api"))
     implementation(project(":feature:home:impl"))
@@ -34,11 +37,13 @@ dependencies {
     implementation(project(":feature:statistics:api"))
     implementation(project(":feature:statistics:impl"))
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.session)
+    implementation(libs.androidx.media3.ui)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
