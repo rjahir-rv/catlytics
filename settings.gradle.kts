@@ -1,4 +1,6 @@
 pluginManagement {
+    includeBuild("build-logic")
+
     repositories {
         google {
             content {
@@ -24,3 +26,13 @@ dependencyResolutionManagement {
 
 rootProject.name = "catlytics"
 include(":app")
+include(":core:designsystem")
+include(":core:navigation")
+include(":feature:home:api")
+include(":feature:home:impl")
+include(":feature:library:api")
+include(":feature:library:impl")
+include(":feature:playlists:api")
+include(":feature:playlists:impl")
+include(":feature:statistics:api")
+include(":feature:statistics:impl")
