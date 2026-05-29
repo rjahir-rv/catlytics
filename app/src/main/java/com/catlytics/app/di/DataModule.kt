@@ -1,7 +1,9 @@
 package com.catlytics.app.di
 
+import com.catlytics.core.data.local.AndroidMediaStoreLibraryDataSource
 import com.catlytics.core.data.local.CatlyticsLocalDataSource
 import com.catlytics.core.data.local.InMemoryCatlyticsLocalDataSource
+import com.catlytics.core.data.local.MediaStoreLibraryDataSource
 import com.catlytics.core.data.mediator.CatlyticsDataMediator
 import com.catlytics.core.data.mediator.OfflineFirstCatlyticsDataMediator
 import com.catlytics.core.data.remote.CatlyticsRemoteDataSource
@@ -26,6 +28,11 @@ interface DataModule {
     fun bindLocalDataSource(
         dataSource: InMemoryCatlyticsLocalDataSource,
     ): CatlyticsLocalDataSource
+
+    @Binds
+    fun bindMediaStoreLibraryDataSource(
+        dataSource: AndroidMediaStoreLibraryDataSource,
+    ): MediaStoreLibraryDataSource
 
     @Binds
     fun bindRemoteDataSource(

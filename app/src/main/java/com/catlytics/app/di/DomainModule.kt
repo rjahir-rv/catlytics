@@ -6,6 +6,7 @@ import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.ObserveListeningStatsUseCase
 import com.catlytics.core.domain.usecase.ObservePlaylistsUseCase
+import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -18,6 +19,11 @@ object DomainModule {
     fun provideObserveLibraryUseCase(
         libraryRepository: LibraryRepository,
     ) = ObserveLibraryUseCase(libraryRepository)
+
+    @Provides
+    fun provideRefreshLibraryUseCase(
+        libraryRepository: LibraryRepository,
+    ) = RefreshLibraryUseCase(libraryRepository)
 
     @Provides
     fun provideObservePlaylistsUseCase(

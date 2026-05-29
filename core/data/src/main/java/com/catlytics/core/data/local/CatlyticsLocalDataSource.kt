@@ -11,5 +11,7 @@ interface CatlyticsLocalDataSource {
 
     suspend fun upsertTracks(tracks: List<TrackEntity>)
 
+    suspend fun replaceTracks(tracks: List<TrackEntity>)
+
     suspend fun upsertPlaylist(playlist: PlaylistEntity)
 }

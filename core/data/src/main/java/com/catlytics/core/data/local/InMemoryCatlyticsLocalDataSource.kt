@@ -9,7 +9,7 @@ import javax.inject.Singleton
 
 @Singleton
 class InMemoryCatlyticsLocalDataSource @Inject constructor() : CatlyticsLocalDataSource {
-    private val tracks = MutableStateFlow(seedTracks)
+    private val tracks = MutableStateFlow(emptyList<TrackEntity>())
     private val playlists = MutableStateFlow(seedPlaylists)
 
     override fun observeTracks() = tracks
@@ -22,6 +22,10 @@ class InMemoryCatlyticsLocalDataSource @Inject constructor() : CatlyticsLocalDat
         }
     }
 
+    override suspend fun replaceTracks(tracks: List<TrackEntity>) {
+        this.tracks.value = tracks
+    }
+
     override suspend fun upsertPlaylist(playlist: PlaylistEntity) {
         playlists.update { current ->
             (current.associateBy { it.id } + (playlist.id to playlist)).values.toList()
@@ -29,28 +33,11 @@ class InMemoryCatlyticsLocalDataSource @Inject constructor() : CatlyticsLocalDat
     }
 
     private companion object {
-        val seedTracks = listOf(
-            TrackEntity(
-                id = "track-aurora",
-                title = "Aurora Metrics",
-                artistId = "artist-catlytics",
-                artistName = "Catlytics",
-                durationMillis = 186_000,
-            ),
-            TrackEntity(
-                id = "track-signal",
-                title = "Signal Sweep",
-                artistId = "artist-catlytics",
-                artistName = "Catlytics",
-                durationMillis = 214_000,
-            ),
-        )
-
         val seedPlaylists = listOf(
             PlaylistEntity(
                 id = "playlist-focus",
                 name = "Focus",
-                trackIds = seedTracks.map { it.id },
+                trackIds = emptyList(),
             ),
         )
     }

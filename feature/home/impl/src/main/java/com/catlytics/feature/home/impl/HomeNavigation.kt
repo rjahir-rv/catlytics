@@ -6,6 +6,6 @@ import com.catlytics.feature.home.api.HomeRoute
 
 fun EntryProviderScope<NavKey>.homeEntry() {
     entry<HomeRoute> {
-        HomeScreen()
+        HomeRoute()
     }
 }
