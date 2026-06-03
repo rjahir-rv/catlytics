@@ -1,6 +1,8 @@
 package com.catlytics.core.data.local
 
+import android.content.ContentResolver
 import android.content.Context
+import android.os.Bundle
 import android.provider.MediaStore
 import com.catlytics.core.data.model.TrackEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -22,9 +24,17 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
         contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
             MediaStoreAudioMapper.projection,
+            Bundle().apply {
+                putStringArray(
+                    ContentResolver.QUERY_ARG_SORT_COLUMNS,
+                    arrayOf(MediaStore.Audio.Media.TITLE),
+                )
+                putInt(
+                    ContentResolver.QUERY_ARG_SORT_DIRECTION,
+                    ContentResolver.QUERY_SORT_DIRECTION_ASCENDING,
+                )
+            },
             null,
-            null,
-            "${MediaStore.Audio.Media.TITLE} COLLATE LOCALIZED ASC",
         )?.use { cursor ->
             val idColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID)
             val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)

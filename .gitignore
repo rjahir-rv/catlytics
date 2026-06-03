@@ -377,3 +377,4 @@ obj/
 /.vscode/settings.json
 /.idea/kotlinc.xml
 /.idea/deviceManager.xml
+/.agents/
