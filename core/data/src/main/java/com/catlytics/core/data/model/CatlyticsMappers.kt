@@ -13,6 +13,7 @@ internal fun TrackEntity.toDomain() = Track(
     ),
     durationMillis = durationMillis,
     mediaUri = mediaUri,
+    artworkUri = artworkUri,
 )
 
 internal fun Track.toEntity() = TrackEntity(
@@ -22,6 +23,7 @@ internal fun Track.toEntity() = TrackEntity(
     artistName = artist.name,
     durationMillis = durationMillis,
     mediaUri = mediaUri,
+    artworkUri = artworkUri,
 )
 
 internal fun PlaylistEntity.toDomain() = Playlist(

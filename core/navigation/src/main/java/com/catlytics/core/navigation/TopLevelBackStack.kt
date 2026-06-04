@@ -26,15 +26,26 @@ class TopLevelBackStack(
         updateBackStack()
     }
 
+    fun add(key: NavKey) {
+        val currentStack = topLevelStacks[topLevelKey] ?: mutableStateListOf(topLevelKey).also {
+            topLevelStacks[topLevelKey] = it
+        }
+        currentStack.add(key)
+        updateBackStack()
+    }
+
     fun removeLast() {
         val currentStack = topLevelStacks[topLevelKey] ?: return
-        val removedKey = currentStack.removeLastOrNull() ?: return
 
-        if (currentStack.isEmpty()) {
-            topLevelStacks.remove(removedKey)
+        if (currentStack.size <= 1) {
+            if (topLevelStacks.size <= 1) return
+            topLevelStacks.remove(topLevelKey)
+            topLevelKey = topLevelStacks.keys.last()
+            updateBackStack()
+            return
         }
 
-        topLevelKey = topLevelStacks.keys.lastOrNull() ?: removedKey
+        currentStack.removeLast()
         updateBackStack()
     }
 

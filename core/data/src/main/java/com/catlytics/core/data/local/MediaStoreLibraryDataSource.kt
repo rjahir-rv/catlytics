@@ -41,6 +41,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val artistIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST_ID)
+            val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val isMusicColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC)
 
@@ -55,6 +56,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
                     title = cursor.getString(titleColumn),
                     artist = cursor.getString(artistColumn),
                     artistId = cursor.getLong(artistIdColumn),
+                    albumId = cursor.getLong(albumIdColumn),
                     durationMillis = cursor.getLong(durationColumn),
                     isMusic = cursor.getInt(isMusicColumn),
                     mediaUri = mediaUri,
@@ -71,6 +73,7 @@ internal object MediaStoreAudioMapper {
         MediaStore.Audio.Media.TITLE,
         MediaStore.Audio.Media.ARTIST,
         MediaStore.Audio.Media.ARTIST_ID,
+        MediaStore.Audio.Media.ALBUM_ID,
         MediaStore.Audio.Media.DURATION,
         MediaStore.Audio.Media.IS_MUSIC,
     )
@@ -80,6 +83,7 @@ internal object MediaStoreAudioMapper {
         title: String?,
         artist: String?,
         artistId: Long,
+        albumId: Long,
         durationMillis: Long,
         isMusic: Int,
         mediaUri: String,
@@ -92,13 +96,18 @@ internal object MediaStoreAudioMapper {
 
         return TrackEntity(
             id = "mediastore-$id",
-            title = title?.takeUnless { it.isBlank() } ?: "Canción sin titulo",
+            title = title?.takeUnless { it.isBlank() } ?: "Cancion sin titulo",
             artistId = "mediastore-artist-$artistId",
             artistName = normalizedArtist,
             durationMillis = durationMillis,
             mediaUri = mediaUri,
+            artworkUri = albumId.toArtworkUri(),
         )
     }
 
     private const val UNKNOWN_ARTIST = "<unknown>"
+    private const val ARTWORK_BASE_URI = "content://media/external/audio/albumart"
+
+    private fun Long.toArtworkUri(): String? = takeIf { it > 0L }
+        ?.let { "$ARTWORK_BASE_URI/$it" }
 }

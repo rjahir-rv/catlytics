@@ -15,8 +15,9 @@ kotlinxSerializationJson = "1.11.0"
 kotlinxCoroutines = "1.11.0"
 hilt = "2.59.2"
 media3 = "1.10.1"
-ksp = "2.3.7"
+ksp = "2.3.9"
 robolectric = "4.16.1"
+coil = "3.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -54,6 +55,7 @@ androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplaye
 androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
 androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "robolectric" }
+coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

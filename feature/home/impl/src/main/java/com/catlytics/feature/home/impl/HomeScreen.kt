@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -26,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -65,7 +68,7 @@ internal fun HomeRoute(
 
     LaunchedEffect(hasAudioPermission) {
         if (hasAudioPermission) {
-            viewModel.refreshLibrary()
+            viewModel.refreshLibraryOnce()
         }
     }
 
@@ -85,6 +88,10 @@ internal fun HomeScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val trackListState = rememberSaveable(saver = LazyListState.Saver) {
+        LazyListState()
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -109,6 +116,7 @@ internal fun HomeScreen(
             is HomeUiState.Success -> TrackList(
                 tracks = uiState.tracks,
                 onTrackSelected = onTrackSelected,
+                state = trackListState,
             )
         }
     }
@@ -182,9 +190,11 @@ private fun TrackList(
     tracks: List<Track>,
     onTrackSelected: (Track, List<Track>) -> Unit,
     modifier: Modifier = Modifier,
+    state: LazyListState = rememberLazyListState(),
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
+        state = state,
     ) {
         items(
             items = tracks,

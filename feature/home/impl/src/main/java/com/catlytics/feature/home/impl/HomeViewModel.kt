@@ -25,6 +25,7 @@ internal class HomeViewModel @Inject constructor(
 ) : ViewModel() {
     private val refreshError = MutableStateFlow<String?>(null)
     private val isRefreshing = MutableStateFlow(false)
+    private var hasRequestedInitialRefresh = false
 
     val uiState: StateFlow<HomeUiState> = combine(
         observeLibraryUseCase()
@@ -60,6 +61,12 @@ internal class HomeViewModel @Inject constructor(
                 isRefreshing.value = false
             }
         }
+    }
+
+    fun refreshLibraryOnce() {
+        if (hasRequestedInitialRefresh) return
+        hasRequestedInitialRefresh = true
+        refreshLibrary()
     }
 
     fun onTrackSelected(track: Track, queue: List<Track>) {

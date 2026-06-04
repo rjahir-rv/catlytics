@@ -1,14 +1,14 @@
 package com.catlytics.core.designsystem.component
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -18,6 +18,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,10 +38,20 @@ fun CatlyticsMiniPlayer(
     onTogglePlayback: () -> Unit,
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    artwork: @Composable (Modifier) -> Unit = { artworkModifier ->
+        Image(
+            painter = painterResource(id = R.drawable.placeholder_album),
+            contentDescription = null,
+            modifier = artworkModifier,
+            contentScale = ContentScale.Crop,
+        )
+    },
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 3.dp,
@@ -63,6 +75,13 @@ fun CatlyticsMiniPlayer(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(MaterialTheme.shapes.small),
+                ) {
+                    artwork(Modifier.matchParentSize())
+                }
                 Column(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -94,10 +113,10 @@ fun CatlyticsMiniPlayer(
                     }
                     IconButton(onClick = onTogglePlayback) {
                         Icon(
-                            imageVector = if (isPlaying || isBuffering) {
-                                Icons.Filled.Pause
+                            painter = if (isPlaying || isBuffering) {
+                                painterResource(R.drawable.ic_pause)
                             } else {
-                                Icons.Filled.PlayArrow
+                                painterResource(id = R.drawable.ic_play)
                             },
                             contentDescription = if (isPlaying) "Pausar" else "Reproducir",
                         )
@@ -105,7 +124,7 @@ fun CatlyticsMiniPlayer(
                     IconButton(onClick = onSkipNext) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_skip_next),
-                            contentDescription = "Siguiente",
+                            contentDescription = "siguiente",
                         )
                     }
                 }

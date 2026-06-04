@@ -1,5 +1,6 @@
 package com.catlytics.core.playback
 
+import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -15,6 +16,7 @@ fun Track.toMediaItem(): MediaItem = MediaItem.Builder()
             .setTitle(title)
             .setArtist(artist.name)
             .setDurationMs(durationMillis)
+            .setArtworkUri(artworkUri?.let(Uri::parse))
             .build(),
     )
     .build()

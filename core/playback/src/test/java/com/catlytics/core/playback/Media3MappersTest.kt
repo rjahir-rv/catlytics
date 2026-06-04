@@ -20,6 +20,7 @@ class Media3MappersTest {
             ),
             durationMillis = 180_000L,
             mediaUri = "content://media/external/audio/media/42",
+            artworkUri = "content://media/external/audio/albumart/9",
         )
 
         val mediaItem = track.toMediaItem()
@@ -29,5 +30,6 @@ class Media3MappersTest {
         assertEquals("Local Song", mediaItem.mediaMetadata.title.toString())
         assertEquals("Local Artist", mediaItem.mediaMetadata.artist.toString())
         assertEquals(180_000L, mediaItem.mediaMetadata.durationMs)
+        assertEquals("content://media/external/audio/albumart/9", mediaItem.mediaMetadata.artworkUri.toString())
     }
 }

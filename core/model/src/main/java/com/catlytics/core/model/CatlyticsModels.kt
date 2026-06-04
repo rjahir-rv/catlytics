@@ -11,6 +11,7 @@ data class Track(
     val artist: Artist,
     val durationMillis: Long,
     val mediaUri: String,
+    val artworkUri: String? = null,
 )
 
 data class PlaybackState(
