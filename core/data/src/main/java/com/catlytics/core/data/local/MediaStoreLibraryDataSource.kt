@@ -1,6 +1,7 @@
 package com.catlytics.core.data.local
 
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.content.Context
 import android.os.Bundle
 import android.provider.MediaStore
@@ -44,13 +45,19 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             val isMusicColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC)
 
             while (cursor.moveToNext()) {
+                val id = cursor.getLong(idColumn)
+                val mediaUri = ContentUris.withAppendedId(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    id,
+                ).toString()
                 MediaStoreAudioMapper.toTrackEntity(
-                    id = cursor.getLong(idColumn),
+                    id = id,
                     title = cursor.getString(titleColumn),
                     artist = cursor.getString(artistColumn),
                     artistId = cursor.getLong(artistIdColumn),
                     durationMillis = cursor.getLong(durationColumn),
                     isMusic = cursor.getInt(isMusicColumn),
+                    mediaUri = mediaUri,
                 )?.let(tracks::add)
             }
         }
@@ -75,6 +82,7 @@ internal object MediaStoreAudioMapper {
         artistId: Long,
         durationMillis: Long,
         isMusic: Int,
+        mediaUri: String,
     ): TrackEntity? {
         if (isMusic == 0 || durationMillis <= 0L) return null
 
@@ -84,10 +92,11 @@ internal object MediaStoreAudioMapper {
 
         return TrackEntity(
             id = "mediastore-$id",
-            title = title?.takeUnless { it.isBlank() } ?: "Cancion sin titulo",
+            title = title?.takeUnless { it.isBlank() } ?: "Canción sin titulo",
             artistId = "mediastore-artist-$artistId",
             artistName = normalizedArtist,
             durationMillis = durationMillis,
+            mediaUri = mediaUri,
         )
     }
 

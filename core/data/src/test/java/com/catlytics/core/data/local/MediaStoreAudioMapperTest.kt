@@ -14,6 +14,7 @@ class MediaStoreAudioMapperTest {
             artistId = 7L,
             durationMillis = 180_000L,
             isMusic = 1,
+            mediaUri = "content://media/external/audio/media/42",
         )
 
         requireNotNull(track)
@@ -22,6 +23,7 @@ class MediaStoreAudioMapperTest {
         assertEquals("mediastore-artist-7", track.artistId)
         assertEquals("Local Artist", track.artistName)
         assertEquals(180_000L, track.durationMillis)
+        assertEquals("content://media/external/audio/media/42", track.mediaUri)
     }
 
     @Test
@@ -33,10 +35,29 @@ class MediaStoreAudioMapperTest {
             artistId = 7L,
             durationMillis = 180_000L,
             isMusic = 1,
+            mediaUri = "content://media/external/audio/media/42",
         )
 
         requireNotNull(track)
         assertEquals("Artista desconocido", track.artistName)
+    }
+
+    @Test
+    fun `toTrackEntity preserves media uri when metadata is normalized`() {
+        val track = MediaStoreAudioMapper.toTrackEntity(
+            id = 42L,
+            title = "",
+            artist = "<unknown>",
+            artistId = 7L,
+            durationMillis = 180_000L,
+            isMusic = 1,
+            mediaUri = "content://media/external/audio/media/42",
+        )
+
+        requireNotNull(track)
+        assertEquals("Cancion sin titulo", track.title)
+        assertEquals("Artista desconocido", track.artistName)
+        assertEquals("content://media/external/audio/media/42", track.mediaUri)
     }
 
     @Test
@@ -48,6 +69,7 @@ class MediaStoreAudioMapperTest {
             artistId = 7L,
             durationMillis = 0L,
             isMusic = 1,
+            mediaUri = "content://media/external/audio/media/42",
         )
 
         assertNull(track)
@@ -62,6 +84,7 @@ class MediaStoreAudioMapperTest {
             artistId = 7L,
             durationMillis = 180_000L,
             isMusic = 0,
+            mediaUri = "content://media/external/audio/media/42",
         )
 
         assertNull(track)

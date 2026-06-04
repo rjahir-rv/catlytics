@@ -3,7 +3,9 @@ package com.catlytics.feature.home.impl
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
+import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +21,7 @@ import kotlinx.coroutines.launch
 internal class HomeViewModel @Inject constructor(
     observeLibraryUseCase: ObserveLibraryUseCase,
     private val refreshLibraryUseCase: RefreshLibraryUseCase,
+    private val playTrackUseCase: PlayTrackUseCase,
 ) : ViewModel() {
     private val refreshError = MutableStateFlow<String?>(null)
     private val isRefreshing = MutableStateFlow(false)
@@ -56,6 +59,12 @@ internal class HomeViewModel @Inject constructor(
             } finally {
                 isRefreshing.value = false
             }
+        }
+    }
+
+    fun onTrackSelected(track: Track, queue: List<Track>) {
+        viewModelScope.launch {
+            playTrackUseCase(track, queue)
         }
     }
 }

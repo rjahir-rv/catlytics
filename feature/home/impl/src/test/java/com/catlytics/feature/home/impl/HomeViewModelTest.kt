@@ -1,10 +1,14 @@
 package com.catlytics.feature.home.impl
 
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,10 +37,12 @@ class HomeViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var repository: FakeLibraryRepository
+    private lateinit var playbackController: FakePlaybackController
 
     @Before
     fun setUp() {
         repository = FakeLibraryRepository()
+        playbackController = FakePlaybackController()
     }
 
     @Test
@@ -78,9 +84,23 @@ class HomeViewModelTest {
         assertTrue(viewModel.uiState.first() is HomeUiState.Loading)
     }
 
+    @Test
+    fun `onTrackSelected dispatches playback with selected track and queue`() = runTest {
+        val queue = listOf(track("track-1"), track("track-2"), track("track-3"))
+        val viewModel = homeViewModel()
+
+        viewModel.onTrackSelected(queue[1], queue)
+        advanceUntilIdle()
+
+        assertEquals(queue[1], playbackController.playedTrack)
+        assertEquals(queue, playbackController.playedQueue)
+        assertEquals(1, playbackController.startIndex)
+    }
+
     private fun homeViewModel() = HomeViewModel(
         observeLibraryUseCase = ObserveLibraryUseCase(repository),
         refreshLibraryUseCase = RefreshLibraryUseCase(repository),
+        playTrackUseCase = PlayTrackUseCase(playbackController),
     )
 
     private fun kotlinx.coroutines.CoroutineScope.startCollecting(viewModel: HomeViewModel) {
@@ -97,6 +117,7 @@ class HomeViewModelTest {
             name = "Artist $id",
         ),
         durationMillis = 180_000L,
+        mediaUri = "content://media/external/audio/media/$id",
     )
 }
 
@@ -126,4 +147,30 @@ private class FakeLibraryRepository : LibraryRepository {
     fun setTracks(newTracks: List<Track>) {
         tracks.update { newTracks }
     }
+}
+
+private class FakePlaybackController : PlaybackController {
+    override val playbackState: Flow<PlaybackState> = MutableStateFlow(PlaybackState())
+
+    lateinit var playedTrack: Track
+    lateinit var playedQueue: List<Track>
+    var startIndex: Int = -1
+
+    override suspend fun play(track: Track, queue: List<Track>, startIndex: Int) {
+        playedTrack = track
+        playedQueue = queue
+        this.startIndex = startIndex
+    }
+
+    override suspend fun togglePlayPause() = Unit
+
+    override suspend fun pause() = Unit
+
+    override suspend fun skipNext() = Unit
+
+    override suspend fun skipPrevious() = Unit
+
+    override suspend fun seekTo(positionMillis: Long) = Unit
+
+    override suspend fun stop() = Unit
 }

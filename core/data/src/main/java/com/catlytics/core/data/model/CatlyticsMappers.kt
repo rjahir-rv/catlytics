@@ -12,6 +12,7 @@ internal fun TrackEntity.toDomain() = Track(
         name = artistName,
     ),
     durationMillis = durationMillis,
+    mediaUri = mediaUri,
 )
 
 internal fun Track.toEntity() = TrackEntity(
@@ -20,6 +21,7 @@ internal fun Track.toEntity() = TrackEntity(
     artistId = artist.id,
     artistName = artist.name,
     durationMillis = durationMillis,
+    mediaUri = mediaUri,
 )
 
 internal fun PlaylistEntity.toDomain() = Playlist(

@@ -25,5 +25,6 @@ class InMemoryCatlyticsLocalDataSourceTest {
         artistId = "artist-$id",
         artistName = "Artist $id",
         durationMillis = 180_000L,
+        mediaUri = "content://media/external/audio/media/$id",
     )
 }

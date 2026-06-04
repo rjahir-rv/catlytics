@@ -11,6 +11,7 @@ data class TrackEntity(
     val artistId: String,
     val artistName: String,
     val durationMillis: Long,
+    val mediaUri: String,
 )
 
 data class PlaylistEntity(
