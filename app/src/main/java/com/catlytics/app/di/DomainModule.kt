@@ -4,14 +4,17 @@ import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
+import com.catlytics.core.domain.usecase.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.ObserveListeningStatsUseCase
 import com.catlytics.core.domain.usecase.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.ObservePlaylistsUseCase
 import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
+import com.catlytics.core.domain.usecase.RestorePlaybackSessionUseCase
 import com.catlytics.core.domain.usecase.SeekPlaybackUseCase
 import com.catlytics.core.domain.usecase.SkipPlaybackUseCase
+import com.catlytics.core.domain.usecase.ToggleShuffleUseCase
 import com.catlytics.core.domain.usecase.TogglePlaybackUseCase
 import dagger.Module
 import dagger.Provides
@@ -65,4 +68,19 @@ object DomainModule {
     fun provideSkipPlaybackUseCase(
         playbackController: PlaybackController,
     ) = SkipPlaybackUseCase(playbackController)
+
+    @Provides
+    fun provideToggleShuffleUseCase(
+        playbackController: PlaybackController,
+    ) = ToggleShuffleUseCase(playbackController)
+
+    @Provides
+    fun provideCycleRepeatModeUseCase(
+        playbackController: PlaybackController,
+    ) = CycleRepeatModeUseCase(playbackController)
+
+    @Provides
+    fun provideRestorePlaybackSessionUseCase(
+        playbackController: PlaybackController,
+    ) = RestorePlaybackSessionUseCase(playbackController)
 }

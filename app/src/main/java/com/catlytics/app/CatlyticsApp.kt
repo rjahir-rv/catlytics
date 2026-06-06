@@ -1,13 +1,15 @@
 package com.catlytics.app
 
+import android.net.Uri
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -15,11 +17,14 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
@@ -44,96 +49,120 @@ import com.catlytics.feature.statistics.impl.statisticsEntry
 fun CatlyticsApp(
     modifier: Modifier = Modifier,
     playbackViewModel: PlaybackViewModel = hiltViewModel(),
+    deepLinkUri: Uri? = null,
+    onDeepLinkHandled: () -> Unit = {},
 ) {
     val topLevelBackStack = remember { TopLevelBackStack(HomeRoute) }
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val isNowPlayingVisible = topLevelBackStack.backStack.lastOrNull() == NowPlayingRoute
 
+    LaunchedEffect(deepLinkUri) {
+        if (deepLinkUri != null) {
+            if (deepLinkUri.scheme == "catlytics" && deepLinkUri.host == "nowplaying") {
+                if (topLevelBackStack.backStack.lastOrNull() != NowPlayingRoute) {
+                    topLevelBackStack.add(NowPlayingRoute)
+                }
+            }
+            onDeepLinkHandled()
+        }
+    }
+
     fun closeNowPlaying() {
         topLevelBackStack.removeLast()
     }
 
-    Scaffold(
+    val currentRoute = topLevelBackStack.backStack.lastOrNull()
+    val isTopLevelDestination = TopLevelDestination.entries.any { it.route == currentRoute }
+
+    Scaffold (
         modifier = modifier,
         bottomBar = {
-            if (!isNowPlayingVisible) {
-                Column {
-                    playbackState.currentTrack?.let { track ->
-                        CatlyticsMiniPlayer(
-                            title = track.title,
-                            artist = track.artist.name,
-                            isPlaying = playbackState.status == PlaybackStatus.Playing,
-                            isBuffering = playbackState.status == PlaybackStatus.Buffering,
-                            positionMillis = playbackState.positionMillis,
-                            durationMillis = playbackState.durationMillis,
-                            onTogglePlayback = playbackViewModel::togglePlayback,
-                            onSkipPrevious = playbackViewModel::skipPrevious,
-                            onSkipNext = playbackViewModel::skipNext,
-                            onClick = {
-                                if (topLevelBackStack.backStack.lastOrNull() != NowPlayingRoute) {
-                                    topLevelBackStack.add(NowPlayingRoute)
-                                }
-                            },
-                            artwork = { artworkModifier ->
-                                AsyncImage(
-                                    model = track.artworkUri,
-                                    contentDescription = "Caratula de ${track.title}",
-                                    placeholder = painterResource(id = R.drawable.placeholder_album),
-                                    error = painterResource(id = R.drawable.placeholder_album),
-                                    fallback = painterResource(id = R.drawable.placeholder_album),
-                                    contentScale = ContentScale.Crop,
-                                    modifier = artworkModifier,
-                                )
-                            },
-                        )
-                    }
-                    CatlyticsBottomBar(
-                        selectedRoute = topLevelBackStack.topLevelKey,
-                        onDestinationSelected = topLevelBackStack::addTopLevel,
-                    )
-                }
+            if (isTopLevelDestination && !isNowPlayingVisible) {
+                CatlyticsBottomBar(
+                    selectedRoute = topLevelBackStack.topLevelKey,
+                    onDestinationSelected = topLevelBackStack::addTopLevel,
+                )
             }
         },
     ) { innerPadding ->
-        NavDisplay(
-            modifier = Modifier.padding(innerPadding),
-            backStack = topLevelBackStack.backStack,
-            onBack = { closeNowPlaying() },
-            transitionSpec = {
-                fadeIn() togetherWith fadeOut()
-            },
-            popTransitionSpec = {
-                fadeIn() togetherWith fadeOut()
-            },
-            entryProvider = entryProvider {
-                homeEntry()
-                libraryEntry()
-                playlistsEntry()
-                statisticsEntry()
-                entry<NowPlayingRoute>(
-                    metadata = metadata {
-                        put(NavDisplay.TransitionKey) {
-                            nowPlayingEnterTransition()
-                        }
-                        put(NavDisplay.PopTransitionKey) {
-                            nowPlayingExitTransition()
-                        }
-                        put(NavDisplay.PredictivePopTransitionKey) { _ ->
-                            nowPlayingExitTransition()
-                        }
-                    },
-                ) {
-                    NowPlayingScreen(
-                        playbackState = playbackState,
-                        onBack = ::closeNowPlaying,
+        Box(modifier = Modifier.fillMaxSize()) {
+            NavDisplay(
+                modifier = Modifier.padding(innerPadding),
+                backStack = topLevelBackStack.backStack,
+                onBack = { closeNowPlaying() },
+                transitionSpec = {
+                    fadeIn() togetherWith fadeOut()
+                },
+                popTransitionSpec = {
+                    fadeIn() togetherWith fadeOut()
+                },
+                entryProvider = entryProvider {
+                    homeEntry()
+                    libraryEntry()
+                    playlistsEntry()
+                    statisticsEntry()
+                    entry<NowPlayingRoute>(
+                        metadata = metadata {
+                            put(NavDisplay.TransitionKey) {
+                                nowPlayingEnterTransition()
+                            }
+                            put(NavDisplay.PopTransitionKey) {
+                                nowPlayingExitTransition()
+                            }
+                            put(NavDisplay.PredictivePopTransitionKey) { _ ->
+                                nowPlayingExitTransition()
+                            }
+                        },
+                    ) {
+                        NowPlayingScreen(
+                            playbackState = playbackState,
+                            onBack = ::closeNowPlaying,
+                            onTogglePlayback = playbackViewModel::togglePlayback,
+                            onSkipPrevious = playbackViewModel::skipPrevious,
+                            onSkipNext = playbackViewModel::skipNext,
+                            onSeekTo = playbackViewModel::seekTo,
+                            onToggleShuffle = playbackViewModel::toggleShuffle,
+                            onCycleRepeatMode = playbackViewModel::cycleRepeatMode,
+                        )
+                    }
+                },
+            )
+
+            if (!isNowPlayingVisible) {
+                playbackState.currentTrack?.let { track ->
+                    CatlyticsMiniPlayer(
+                        title = track.title,
+                        artist = track.artist.name,
+                        isPlaying = playbackState.status == PlaybackStatus.Playing,
+                        isBuffering = playbackState.status == PlaybackStatus.Buffering,
+                        positionMillis = playbackState.positionMillis,
+                        durationMillis = playbackState.durationMillis,
                         onTogglePlayback = playbackViewModel::togglePlayback,
                         onSkipPrevious = playbackViewModel::skipPrevious,
                         onSkipNext = playbackViewModel::skipNext,
-                        onSeekTo = playbackViewModel::seekTo,
+                        onClick = {
+                            if (topLevelBackStack.backStack.lastOrNull() != NowPlayingRoute) {
+                                topLevelBackStack.add(NowPlayingRoute)
+                            }
+                        },
+                        artwork = { artworkModifier ->
+                            AsyncImage(
+                                model = track.artworkUri,
+                                contentDescription = "Caratula de ${track.title}",
+                                placeholder = painterResource(id = R.drawable.placeholder_album),
+                                error = painterResource(id = R.drawable.placeholder_album),
+                                fallback = painterResource(id = R.drawable.placeholder_album),
+                                contentScale = ContentScale.Crop,
+                                modifier = artworkModifier,
+                            )
+                        },
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = innerPadding.calculateBottomPadding() + 8.dp)
                     )
                 }
-            },
-        )
+            }
+        }
     }
 }
 

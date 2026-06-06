@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -30,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -37,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import java.util.Locale
@@ -51,6 +54,8 @@ fun NowPlayingScreen(
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
     onSeekTo: (Long) -> Unit,
+    onToggleShuffle: () -> Unit,
+    onCycleRepeatMode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val track = playbackState.currentTrack
@@ -62,10 +67,11 @@ fun NowPlayingScreen(
         topBar = {
             TopAppBar(
                 title = { /* */ },
+                colors = TopAppBarDefaults.topAppBarColors(Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_arrow_left),
+                            painter = painterResource(id = R.drawable.ic_arrow_down),
                             contentDescription = "Volver",
                         )
                     }
@@ -129,14 +135,22 @@ fun NowPlayingScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
-                    onClick = {},
+                    onClick = onToggleShuffle,
                     modifier = Modifier.size(56.dp),
-                    enabled = false,
-
+                    enabled = track != null,
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_shuffle_square),
-                        contentDescription = "Mezclar",
+                        contentDescription = if (playbackState.isShuffleEnabled) {
+                            "Desactivar mezcla"
+                        } else {
+                            "Activar mezcla"
+                        },
+                        tint = if (playbackState.isShuffleEnabled) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            Color.Unspecified
+                        },
                     )
                 }
                 IconButton(
@@ -182,13 +196,28 @@ fun NowPlayingScreen(
                     )
                 }
                 IconButton(
-                    onClick = {},
+                    onClick = onCycleRepeatMode,
                     modifier = Modifier.size(56.dp),
-                    enabled = false,
+                    enabled = track != null,
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.ic_repeat),
-                        contentDescription = "Repetir",
+                        painter = painterResource(
+                            id = if (playbackState.repeatMode == PlaybackRepeatMode.One) {
+                                R.drawable.ic_repeat_one
+                            } else {
+                                R.drawable.ic_repeat_round
+                            },
+                        ),
+                        contentDescription = when (playbackState.repeatMode) {
+                            PlaybackRepeatMode.Off -> "Activar repetir canción"
+                            PlaybackRepeatMode.One -> "Activar repetir todo"
+                            PlaybackRepeatMode.All -> "Desactivar repetición"
+                        },
+                        tint = if (playbackState.repeatMode != PlaybackRepeatMode.Off) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            Color.Unspecified
+                        },
                     )
                 }
             }

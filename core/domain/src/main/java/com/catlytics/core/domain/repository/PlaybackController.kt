@@ -1,6 +1,7 @@
 package com.catlytics.core.domain.repository
 
 import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.flow.Flow
 
@@ -18,6 +19,12 @@ interface PlaybackController {
     suspend fun skipPrevious()
 
     suspend fun seekTo(positionMillis: Long)
+
+    suspend fun setShuffleEnabled(enabled: Boolean)
+
+    suspend fun setRepeatMode(mode: PlaybackRepeatMode)
+
+    suspend fun restoreLastSession()
 
     suspend fun stop()
 }

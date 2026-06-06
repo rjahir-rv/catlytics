@@ -6,6 +6,7 @@ import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.flow.Flow
@@ -171,6 +172,12 @@ private class FakePlaybackController : PlaybackController {
     override suspend fun skipPrevious() = Unit
 
     override suspend fun seekTo(positionMillis: Long) = Unit
+
+    override suspend fun setShuffleEnabled(enabled: Boolean) = Unit
+
+    override suspend fun setRepeatMode(mode: PlaybackRepeatMode) = Unit
+
+    override suspend fun restoreLastSession() = Unit
 
     override suspend fun stop() = Unit
 }

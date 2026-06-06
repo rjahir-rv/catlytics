@@ -22,6 +22,8 @@ data class PlaybackState(
     val positionMillis: Long = 0L,
     val durationMillis: Long = 0L,
     val bufferedPositionMillis: Long = 0L,
+    val isShuffleEnabled: Boolean = false,
+    val repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
 )
 
 enum class PlaybackStatus {
@@ -32,6 +34,21 @@ enum class PlaybackStatus {
     Ended,
     Error,
 }
+
+enum class PlaybackRepeatMode {
+    Off,
+    One,
+    All,
+}
+
+data class PlaybackSessionSnapshot(
+    val queueTrackIds: List<String> = emptyList(),
+    val currentTrackId: String? = null,
+    val currentIndex: Int = 0,
+    val positionMillis: Long = 0L,
+    val isShuffleEnabled: Boolean = false,
+    val repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
+)
 
 data class Playlist(
     val id: String,

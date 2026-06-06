@@ -1,5 +1,6 @@
 package com.catlytics.core.designsystem.component
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -19,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,12 +52,19 @@ fun CatlyticsMiniPlayer(
         )
     },
 ) {
+    val containerShape = RoundedCornerShape(24.dp)
+
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .shadow(elevation = 8.dp, shape = containerShape)
+            .clip(containerShape)
+            .animateContentSize(),
         onClick = onClick,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = containerShape,
+        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f),
         contentColor = MaterialTheme.colorScheme.onSurface,
-        tonalElevation = 3.dp,
     ) {
         Column {
             LinearProgressIndicator(

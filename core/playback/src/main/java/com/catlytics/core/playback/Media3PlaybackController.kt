@@ -7,7 +7,11 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackController
+import com.catlytics.core.domain.repository.PlaybackSessionRepository
+import com.catlytics.core.model.PlaybackRepeatMode
+import com.catlytics.core.model.PlaybackSessionSnapshot
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
@@ -21,6 +25,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +39,8 @@ import kotlin.time.Duration.Companion.milliseconds
 @Singleton
 class Media3PlaybackController @Inject constructor(
     @param:ApplicationContext private val context: Context,
+    private val libraryRepository: LibraryRepository,
+    private val playbackSessionRepository: PlaybackSessionRepository,
 ) : PlaybackController {
     private val _playbackState = MutableStateFlow(PlaybackState())
     override val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -42,6 +49,7 @@ class Media3PlaybackController @Inject constructor(
     private val controllerFuture: ListenableFuture<MediaController>
     private var queue: List<Track> = emptyList()
     private var progressUpdatesJob: Job? = null
+    private var lastSessionSaveTimeMillis = 0L
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -78,7 +86,7 @@ class Media3PlaybackController @Inject constructor(
             controller.setMediaItems(playbackQueue.map { it.toMediaItem() }, selectedIndex, 0L)
             controller.prepare()
             controller.play()
-            updatePlaybackState(controller, playbackQueue)
+            updatePlaybackState(controller, playbackQueue, forcePersist = true)
         }
     }
 
@@ -89,47 +97,96 @@ class Media3PlaybackController @Inject constructor(
             } else {
                 controller.play()
             }
-            updatePlaybackState(controller)
+            updatePlaybackState(controller, forcePersist = true)
         }
     }
 
     override suspend fun pause() {
         withController { controller ->
             controller.pause()
-            updatePlaybackState(controller)
+            updatePlaybackState(controller, forcePersist = true)
         }
     }
 
     override suspend fun skipNext() {
         withController { controller ->
             controller.seekToNextMediaItem()
-            updatePlaybackState(controller)
+            updatePlaybackState(controller, forcePersist = true)
         }
     }
 
     override suspend fun skipPrevious() {
         withController { controller ->
             controller.seekToPreviousMediaItem()
-            updatePlaybackState(controller)
+            updatePlaybackState(controller, forcePersist = true)
         }
     }
 
     override suspend fun seekTo(positionMillis: Long) {
         withController { controller ->
             controller.seekTo(positionMillis)
-            updatePlaybackState(controller)
+            updatePlaybackState(controller, forcePersist = true)
+        }
+    }
+
+    override suspend fun setShuffleEnabled(enabled: Boolean) {
+        withController { controller ->
+            controller.shuffleModeEnabled = enabled
+            updatePlaybackState(controller, forcePersist = true)
+        }
+    }
+
+    override suspend fun setRepeatMode(mode: PlaybackRepeatMode) {
+        withController { controller ->
+            controller.repeatMode = mode.toMedia3RepeatMode()
+            updatePlaybackState(controller, forcePersist = true)
+        }
+    }
+
+    override suspend fun restoreLastSession() {
+        if (_playbackState.value.currentTrack != null) return
+
+        val snapshot = playbackSessionRepository.observeSession().first() ?: return
+        runCatching { libraryRepository.refreshTracks() }
+        val availableTracksById = libraryRepository.observeTracks().first().associateBy { it.id }
+        val restoredQueue = snapshot.queueTrackIds.mapNotNull(availableTracksById::get)
+        if (restoredQueue.isEmpty()) return
+
+        val restoredIndex = restoredQueue.indexOfFirst { it.id == snapshot.currentTrackId }
+            .takeUnless { it < 0 }
+            ?: snapshot.currentIndex.coerceIn(0, restoredQueue.lastIndex)
+        queue = restoredQueue
+
+        withController { controller ->
+            controller.shuffleModeEnabled = snapshot.isShuffleEnabled
+            controller.repeatMode = snapshot.repeatMode.toMedia3RepeatMode()
+            controller.setMediaItems(
+                restoredQueue.map { it.toMediaItem() },
+                restoredIndex,
+                snapshot.positionMillis.coerceAtLeast(0L),
+            )
+            controller.prepare()
+            controller.pause()
+            updatePlaybackState(controller, restoredQueue, forcePersist = true)
         }
     }
 
     override suspend fun stop() {
         withController { controller ->
             controller.stop()
-            updatePlaybackState(controller)
+            updatePlaybackState(controller, forcePersist = true)
         }
+        playbackSessionRepository.clearSession()
     }
 
-    private fun updatePlaybackState(player: Player, playbackQueue: List<Track> = queue) {
-        _playbackState.value = player.toPlaybackState(playbackQueue)
+    private fun updatePlaybackState(
+        player: Player,
+        playbackQueue: List<Track> = queue,
+        forcePersist: Boolean = false,
+    ) {
+        val state = player.toPlaybackState(playbackQueue)
+        _playbackState.value = state
+        persistPlaybackSession(state, forcePersist)
         if (player.isPlaying) {
             startProgressUpdates(player)
         } else {
@@ -142,7 +199,7 @@ class Media3PlaybackController @Inject constructor(
         progressUpdatesJob = playbackScope.launch {
             while (isActive) {
                 delay(PROGRESS_UPDATE_INTERVAL_MILLIS.milliseconds)
-                _playbackState.value = player.toPlaybackState(queue)
+                updatePlaybackState(player)
                 if (!player.isPlaying) {
                     stopProgressUpdates()
                 }
@@ -153,6 +210,31 @@ class Media3PlaybackController @Inject constructor(
     private fun stopProgressUpdates() {
         progressUpdatesJob?.cancel()
         progressUpdatesJob = null
+    }
+
+    private fun persistPlaybackSession(state: PlaybackState, force: Boolean) {
+        val snapshot = state.toPlaybackSessionSnapshot() ?: return
+        val now = System.currentTimeMillis()
+        if (!force && now - lastSessionSaveTimeMillis < SESSION_SAVE_INTERVAL_MILLIS) return
+
+        lastSessionSaveTimeMillis = now
+        playbackScope.launch {
+            playbackSessionRepository.saveSession(snapshot)
+        }
+    }
+
+    private fun PlaybackState.toPlaybackSessionSnapshot(): PlaybackSessionSnapshot? {
+        val track = currentTrack ?: return null
+        if (queue.isEmpty()) return null
+
+        return PlaybackSessionSnapshot(
+            queueTrackIds = queue.map { it.id },
+            currentTrackId = track.id,
+            currentIndex = currentIndex,
+            positionMillis = positionMillis,
+            isShuffleEnabled = isShuffleEnabled,
+            repeatMode = repeatMode,
+        )
     }
 
     private suspend fun withController(block: (MediaController) -> Unit) {
@@ -172,5 +254,6 @@ class Media3PlaybackController @Inject constructor(
 
     private companion object {
         const val PROGRESS_UPDATE_INTERVAL_MILLIS = 1_000L
+        const val SESSION_SAVE_INTERVAL_MILLIS = 5_000L
     }
 }
