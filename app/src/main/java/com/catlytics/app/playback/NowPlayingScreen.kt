@@ -24,8 +24,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -216,7 +218,7 @@ fun NowPlayingScreen(
                         tint = if (playbackState.repeatMode != PlaybackRepeatMode.Off) {
                             MaterialTheme.colorScheme.primary
                         } else {
-                            Color.Unspecified
+                            MaterialTheme.colorScheme.secondary
                         },
                     )
                 }
@@ -233,16 +235,33 @@ private fun PlaybackProgress(
     onSeekTo: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var pendingProgress by remember(positionMillis, durationMillis) {
+    var pendingProgress by remember {
         mutableFloatStateOf(positionMillis.progressFor(durationMillis))
+    }
+    var isSeeking by remember { mutableStateOf(false) }
+    val positionText = remember(positionMillis / MILLIS_PER_SECOND) {
+        positionMillis.formatDuration()
+    }
+    val durationText = remember(durationMillis) {
+        durationMillis.formatDuration()
+    }
+
+    LaunchedEffect(positionMillis, durationMillis) {
+        if (!isSeeking) {
+            pendingProgress = positionMillis.progressFor(durationMillis)
+        }
     }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Slider(
             value = pendingProgress,
-            onValueChange = { pendingProgress = it },
+            onValueChange = {
+                isSeeking = true
+                pendingProgress = it
+            },
             onValueChangeFinished = {
                 onSeekTo((durationMillis * pendingProgress).toLong())
+                isSeeking = false
             },
             enabled = enabled && durationMillis > 0L,
             valueRange = 0f..1f,
@@ -252,18 +271,20 @@ private fun PlaybackProgress(
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             Text(
-                text = positionMillis.formatDuration(),
+                text = positionText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
-                text = durationMillis.formatDuration(),
+                text = durationText,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
+
+private const val MILLIS_PER_SECOND = 1_000L
 
 private fun Long.progressFor(durationMillis: Long): Float =
     if (durationMillis > 0L) {

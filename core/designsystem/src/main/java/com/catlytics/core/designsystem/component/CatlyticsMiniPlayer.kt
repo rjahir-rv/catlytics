@@ -18,10 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -53,12 +53,17 @@ fun CatlyticsMiniPlayer(
     },
 ) {
     val containerShape = RoundedCornerShape(24.dp)
+    val positionText = remember(positionMillis / MILLIS_PER_SECOND) {
+        positionMillis.formatDuration()
+    }
+    val durationText = remember(durationMillis) {
+        durationMillis.formatDuration()
+    }
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
-            .shadow(elevation = 8.dp, shape = containerShape)
             .clip(containerShape)
             .animateContentSize(),
         onClick = onClick,
@@ -76,7 +81,8 @@ fun CatlyticsMiniPlayer(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f),
+                trackColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.85f),
             )
             Row(
                 modifier = Modifier
@@ -99,13 +105,14 @@ fun CatlyticsMiniPlayer(
                     Text(
                         text = title,
                         style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = "$artist - ${positionMillis.formatDuration()} / ${durationMillis.formatDuration()}",
+                        text = "$artist - $positionText / $durationText",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.70f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -134,7 +141,7 @@ fun CatlyticsMiniPlayer(
                     IconButton(onClick = onSkipNext) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_skip_next),
-                            contentDescription = "siguiente",
+                            contentDescription = "Siguiente",
                         )
                     }
                 }
@@ -142,6 +149,8 @@ fun CatlyticsMiniPlayer(
         }
     }
 }
+
+private const val MILLIS_PER_SECOND = 1_000L
 
 private fun Long.formatDuration(): String {
     val duration = milliseconds
