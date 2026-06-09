@@ -98,12 +98,6 @@ internal fun HomeScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(
-            text = "Inicio",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-
         if (!hasAudioPermission) {
             PermissionRequiredContent(onRequestPermission = onRequestPermission)
             return@Column

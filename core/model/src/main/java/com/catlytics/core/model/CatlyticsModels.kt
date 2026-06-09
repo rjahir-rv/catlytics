@@ -61,3 +61,9 @@ data class ListeningStats(
     val totalPlaylists: Int,
     val totalDurationMillis: Long,
 )
+
+enum class ThemeMode {
+    System,
+    Light,
+    Dark,
+}

@@ -9,9 +9,11 @@ import com.catlytics.core.data.mediator.OfflineFirstCatlyticsDataMediator
 import com.catlytics.core.data.remote.CatlyticsRemoteDataSource
 import com.catlytics.core.data.remote.NoOpCatlyticsRemoteDataSource
 import com.catlytics.core.data.repository.DefaultStatisticsRepository
+import com.catlytics.core.data.repository.DataStoreAppPreferencesRepository
 import com.catlytics.core.data.repository.DataStorePlaybackSessionRepository
 import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
 import com.catlytics.core.data.repository.OfflineFirstPlaylistRepository
+import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
@@ -25,6 +27,12 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 interface DataModule {
+    @Binds
+    @Singleton
+    fun bindAppPreferencesRepository(
+        repository: DataStoreAppPreferencesRepository,
+    ): AppPreferencesRepository
+
     @Binds
     @Singleton
     fun bindLocalDataSource(

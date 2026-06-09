@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -37,12 +38,15 @@ import com.catlytics.app.playback.NowPlayingScreen
 import com.catlytics.app.playback.PlaybackViewModel
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
+import com.catlytics.core.designsystem.component.CatlyticsTopAppBar
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.impl.homeEntry
 import com.catlytics.feature.library.impl.libraryEntry
 import com.catlytics.feature.playlists.impl.playlistsEntry
+import com.catlytics.feature.settings.api.SettingsRoute
+import com.catlytics.feature.settings.impl.settingsEntry
 import com.catlytics.feature.statistics.impl.statisticsEntry
 
 @Composable
@@ -52,9 +56,20 @@ fun CatlyticsApp(
     deepLinkUri: Uri? = null,
     onDeepLinkHandled: () -> Unit = {},
 ) {
+    val context = LocalContext.current
     val topLevelBackStack = remember { TopLevelBackStack(HomeRoute) }
+    val appVersion = remember(context) {
+        context.packageManager
+            .getPackageInfo(context.packageName, 0)
+            .versionName
+            .orEmpty()
+    }
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
-    val isNowPlayingVisible = topLevelBackStack.backStack.lastOrNull() == NowPlayingRoute
+    val currentRoute = topLevelBackStack.backStack.lastOrNull()
+    val currentTopLevelDestination = TopLevelDestination.entries
+        .firstOrNull { it.route == currentRoute }
+    val isNowPlayingVisible = currentRoute == NowPlayingRoute
+    val isSettingsVisible = currentRoute == SettingsRoute
 
     LaunchedEffect(deepLinkUri) {
         if (deepLinkUri != null) {
@@ -67,17 +82,38 @@ fun CatlyticsApp(
         }
     }
 
-    fun closeNowPlaying() {
+    fun closeCurrentDestination() {
         topLevelBackStack.removeLast()
     }
 
-    val currentRoute = topLevelBackStack.backStack.lastOrNull()
-    val isTopLevelDestination = TopLevelDestination.entries.any { it.route == currentRoute }
-
-    Scaffold (
+    Scaffold(
         modifier = modifier,
+        topBar = {
+            when {
+                currentTopLevelDestination != null -> {
+                    CatlyticsTopAppBar(
+                        title = currentTopLevelDestination.label,
+                        navigationIconRes = R.drawable.ic_settings,
+                        navigationIconContentDescription = "Abrir ajustes",
+                        onNavigationClick = {
+                            if (topLevelBackStack.backStack.lastOrNull() != SettingsRoute) {
+                                topLevelBackStack.add(SettingsRoute)
+                            }
+                        },
+                    )
+                }
+                isSettingsVisible -> {
+                    CatlyticsTopAppBar(
+                        title = "Ajustes",
+                        navigationIconRes = R.drawable.ic_arrow_left,
+                        navigationIconContentDescription = "Volver",
+                        onNavigationClick = ::closeCurrentDestination,
+                    )
+                }
+            }
+        },
         bottomBar = {
-            if (isTopLevelDestination && !isNowPlayingVisible) {
+            if (currentTopLevelDestination != null && !isNowPlayingVisible) {
                 CatlyticsBottomBar(
                     selectedRoute = topLevelBackStack.topLevelKey,
                     onDestinationSelected = topLevelBackStack::addTopLevel,
@@ -89,7 +125,7 @@ fun CatlyticsApp(
             NavDisplay(
                 modifier = Modifier.padding(innerPadding),
                 backStack = topLevelBackStack.backStack,
-                onBack = { closeNowPlaying() },
+                onBack = ::closeCurrentDestination,
                 transitionSpec = {
                     fadeIn() togetherWith fadeOut()
                 },
@@ -100,6 +136,7 @@ fun CatlyticsApp(
                     homeEntry()
                     libraryEntry()
                     playlistsEntry()
+                    settingsEntry(appVersion = appVersion)
                     statisticsEntry()
                     entry<NowPlayingRoute>(
                         metadata = metadata {
@@ -116,7 +153,7 @@ fun CatlyticsApp(
                     ) {
                         NowPlayingScreen(
                             playbackState = playbackState,
-                            onBack = ::closeNowPlaying,
+                            onBack = ::closeCurrentDestination,
                             onTogglePlayback = playbackViewModel::togglePlayback,
                             onSkipPrevious = playbackViewModel::skipPrevious,
                             onSkipNext = playbackViewModel::skipNext,

@@ -4,18 +4,15 @@ plugins {
 }
 
 android {
-    namespace = "com.catlytics.feature.home.impl"
+    namespace = "com.catlytics.feature.settings.impl"
 }
 
 dependencies {
-    api(project(":feature:home:api"))
+    api(project(":feature:settings:api"))
     implementation(project(":core:domain"))
     implementation(project(":core:model"))
     implementation(project(":core:navigation"))
-    implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)

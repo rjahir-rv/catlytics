@@ -6,9 +6,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
+import com.catlytics.core.model.ThemeMode
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -22,11 +25,20 @@ class MainActivity : ComponentActivity() {
         deepLinkFlow.value = intent?.data
 
         setContent {
+            val themeViewModel: ThemeViewModel = hiltViewModel()
             val deepLinkUri by deepLinkFlow.collectAsStateWithLifecycle()
-            CatlyticsTheme {
+            val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
+            val systemInDarkTheme = isSystemInDarkTheme()
+            val darkThemeEnabled = when (themeMode) {
+                ThemeMode.System -> systemInDarkTheme
+                ThemeMode.Light -> false
+                ThemeMode.Dark -> true
+            }
+
+            CatlyticsTheme(darkTheme = darkThemeEnabled) {
                 CatlyticsApp(
                     deepLinkUri = deepLinkUri,
-                    onDeepLinkHandled = { deepLinkFlow.value = null }
+                    onDeepLinkHandled = { deepLinkFlow.value = null },
                 )
             }
         }
