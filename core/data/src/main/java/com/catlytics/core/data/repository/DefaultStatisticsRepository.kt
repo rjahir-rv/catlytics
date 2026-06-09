@@ -1,16 +1,18 @@
 package com.catlytics.core.data.repository
 
-import com.catlytics.core.data.local.CatlyticsLocalDataSource
+import com.catlytics.core.data.local.LocalDataSource
+import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.model.ListeningStats
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
 
 class DefaultStatisticsRepository @Inject constructor(
-    private val localDataSource: CatlyticsLocalDataSource,
+    private val localDataSource: LocalDataSource,
+    private val libraryRepository: LibraryRepository,
 ) : StatisticsRepository {
     override fun observeListeningStats() = combine(
-        localDataSource.observeTracks(),
+        libraryRepository.observeTracks(),
         localDataSource.observePlaylists(),
     ) { tracks, playlists ->
         ListeningStats(

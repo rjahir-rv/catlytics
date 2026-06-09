@@ -2,11 +2,8 @@ package com.catlytics.core.domain.usecase
 
 import com.catlytics.core.domain.repository.LibraryRepository
 
-class RefreshLibraryUseCase(
+class ObserveLibraryFoldersUseCase(
     private val libraryRepository: LibraryRepository,
 ) {
-    suspend operator fun invoke() {
-        libraryRepository.refreshTracks()
-    }
+    operator fun invoke() = libraryRepository.observeFolders()
 }
-//case

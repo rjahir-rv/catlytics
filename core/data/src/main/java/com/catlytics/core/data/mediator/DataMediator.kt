@@ -1,5 +1,5 @@
 package com.catlytics.core.data.mediator
 
-interface CatlyticsDataMediator {
+interface DataMediator {
     suspend fun syncLibrary()
 }

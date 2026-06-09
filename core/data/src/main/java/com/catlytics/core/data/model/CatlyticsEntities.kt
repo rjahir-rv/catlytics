@@ -13,6 +13,9 @@ data class TrackEntity(
     val durationMillis: Long,
     val mediaUri: String,
     val artworkUri: String? = null,
+    val folderId: String? = null,
+    val folderName: String? = null,
+    val folderPath: String? = null,
 )
 
 data class PlaylistEntity(

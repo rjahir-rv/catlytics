@@ -4,7 +4,7 @@ import com.catlytics.core.data.model.PlaylistEntity
 import com.catlytics.core.data.model.TrackEntity
 import kotlinx.coroutines.flow.Flow
 
-interface CatlyticsLocalDataSource {
+interface LocalDataSource {
     fun observeTracks(): Flow<List<TrackEntity>>
 
     fun observePlaylists(): Flow<List<PlaylistEntity>>

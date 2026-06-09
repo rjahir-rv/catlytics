@@ -8,7 +8,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class InMemoryCatlyticsLocalDataSource @Inject constructor() : CatlyticsLocalDataSource {
+class InMemoryLocalDataSource @Inject constructor() : LocalDataSource {
     private val tracks = MutableStateFlow(emptyList<TrackEntity>())
     private val playlists = MutableStateFlow(seedPlaylists)
 

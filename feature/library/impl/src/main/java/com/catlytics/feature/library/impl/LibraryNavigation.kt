@@ -6,6 +6,6 @@ import com.catlytics.feature.library.api.LibraryRoute
 
 fun EntryProviderScope<NavKey>.libraryEntry() {
     entry<LibraryRoute> {
-        LibraryScreen()
+        LibraryRoute()
     }
 }

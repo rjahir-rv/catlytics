@@ -6,10 +6,10 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-class InMemoryCatlyticsLocalDataSourceTest {
+class InMemoryLocalDataSourceTest {
     @Test
     fun `replaceTracks replaces current tracks`() = runTest {
-        val dataSource = InMemoryCatlyticsLocalDataSource()
+        val dataSource = InMemoryLocalDataSource()
         val firstTrack = trackEntity(id = "track-1")
         val secondTrack = trackEntity(id = "track-2")
 

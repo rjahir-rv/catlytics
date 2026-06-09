@@ -6,6 +6,7 @@ import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.usecase.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.ObserveListeningStatsUseCase
 import com.catlytics.core.domain.usecase.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.ObservePlaylistsUseCase
@@ -13,6 +14,7 @@ import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.RestorePlaybackSessionUseCase
 import com.catlytics.core.domain.usecase.SeekPlaybackUseCase
+import com.catlytics.core.domain.usecase.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.SkipPlaybackUseCase
 import com.catlytics.core.domain.usecase.ToggleShuffleUseCase
 import com.catlytics.core.domain.usecase.TogglePlaybackUseCase
@@ -30,9 +32,19 @@ object DomainModule {
     ) = ObserveLibraryUseCase(libraryRepository)
 
     @Provides
+    fun provideObserveLibraryFoldersUseCase(
+        libraryRepository: LibraryRepository,
+    ) = ObserveLibraryFoldersUseCase(libraryRepository)
+
+    @Provides
     fun provideRefreshLibraryUseCase(
         libraryRepository: LibraryRepository,
     ) = RefreshLibraryUseCase(libraryRepository)
+
+    @Provides
+    fun provideSetFolderVisibilityUseCase(
+        libraryRepository: LibraryRepository,
+    ) = SetFolderVisibilityUseCase(libraryRepository)
 
     @Provides
     fun provideObservePlaylistsUseCase(

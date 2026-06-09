@@ -1,15 +1,15 @@
 package com.catlytics.core.data.mediator
 
-import com.catlytics.core.data.local.CatlyticsLocalDataSource
+import com.catlytics.core.data.local.LocalDataSource
 import com.catlytics.core.data.local.MediaStoreLibraryDataSource
-import com.catlytics.core.data.remote.CatlyticsRemoteDataSource
+import com.catlytics.core.data.remote.RemoteDataSource
 import javax.inject.Inject
 
-class OfflineFirstCatlyticsDataMediator @Inject constructor(
-    private val localDataSource: CatlyticsLocalDataSource,
+class OfflineFirstDataMediator @Inject constructor(
+    private val localDataSource: LocalDataSource,
     private val mediaStoreLibraryDataSource: MediaStoreLibraryDataSource,
-    private val remoteDataSource: CatlyticsRemoteDataSource,
-) : CatlyticsDataMediator {
+    private val remoteDataSource: RemoteDataSource,
+) : DataMediator {
     override suspend fun syncLibrary() {
         val localTracks = mediaStoreLibraryDataSource.loadTracks()
         localDataSource.replaceTracks(localTracks)

@@ -4,9 +4,11 @@ import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
 import android.os.Bundle
+import android.os.Build
 import android.provider.MediaStore
 import com.catlytics.core.data.model.TrackEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -24,7 +26,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
         val tracks = mutableListOf<TrackEntity>()
         contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            MediaStoreAudioMapper.projection,
+            MediaStoreAudioMapper.projection(),
             Bundle().apply {
                 putStringArray(
                     ContentResolver.QUERY_ARG_SORT_COLUMNS,
@@ -44,6 +46,22 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val isMusicColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC)
+            val relativePathColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH)
+            } else {
+                -1
+            }
+            val volumeNameColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.VOLUME_NAME)
+            } else {
+                -1
+            }
+            @Suppress("DEPRECATION")
+            val dataColumn = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            } else {
+                -1
+            }
 
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idColumn)
@@ -60,6 +78,16 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
                     durationMillis = cursor.getLong(durationColumn),
                     isMusic = cursor.getInt(isMusicColumn),
                     mediaUri = mediaUri,
+                    folder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        MediaStoreAudioMapper.folderFromRelativePath(
+                            volumeName = cursor.getString(volumeNameColumn),
+                            relativePath = cursor.getString(relativePathColumn),
+                        )
+                    } else {
+                        MediaStoreAudioMapper.folderFromAbsolutePath(
+                            absolutePath = cursor.getString(dataColumn),
+                        )
+                    },
                 )?.let(tracks::add)
             }
         }
@@ -68,15 +96,22 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
 }
 
 internal object MediaStoreAudioMapper {
-    val projection = arrayOf(
-        MediaStore.Audio.Media._ID,
-        MediaStore.Audio.Media.TITLE,
-        MediaStore.Audio.Media.ARTIST,
-        MediaStore.Audio.Media.ARTIST_ID,
-        MediaStore.Audio.Media.ALBUM_ID,
-        MediaStore.Audio.Media.DURATION,
-        MediaStore.Audio.Media.IS_MUSIC,
-    )
+    fun projection(): Array<String> = buildList {
+        add(MediaStore.Audio.Media._ID)
+        add(MediaStore.Audio.Media.TITLE)
+        add(MediaStore.Audio.Media.ARTIST)
+        add(MediaStore.Audio.Media.ARTIST_ID)
+        add(MediaStore.Audio.Media.ALBUM_ID)
+        add(MediaStore.Audio.Media.DURATION)
+        add(MediaStore.Audio.Media.IS_MUSIC)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            add(MediaStore.Audio.Media.RELATIVE_PATH)
+            add(MediaStore.Audio.Media.VOLUME_NAME)
+        } else {
+            @Suppress("DEPRECATION")
+            add(MediaStore.Audio.Media.DATA)
+        }
+    }.toTypedArray()
 
     fun toTrackEntity(
         id: Long,
@@ -87,6 +122,7 @@ internal object MediaStoreAudioMapper {
         durationMillis: Long,
         isMusic: Int,
         mediaUri: String,
+        folder: MediaFolderMetadata? = null,
     ): TrackEntity? {
         if (isMusic == 0 || durationMillis <= 0L) return null
 
@@ -102,6 +138,36 @@ internal object MediaStoreAudioMapper {
             durationMillis = durationMillis,
             mediaUri = mediaUri,
             artworkUri = albumId.toArtworkUri(),
+            folderId = folder?.id,
+            folderName = folder?.name,
+            folderPath = folder?.path,
+        )
+    }
+
+    fun folderFromRelativePath(
+        volumeName: String?,
+        relativePath: String?,
+    ): MediaFolderMetadata? {
+        val normalizedPath = relativePath.normalizePath() ?: return null
+        val normalizedVolume = volumeName?.takeUnless(String::isBlank) ?: "external"
+        return MediaFolderMetadata(
+            id = "$normalizedVolume:$normalizedPath",
+            name = normalizedPath.substringAfterLast('/'),
+            path = normalizedPath,
+        )
+    }
+
+    fun folderFromAbsolutePath(absolutePath: String?): MediaFolderMetadata? {
+        val parentPath = absolutePath
+            ?.takeUnless(String::isBlank)
+            ?.let(::File)
+            ?.parent
+            .normalizePath()
+            ?: return null
+        return MediaFolderMetadata(
+            id = "external:$parentPath",
+            name = parentPath.substringAfterLast('/'),
+            path = parentPath,
         )
     }
 
@@ -110,4 +176,17 @@ internal object MediaStoreAudioMapper {
 
     private fun Long.toArtworkUri(): String? = takeIf { it > 0L }
         ?.let { "$ARTWORK_BASE_URI/$it" }
+
+    private fun String?.normalizePath(): String? = this
+        ?.replace('\\', '/')
+        ?.split('/')
+        ?.filter(String::isNotBlank)
+        ?.joinToString("/")
+        ?.takeUnless(String::isBlank)
 }
+
+internal data class MediaFolderMetadata(
+    val id: String,
+    val name: String,
+    val path: String,
+)

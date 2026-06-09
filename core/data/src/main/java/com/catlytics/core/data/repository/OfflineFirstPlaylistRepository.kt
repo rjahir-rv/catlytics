@@ -1,6 +1,6 @@
 package com.catlytics.core.data.repository
 
-import com.catlytics.core.data.local.CatlyticsLocalDataSource
+import com.catlytics.core.data.local.LocalDataSource
 import com.catlytics.core.data.model.toDomain
 import com.catlytics.core.data.model.toEntity
 import com.catlytics.core.domain.repository.PlaylistRepository
@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 class OfflineFirstPlaylistRepository @Inject constructor(
-    private val localDataSource: CatlyticsLocalDataSource,
+    private val localDataSource: LocalDataSource,
 ) : PlaylistRepository {
     override fun observePlaylists() = localDataSource.observePlaylists()
         .map { playlists -> playlists.map { it.toDomain() } }

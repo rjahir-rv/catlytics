@@ -14,6 +14,14 @@ data class Track(
     val artworkUri: String? = null,
 )
 
+data class LibraryFolder(
+    val id: String,
+    val name: String,
+    val path: String,
+    val trackCount: Int,
+    val isVisible: Boolean,
+)
+
 data class PlaybackState(
     val status: PlaybackStatus = PlaybackStatus.Idle,
     val currentTrack: Track? = null,

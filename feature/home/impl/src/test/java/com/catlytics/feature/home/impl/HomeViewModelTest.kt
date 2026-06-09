@@ -6,6 +6,7 @@ import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
@@ -137,13 +138,18 @@ class MainDispatcherRule(
 
 private class FakeLibraryRepository : LibraryRepository {
     private val tracks = MutableStateFlow(emptyList<Track>())
+    private val folders = MutableStateFlow(emptyList<LibraryFolder>())
     var refreshResult: Result<Unit> = Result.success(Unit)
 
     override fun observeTracks() = tracks
 
+    override fun observeFolders() = folders
+
     override suspend fun refreshTracks() {
         refreshResult.getOrThrow()
     }
+
+    override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
 
     fun setTracks(newTracks: List<Track>) {
         tracks.update { newTracks }

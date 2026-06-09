@@ -1,20 +1,22 @@
 package com.catlytics.app.di
 
 import com.catlytics.core.data.local.AndroidMediaStoreLibraryDataSource
-import com.catlytics.core.data.local.CatlyticsLocalDataSource
-import com.catlytics.core.data.local.InMemoryCatlyticsLocalDataSource
+import com.catlytics.core.data.local.InMemoryLocalDataSource
+import com.catlytics.core.data.local.LocalDataSource
 import com.catlytics.core.data.local.MediaStoreLibraryDataSource
-import com.catlytics.core.data.mediator.CatlyticsDataMediator
-import com.catlytics.core.data.mediator.OfflineFirstCatlyticsDataMediator
-import com.catlytics.core.data.remote.CatlyticsRemoteDataSource
-import com.catlytics.core.data.remote.NoOpCatlyticsRemoteDataSource
+import com.catlytics.core.data.mediator.DataMediator
+import com.catlytics.core.data.mediator.OfflineFirstDataMediator
+import com.catlytics.core.data.remote.NoOpRemoteDataSource
+import com.catlytics.core.data.remote.RemoteDataSource
 import com.catlytics.core.data.repository.DefaultStatisticsRepository
 import com.catlytics.core.data.repository.DataStoreAppPreferencesRepository
+import com.catlytics.core.data.repository.DataStoreLibraryPreferencesRepository
 import com.catlytics.core.data.repository.DataStorePlaybackSessionRepository
 import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
 import com.catlytics.core.data.repository.OfflineFirstPlaylistRepository
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
@@ -35,9 +37,15 @@ interface DataModule {
 
     @Binds
     @Singleton
+    fun bindLibraryPreferencesRepository(
+        repository: DataStoreLibraryPreferencesRepository,
+    ): LibraryPreferencesRepository
+
+    @Binds
+    @Singleton
     fun bindLocalDataSource(
-        dataSource: InMemoryCatlyticsLocalDataSource,
-    ): CatlyticsLocalDataSource
+        dataSource: InMemoryLocalDataSource,
+    ): LocalDataSource
 
     @Binds
     fun bindMediaStoreLibraryDataSource(
@@ -46,13 +54,13 @@ interface DataModule {
 
     @Binds
     fun bindRemoteDataSource(
-        dataSource: NoOpCatlyticsRemoteDataSource,
-    ): CatlyticsRemoteDataSource
+        dataSource: NoOpRemoteDataSource,
+    ): RemoteDataSource
 
     @Binds
     fun bindDataMediator(
-        mediator: OfflineFirstCatlyticsDataMediator,
-    ): CatlyticsDataMediator
+        mediator: OfflineFirstDataMediator,
+    ): DataMediator
 
     @Binds
     fun bindLibraryRepository(
