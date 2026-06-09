@@ -1,6 +1,7 @@
 package com.catlytics.app
 
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -19,11 +20,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -38,7 +45,6 @@ import com.catlytics.app.playback.NowPlayingScreen
 import com.catlytics.app.playback.PlaybackViewModel
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
-import com.catlytics.core.designsystem.component.CatlyticsTopAppBar
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
@@ -58,6 +64,11 @@ fun CatlyticsApp(
 ) {
     val context = LocalContext.current
     val topLevelBackStack = remember { TopLevelBackStack(HomeRoute) }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val searchFocusRequester = remember { FocusRequester() }
+    var isHomeSearchExpanded by rememberSaveable { mutableStateOf(false) }
+    var homeSearchQuery by rememberSaveable { mutableStateOf("") }
     val appVersion = remember(context) {
         context.packageManager
             .getPackageInfo(context.packageName, 0)
@@ -70,6 +81,36 @@ fun CatlyticsApp(
         .firstOrNull { it.route == currentRoute }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
     val isSettingsVisible = currentRoute == SettingsRoute
+
+    fun closeHomeSearch() {
+        homeSearchQuery = ""
+        isHomeSearchExpanded = false
+        focusManager.clearFocus()
+        keyboardController?.hide()
+    }
+
+    fun openSettings() {
+        if (topLevelBackStack.backStack.lastOrNull() != SettingsRoute) {
+            topLevelBackStack.add(SettingsRoute)
+        }
+    }
+
+    BackHandler(enabled = currentRoute == HomeRoute && isHomeSearchExpanded) {
+        closeHomeSearch()
+    }
+
+    LaunchedEffect(isHomeSearchExpanded) {
+        if (isHomeSearchExpanded) {
+            searchFocusRequester.requestFocus()
+            keyboardController?.show()
+        }
+    }
+
+    LaunchedEffect(currentRoute) {
+        if (currentRoute != HomeRoute && isHomeSearchExpanded) {
+            closeHomeSearch()
+        }
+    }
 
     LaunchedEffect(deepLinkUri) {
         if (deepLinkUri != null) {
@@ -91,24 +132,25 @@ fun CatlyticsApp(
         topBar = {
             when {
                 currentTopLevelDestination != null -> {
-                    CatlyticsTopAppBar(
+                    TopLevelTopAppBar(
                         title = currentTopLevelDestination.label,
-                        navigationIconRes = R.drawable.ic_settings,
-                        navigationIconContentDescription = "Abrir ajustes",
-                        onNavigationClick = {
-                            if (topLevelBackStack.backStack.lastOrNull() != SettingsRoute) {
-                                topLevelBackStack.add(SettingsRoute)
+                        isHome = currentRoute == HomeRoute,
+                        isSearchExpanded = isHomeSearchExpanded,
+                        searchQuery = homeSearchQuery,
+                        searchFocusRequester = searchFocusRequester,
+                        onSearchQueryChange = { homeSearchQuery = it },
+                        onSearchActionClick = {
+                            if (isHomeSearchExpanded) {
+                                closeHomeSearch()
+                            } else {
+                                isHomeSearchExpanded = true
                             }
                         },
+                        onSettingsClick = ::openSettings,
                     )
                 }
                 isSettingsVisible -> {
-                    CatlyticsTopAppBar(
-                        title = "Ajustes",
-                        navigationIconRes = R.drawable.ic_arrow_left,
-                        navigationIconContentDescription = "Volver",
-                        onNavigationClick = ::closeCurrentDestination,
-                    )
+                    SettingsTopAppBar(onBack = ::closeCurrentDestination)
                 }
             }
         },
@@ -133,7 +175,7 @@ fun CatlyticsApp(
                     fadeIn() togetherWith fadeOut()
                 },
                 entryProvider = entryProvider {
-                    homeEntry()
+                    homeEntry(searchQuery = { homeSearchQuery })
                     libraryEntry()
                     playlistsEntry()
                     settingsEntry(appVersion = appVersion)

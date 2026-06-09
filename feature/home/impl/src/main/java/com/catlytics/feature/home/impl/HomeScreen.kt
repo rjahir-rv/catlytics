@@ -19,8 +19,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,13 +30,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.Track
@@ -47,6 +43,7 @@ import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun HomeRoute(
+    searchQuery: String,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -74,6 +71,7 @@ internal fun HomeRoute(
 
     HomeScreen(
         uiState = uiState,
+        searchQuery = searchQuery,
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = { permissionLauncher.launch(permission) },
         onTrackSelected = viewModel::onTrackSelected,
@@ -83,6 +81,7 @@ internal fun HomeRoute(
 @Composable
 internal fun HomeScreen(
     uiState: HomeUiState,
+    searchQuery: String,
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
@@ -107,11 +106,18 @@ internal fun HomeScreen(
             HomeUiState.Empty -> EmptyLibraryContent()
             is HomeUiState.Error -> ErrorContent(message = uiState.message)
             HomeUiState.Loading -> LoadingContent()
-            is HomeUiState.Success -> TrackList(
-                tracks = uiState.tracks,
-                onTrackSelected = onTrackSelected,
-                state = trackListState,
-            )
+            is HomeUiState.Success -> {
+                val filteredTracks = uiState.tracks.filterByQuery(searchQuery)
+                if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
+                    NoSearchResultsContent()
+                } else {
+                    TrackList(
+                        tracks = filteredTracks,
+                        onTrackSelected = onTrackSelected,
+                        state = trackListState,
+                    )
+                }
+            }
         }
     }
 }
@@ -163,6 +169,18 @@ private fun EmptyLibraryContent(
         text = "No encontramos canciones en este dispositivo.",
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onBackground,
+    )
+}
+
+@Composable
+private fun NoSearchResultsContent(
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        modifier = modifier,
+        text = "No encontramos canciones que coincidan con tu búsqueda.",
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
@@ -236,12 +254,6 @@ private fun TrackRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        IconButton(onClick = onTrackSelected) {
-            Icon(
-                painter = painterResource(id = R.drawable.ic_play),
-                contentDescription = "Reproducir ${track.title}",
-            )
-        }
     }
 }
 
@@ -267,7 +279,7 @@ private fun HomeScreenPreview() {
                 tracks = listOf(
                     Track(
                         id = "track-preview",
-                        title = "Cancion local",
+                        title = "Canción local",
                         artist = Artist(
                             id = "artist-preview",
                             name = "Artista local",
@@ -277,6 +289,7 @@ private fun HomeScreenPreview() {
                     ),
                 ),
             ),
+            searchQuery = "",
             hasAudioPermission = true,
             onRequestPermission = {},
             onTrackSelected = { _, _ -> },
