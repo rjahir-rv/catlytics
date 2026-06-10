@@ -1,4 +1,4 @@
-package com.catlytics.feature.library.impl
+package com.catlytics.feature.library.impl.root
 
 import com.catlytics.core.model.LibraryFolder
 

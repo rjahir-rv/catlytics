@@ -1,10 +1,11 @@
-package com.catlytics.feature.library.impl
+package com.catlytics.feature.library.impl.root
 
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.SetFolderVisibilityUseCase
 import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -92,7 +93,12 @@ private class FakeLibraryRepository : LibraryRepository {
 
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
 
+    override fun observeAllTracks() = MutableStateFlow(emptyList<Track>())
+
     override fun observeFolders() = folders
+
+    override fun observeFolderContent(folderId: String) =
+        MutableStateFlow<LibraryFolderContent?>(null)
 
     override suspend fun refreshTracks() {
         refreshResult.getOrThrow()

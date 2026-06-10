@@ -22,6 +22,12 @@ data class LibraryFolder(
     val isVisible: Boolean,
 )
 
+data class LibraryFolderContent(
+    val folder: LibraryFolder,
+    val subfolders: List<LibraryFolder>,
+    val tracks: List<Track>,
+)
+
 data class PlaybackState(
     val status: PlaybackStatus = PlaybackStatus.Idle,
     val currentTrack: Track? = null,

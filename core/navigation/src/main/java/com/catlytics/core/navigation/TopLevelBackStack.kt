@@ -45,7 +45,7 @@ class TopLevelBackStack(
             return
         }
 
-        currentStack.removeLast()
+        currentStack.removeAt(currentStack.lastIndex)
         updateBackStack()
     }
 

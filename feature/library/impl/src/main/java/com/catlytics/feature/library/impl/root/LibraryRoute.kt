@@ -1,4 +1,4 @@
-package com.catlytics.feature.library.impl
+package com.catlytics.feature.library.impl.root
 
 import android.Manifest
 import android.os.Build
@@ -14,9 +14,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.model.LibraryFolder
 
 @Composable
 internal fun LibraryRoute(
+    onFolderSelected: (LibraryFolder) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -47,6 +49,7 @@ internal fun LibraryRoute(
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = { permissionLauncher.launch(permission) },
         onFolderVisibilityChange = viewModel::setFolderVisible,
+        onFolderSelected = onFolderSelected,
     )
 }
 

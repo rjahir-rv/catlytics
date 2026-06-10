@@ -49,7 +49,8 @@ import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.impl.homeEntry
-import com.catlytics.feature.library.impl.libraryEntry
+import com.catlytics.feature.library.impl.navigation.libraryEntry
+import com.catlytics.feature.library.api.LibraryFolderRoute
 import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.settings.impl.settingsEntry
@@ -79,6 +80,10 @@ fun CatlyticsApp(
     val currentRoute = topLevelBackStack.backStack.lastOrNull()
     val currentTopLevelDestination = TopLevelDestination.entries
         .firstOrNull { it.route == currentRoute }
+    val selectedTopLevelDestination = when (currentRoute) {
+        is LibraryFolderRoute -> TopLevelDestination.Library
+        else -> currentTopLevelDestination
+    }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
     val isSettingsVisible = currentRoute == SettingsRoute
 
@@ -131,6 +136,12 @@ fun CatlyticsApp(
         modifier = modifier,
         topBar = {
             when {
+                currentRoute is LibraryFolderRoute -> {
+                    LibraryFolderTopAppBar(
+                        title = currentRoute.folderName,
+                        onBack = ::closeCurrentDestination,
+                    )
+                }
                 currentTopLevelDestination != null -> {
                     TopLevelTopAppBar(
                         title = currentTopLevelDestination.label,
@@ -155,7 +166,7 @@ fun CatlyticsApp(
             }
         },
         bottomBar = {
-            if (currentTopLevelDestination != null && !isNowPlayingVisible) {
+            if (selectedTopLevelDestination != null && !isNowPlayingVisible) {
                 CatlyticsBottomBar(
                     selectedRoute = topLevelBackStack.topLevelKey,
                     onDestinationSelected = topLevelBackStack::addTopLevel,
@@ -176,7 +187,7 @@ fun CatlyticsApp(
                 },
                 entryProvider = entryProvider {
                     homeEntry(searchQuery = { homeSearchQuery })
-                    libraryEntry()
+                    libraryEntry(onFolderSelected = topLevelBackStack::add)
                     playlistsEntry()
                     settingsEntry(appVersion = appVersion)
                     statisticsEntry()

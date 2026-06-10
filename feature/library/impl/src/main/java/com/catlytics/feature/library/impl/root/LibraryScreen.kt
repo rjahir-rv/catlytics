@@ -1,4 +1,4 @@
-package com.catlytics.feature.library.impl
+package com.catlytics.feature.library.impl.root
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +23,7 @@ internal fun LibraryScreen(
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
+    onFolderSelected: (LibraryFolder) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!hasAudioPermission) {
@@ -40,6 +41,7 @@ internal fun LibraryScreen(
         is LibraryUiState.Success -> LibraryFolderList(
             folders = uiState.folders,
             onFolderVisibilityChange = onFolderVisibilityChange,
+            onFolderSelected = onFolderSelected,
             modifier = modifier,
         )
     }
@@ -127,6 +129,7 @@ private fun LibraryScreenPreview() {
             hasAudioPermission = true,
             onRequestPermission = {},
             onFolderVisibilityChange = { _, _ -> },
+            onFolderSelected = {},
         )
     }
 }

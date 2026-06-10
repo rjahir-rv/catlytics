@@ -1,4 +1,4 @@
-package com.catlytics.feature.library.impl
+package com.catlytics.feature.library.impl.root
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

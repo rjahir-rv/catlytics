@@ -1,4 +1,4 @@
-package com.catlytics.feature.library.impl
+package com.catlytics.feature.library.impl.root
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,6 +39,7 @@ import com.catlytics.core.model.LibraryFolder
 internal fun LibraryFolderList(
     folders: List<LibraryFolder>,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
+    onFolderSelected: (LibraryFolder) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -68,6 +70,7 @@ internal fun LibraryFolderList(
                 onVisibilityChange = { visible ->
                     onFolderVisibilityChange(folder.id, visible)
                 },
+                onClick = { onFolderSelected(folder) },
             )
         }
     }
@@ -77,6 +80,7 @@ internal fun LibraryFolderList(
 private fun FolderRow(
     folder: LibraryFolder,
     onVisibilityChange: (Boolean) -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuExpanded by rememberSaveable(folder.id) { mutableStateOf(false) }
@@ -86,6 +90,7 @@ private fun FolderRow(
     Surface(
         modifier = modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick)
             .then(
                 if (folder.isVisible) {
                     Modifier

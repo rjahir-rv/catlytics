@@ -93,6 +93,24 @@ internal fun SettingsTopAppBar(
 }
 
 @Composable
+internal fun LibraryFolderTopAppBar(
+    title: String,
+    onBack: () -> Unit,
+) {
+    CatlyticsTopAppBar(
+        title = { TopAppBarTitle(title) },
+        navigationIcon = {
+            IconButton(onClick = onBack) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_arrow_left),
+                    contentDescription = "Volver",
+                )
+            }
+        },
+    )
+}
+
+@Composable
 private fun TopAppBarTitle(title: String) {
     Text(
         text = title,

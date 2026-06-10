@@ -7,6 +7,7 @@ import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.usecase.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
+import com.catlytics.core.domain.usecase.ObserveFolderContentUseCase
 import com.catlytics.core.domain.usecase.ObserveListeningStatsUseCase
 import com.catlytics.core.domain.usecase.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.ObservePlaylistsUseCase
@@ -35,6 +36,11 @@ object DomainModule {
     fun provideObserveLibraryFoldersUseCase(
         libraryRepository: LibraryRepository,
     ) = ObserveLibraryFoldersUseCase(libraryRepository)
+
+    @Provides
+    fun provideObserveFolderContentUseCase(
+        libraryRepository: LibraryRepository,
+    ) = ObserveFolderContentUseCase(libraryRepository)
 
     @Provides
     fun provideRefreshLibraryUseCase(

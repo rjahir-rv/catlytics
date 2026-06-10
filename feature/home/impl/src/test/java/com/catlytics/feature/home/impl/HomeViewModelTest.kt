@@ -7,6 +7,7 @@ import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
@@ -142,7 +143,12 @@ private class FakeLibraryRepository : LibraryRepository {
 
     override fun observeTracks() = tracks
 
+    override fun observeAllTracks() = tracks
+
     override fun observeFolders() = folders
+
+    override fun observeFolderContent(folderId: String) =
+        MutableStateFlow<LibraryFolderContent?>(null)
 
     override suspend fun refreshTracks() {
         refreshResult.getOrThrow()

@@ -56,6 +56,58 @@ class OfflineFirstLibraryRepositoryTest {
     }
 
     @Test
+    fun `folder content returns only direct subfolders and tracks`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("root", MUSIC_BASE_FOLDER_ID, "Music", "Music"),
+                track("favorite", FAVORITES_FOLDER_ID, "Favorites", "Music/Favorites"),
+                track(
+                    "live",
+                    "$FAVORITES_FOLDER_ID/Live",
+                    "Live",
+                    "Music/Favorites/Live",
+                ),
+                track("album", ALBUMS_FOLDER_ID, "Albums", "Music/Albums"),
+            ),
+        )
+
+        val content = requireNotNull(repository.observeFolderContent(MUSIC_BASE_FOLDER_ID).first())
+
+        assertEquals(listOf(ALBUMS_FOLDER_ID, FAVORITES_FOLDER_ID), content.subfolders.map { it.id })
+        assertEquals(listOf("root"), content.tracks.map { it.id })
+        assertEquals(4, content.folder.trackCount)
+    }
+
+    @Test
+    fun `hidden folder content remains available with all tracks`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(track("favorite", FAVORITES_FOLDER_ID, "Favorites", "Music/Favorites")),
+        )
+        repository.setFolderVisible(MUSIC_BASE_FOLDER_ID, visible = false)
+
+        val content = requireNotNull(repository.observeFolderContent(FAVORITES_FOLDER_ID).first())
+
+        assertEquals(false, content.folder.isVisible)
+        assertEquals(listOf("favorite"), content.tracks.map { it.id })
+        assertEquals(emptyList<String>(), repository.observeTracks().first().map { it.id })
+        assertEquals(listOf("favorite"), repository.observeAllTracks().first().map { it.id })
+    }
+
+    @Test
+    fun `folder content does not mix matching paths from different volumes`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("primary", FAVORITES_FOLDER_ID, "Favorites", "Music/Favorites"),
+                track("sd-card", "external_sd:Music/Albums", "Albums", "Music/Albums"),
+            ),
+        )
+
+        val content = requireNotNull(repository.observeFolderContent(MUSIC_BASE_FOLDER_ID).first())
+
+        assertEquals(listOf(FAVORITES_FOLDER_ID), content.subfolders.map { it.id })
+    }
+
+    @Test
     fun `hiding base folder filters every child folder`() = runTest {
         localDataSource.replaceTracks(
             listOf(

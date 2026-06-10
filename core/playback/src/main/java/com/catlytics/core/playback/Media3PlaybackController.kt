@@ -148,7 +148,7 @@ class Media3PlaybackController @Inject constructor(
 
         val snapshot = playbackSessionRepository.observeSession().first() ?: return
         runCatching { libraryRepository.refreshTracks() }
-        val availableTracksById = libraryRepository.observeTracks().first().associateBy { it.id }
+        val availableTracksById = libraryRepository.observeAllTracks().first().associateBy { it.id }
         val restoredQueue = snapshot.queueTrackIds.mapNotNull(availableTracksById::get)
         if (restoredQueue.isEmpty()) return
 
