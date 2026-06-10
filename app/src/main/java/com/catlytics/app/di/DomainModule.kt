@@ -11,6 +11,8 @@ import com.catlytics.core.domain.usecase.ObserveFolderContentUseCase
 import com.catlytics.core.domain.usecase.ObserveListeningStatsUseCase
 import com.catlytics.core.domain.usecase.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.ObservePlaylistsUseCase
+import com.catlytics.core.domain.usecase.MoveQueueItemUseCase
+import com.catlytics.core.domain.usecase.PlayQueueItemUseCase
 import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.RestorePlaybackSessionUseCase
@@ -71,6 +73,16 @@ object DomainModule {
     fun providePlayTrackUseCase(
         playbackController: PlaybackController,
     ) = PlayTrackUseCase(playbackController)
+
+    @Provides
+    fun providePlayQueueItemUseCase(
+        playbackController: PlaybackController,
+    ) = PlayQueueItemUseCase(playbackController)
+
+    @Provides
+    fun provideMoveQueueItemUseCase(
+        playbackController: PlaybackController,
+    ) = MoveQueueItemUseCase(playbackController)
 
     @Provides
     fun provideTogglePlaybackUseCase(

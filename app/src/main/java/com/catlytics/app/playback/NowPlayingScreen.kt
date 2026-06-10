@@ -1,5 +1,6 @@
 package com.catlytics.app.playback
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,6 +45,7 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
+import com.catlytics.core.model.Track
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -58,11 +60,29 @@ fun NowPlayingScreen(
     onSeekTo: (Long) -> Unit,
     onToggleShuffle: () -> Unit,
     onCycleRepeatMode: () -> Unit,
+    onShareTrack: (Track) -> Unit,
+    onPlayQueueItem: (Int) -> Unit,
+    onMoveQueueItem: (Int, Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val track = playbackState.currentTrack
     val durationMillis = playbackState.durationMillis
     val positionMillis = playbackState.positionMillis
+    var isQueueVisible by remember { mutableStateOf(false) }
+
+    BackHandler(enabled = isQueueVisible) {
+        isQueueVisible = false
+    }
+
+    if (isQueueVisible) {
+        PlaybackQueueBottomSheet(
+            queue = playbackState.queue,
+            currentTrackId = track?.id,
+            onDismiss = { isQueueVisible = false },
+            onPlayQueueItem = onPlayQueueItem,
+            onMoveQueueItem = onMoveQueueItem,
+        )
+    }
 
     Scaffold(
         modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
@@ -220,6 +240,35 @@ fun NowPlayingScreen(
                         } else {
                             MaterialTheme.colorScheme.secondary
                         },
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(
+                    onClick = { track?.let(onShareTrack) },
+                    enabled = track != null,
+                    modifier = Modifier.size(56.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_share),
+                        contentDescription = "Compartir canción",
+                    )
+                }
+                IconButton(
+                    onClick = { isQueueVisible = true },
+                    enabled = playbackState.queue.isNotEmpty(),
+                    modifier = Modifier.size(56.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_list),
+                        contentDescription = "Abrir cola de reproducción",
                     )
                 }
             }

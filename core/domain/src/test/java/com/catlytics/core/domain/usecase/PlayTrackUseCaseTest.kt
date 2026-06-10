@@ -27,15 +27,27 @@ class PlayTrackUseCaseTest {
     }
 
     @Test
-    fun `invoke falls back to first queue item when selected track is absent`() = runTest {
+    fun `invoke falls back to selected track when it is absent from queue`() = runTest {
         val queue = listOf(track("track-1"), track("track-2"))
         val selectedTrack = track("missing")
 
         useCase(track = selectedTrack, queue = queue)
 
         assertEquals(selectedTrack, playbackController.playedTrack)
-        assertEquals(queue, playbackController.playedQueue)
+        assertEquals(listOf(selectedTrack), playbackController.playedQueue)
         assertEquals(0, playbackController.startIndex)
+    }
+
+    @Test
+    fun `invoke removes duplicate tracks while preserving order`() = runTest {
+        val first = track("track-1")
+        val selected = track("track-2")
+        val third = track("track-3")
+
+        useCase(track = selected, queue = listOf(first, selected, first, third, selected))
+
+        assertEquals(listOf(first, selected, third), playbackController.playedQueue)
+        assertEquals(1, playbackController.startIndex)
     }
 
     private fun track(id: String) = Track(
@@ -62,6 +74,10 @@ private class FakePlaybackController : PlaybackController {
         playedQueue = queue
         this.startIndex = startIndex
     }
+
+    override suspend fun playQueueItem(index: Int) = Unit
+
+    override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
 
     override suspend fun togglePlayPause() = Unit
 

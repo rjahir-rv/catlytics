@@ -10,6 +10,10 @@ interface PlaybackController {
 
     suspend fun play(track: Track, queue: List<Track>, startIndex: Int)
 
+    suspend fun playQueueItem(index: Int)
+
+    suspend fun moveQueueItem(fromIndex: Int, toIndex: Int)
+
     suspend fun togglePlayPause()
 
     suspend fun pause()

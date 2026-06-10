@@ -43,6 +43,7 @@ import com.catlytics.app.navigation.TopLevelDestination
 import com.catlytics.app.playback.NowPlayingRoute
 import com.catlytics.app.playback.NowPlayingScreen
 import com.catlytics.app.playback.PlaybackViewModel
+import com.catlytics.app.playback.shareTrack
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
 import com.catlytics.core.model.PlaybackStatus
@@ -213,6 +214,9 @@ fun CatlyticsApp(
                             onSeekTo = playbackViewModel::seekTo,
                             onToggleShuffle = playbackViewModel::toggleShuffle,
                             onCycleRepeatMode = playbackViewModel::cycleRepeatMode,
+                            onShareTrack = context::shareTrack,
+                            onPlayQueueItem = playbackViewModel::playQueueItem,
+                            onMoveQueueItem = playbackViewModel::moveQueueItem,
                         )
                     }
                 },
@@ -238,7 +242,7 @@ fun CatlyticsApp(
                         artwork = { artworkModifier ->
                             AsyncImage(
                                 model = track.artworkUri,
-                                contentDescription = "Caratula de ${track.title}",
+                                contentDescription = "Carátula de ${track.title}",
                                 placeholder = painterResource(id = R.drawable.placeholder_album),
                                 error = painterResource(id = R.drawable.placeholder_album),
                                 fallback = painterResource(id = R.drawable.placeholder_album),

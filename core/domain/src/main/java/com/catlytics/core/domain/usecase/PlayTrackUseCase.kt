@@ -7,10 +7,14 @@ class PlayTrackUseCase(
     private val playbackController: PlaybackController,
 ) {
     suspend operator fun invoke(track: Track, queue: List<Track>) {
-        val startIndex = queue.indexOfFirst { it.id == track.id }.takeUnless { it < 0 } ?: 0
+        val distinctQueue = queue.distinctBy(Track::id)
+        val playbackQueue = distinctQueue.takeIf { tracks ->
+            tracks.any { it.id == track.id }
+        } ?: listOf(track)
+        val startIndex = playbackQueue.indexOfFirst { it.id == track.id }
         playbackController.play(
             track = track,
-            queue = queue.ifEmpty { listOf(track) },
+            queue = playbackQueue,
             startIndex = startIndex,
         )
     }

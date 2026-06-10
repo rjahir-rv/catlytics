@@ -90,6 +90,27 @@ class Media3PlaybackController @Inject constructor(
         }
     }
 
+    override suspend fun playQueueItem(index: Int) {
+        if (index !in queue.indices) return
+
+        withController { controller ->
+            controller.seekTo(index, 0L)
+            controller.play()
+            updatePlaybackState(controller, forcePersist = true)
+        }
+    }
+
+    override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) {
+        if (fromIndex !in queue.indices || toIndex !in queue.indices || fromIndex == toIndex) return
+
+        queue = queue.moved(fromIndex, toIndex)
+        withController { controller ->
+            controller.shuffleModeEnabled = false
+            controller.moveMediaItem(fromIndex, toIndex)
+            updatePlaybackState(controller, forcePersist = true)
+        }
+    }
+
     override suspend fun togglePlayPause() {
         withController { controller ->
             if (controller.isPlaying) {
@@ -257,3 +278,8 @@ class Media3PlaybackController @Inject constructor(
         const val SESSION_SAVE_INTERVAL_MILLIS = 5_000L
     }
 }
+
+private fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T> =
+    toMutableList().apply {
+        add(toIndex, removeAt(fromIndex))
+    }
