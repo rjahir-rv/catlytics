@@ -6,6 +6,9 @@ import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.data.model.toDomain
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.model.Album
+import com.catlytics.core.model.AlbumContent
+import com.catlytics.core.model.Artist
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.Track
@@ -19,15 +22,30 @@ class OfflineFirstLibraryRepository @Inject constructor(
     private val mediator: DataMediator,
     private val preferencesRepository: LibraryPreferencesRepository,
 ) : LibraryRepository {
+    override fun observeAlbums(): Flow<List<Album>> = combine(
+        localDataSource.observeTracks(),
+        preferencesRepository.observeHiddenFolderIds(),
+    ) { tracks, hiddenFolderIds ->
+        tracks
+            .filterVisible(hiddenFolderIds)
+            .toAlbums()
+    }
+
+    override fun observeAlbumContent(albumId: String): Flow<AlbumContent?> = combine(
+        localDataSource.observeTracks(),
+        preferencesRepository.observeHiddenFolderIds(),
+    ) { tracks, hiddenFolderIds ->
+        tracks
+            .filterVisible(hiddenFolderIds)
+            .toAlbumContent(albumId)
+    }
+
     override fun observeTracks(): Flow<List<Track>> = combine(
         localDataSource.observeTracks(),
         preferencesRepository.observeHiddenFolderIds(),
     ) { tracks, hiddenFolderIds ->
         tracks
-            .filter { track ->
-                val baseFolderId = track.toBaseFolder()?.folderId
-                baseFolderId == null || baseFolderId !in hiddenFolderIds
-            }
+            .filterVisible(hiddenFolderIds)
             .map { it.toDomain() }
     }
 
@@ -59,6 +77,68 @@ class OfflineFirstLibraryRepository @Inject constructor(
         preferencesRepository.setFolderVisible(folderId, visible)
     }
 }
+
+private fun List<TrackEntity>.filterVisible(hiddenFolderIds: Set<String>) = filter { track ->
+    val baseFolderId = track.toBaseFolder()?.folderId
+    baseFolderId == null || baseFolderId !in hiddenFolderIds
+}
+
+private fun List<TrackEntity>.toAlbums(): List<Album> = mapNotNull { track ->
+    val albumId = track.albumId ?: return@mapNotNull null
+    val albumTitle = track.albumTitle ?: return@mapNotNull null
+    AlbumTrack(
+        albumId = albumId,
+        albumTitle = albumTitle,
+        artistId = track.artistId,
+        artistName = track.artistName,
+        artworkUri = track.artworkUri,
+    )
+}.groupBy(AlbumTrack::albumId)
+    .map { (albumId, tracks) ->
+        val album = tracks.first()
+        Album(
+            id = albumId,
+            title = album.albumTitle,
+            artist = Artist(album.artistId, album.artistName),
+            artworkUri = tracks.firstNotNullOfOrNull(AlbumTrack::artworkUri),
+            trackCount = tracks.size,
+        )
+    }
+    .sortedWith(compareBy({ it.title.lowercase() }, { it.artist.name.lowercase() }))
+
+private fun List<TrackEntity>.toAlbumContent(albumId: String): AlbumContent? {
+    val albumTracks = filter { it.albumId == albumId }
+    if (albumTracks.isEmpty()) return null
+
+    val firstTrack = albumTracks.first()
+    val albumTitle = firstTrack.albumTitle ?: return null
+    return AlbumContent(
+        album = Album(
+            id = albumId,
+            title = albumTitle,
+            artist = Artist(firstTrack.artistId, firstTrack.artistName),
+            artworkUri = albumTracks.firstNotNullOfOrNull(TrackEntity::artworkUri),
+            trackCount = albumTracks.size,
+        ),
+        tracks = albumTracks
+            .sortedWith(
+                compareBy<TrackEntity>(
+                    { it.trackNumber == null },
+                    { it.trackNumber ?: Int.MAX_VALUE },
+                    { it.title.lowercase() },
+                ),
+            )
+            .map(TrackEntity::toDomain),
+    )
+}
+
+private data class AlbumTrack(
+    val albumId: String,
+    val albumTitle: String,
+    val artistId: String,
+    val artistName: String,
+    val artworkUri: String?,
+)
 
 private fun List<TrackEntity>.toLibraryFolders(
     hiddenFolderIds: Set<String>,

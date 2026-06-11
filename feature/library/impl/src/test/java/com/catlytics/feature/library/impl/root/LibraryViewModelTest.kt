@@ -1,9 +1,12 @@
 package com.catlytics.feature.library.impl.root
 
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.usecase.ObserveAlbumsUseCase
 import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.SetFolderVisibilityUseCase
+import com.catlytics.core.model.Album
+import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.Track
@@ -39,7 +42,31 @@ class LibraryViewModelTest {
 
         advanceUntilIdle()
 
-        assertEquals(LibraryUiState.Success(listOf(folder)), viewModel.uiState.value)
+        assertEquals(
+            LibraryUiState.Success(albums = emptyList(), folders = listOf(folder)),
+            viewModel.uiState.value,
+        )
+    }
+
+    @Test
+    fun `albums are exposed as success state`() = runTest {
+        val repository = FakeLibraryRepository()
+        val album = Album(
+            id = "album-1",
+            title = "Album",
+            artist = com.catlytics.core.model.Artist("artist-1", "Artist"),
+            trackCount = 2,
+        )
+        repository.albums.value = listOf(album)
+        val viewModel = viewModel(repository)
+        backgroundScope.launch { viewModel.uiState.collect() }
+
+        advanceUntilIdle()
+
+        assertEquals(
+            LibraryUiState.Success(albums = listOf(album), folders = emptyList()),
+            viewModel.uiState.value,
+        )
     }
 
     @Test
@@ -68,6 +95,7 @@ class LibraryViewModelTest {
     }
 
     private fun viewModel(repository: FakeLibraryRepository) = LibraryViewModel(
+        observeAlbumsUseCase = ObserveAlbumsUseCase(repository),
         observeLibraryFoldersUseCase = ObserveLibraryFoldersUseCase(repository),
         refreshLibraryUseCase = RefreshLibraryUseCase(repository),
         setFolderVisibilityUseCase = SetFolderVisibilityUseCase(repository),
@@ -87,9 +115,13 @@ class LibraryViewModelTest {
 }
 
 private class FakeLibraryRepository : LibraryRepository {
+    val albums = MutableStateFlow(emptyList<Album>())
     val folders = MutableStateFlow(emptyList<LibraryFolder>())
     var refreshResult: Result<Unit> = Result.success(Unit)
     var lastVisibilityChange: Pair<String, Boolean>? = null
+
+    override fun observeAlbums() = albums
+    override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
 
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
 

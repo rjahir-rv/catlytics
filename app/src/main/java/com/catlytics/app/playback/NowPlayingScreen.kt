@@ -1,6 +1,5 @@
 package com.catlytics.app.playback
 
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -69,10 +68,6 @@ fun NowPlayingScreen(
     val durationMillis = playbackState.durationMillis
     val positionMillis = playbackState.positionMillis
     var isQueueVisible by remember { mutableStateOf(false) }
-
-    BackHandler(enabled = isQueueVisible) {
-        isQueueVisible = false
-    }
 
     if (isQueueVisible) {
         PlaybackQueueBottomSheet(

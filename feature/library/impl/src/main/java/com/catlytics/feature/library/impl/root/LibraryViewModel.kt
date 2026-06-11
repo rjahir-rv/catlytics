@@ -2,6 +2,7 @@ package com.catlytics.feature.library.impl.root
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.domain.usecase.ObserveAlbumsUseCase
 import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.SetFolderVisibilityUseCase
@@ -18,6 +19,7 @@ import kotlin.collections.emptyList
 
 @HiltViewModel
 internal class LibraryViewModel @Inject constructor(
+    observeAlbumsUseCase: ObserveAlbumsUseCase,
     observeLibraryFoldersUseCase: ObserveLibraryFoldersUseCase,
     private val refreshLibraryUseCase: RefreshLibraryUseCase,
     private val setFolderVisibilityUseCase: SetFolderVisibilityUseCase,
@@ -27,15 +29,16 @@ internal class LibraryViewModel @Inject constructor(
     private var hasRequestedInitialRefresh = false
 
     val uiState: StateFlow<LibraryUiState> = combine(
+        observeAlbumsUseCase().catch { emit(emptyList()) },
         observeLibraryFoldersUseCase().catch { emit(emptyList()) },
         refreshError,
         isRefreshing,
-    ) { folders, error, refreshing ->
+    ) { albums, folders, error, refreshing ->
         when {
             refreshing -> LibraryUiState.Loading
             error != null -> LibraryUiState.Error(error)
-            folders.isEmpty() -> LibraryUiState.Empty
-            else -> LibraryUiState.Success(folders)
+            albums.isEmpty() && folders.isEmpty() -> LibraryUiState.Empty
+            else -> LibraryUiState.Success(albums = albums, folders = folders)
         }
     }.stateIn(
         scope = viewModelScope,

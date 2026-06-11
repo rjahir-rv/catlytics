@@ -1,11 +1,11 @@
-package com.catlytics.feature.library.impl.folder
+package com.catlytics.feature.library.impl.album
 
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.PlaybackController
+import com.catlytics.core.domain.usecase.ObserveAlbumContentUseCase
+import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
-import com.catlytics.core.domain.repository.PlaybackController
-import com.catlytics.core.domain.usecase.ObserveFolderContentUseCase
-import com.catlytics.core.domain.usecase.PlayTrackUseCase
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
@@ -13,10 +13,10 @@ import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
 import com.catlytics.feature.library.impl.root.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -24,28 +24,28 @@ import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class LibraryFolderViewModelTest {
+class LibraryAlbumViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun `opening folder exposes its content`() = runTest {
-        val repository = FolderFakeLibraryRepository()
-        val content = content()
+    fun `opening album exposes its content`() = runTest {
+        val repository = AlbumFakeLibraryRepository()
+        val content = albumContent()
         repository.content.value = content
-        val viewModel = viewModel(repository, FolderFakePlaybackController())
+        val viewModel = viewModel(repository, AlbumFakePlaybackController())
         backgroundScope.launch { viewModel.uiState.collect {} }
 
-        viewModel.openFolder(FOLDER_ID)
+        viewModel.openAlbum(ALBUM_ID)
         advanceUntilIdle()
 
-        assertEquals(LibraryFolderUiState.Success(content), viewModel.uiState.value)
+        assertEquals(LibraryAlbumUiState.Success(content), viewModel.uiState.value)
     }
 
     @Test
-    fun `playing track uses direct folder tracks as queue`() = runTest {
-        val playbackController = FolderFakePlaybackController()
-        val viewModel = viewModel(FolderFakeLibraryRepository(), playbackController)
+    fun `playing track replaces queue with album tracks`() = runTest {
+        val playbackController = AlbumFakePlaybackController()
+        val viewModel = viewModel(AlbumFakeLibraryRepository(), playbackController)
         val queue = listOf(track("one"), track("two"))
 
         viewModel.playTrack(queue[1], queue)
@@ -57,47 +57,46 @@ class LibraryFolderViewModelTest {
     }
 
     private fun viewModel(
-        repository: FolderFakeLibraryRepository,
-        playbackController: FolderFakePlaybackController,
-    ) = LibraryFolderViewModel(
-        observeFolderContentUseCase = ObserveFolderContentUseCase(repository),
+        repository: AlbumFakeLibraryRepository,
+        playbackController: AlbumFakePlaybackController,
+    ) = LibraryAlbumViewModel(
+        observeAlbumContentUseCase = ObserveAlbumContentUseCase(repository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
     )
 
-    private fun content() = LibraryFolderContent(
-        folder = LibraryFolder(FOLDER_ID, "Music", "Music", 1, isVisible = false),
-        subfolders = emptyList(),
+    private fun albumContent() = AlbumContent(
+        album = Album(ALBUM_ID, "Album", Artist("artist", "Artist"), trackCount = 1),
         tracks = listOf(track("one")),
     )
 
     private fun track(id: String) = Track(
         id = id,
         title = "Track $id",
-        artist = Artist("artist-$id", "Artist $id"),
-        durationMillis = 180_000,
+        artist = Artist("artist", "Artist"),
+        durationMillis = 180_000L,
         mediaUri = "content://media/$id",
     )
 
     private companion object {
-        const val FOLDER_ID = "external_primary:Music"
+        const val ALBUM_ID = "album-1"
     }
 }
 
-private class FolderFakeLibraryRepository : LibraryRepository {
+private class AlbumFakeLibraryRepository : LibraryRepository {
+    val content = MutableStateFlow<AlbumContent?>(null)
+
     override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
-    override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
-
-    val content = MutableStateFlow<LibraryFolderContent?>(null)
-
+    override fun observeAlbumContent(albumId: String) = content
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
     override fun observeAllTracks() = MutableStateFlow(emptyList<Track>())
     override fun observeFolders() = MutableStateFlow(emptyList<LibraryFolder>())
-    override fun observeFolderContent(folderId: String) = content
+    override fun observeFolderContent(folderId: String) =
+        MutableStateFlow<LibraryFolderContent?>(null)
     override suspend fun refreshTracks() = Unit
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
 }
 
-private class FolderFakePlaybackController : PlaybackController {
+private class AlbumFakePlaybackController : PlaybackController {
     override val playbackState: Flow<PlaybackState> = MutableStateFlow(PlaybackState())
     lateinit var playedTrack: Track
     lateinit var playedQueue: List<Track>
@@ -111,7 +110,6 @@ private class FolderFakePlaybackController : PlaybackController {
 
     override suspend fun playQueueItem(index: Int) = Unit
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
-
     override suspend fun togglePlayPause() = Unit
     override suspend fun pause() = Unit
     override suspend fun skipNext() = Unit

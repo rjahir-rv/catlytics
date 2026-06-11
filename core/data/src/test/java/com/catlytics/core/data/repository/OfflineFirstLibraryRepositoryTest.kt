@@ -39,6 +39,83 @@ class OfflineFirstLibraryRepositoryTest {
     }
 
     @Test
+    fun `albums group visible tracks and are sorted by title`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("z-first", albumId = "album-z", albumTitle = "Zulu"),
+                track("a-first", albumId = "album-a", albumTitle = "Alpha"),
+                track("a-second", albumId = "album-a", albumTitle = "Alpha"),
+            ),
+        )
+
+        val albums = repository.observeAlbums().first()
+
+        assertEquals(listOf("Alpha", "Zulu"), albums.map { it.title })
+        assertEquals(2, albums.first().trackCount)
+    }
+
+    @Test
+    fun `albums exclude tracks from hidden folders`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track(
+                    id = "visible",
+                    folderId = FAVORITES_FOLDER_ID,
+                    folderName = "Favorites",
+                    folderPath = "Music/Favorites",
+                    albumId = "album-visible",
+                    albumTitle = "Visible",
+                ),
+                track(
+                    id = "hidden",
+                    folderId = GAME_FOLDER_ID,
+                    folderName = "audio",
+                    folderPath = "Android/data/game/audio",
+                    albumId = "album-hidden",
+                    albumTitle = "Hidden",
+                ),
+            ),
+        )
+        repository.setFolderVisible(ANDROID_BASE_FOLDER_ID, visible = false)
+
+        assertEquals(listOf("Visible"), repository.observeAlbums().first().map { it.title })
+    }
+
+    @Test
+    fun `album content orders numbered tracks before unnumbered tracks`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("unknown", albumId = "album-a", albumTitle = "Alpha"),
+                track("second", albumId = "album-a", albumTitle = "Alpha", trackNumber = 2),
+                track("first", albumId = "album-a", albumTitle = "Alpha", trackNumber = 1),
+            ),
+        )
+
+        val content = requireNotNull(repository.observeAlbumContent("album-a").first())
+
+        assertEquals(listOf("first", "second", "unknown"), content.tracks.map { it.id })
+    }
+
+    @Test
+    fun `album content is unavailable when every track is hidden`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track(
+                    id = "hidden",
+                    folderId = GAME_FOLDER_ID,
+                    folderName = "audio",
+                    folderPath = "Android/data/game/audio",
+                    albumId = "album-hidden",
+                    albumTitle = "Hidden",
+                ),
+            ),
+        )
+        repository.setFolderVisible(ANDROID_BASE_FOLDER_ID, visible = false)
+
+        assertEquals(null, repository.observeAlbumContent("album-hidden").first())
+    }
+
+    @Test
     fun `subfolders from the same base folder are grouped`() = runTest {
         localDataSource.replaceTracks(
             listOf(
@@ -163,6 +240,9 @@ class OfflineFirstLibraryRepositoryTest {
         folderId: String? = null,
         folderName: String? = null,
         folderPath: String? = null,
+        albumId: String? = null,
+        albumTitle: String? = null,
+        trackNumber: Int? = null,
     ) = TrackEntity(
         id = id,
         title = "Track $id",
@@ -170,6 +250,9 @@ class OfflineFirstLibraryRepositoryTest {
         artistName = "Artist $id",
         durationMillis = 180_000L,
         mediaUri = "content://media/$id",
+        albumId = albumId,
+        albumTitle = albumTitle,
+        trackNumber = trackNumber,
         folderId = folderId,
         folderName = folderName,
         folderPath = folderPath,

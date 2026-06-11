@@ -1,5 +1,10 @@
 package com.catlytics.app.playback
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -14,8 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -30,12 +35,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.Track
@@ -52,7 +60,22 @@ internal fun PlaybackQueueBottomSheet(
     modifier: Modifier = Modifier,
 ) {
     var visibleQueue by remember { mutableStateOf(queue) }
+    var draggedTrackId by remember { mutableStateOf<String?>(null) }
+    var originalIndex by remember { mutableIntStateOf(-1) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
     val itemHeightPx = with(LocalDensity.current) { QueueItemHeight.toPx() }
+    val animatedDragOffset by animateFloatAsState(
+        targetValue = dragOffset,
+        animationSpec = if (draggedTrackId != null) {
+            snap()
+        } else {
+            spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow,
+            )
+        },
+        label = "queueDragOffset",
+    )
 
     LaunchedEffect(queue) {
         visibleQueue = queue
@@ -73,20 +96,38 @@ internal fun PlaybackQueueBottomSheet(
                 items = visibleQueue,
                 key = Track::id,
             ) { track ->
-                var originalIndex by remember(track.id) { mutableIntStateOf(-1) }
-                var dragOffset by remember(track.id) { mutableFloatStateOf(0f) }
+                val isDragging = track.id == draggedTrackId
+                val placementModifier = if (isDragging) {
+                    Modifier
+                } else {
+                    Modifier.animateItem(
+                        fadeInSpec = null,
+                        fadeOutSpec = null,
+                        placementSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow,
+                        ),
+                    )
+                }
 
                 QueueTrackRow(
                     track = track,
                     isCurrent = track.id == currentTrackId,
+                    isDragging = isDragging,
                     onClick = {
                         visibleQueue.indexOfFirst { it.id == track.id }
                             .takeIf { it >= 0 }
                             ?.let(onPlayQueueItem)
                     },
+                    modifier = placementModifier
+                        .zIndex(if (isDragging) 1f else 0f)
+                        .graphicsLayer {
+                            translationY = if (isDragging) animatedDragOffset else 0f
+                        },
                     dragModifier = Modifier.pointerInput(track.id, itemHeightPx) {
                         detectVerticalDragGestures(
                             onDragStart = {
+                                draggedTrackId = track.id
                                 originalIndex = visibleQueue.indexOfFirst { it.id == track.id }
                                 dragOffset = 0f
                             },
@@ -108,18 +149,19 @@ internal fun PlaybackQueueBottomSheet(
                                 if (originalIndex >= 0 && finalIndex >= 0 && originalIndex != finalIndex) {
                                     onMoveQueueItem(originalIndex, finalIndex)
                                 }
+                                draggedTrackId = null
                                 originalIndex = -1
                                 dragOffset = 0f
                             },
                             onDragCancel = {
                                 visibleQueue = queue
+                                draggedTrackId = null
                                 originalIndex = -1
                                 dragOffset = 0f
                             },
                         )
                     },
                 )
-                HorizontalDivider()
             }
         }
     }
@@ -129,21 +171,42 @@ internal fun PlaybackQueueBottomSheet(
 private fun QueueTrackRow(
     track: Track,
     isCurrent: Boolean,
+    isDragging: Boolean,
     onClick: () -> Unit,
     dragModifier: Modifier,
     modifier: Modifier = Modifier,
 ) {
+    val scale by animateFloatAsState(
+        targetValue = if (isDragging) 1.02f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium,
+        ),
+        label = "queueItemScale",
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = when {
+            isDragging -> MaterialTheme.colorScheme.surfaceContainerHighest
+            isCurrent -> MaterialTheme.colorScheme.secondaryContainer
+            else -> MaterialTheme.colorScheme.surfaceContainerLow
+        },
+        label = "queueItemBackground",
+    )
+    val shape = RoundedCornerShape(20.dp)
+    val dragElevation = with(LocalDensity.current) { 12.dp.toPx() }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(QueueItemHeight)
-            .background(
-                if (isCurrent) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerLow
-                },
-            )
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                shadowElevation = if (isDragging) dragElevation else 0f
+                this.shape = shape
+                clip = isDragging
+            }
+            .background(backgroundColor, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -176,7 +239,14 @@ private fun QueueTrackRow(
         Box(
             modifier = dragModifier
                 .size(48.dp)
-                .background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape),
+                .clip(CircleShape)
+                .background(
+                    if (isDragging) {
+                        MaterialTheme.colorScheme.primaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerHighest
+                    },
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Icon(

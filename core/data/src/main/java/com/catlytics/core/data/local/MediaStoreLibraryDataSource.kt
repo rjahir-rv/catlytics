@@ -44,6 +44,8 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val artistIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST_ID)
             val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+            val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            val trackNumberColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val isMusicColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC)
             val relativePathColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -75,6 +77,8 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
                     artist = cursor.getString(artistColumn),
                     artistId = cursor.getLong(artistIdColumn),
                     albumId = cursor.getLong(albumIdColumn),
+                    album = cursor.getString(albumColumn),
+                    trackNumber = cursor.getInt(trackNumberColumn),
                     durationMillis = cursor.getLong(durationColumn),
                     isMusic = cursor.getInt(isMusicColumn),
                     mediaUri = mediaUri,
@@ -102,6 +106,8 @@ internal object MediaStoreAudioMapper {
         add(MediaStore.Audio.Media.ARTIST)
         add(MediaStore.Audio.Media.ARTIST_ID)
         add(MediaStore.Audio.Media.ALBUM_ID)
+        add(MediaStore.Audio.Media.ALBUM)
+        add(MediaStore.Audio.Media.TRACK)
         add(MediaStore.Audio.Media.DURATION)
         add(MediaStore.Audio.Media.IS_MUSIC)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -119,6 +125,8 @@ internal object MediaStoreAudioMapper {
         artist: String?,
         artistId: Long,
         albumId: Long,
+        album: String? = null,
+        trackNumber: Int = 0,
         durationMillis: Long,
         isMusic: Int,
         mediaUri: String,
@@ -129,6 +137,14 @@ internal object MediaStoreAudioMapper {
         val normalizedArtist = artist
             ?.takeUnless { it.isBlank() || it == UNKNOWN_ARTIST }
             ?: "Artista desconocido"
+        val normalizedAlbum = album
+            ?.takeUnless { it.isBlank() || it == UNKNOWN_ALBUM }
+            ?: "Álbum desconocido"
+        val normalizedAlbumId = if (albumId > 0L) {
+            "mediastore-album-$albumId"
+        } else {
+            "mediastore-album-${normalizedArtist.normalizedIdPart()}-${normalizedAlbum.normalizedIdPart()}"
+        }
 
         return TrackEntity(
             id = "mediastore-$id",
@@ -138,6 +154,11 @@ internal object MediaStoreAudioMapper {
             durationMillis = durationMillis,
             mediaUri = mediaUri,
             artworkUri = albumId.toArtworkUri(),
+            albumId = normalizedAlbumId,
+            albumTitle = normalizedAlbum,
+            trackNumber = trackNumber
+                .rem(TRACK_NUMBER_DISC_MULTIPLIER)
+                .takeIf { it > 0 },
             folderId = folder?.id,
             folderName = folder?.name,
             folderPath = folder?.path,
@@ -172,10 +193,17 @@ internal object MediaStoreAudioMapper {
     }
 
     private const val UNKNOWN_ARTIST = "<unknown>"
+    private const val UNKNOWN_ALBUM = "<unknown>"
+    private const val TRACK_NUMBER_DISC_MULTIPLIER = 1_000
     private const val ARTWORK_BASE_URI = "content://media/external/audio/albumart"
 
     private fun Long.toArtworkUri(): String? = takeIf { it > 0L }
         ?.let { "$ARTWORK_BASE_URI/$it" }
+
+    private fun String.normalizedIdPart(): String = lowercase()
+        .replace(Regex("[^a-z0-9]+"), "-")
+        .trim('-')
+        .ifBlank { "unknown" }
 
     private fun String?.normalizePath(): String? = this
         ?.replace('\\', '/')

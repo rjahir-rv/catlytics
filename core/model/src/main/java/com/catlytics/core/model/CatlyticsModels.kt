@@ -5,6 +5,19 @@ data class Artist(
     val name: String,
 )
 
+data class Album(
+    val id: String,
+    val title: String,
+    val artist: Artist,
+    val artworkUri: String? = null,
+    val trackCount: Int,
+)
+
+data class AlbumContent(
+    val album: Album,
+    val tracks: List<Track>,
+)
+
 data class Track(
     val id: String,
     val title: String,

@@ -93,7 +93,7 @@ internal fun SettingsTopAppBar(
 }
 
 @Composable
-internal fun LibraryFolderTopAppBar(
+internal fun LibraryDetailTopAppBar(
     title: String,
     onBack: () -> Unit,
 ) {

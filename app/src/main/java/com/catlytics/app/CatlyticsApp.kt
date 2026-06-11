@@ -6,7 +6,9 @@ import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
@@ -51,6 +53,7 @@ import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.impl.homeEntry
 import com.catlytics.feature.library.impl.navigation.libraryEntry
+import com.catlytics.feature.library.api.LibraryAlbumRoute
 import com.catlytics.feature.library.api.LibraryFolderRoute
 import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
@@ -82,7 +85,7 @@ fun CatlyticsApp(
     val currentTopLevelDestination = TopLevelDestination.entries
         .firstOrNull { it.route == currentRoute }
     val selectedTopLevelDestination = when (currentRoute) {
-        is LibraryFolderRoute -> TopLevelDestination.Library
+        is LibraryAlbumRoute, is LibraryFolderRoute -> TopLevelDestination.Library
         else -> currentTopLevelDestination
     }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
@@ -137,8 +140,14 @@ fun CatlyticsApp(
         modifier = modifier,
         topBar = {
             when {
+                currentRoute is LibraryAlbumRoute -> {
+                    LibraryDetailTopAppBar(
+                        title = currentRoute.albumTitle,
+                        onBack = ::closeCurrentDestination,
+                    )
+                }
                 currentRoute is LibraryFolderRoute -> {
-                    LibraryFolderTopAppBar(
+                    LibraryDetailTopAppBar(
                         title = currentRoute.folderName,
                         onBack = ::closeCurrentDestination,
                     )
@@ -181,14 +190,17 @@ fun CatlyticsApp(
                 backStack = topLevelBackStack.backStack,
                 onBack = ::closeCurrentDestination,
                 transitionSpec = {
-                    fadeIn() togetherWith fadeOut()
+                    navigationForwardTransition()
                 },
                 popTransitionSpec = {
-                    fadeIn() togetherWith fadeOut()
+                    navigationBackTransition()
+                },
+                predictivePopTransitionSpec = {
+                    navigationBackTransition()
                 },
                 entryProvider = entryProvider {
                     homeEntry(searchQuery = { homeSearchQuery })
-                    libraryEntry(onFolderSelected = topLevelBackStack::add)
+                    libraryEntry(onDestinationSelected = topLevelBackStack::add)
                     playlistsEntry()
                     settingsEntry(appVersion = appVersion)
                     statisticsEntry()
@@ -261,6 +273,45 @@ fun CatlyticsApp(
 }
 
 private const val NOW_PLAYING_TRANSITION_MILLIS = 450
+private const val NAVIGATION_TRANSITION_MILLIS = 280
+
+private fun navigationForwardTransition() =
+    (slideInHorizontally(
+        animationSpec = tween(
+            durationMillis = NAVIGATION_TRANSITION_MILLIS,
+            easing = FastOutSlowInEasing,
+        ),
+        initialOffsetX = { fullWidth -> fullWidth / 8 },
+    ) + fadeIn(
+        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
+    )) togetherWith (slideOutHorizontally(
+        animationSpec = tween(
+            durationMillis = NAVIGATION_TRANSITION_MILLIS,
+            easing = FastOutSlowInEasing,
+        ),
+        targetOffsetX = { fullWidth -> -fullWidth / 16 },
+    ) + fadeOut(
+        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
+    ))
+
+private fun navigationBackTransition() =
+    (slideInHorizontally(
+        animationSpec = tween(
+            durationMillis = NAVIGATION_TRANSITION_MILLIS,
+            easing = FastOutSlowInEasing,
+        ),
+        initialOffsetX = { fullWidth -> -fullWidth / 16 },
+    ) + fadeIn(
+        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
+    )) togetherWith (slideOutHorizontally(
+        animationSpec = tween(
+            durationMillis = NAVIGATION_TRANSITION_MILLIS,
+            easing = FastOutSlowInEasing,
+        ),
+        targetOffsetX = { fullWidth -> fullWidth / 8 },
+    ) + fadeOut(
+        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
+    ))
 
 private fun nowPlayingEnterTransition() =
     slideInVertically(

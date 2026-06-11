@@ -15,9 +15,11 @@ import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.Album
 
 @Composable
 internal fun LibraryRoute(
+    onAlbumSelected: (Album) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
@@ -48,6 +50,7 @@ internal fun LibraryRoute(
         uiState = uiState,
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = { permissionLauncher.launch(permission) },
+        onAlbumSelected = onAlbumSelected,
         onFolderVisibilityChange = viewModel::setFolderVisible,
         onFolderSelected = onFolderSelected,
     )

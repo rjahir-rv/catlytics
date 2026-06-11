@@ -6,6 +6,8 @@ import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.usecase.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.ObserveAlbumsUseCase
+import com.catlytics.core.domain.usecase.ObserveAlbumContentUseCase
 import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.ObserveFolderContentUseCase
 import com.catlytics.core.domain.usecase.ObserveListeningStatsUseCase
@@ -29,6 +31,16 @@ import dagger.hilt.components.SingletonComponent
 @Module
 @InstallIn(SingletonComponent::class)
 object DomainModule {
+    @Provides
+    fun provideObserveAlbumContentUseCase(
+        libraryRepository: LibraryRepository,
+    ) = ObserveAlbumContentUseCase(libraryRepository)
+
+    @Provides
+    fun provideObserveAlbumsUseCase(
+        libraryRepository: LibraryRepository,
+    ) = ObserveAlbumsUseCase(libraryRepository)
+
     @Provides
     fun provideObserveLibraryUseCase(
         libraryRepository: LibraryRepository,

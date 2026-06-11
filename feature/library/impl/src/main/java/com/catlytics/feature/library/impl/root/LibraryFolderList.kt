@@ -85,7 +85,7 @@ private fun FolderRow(
 ) {
     var menuExpanded by rememberSaveable(folder.id) { mutableStateOf(false) }
     val contentAlpha = if (folder.isVisible) 1f else 0.56f
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(24.dp)
 
     Surface(
         modifier = modifier
@@ -140,7 +140,7 @@ private fun FolderIcon(
 ) {
     Surface(
         modifier = modifier.size(44.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
         color = if (isVisible) {
             MaterialTheme.colorScheme.primaryContainer
         } else {
@@ -215,7 +215,7 @@ private fun FolderOptionsMenu(
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { onExpandedChange(false) },
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(20.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             FolderVisibilityMenuItem(
@@ -260,7 +260,7 @@ private fun FolderVisibilityMenuItem(
         },
         leadingIcon = {
             Surface(
-                shape = RoundedCornerShape(8.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = if (selected) {
                     MaterialTheme.colorScheme.secondaryContainer
                 } else {

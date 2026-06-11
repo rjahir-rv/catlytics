@@ -1,6 +1,8 @@
 package com.catlytics.feature.home.impl
 
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.model.Album
+import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.PlayTrackUseCase
@@ -137,6 +139,9 @@ class MainDispatcherRule(
 }
 
 private class FakeLibraryRepository : LibraryRepository {
+    override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
+    override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
+
     private val tracks = MutableStateFlow(emptyList<Track>())
     private val folders = MutableStateFlow(emptyList<LibraryFolder>())
     var refreshResult: Result<Unit> = Result.success(Unit)

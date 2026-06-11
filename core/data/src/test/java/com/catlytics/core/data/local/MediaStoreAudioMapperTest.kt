@@ -17,6 +17,8 @@ class MediaStoreAudioMapperTest {
             artist = "Local Artist",
             artistId = 7L,
             albumId = 9L,
+            album = "Local Album",
+            trackNumber = 3,
             durationMillis = 180_000L,
             isMusic = 1,
             mediaUri = "content://media/external/audio/media/42",
@@ -31,6 +33,9 @@ class MediaStoreAudioMapperTest {
         assertEquals(180_000L, track.durationMillis)
         assertEquals("content://media/external/audio/media/42", track.mediaUri)
         assertEquals("content://media/external/audio/albumart/9", track.artworkUri)
+        assertEquals("mediastore-album-9", track.albumId)
+        assertEquals("Local Album", track.albumTitle)
+        assertEquals(3, track.trackNumber)
         assertEquals("external_primary:Music/Favorites", track.folderId)
         assertEquals("Favorites", track.folderName)
         assertEquals("Music/Favorites", track.folderPath)
@@ -81,6 +86,35 @@ class MediaStoreAudioMapperTest {
 
         requireNotNull(track)
         assertEquals("Artista desconocido", track.artistName)
+        assertEquals("Álbum desconocido", track.albumTitle)
+    }
+
+    @Test
+    fun `tracks without album id share fallback album key by artist and title`() {
+        val first = MediaStoreAudioMapper.toTrackEntity(
+            id = 1L,
+            title = "First",
+            artist = "Local Artist",
+            artistId = 7L,
+            albumId = 0L,
+            album = "Local Album",
+            durationMillis = 180_000L,
+            isMusic = 1,
+            mediaUri = "content://media/1",
+        )
+        val second = MediaStoreAudioMapper.toTrackEntity(
+            id = 2L,
+            title = "Second",
+            artist = "Local Artist",
+            artistId = 7L,
+            albumId = 0L,
+            album = "Local Album",
+            durationMillis = 180_000L,
+            isMusic = 1,
+            mediaUri = "content://media/2",
+        )
+
+        assertEquals(requireNotNull(first).albumId, requireNotNull(second).albumId)
     }
 
     @Test
