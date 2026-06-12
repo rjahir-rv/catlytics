@@ -20,9 +20,3 @@ data class TrackEntity(
     val folderName: String? = null,
     val folderPath: String? = null,
 )
-
-data class PlaylistEntity(
-    val id: String,
-    val name: String,
-    val trackIds: List<String>,
-)

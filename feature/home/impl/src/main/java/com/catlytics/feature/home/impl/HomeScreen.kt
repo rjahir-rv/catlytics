@@ -21,6 +21,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.painterResource
+import com.catlytics.core.designsystem.R
+import com.catlytics.core.model.PlaylistSource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -44,6 +49,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 internal fun HomeRoute(
     searchQuery: String,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -75,6 +81,7 @@ internal fun HomeRoute(
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = { permissionLauncher.launch(permission) },
         onTrackSelected = viewModel::onTrackSelected,
+        onAddToPlaylist = onAddToPlaylist,
     )
 }
 
@@ -85,6 +92,7 @@ internal fun HomeScreen(
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val trackListState = rememberSaveable(saver = LazyListState.Saver) {
@@ -115,6 +123,7 @@ internal fun HomeScreen(
                         tracks = filteredTracks,
                         onTrackSelected = onTrackSelected,
                         state = trackListState,
+                        onAddToPlaylist = onAddToPlaylist,
                     )
                 }
             }
@@ -203,6 +212,7 @@ private fun TrackList(
     onTrackSelected: (Track, List<Track>) -> Unit,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
+    onAddToPlaylist: (PlaylistSource) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -215,6 +225,7 @@ private fun TrackList(
             TrackRow(
                 track = track,
                 onTrackSelected = { onTrackSelected(track, tracks) },
+                onAddToPlaylist = { onAddToPlaylist(PlaylistSource.TrackSource(track.id)) },
             )
             HorizontalDivider()
         }
@@ -225,6 +236,7 @@ private fun TrackList(
 private fun TrackRow(
     track: Track,
     onTrackSelected: () -> Unit,
+    onAddToPlaylist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -254,6 +266,9 @@ private fun TrackRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        IconButton(onClick = onAddToPlaylist) {
+            Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
+        }
     }
 }
 
@@ -293,6 +308,7 @@ private fun HomeScreenPreview() {
             hasAudioPermission = true,
             onRequestPermission = {},
             onTrackSelected = { _, _ -> },
+            onAddToPlaylist = {},
         )
     }
 }

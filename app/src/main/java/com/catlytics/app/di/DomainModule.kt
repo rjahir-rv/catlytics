@@ -16,6 +16,12 @@ import com.catlytics.core.domain.usecase.library.ObserveFolderContentUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveListeningStatsUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
+import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.CreatePlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.DeletePlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
+import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.RenamePlaylistUseCase
 import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
@@ -95,6 +101,31 @@ object DomainModule {
     fun provideObservePlaylistsUseCase(
         playlistRepository: PlaylistRepository,
     ) = ObservePlaylistsUseCase(playlistRepository)
+
+    @Provides
+    fun provideObservePlaylistContentUseCase(
+        playlistRepository: PlaylistRepository,
+        libraryRepository: LibraryRepository,
+    ) = ObservePlaylistContentUseCase(playlistRepository, libraryRepository)
+
+    @Provides
+    fun provideCreatePlaylistUseCase(repository: PlaylistRepository) = CreatePlaylistUseCase(repository)
+
+    @Provides
+    fun provideRenamePlaylistUseCase(repository: PlaylistRepository) = RenamePlaylistUseCase(repository)
+
+    @Provides
+    fun provideDeletePlaylistUseCase(repository: PlaylistRepository) = DeletePlaylistUseCase(repository)
+
+    @Provides
+    fun provideAddToPlaylistUseCase(
+        playlistRepository: PlaylistRepository,
+        libraryRepository: LibraryRepository,
+    ) = AddToPlaylistUseCase(playlistRepository, libraryRepository)
+
+    @Provides
+    fun provideRemoveTrackFromPlaylistUseCase(repository: PlaylistRepository) =
+        RemoveTrackFromPlaylistUseCase(repository)
 
     @Provides
     fun provideObserveListeningStatsUseCase(

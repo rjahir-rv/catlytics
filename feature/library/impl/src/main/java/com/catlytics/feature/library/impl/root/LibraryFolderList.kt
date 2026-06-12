@@ -40,6 +40,7 @@ internal fun LibraryFolderList(
     folders: List<LibraryFolder>,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
+    onAddToPlaylist: (LibraryFolder) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -71,6 +72,7 @@ internal fun LibraryFolderList(
                     onFolderVisibilityChange(folder.id, visible)
                 },
                 onClick = { onFolderSelected(folder) },
+                onAddToPlaylist = { onAddToPlaylist(folder) },
             )
         }
     }
@@ -81,6 +83,7 @@ private fun FolderRow(
     folder: LibraryFolder,
     onVisibilityChange: (Boolean) -> Unit,
     onClick: () -> Unit,
+    onAddToPlaylist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuExpanded by rememberSaveable(folder.id) { mutableStateOf(false) }
@@ -128,6 +131,7 @@ private fun FolderRow(
                 expanded = menuExpanded,
                 onExpandedChange = { menuExpanded = it },
                 onVisibilityChange = onVisibilityChange,
+                onAddToPlaylist = onAddToPlaylist,
             )
         }
     }
@@ -204,6 +208,7 @@ private fun FolderOptionsMenu(
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onVisibilityChange: (Boolean) -> Unit,
+    onAddToPlaylist: () -> Unit,
 ) {
     Box {
         IconButton(onClick = { onExpandedChange(true) }) {
@@ -218,6 +223,11 @@ private fun FolderOptionsMenu(
             shape = RoundedCornerShape(20.dp),
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
+            DropdownMenuItem(
+                text = { Text("Agregar a playlist") },
+                onClick = { onExpandedChange(false); onAddToPlaylist() },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_playlist), null) },
+            )
             FolderVisibilityMenuItem(
                 label = "Mostrar carpeta",
                 iconRes = R.drawable.ic_show,

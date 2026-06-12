@@ -57,6 +57,7 @@ internal fun PlaybackQueueBottomSheet(
     onDismiss: () -> Unit,
     onPlayQueueItem: (Int) -> Unit,
     onMoveQueueItem: (Int, Int) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var visibleQueue by remember { mutableStateOf(queue) }
@@ -161,6 +162,7 @@ internal fun PlaybackQueueBottomSheet(
                             },
                         )
                     },
+                    onAddToPlaylist = { onAddToPlaylist(track) },
                 )
             }
         }
@@ -174,6 +176,7 @@ private fun QueueTrackRow(
     isDragging: Boolean,
     onClick: () -> Unit,
     dragModifier: Modifier,
+    onAddToPlaylist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scale by animateFloatAsState(
@@ -234,6 +237,18 @@ private fun QueueTrackRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onAddToPlaylist),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_options),
+                contentDescription = "Agregar ${track.title} a playlist",
             )
         }
         Box(

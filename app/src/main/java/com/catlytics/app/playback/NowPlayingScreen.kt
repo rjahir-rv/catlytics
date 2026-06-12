@@ -62,6 +62,7 @@ fun NowPlayingScreen(
     onShareTrack: (Track) -> Unit,
     onPlayQueueItem: (Int) -> Unit,
     onMoveQueueItem: (Int, Int) -> Unit,
+    onAddToPlaylist: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val track = playbackState.currentTrack
@@ -76,6 +77,7 @@ fun NowPlayingScreen(
             onDismiss = { isQueueVisible = false },
             onPlayQueueItem = onPlayQueueItem,
             onMoveQueueItem = onMoveQueueItem,
+            onAddToPlaylist = onAddToPlaylist,
         )
     }
 
@@ -246,6 +248,16 @@ fun NowPlayingScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                IconButton(
+                    onClick = { track?.let(onAddToPlaylist) },
+                    enabled = track != null,
+                    modifier = Modifier.size(56.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_options),
+                        contentDescription = "Opciones de playlist",
+                    )
+                }
                 IconButton(
                     onClick = { track?.let(onShareTrack) },
                     enabled = track != null,

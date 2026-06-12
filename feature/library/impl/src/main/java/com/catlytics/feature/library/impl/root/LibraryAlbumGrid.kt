@@ -13,6 +13,8 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +30,7 @@ import com.catlytics.core.model.Album
 internal fun LibraryAlbumGrid(
     albums: List<Album>,
     onAlbumSelected: (Album) -> Unit,
+    onAddToPlaylist: (Album) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
@@ -44,6 +47,7 @@ internal fun LibraryAlbumGrid(
             AlbumCard(
                 album = album,
                 onClick = { onAlbumSelected(album) },
+                onAddToPlaylist = { onAddToPlaylist(album) },
             )
         }
     }
@@ -53,6 +57,7 @@ internal fun LibraryAlbumGrid(
 private fun AlbumCard(
     album: Album,
     onClick: () -> Unit,
+    onAddToPlaylist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -80,6 +85,9 @@ private fun AlbumCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        IconButton(onClick = onAddToPlaylist) {
+            Icon(painterResource(R.drawable.ic_options), "Opciones de ${album.title}")
+        }
         Text(
             text = album.artist.name,
             style = MaterialTheme.typography.bodyMedium,

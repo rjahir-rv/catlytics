@@ -6,6 +6,7 @@ import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
+import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.flow.Flow
 
@@ -25,6 +26,8 @@ interface LibraryRepository {
     fun observeFolders(): Flow<List<LibraryFolder>>
 
     fun observeFolderContent(folderId: String): Flow<LibraryFolderContent?>
+
+    suspend fun resolvePlaylistSource(source: PlaylistSource): List<Track>
 
     suspend fun refreshTracks()
 

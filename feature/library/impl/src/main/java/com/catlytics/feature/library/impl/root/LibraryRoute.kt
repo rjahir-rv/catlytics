@@ -17,12 +17,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.PlaylistSource
 
 @Composable
 internal fun LibraryRoute(
     onAlbumSelected: (Album) -> Unit,
     onArtistSelected: (ArtistSummary) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -57,6 +59,7 @@ internal fun LibraryRoute(
         onArtistViewModeChange = viewModel::setArtistViewMode,
         onFolderVisibilityChange = viewModel::setFolderVisible,
         onFolderSelected = onFolderSelected,
+        onAddToPlaylist = onAddToPlaylist,
     )
 }
 

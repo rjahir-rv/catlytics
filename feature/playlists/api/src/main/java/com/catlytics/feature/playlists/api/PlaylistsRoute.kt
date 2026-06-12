@@ -5,3 +5,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data object PlaylistsRoute : NavKey
+
+@Serializable
+data class PlaylistDetailRoute(
+    val playlistId: String,
+    val playlistName: String,
+) : NavKey

@@ -34,6 +34,9 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.PlaylistSource
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -42,6 +45,7 @@ internal fun LibraryArtistScreen(
     uiState: LibraryArtistUiState,
     onAlbumSelected: (Album) -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -60,6 +64,7 @@ internal fun LibraryArtistScreen(
             content = uiState.content,
             onAlbumSelected = onAlbumSelected,
             onTrackSelected = onTrackSelected,
+            onAddToPlaylist = onAddToPlaylist,
             modifier = modifier,
         )
     }
@@ -70,6 +75,7 @@ private fun ArtistContent(
     content: ArtistContent,
     onAlbumSelected: (Album) -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
@@ -86,7 +92,11 @@ private fun ArtistContent(
             SectionTitle("Álbumes")
         }
         items(items = content.albums, key = Album::id) { album ->
-            ArtistAlbumCard(album = album, onClick = { onAlbumSelected(album) })
+            ArtistAlbumCard(
+                album = album,
+                onClick = { onAlbumSelected(album) },
+                onAddToPlaylist = { onAddToPlaylist(PlaylistSource.AlbumSource(album.id)) },
+            )
         }
         item(key = "songs-title", span = { GridItemSpan(maxLineSpan) }) {
             SectionTitle(
@@ -102,6 +112,7 @@ private fun ArtistContent(
             ArtistTrackRow(
                 track = track,
                 onClick = { onTrackSelected(track, content.tracks) },
+                onAddToPlaylist = { onAddToPlaylist(PlaylistSource.TrackSource(track.id)) },
             )
         }
     }
@@ -146,6 +157,7 @@ private fun ArtistHeader(content: ArtistContent) {
 private fun ArtistAlbumCard(
     album: Album,
     onClick: () -> Unit,
+    onAddToPlaylist: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -171,6 +183,9 @@ private fun ArtistAlbumCard(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        IconButton(onClick = onAddToPlaylist) {
+            Icon(painterResource(R.drawable.ic_options), "Opciones de ${album.title}")
+        }
         Text(
             text = if (album.trackCount == 1) "1 canción" else "${album.trackCount} canciones",
             style = MaterialTheme.typography.bodyMedium,
@@ -183,6 +198,7 @@ private fun ArtistAlbumCard(
 private fun ArtistTrackRow(
     track: Track,
     onClick: () -> Unit,
+    onAddToPlaylist: () -> Unit,
 ) {
     Column {
         Row(
@@ -211,6 +227,9 @@ private fun ArtistTrackRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            IconButton(onClick = onAddToPlaylist) {
+                Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
+            }
             Text(
                 text = track.durationMillis.formatDuration(),
                 style = MaterialTheme.typography.bodyMedium,

@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.PlaylistSource
+import androidx.compose.material3.IconButton
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -32,6 +34,7 @@ internal fun LibraryFolderScreen(
     uiState: LibraryFolderUiState,
     onFolderSelected: (LibraryFolder) -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -57,13 +60,22 @@ internal fun LibraryFolderScreen(
                     contentPadding = PaddingValues(20.dp),
                 ) {
                     items(content.subfolders, key = LibraryFolder::id) { folder ->
-                        SubfolderRow(folder = folder, onClick = { onFolderSelected(folder) })
+                        SubfolderRow(
+                            folder = folder,
+                            onClick = { onFolderSelected(folder) },
+                            onAddToPlaylist = {
+                                onAddToPlaylist(PlaylistSource.FolderSource(folder.id))
+                            },
+                        )
                         HorizontalDivider()
                     }
                     items(content.tracks, key = Track::id) { track ->
                         TrackRow(
                             track = track,
                             onClick = { onTrackSelected(track, content.tracks) },
+                            onAddToPlaylist = {
+                                onAddToPlaylist(PlaylistSource.TrackSource(track.id))
+                            },
                         )
                         HorizontalDivider()
                     }
@@ -74,7 +86,7 @@ internal fun LibraryFolderScreen(
 }
 
 @Composable
-private fun SubfolderRow(folder: LibraryFolder, onClick: () -> Unit) {
+private fun SubfolderRow(folder: LibraryFolder, onClick: () -> Unit, onAddToPlaylist: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -88,6 +100,9 @@ private fun SubfolderRow(folder: LibraryFolder, onClick: () -> Unit) {
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
         )
+        IconButton(onClick = onAddToPlaylist) {
+            Icon(painterResource(R.drawable.ic_options), "Opciones de ${folder.name}")
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = folder.name,
@@ -109,7 +124,7 @@ private fun SubfolderRow(folder: LibraryFolder, onClick: () -> Unit) {
 }
 
 @Composable
-private fun TrackRow(track: Track, onClick: () -> Unit) {
+private fun TrackRow(track: Track, onClick: () -> Unit, onAddToPlaylist: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -130,6 +145,9 @@ private fun TrackRow(track: Track, onClick: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        IconButton(onClick = onAddToPlaylist) {
+            Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
+        }
     }
 }
 

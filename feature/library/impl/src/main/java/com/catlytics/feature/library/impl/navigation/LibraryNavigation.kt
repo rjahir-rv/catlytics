@@ -10,9 +10,11 @@ import com.catlytics.feature.library.impl.album.LibraryAlbumRoute
 import com.catlytics.feature.library.impl.artist.LibraryArtistRoute
 import com.catlytics.feature.library.impl.folder.LibraryFolderRoute
 import com.catlytics.feature.library.impl.root.LibraryRoute as LibraryRootRoute
+import com.catlytics.core.model.PlaylistSource
 
 fun EntryProviderScope<NavKey>.libraryEntry(
     onDestinationSelected: (NavKey) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
 ) {
     entry<LibraryRoute> {
         LibraryRootRoute(
@@ -27,10 +29,11 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onFolderSelected = { folder ->
                 onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
             },
+            onAddToPlaylist = onAddToPlaylist,
         )
     }
     entry<LibraryAlbumDestination> { route ->
-        LibraryAlbumRoute(route = route)
+        LibraryAlbumRoute(route = route, onAddToPlaylist = onAddToPlaylist)
     }
     entry<LibraryArtistDestination> { route ->
         LibraryArtistRoute(
@@ -38,6 +41,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onAlbumSelected = { album ->
                 onDestinationSelected(LibraryAlbumDestination(album.id, album.title))
             },
+            onAddToPlaylist = onAddToPlaylist,
         )
     }
     entry<LibraryFolderDestination> { route ->
@@ -46,6 +50,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onFolderSelected = { folder ->
                 onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
             },
+            onAddToPlaylist = onAddToPlaylist,
         )
     }
 }

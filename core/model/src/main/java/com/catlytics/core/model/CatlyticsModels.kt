@@ -101,6 +101,18 @@ data class Playlist(
     val trackIds: List<String>,
 )
 
+data class PlaylistContent(
+    val playlist: Playlist,
+    val tracks: List<Track>,
+)
+
+sealed interface PlaylistSource {
+    data class TrackSource(val trackId: String) : PlaylistSource
+    data class AlbumSource(val albumId: String) : PlaylistSource
+    data class ArtistSource(val artistId: String) : PlaylistSource
+    data class FolderSource(val folderId: String) : PlaylistSource
+}
+
 data class ListeningStats(
     val totalTracks: Int,
     val totalPlaylists: Int,

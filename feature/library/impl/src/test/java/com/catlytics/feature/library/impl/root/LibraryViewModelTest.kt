@@ -170,6 +170,9 @@ private class FakeLibraryRepository : LibraryRepository {
     override fun observeFolderContent(folderId: String) =
         MutableStateFlow<LibraryFolderContent?>(null)
 
+    override suspend fun resolvePlaylistSource(source: com.catlytics.core.model.PlaylistSource) =
+        emptyList<Track>()
+
     override suspend fun refreshTracks() {
         refreshResult.getOrThrow()
     }

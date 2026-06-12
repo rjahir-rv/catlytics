@@ -97,6 +97,8 @@ private class FolderFakeLibraryRepository : LibraryRepository {
     override fun observeAllTracks() = MutableStateFlow(emptyList<Track>())
     override fun observeFolders() = MutableStateFlow(emptyList<LibraryFolder>())
     override fun observeFolderContent(folderId: String) = content
+    override suspend fun resolvePlaylistSource(source: com.catlytics.core.model.PlaylistSource) =
+        emptyList<Track>()
     override suspend fun refreshTracks() = Unit
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
 }

@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -30,9 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -49,6 +52,7 @@ import com.catlytics.app.playback.shareTrack
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
 import com.catlytics.core.model.PlaybackStatus
+import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.impl.homeEntry
@@ -57,6 +61,8 @@ import com.catlytics.feature.library.api.LibraryAlbumRoute
 import com.catlytics.feature.library.api.LibraryArtistRoute
 import com.catlytics.feature.library.api.LibraryFolderRoute
 import com.catlytics.feature.playlists.impl.playlistsEntry
+import com.catlytics.feature.playlists.impl.AddToPlaylistSheet
+import com.catlytics.feature.playlists.api.PlaylistDetailRoute
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.settings.impl.settingsEntry
 import com.catlytics.feature.statistics.impl.statisticsEntry
@@ -75,6 +81,9 @@ fun CatlyticsApp(
     val searchFocusRequester = remember { FocusRequester() }
     var isHomeSearchExpanded by rememberSaveable { mutableStateOf(false) }
     var homeSearchQuery by rememberSaveable { mutableStateOf("") }
+    var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
+    var miniPlayerHeightPx by remember { mutableIntStateOf(0) }
+    val density = LocalDensity.current
     val appVersion = remember(context) {
         context.packageManager
             .getPackageInfo(context.packageName, 0)
@@ -88,10 +97,15 @@ fun CatlyticsApp(
     val selectedTopLevelDestination = when (currentRoute) {
         is LibraryAlbumRoute, is LibraryArtistRoute, is LibraryFolderRoute ->
             TopLevelDestination.Library
+        is PlaylistDetailRoute -> TopLevelDestination.Playlists
         else -> currentTopLevelDestination
     }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
     val isSettingsVisible = currentRoute == SettingsRoute
+    val isMiniPlayerVisible = !isNowPlayingVisible && playbackState.currentTrack != null
+    val miniPlayerContentPadding = with(density) {
+        if (isMiniPlayerVisible) miniPlayerHeightPx.toDp() + MINI_PLAYER_CONTENT_GAP else 0.dp
+    }
 
     fun closeHomeSearch() {
         homeSearchQuery = ""
@@ -160,6 +174,12 @@ fun CatlyticsApp(
                         onBack = ::closeCurrentDestination,
                     )
                 }
+                currentRoute is PlaylistDetailRoute -> {
+                    LibraryDetailTopAppBar(
+                        title = currentRoute.playlistName,
+                        onBack = ::closeCurrentDestination,
+                    )
+                }
                 currentTopLevelDestination != null -> {
                     TopLevelTopAppBar(
                         title = currentTopLevelDestination.label,
@@ -194,7 +214,9 @@ fun CatlyticsApp(
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
-                modifier = Modifier.padding(innerPadding),
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .padding(bottom = miniPlayerContentPadding),
                 backStack = topLevelBackStack.backStack,
                 onBack = ::closeCurrentDestination,
                 transitionSpec = {
@@ -207,9 +229,15 @@ fun CatlyticsApp(
                     navigationBackTransition()
                 },
                 entryProvider = entryProvider {
-                    homeEntry(searchQuery = { homeSearchQuery })
-                    libraryEntry(onDestinationSelected = topLevelBackStack::add)
-                    playlistsEntry()
+                    homeEntry(
+                        searchQuery = { homeSearchQuery },
+                        onAddToPlaylist = { playlistSource = it },
+                    )
+                    libraryEntry(
+                        onDestinationSelected = topLevelBackStack::add,
+                        onAddToPlaylist = { playlistSource = it },
+                    )
+                    playlistsEntry(onDestinationSelected = topLevelBackStack::add)
                     settingsEntry(appVersion = appVersion)
                     statisticsEntry()
                     entry<NowPlayingRoute>(
@@ -237,6 +265,7 @@ fun CatlyticsApp(
                             onShareTrack = context::shareTrack,
                             onPlayQueueItem = playbackViewModel::playQueueItem,
                             onMoveQueueItem = playbackViewModel::moveQueueItem,
+                            onAddToPlaylist = { playlistSource = PlaylistSource.TrackSource(it.id) },
                         )
                     }
                 },
@@ -273,15 +302,20 @@ fun CatlyticsApp(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(bottom = innerPadding.calculateBottomPadding() + 8.dp)
+                            .onSizeChanged { size -> miniPlayerHeightPx = size.height }
                     )
                 }
             }
         }
     }
+    playlistSource?.let { source ->
+        AddToPlaylistSheet(source = source, onDismiss = { playlistSource = null })
+    }
 }
 
 private const val NOW_PLAYING_TRANSITION_MILLIS = 450
 private const val NAVIGATION_TRANSITION_MILLIS = 280
+private val MINI_PLAYER_CONTENT_GAP = 8.dp
 
 private fun navigationForwardTransition() =
     (slideInHorizontally(

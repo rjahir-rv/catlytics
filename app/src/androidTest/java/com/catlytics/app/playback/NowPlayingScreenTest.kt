@@ -34,6 +34,7 @@ class NowPlayingScreenTest {
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
+                    onAddToPlaylist = {},
                 )
             }
         }
@@ -59,6 +60,7 @@ class NowPlayingScreenTest {
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
+                    onAddToPlaylist = {},
                 )
             }
         }

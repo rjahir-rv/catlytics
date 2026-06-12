@@ -13,11 +13,13 @@ import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
+import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 
 class OfflineFirstLibraryRepository @Inject constructor(
     private val localDataSource: LocalDataSource,
@@ -87,6 +89,20 @@ class OfflineFirstLibraryRepository @Inject constructor(
         preferencesRepository.observeHiddenFolderIds(),
     ) { tracks, hiddenFolderIds ->
         tracks.toLibraryFolderContent(folderId, hiddenFolderIds)
+    }
+
+    override suspend fun resolvePlaylistSource(source: PlaylistSource): List<Track> {
+        val tracks = localDataSource.observeTracks().first()
+        return when (source) {
+            is PlaylistSource.TrackSource -> tracks.filter { it.id == source.trackId }
+            is PlaylistSource.AlbumSource -> tracks.filter { it.albumId == source.albumId }
+                .sortedWith(compareBy({ it.trackNumber ?: Int.MAX_VALUE }, { it.title.lowercase() }))
+            is PlaylistSource.ArtistSource -> tracks.filter { it.artistId == source.artistId }
+                .sortedBy { it.title.lowercase() }
+            is PlaylistSource.FolderSource -> tracks.filter { entity ->
+                entity.toFolderAncestors().any { it.folderId == source.folderId }
+            }.sortedBy { it.title.lowercase() }
+        }.map(TrackEntity::toDomain)
     }
 
     override suspend fun refreshTracks() {

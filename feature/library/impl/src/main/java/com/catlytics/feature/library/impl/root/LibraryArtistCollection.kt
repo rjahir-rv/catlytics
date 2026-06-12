@@ -40,6 +40,7 @@ internal fun LibraryArtistCollection(
     viewMode: ArtistViewMode,
     onViewModeChange: (ArtistViewMode) -> Unit,
     onArtistSelected: (ArtistSummary) -> Unit,
+    onAddToPlaylist: (ArtistSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -47,10 +48,12 @@ internal fun LibraryArtistCollection(
             ArtistViewMode.List -> ArtistList(
                 artists = artists,
                 onArtistSelected = onArtistSelected,
+                onAddToPlaylist = onAddToPlaylist,
             )
             ArtistViewMode.Grid -> ArtistGrid(
                 artists = artists,
                 onArtistSelected = onArtistSelected,
+                onAddToPlaylist = onAddToPlaylist,
             )
         }
 
@@ -89,6 +92,7 @@ internal fun LibraryArtistCollection(
 private fun ArtistList(
     artists: List<ArtistSummary>,
     onArtistSelected: (ArtistSummary) -> Unit,
+    onAddToPlaylist: (ArtistSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -118,6 +122,9 @@ private fun ArtistList(
                     artist = artist,
                     modifier = Modifier.weight(1f),
                 )
+                IconButton(onClick = { onAddToPlaylist(artist) }) {
+                    Icon(painterResource(R.drawable.ic_options), "Opciones de ${artist.artist.name}")
+                }
             }
         }
     }
@@ -127,6 +134,7 @@ private fun ArtistList(
 private fun ArtistGrid(
     artists: List<ArtistSummary>,
     onArtistSelected: (ArtistSummary) -> Unit,
+    onAddToPlaylist: (ArtistSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
@@ -160,6 +168,9 @@ private fun ArtistGrid(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 )
+                IconButton(onClick = { onAddToPlaylist(artist) }) {
+                    Icon(painterResource(R.drawable.ic_options), "Opciones de ${artist.artist.name}")
+                }
             }
         }
     }

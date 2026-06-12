@@ -13,7 +13,7 @@ import com.catlytics.core.data.repository.DataStoreAppPreferencesRepository
 import com.catlytics.core.data.repository.DataStoreLibraryPreferencesRepository
 import com.catlytics.core.data.repository.DataStorePlaybackSessionRepository
 import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
-import com.catlytics.core.data.repository.OfflineFirstPlaylistRepository
+import com.catlytics.core.data.repository.DataStorePlaylistRepository
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
@@ -69,7 +69,7 @@ interface DataModule {
 
     @Binds
     fun bindPlaylistRepository(
-        repository: OfflineFirstPlaylistRepository,
+        repository: DataStorePlaylistRepository,
     ): PlaylistRepository
 
     @Binds

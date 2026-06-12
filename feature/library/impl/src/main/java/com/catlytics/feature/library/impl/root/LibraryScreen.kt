@@ -28,6 +28,7 @@ import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.PlaylistSource
 import kotlinx.coroutines.launch
 
 @Composable
@@ -40,6 +41,7 @@ internal fun LibraryScreen(
     onArtistViewModeChange: (ArtistViewMode) -> Unit,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (!hasAudioPermission) {
@@ -61,6 +63,7 @@ internal fun LibraryScreen(
             onArtistViewModeChange = onArtistViewModeChange,
             onFolderVisibilityChange = onFolderVisibilityChange,
             onFolderSelected = onFolderSelected,
+            onAddToPlaylist = onAddToPlaylist,
             modifier = modifier.fillMaxSize(),
         )
     }
@@ -75,6 +78,7 @@ private fun LibraryContent(
     onArtistViewModeChange: (ArtistViewMode) -> Unit,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { LibrarySection.entries.size })
@@ -117,17 +121,22 @@ private fun LibraryContent(
                 LibrarySection.Albums -> LibraryAlbumGrid(
                     albums = uiState.albums,
                     onAlbumSelected = onAlbumSelected,
+                    onAddToPlaylist = { onAddToPlaylist(PlaylistSource.AlbumSource(it.id)) },
                 )
                 LibrarySection.Artists -> LibraryArtistCollection(
                     artists = uiState.artists,
                     viewMode = uiState.artistViewMode,
                     onViewModeChange = onArtistViewModeChange,
                     onArtistSelected = onArtistSelected,
+                    onAddToPlaylist = {
+                        onAddToPlaylist(PlaylistSource.ArtistSource(it.artist.id))
+                    },
                 )
                 LibrarySection.Folders -> LibraryFolderList(
                     folders = uiState.folders,
                     onFolderVisibilityChange = onFolderVisibilityChange,
                     onFolderSelected = onFolderSelected,
+                    onAddToPlaylist = { onAddToPlaylist(PlaylistSource.FolderSource(it.id)) },
                 )
             }
         }
@@ -243,6 +252,7 @@ private fun LibraryScreenPreview() {
             onArtistViewModeChange = {},
             onFolderVisibilityChange = { _, _ -> },
             onFolderSelected = {},
+            onAddToPlaylist = {},
         )
     }
 }
