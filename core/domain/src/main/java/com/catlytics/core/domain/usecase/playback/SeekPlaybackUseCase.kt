@@ -1,4 +1,4 @@
-package com.catlytics.core.domain.usecase
+package com.catlytics.core.domain.usecase.playback
 
 import com.catlytics.core.domain.repository.PlaybackController
 

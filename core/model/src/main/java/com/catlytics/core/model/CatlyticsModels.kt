@@ -5,6 +5,24 @@ data class Artist(
     val name: String,
 )
 
+data class ArtistSummary(
+    val artist: Artist,
+    val artworkUri: String? = null,
+    val albumCount: Int,
+    val trackCount: Int,
+)
+
+data class ArtistContent(
+    val summary: ArtistSummary,
+    val albums: List<Album>,
+    val tracks: List<Track>,
+)
+
+enum class ArtistViewMode {
+    List,
+    Grid,
+}
+
 data class Album(
     val id: String,
     val title: String,

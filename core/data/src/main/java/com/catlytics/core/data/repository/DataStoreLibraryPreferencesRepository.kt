@@ -6,8 +6,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.model.ArtistViewMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
@@ -39,6 +41,20 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         }
         .map { preferences -> preferences[HIDDEN_FOLDER_IDS].orEmpty() }
 
+    override fun observeArtistViewMode(): Flow<ArtistViewMode> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { preferences ->
+            preferences[ARTIST_VIEW_MODE]
+                ?.let { stored -> ArtistViewMode.entries.firstOrNull { it.name == stored } }
+                ?: ArtistViewMode.List
+        }
+
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {
         dataStore.edit { preferences ->
             val hiddenFolderIds = preferences[HIDDEN_FOLDER_IDS].orEmpty()
@@ -50,7 +66,14 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         }
     }
 
+    override suspend fun setArtistViewMode(viewMode: ArtistViewMode) {
+        dataStore.edit { preferences ->
+            preferences[ARTIST_VIEW_MODE] = viewMode.name
+        }
+    }
+
     private companion object {
         val HIDDEN_FOLDER_IDS = stringSetPreferencesKey("hidden_folder_ids")
+        val ARTIST_VIEW_MODE = stringPreferencesKey("artist_view_mode")
     }
 }

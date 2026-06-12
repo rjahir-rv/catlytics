@@ -4,9 +4,11 @@ import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
-import com.catlytics.core.domain.usecase.ObserveFolderContentUseCase
-import com.catlytics.core.domain.usecase.PlayTrackUseCase
+import com.catlytics.core.domain.usecase.library.ObserveFolderContentUseCase
+import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistContent
+import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.PlaybackRepeatMode
@@ -86,6 +88,8 @@ class LibraryFolderViewModelTest {
 private class FolderFakeLibraryRepository : LibraryRepository {
     override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
     override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
+    override fun observeArtists() = MutableStateFlow(emptyList<ArtistSummary>())
+    override fun observeArtistContent(artistId: String) = MutableStateFlow<ArtistContent?>(null)
 
     val content = MutableStateFlow<LibraryFolderContent?>(null)
 

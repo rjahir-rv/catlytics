@@ -4,6 +4,7 @@ import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.model.ArtistViewMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -210,6 +211,72 @@ class OfflineFirstLibraryRepositoryTest {
     }
 
     @Test
+    fun `artists group visible tracks with album and track counts`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track(
+                    id = "one",
+                    artistId = "artist-a",
+                    artistName = "Alpha",
+                    albumId = "album-a",
+                    albumTitle = "First",
+                    artworkUri = "content://artwork/alpha",
+                ),
+                track(
+                    id = "two",
+                    artistId = "artist-a",
+                    artistName = "Alpha",
+                    albumId = "album-b",
+                    albumTitle = "Second",
+                ),
+                track(
+                    id = "three",
+                    artistId = "artist-z",
+                    artistName = "Zulu",
+                    albumId = "album-z",
+                    albumTitle = "Last",
+                ),
+            ),
+        )
+
+        val artists = repository.observeArtists().first()
+
+        assertEquals(listOf("Alpha", "Zulu"), artists.map { it.artist.name })
+        assertEquals(2, artists.first().albumCount)
+        assertEquals(2, artists.first().trackCount)
+        assertEquals("content://artwork/alpha", artists.first().artworkUri)
+    }
+
+    @Test
+    fun `artist content includes ordered albums and tracks`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track(
+                    id = "second",
+                    artistId = "artist-a",
+                    artistName = "Alpha",
+                    albumId = "album-b",
+                    albumTitle = "Beta",
+                    trackNumber = 2,
+                ),
+                track(
+                    id = "first",
+                    artistId = "artist-a",
+                    artistName = "Alpha",
+                    albumId = "album-a",
+                    albumTitle = "Alpha",
+                    trackNumber = 1,
+                ),
+            ),
+        )
+
+        val content = requireNotNull(repository.observeArtistContent("artist-a").first())
+
+        assertEquals(listOf("Alpha", "Beta"), content.albums.map { it.title })
+        assertEquals(listOf("first", "second"), content.tracks.map { it.id })
+    }
+
+    @Test
     fun `api 28 physical paths group by shared storage base folder`() = runTest {
         localDataSource.replaceTracks(
             listOf(
@@ -243,13 +310,17 @@ class OfflineFirstLibraryRepositoryTest {
         albumId: String? = null,
         albumTitle: String? = null,
         trackNumber: Int? = null,
+        artistId: String = "artist-$id",
+        artistName: String = "Artist $id",
+        artworkUri: String? = null,
     ) = TrackEntity(
         id = id,
         title = "Track $id",
-        artistId = "artist-$id",
-        artistName = "Artist $id",
+        artistId = artistId,
+        artistName = artistName,
         durationMillis = 180_000L,
         mediaUri = "content://media/$id",
+        artworkUri = artworkUri,
         albumId = albumId,
         albumTitle = albumTitle,
         trackNumber = trackNumber,
@@ -273,12 +344,18 @@ private object NoOpDataMediator : DataMediator {
 
 private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     private val hiddenFolderIds = MutableStateFlow(emptySet<String>())
+    private val artistViewMode = MutableStateFlow(ArtistViewMode.List)
 
     override fun observeHiddenFolderIds() = hiddenFolderIds
+    override fun observeArtistViewMode() = artistViewMode
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {
         hiddenFolderIds.update { current ->
             if (visible) current - folderId else current + folderId
         }
+    }
+
+    override suspend fun setArtistViewMode(viewMode: ArtistViewMode) {
+        artistViewMode.value = viewMode
     }
 }

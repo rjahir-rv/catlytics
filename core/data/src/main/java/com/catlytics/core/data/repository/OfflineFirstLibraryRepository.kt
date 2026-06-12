@@ -9,6 +9,8 @@ import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistContent
+import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.Track
@@ -38,6 +40,24 @@ class OfflineFirstLibraryRepository @Inject constructor(
         tracks
             .filterVisible(hiddenFolderIds)
             .toAlbumContent(albumId)
+    }
+
+    override fun observeArtists(): Flow<List<ArtistSummary>> = combine(
+        localDataSource.observeTracks(),
+        preferencesRepository.observeHiddenFolderIds(),
+    ) { tracks, hiddenFolderIds ->
+        tracks
+            .filterVisible(hiddenFolderIds)
+            .toArtists()
+    }
+
+    override fun observeArtistContent(artistId: String): Flow<ArtistContent?> = combine(
+        localDataSource.observeTracks(),
+        preferencesRepository.observeHiddenFolderIds(),
+    ) { tracks, hiddenFolderIds ->
+        tracks
+            .filterVisible(hiddenFolderIds)
+            .toArtistContent(artistId)
     }
 
     override fun observeTracks(): Flow<List<Track>> = combine(
@@ -105,6 +125,38 @@ private fun List<TrackEntity>.toAlbums(): List<Album> = mapNotNull { track ->
         )
     }
     .sortedWith(compareBy({ it.title.lowercase() }, { it.artist.name.lowercase() }))
+
+private fun List<TrackEntity>.toArtists(): List<ArtistSummary> = groupBy(TrackEntity::artistId)
+    .map { (artistId, tracks) ->
+        ArtistSummary(
+            artist = Artist(artistId, tracks.first().artistName),
+            artworkUri = tracks.firstNotNullOfOrNull(TrackEntity::artworkUri),
+            albumCount = tracks.mapNotNull(TrackEntity::albumId).distinct().size,
+            trackCount = tracks.size,
+        )
+    }
+    .sortedBy { it.artist.name.lowercase() }
+
+private fun List<TrackEntity>.toArtistContent(artistId: String): ArtistContent? {
+    val artistTracks = filter { it.artistId == artistId }
+    if (artistTracks.isEmpty()) return null
+
+    val summary = artistTracks.toArtists().single()
+    return ArtistContent(
+        summary = summary,
+        albums = artistTracks.toAlbums(),
+        tracks = artistTracks
+            .sortedWith(
+                compareBy<TrackEntity>(
+                    { it.albumTitle?.lowercase().orEmpty() },
+                    { it.trackNumber == null },
+                    { it.trackNumber ?: Int.MAX_VALUE },
+                    { it.title.lowercase() },
+                ),
+            )
+            .map(TrackEntity::toDomain),
+    )
+}
 
 private fun List<TrackEntity>.toAlbumContent(albumId: String): AlbumContent? {
     val albumTracks = filter { it.albumId == albumId }

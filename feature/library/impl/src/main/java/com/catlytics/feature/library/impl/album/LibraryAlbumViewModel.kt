@@ -2,8 +2,8 @@ package com.catlytics.feature.library.impl.album
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.catlytics.core.domain.usecase.ObserveAlbumContentUseCase
-import com.catlytics.core.domain.usecase.PlayTrackUseCase
+import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
+import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject

@@ -2,15 +2,15 @@ package com.catlytics.app.playback
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.catlytics.core.domain.usecase.CycleRepeatModeUseCase
-import com.catlytics.core.domain.usecase.MoveQueueItemUseCase
-import com.catlytics.core.domain.usecase.ObservePlaybackStateUseCase
-import com.catlytics.core.domain.usecase.PlayQueueItemUseCase
-import com.catlytics.core.domain.usecase.RestorePlaybackSessionUseCase
-import com.catlytics.core.domain.usecase.SeekPlaybackUseCase
-import com.catlytics.core.domain.usecase.SkipPlaybackUseCase
-import com.catlytics.core.domain.usecase.ToggleShuffleUseCase
-import com.catlytics.core.domain.usecase.TogglePlaybackUseCase
+import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
+import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
+import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.PlayQueueItemUseCase
+import com.catlytics.core.domain.usecase.playback.RestorePlaybackSessionUseCase
+import com.catlytics.core.domain.usecase.playback.SeekPlaybackUseCase
+import com.catlytics.core.domain.usecase.playback.SkipPlaybackUseCase
+import com.catlytics.core.domain.usecase.playback.ToggleShuffleUseCase
+import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
 import com.catlytics.core.model.PlaybackState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject

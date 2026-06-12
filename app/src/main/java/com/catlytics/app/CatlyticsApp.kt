@@ -54,6 +54,7 @@ import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.impl.homeEntry
 import com.catlytics.feature.library.impl.navigation.libraryEntry
 import com.catlytics.feature.library.api.LibraryAlbumRoute
+import com.catlytics.feature.library.api.LibraryArtistRoute
 import com.catlytics.feature.library.api.LibraryFolderRoute
 import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
@@ -85,7 +86,8 @@ fun CatlyticsApp(
     val currentTopLevelDestination = TopLevelDestination.entries
         .firstOrNull { it.route == currentRoute }
     val selectedTopLevelDestination = when (currentRoute) {
-        is LibraryAlbumRoute, is LibraryFolderRoute -> TopLevelDestination.Library
+        is LibraryAlbumRoute, is LibraryArtistRoute, is LibraryFolderRoute ->
+            TopLevelDestination.Library
         else -> currentTopLevelDestination
     }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
@@ -143,6 +145,12 @@ fun CatlyticsApp(
                 currentRoute is LibraryAlbumRoute -> {
                     LibraryDetailTopAppBar(
                         title = currentRoute.albumTitle,
+                        onBack = ::closeCurrentDestination,
+                    )
+                }
+                currentRoute is LibraryArtistRoute -> {
+                    LibraryDetailTopAppBar(
+                        title = currentRoute.artistName,
                         onBack = ::closeCurrentDestination,
                     )
                 }

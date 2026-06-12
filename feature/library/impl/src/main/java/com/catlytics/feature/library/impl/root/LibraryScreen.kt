@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -14,10 +16,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -26,7 +25,10 @@ import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun LibraryScreen(
@@ -34,6 +36,8 @@ internal fun LibraryScreen(
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     onAlbumSelected: (Album) -> Unit,
+    onArtistSelected: (ArtistSummary) -> Unit,
+    onArtistViewModeChange: (ArtistViewMode) -> Unit,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
     modifier: Modifier = Modifier,
@@ -53,6 +57,8 @@ internal fun LibraryScreen(
         is LibraryUiState.Success -> LibraryContent(
             uiState = uiState,
             onAlbumSelected = onAlbumSelected,
+            onArtistSelected = onArtistSelected,
+            onArtistViewModeChange = onArtistViewModeChange,
             onFolderVisibilityChange = onFolderVisibilityChange,
             onFolderSelected = onFolderSelected,
             modifier = modifier.fillMaxSize(),
@@ -65,23 +71,25 @@ internal fun LibraryScreen(
 private fun LibraryContent(
     uiState: LibraryUiState.Success,
     onAlbumSelected: (Album) -> Unit,
+    onArtistSelected: (ArtistSummary) -> Unit,
+    onArtistViewModeChange: (ArtistViewMode) -> Unit,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var selectedSectionIndex by rememberSaveable { mutableIntStateOf(0) }
-    val selectedSection = LibrarySection.entries[selectedSectionIndex]
+    val pagerState = rememberPagerState(pageCount = { LibrarySection.entries.size })
+    val coroutineScope = rememberCoroutineScope()
 
     Column(modifier = modifier) {
         SecondaryTabRow(
-            selectedTabIndex = selectedSectionIndex,
+            selectedTabIndex = pagerState.currentPage,
             containerColor = MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.primary,
             divider = {},
             indicator = {
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier
-                        .tabIndicatorOffset(selectedSectionIndex)
+                        .tabIndicatorOffset(pagerState.currentPage)
                         .padding(horizontal = 20.dp)
                         .clip(MaterialTheme.shapes.extraLarge),
                     color = MaterialTheme.colorScheme.primary,
@@ -90,26 +98,38 @@ private fun LibraryContent(
         ) {
             LibrarySection.entries.forEachIndexed { index, section ->
                 Tab(
-                    selected = index == selectedSectionIndex,
-                    onClick = { selectedSectionIndex = index },
+                    selected = index == pagerState.currentPage,
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    },
                     text = { Text(section.label) },
                 )
             }
         }
 
-        when (selectedSection) {
-            LibrarySection.Albums -> LibraryAlbumGrid(
-                albums = uiState.albums,
-                onAlbumSelected = onAlbumSelected,
-                modifier = Modifier.weight(1f),
-            )
-            LibrarySection.Artists -> Box(modifier = Modifier.weight(1f))
-            LibrarySection.Folders -> LibraryFolderList(
-                folders = uiState.folders,
-                onFolderVisibilityChange = onFolderVisibilityChange,
-                onFolderSelected = onFolderSelected,
-                modifier = Modifier.weight(1f),
-            )
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier.weight(1f),
+        ) { page ->
+            when (LibrarySection.entries[page]) {
+                LibrarySection.Albums -> LibraryAlbumGrid(
+                    albums = uiState.albums,
+                    onAlbumSelected = onAlbumSelected,
+                )
+                LibrarySection.Artists -> LibraryArtistCollection(
+                    artists = uiState.artists,
+                    viewMode = uiState.artistViewMode,
+                    onViewModeChange = onArtistViewModeChange,
+                    onArtistSelected = onArtistSelected,
+                )
+                LibrarySection.Folders -> LibraryFolderList(
+                    folders = uiState.folders,
+                    onFolderVisibilityChange = onFolderVisibilityChange,
+                    onFolderSelected = onFolderSelected,
+                )
+            }
         }
     }
 }
@@ -191,6 +211,14 @@ private fun LibraryScreenPreview() {
                         trackCount = 10,
                     ),
                 ),
+                artists = listOf(
+                    ArtistSummary(
+                        artist = Artist("artist-1", "Catlytics"),
+                        albumCount = 2,
+                        trackCount = 10,
+                    ),
+                ),
+                artistViewMode = ArtistViewMode.List,
                 folders = listOf(
                     LibraryFolder(
                         id = "external:Music",
@@ -211,6 +239,8 @@ private fun LibraryScreenPreview() {
             hasAudioPermission = true,
             onRequestPermission = {},
             onAlbumSelected = {},
+            onArtistSelected = {},
+            onArtistViewModeChange = {},
             onFolderVisibilityChange = { _, _ -> },
             onFolderSelected = {},
         )

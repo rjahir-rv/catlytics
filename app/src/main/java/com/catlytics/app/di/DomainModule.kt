@@ -4,25 +4,30 @@ import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
-import com.catlytics.core.domain.usecase.CycleRepeatModeUseCase
-import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
-import com.catlytics.core.domain.usecase.ObserveAlbumsUseCase
-import com.catlytics.core.domain.usecase.ObserveAlbumContentUseCase
-import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
-import com.catlytics.core.domain.usecase.ObserveFolderContentUseCase
-import com.catlytics.core.domain.usecase.ObserveListeningStatsUseCase
-import com.catlytics.core.domain.usecase.ObservePlaybackStateUseCase
-import com.catlytics.core.domain.usecase.ObservePlaylistsUseCase
-import com.catlytics.core.domain.usecase.MoveQueueItemUseCase
-import com.catlytics.core.domain.usecase.PlayQueueItemUseCase
-import com.catlytics.core.domain.usecase.PlayTrackUseCase
-import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
-import com.catlytics.core.domain.usecase.RestorePlaybackSessionUseCase
-import com.catlytics.core.domain.usecase.SeekPlaybackUseCase
-import com.catlytics.core.domain.usecase.SetFolderVisibilityUseCase
-import com.catlytics.core.domain.usecase.SkipPlaybackUseCase
-import com.catlytics.core.domain.usecase.ToggleShuffleUseCase
-import com.catlytics.core.domain.usecase.TogglePlaybackUseCase
+import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
+import com.catlytics.core.domain.usecase.library.ObserveFolderContentUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveListeningStatsUseCase
+import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
+import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
+import com.catlytics.core.domain.usecase.playback.PlayQueueItemUseCase
+import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
+import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
+import com.catlytics.core.domain.usecase.playback.RestorePlaybackSessionUseCase
+import com.catlytics.core.domain.usecase.playback.SeekPlaybackUseCase
+import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
+import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.domain.usecase.playback.SkipPlaybackUseCase
+import com.catlytics.core.domain.usecase.playback.ToggleShuffleUseCase
+import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,6 +45,26 @@ object DomainModule {
     fun provideObserveAlbumsUseCase(
         libraryRepository: LibraryRepository,
     ) = ObserveAlbumsUseCase(libraryRepository)
+
+    @Provides
+    fun provideObserveArtistsUseCase(
+        libraryRepository: LibraryRepository,
+    ) = ObserveArtistsUseCase(libraryRepository)
+
+    @Provides
+    fun provideObserveArtistContentUseCase(
+        libraryRepository: LibraryRepository,
+    ) = ObserveArtistContentUseCase(libraryRepository)
+
+    @Provides
+    fun provideObserveArtistViewModeUseCase(
+        preferencesRepository: LibraryPreferencesRepository,
+    ) = ObserveArtistViewModeUseCase(preferencesRepository)
+
+    @Provides
+    fun provideSetArtistViewModeUseCase(
+        preferencesRepository: LibraryPreferencesRepository,
+    ) = SetArtistViewModeUseCase(preferencesRepository)
 
     @Provides
     fun provideObserveLibraryUseCase(

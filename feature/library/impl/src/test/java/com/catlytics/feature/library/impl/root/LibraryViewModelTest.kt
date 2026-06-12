@@ -1,12 +1,19 @@
 package com.catlytics.feature.library.impl.root
 
 import com.catlytics.core.domain.repository.LibraryRepository
-import com.catlytics.core.domain.usecase.ObserveAlbumsUseCase
-import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
-import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
-import com.catlytics.core.domain.usecase.SetFolderVisibilityUseCase
+import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
+import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
+import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
+import com.catlytics.core.model.ArtistContent
+import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.Track
@@ -43,7 +50,12 @@ class LibraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            LibraryUiState.Success(albums = emptyList(), folders = listOf(folder)),
+            LibraryUiState.Success(
+                albums = emptyList(),
+                artists = emptyList(),
+                artistViewMode = ArtistViewMode.List,
+                folders = listOf(folder),
+            ),
             viewModel.uiState.value,
         )
     }
@@ -64,7 +76,12 @@ class LibraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            LibraryUiState.Success(albums = listOf(album), folders = emptyList()),
+            LibraryUiState.Success(
+                albums = listOf(album),
+                artists = emptyList(),
+                artistViewMode = ArtistViewMode.List,
+                folders = emptyList(),
+            ),
             viewModel.uiState.value,
         )
     }
@@ -81,6 +98,18 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `artist view mode change is persisted`() = runTest {
+        val repository = FakeLibraryRepository()
+        val preferencesRepository = FakeLibraryPreferencesRepository()
+        val viewModel = viewModel(repository, preferencesRepository)
+
+        viewModel.setArtistViewMode(ArtistViewMode.Grid)
+        advanceUntilIdle()
+
+        assertEquals(ArtistViewMode.Grid, preferencesRepository.artistViewMode.value)
+    }
+
+    @Test
     fun `refresh error is exposed`() = runTest {
         val repository = FakeLibraryRepository().apply {
             refreshResult = Result.failure(IllegalStateException("MediaStore failed"))
@@ -94,11 +123,18 @@ class LibraryViewModelTest {
         assertEquals(LibraryUiState.Error("MediaStore failed"), viewModel.uiState.value)
     }
 
-    private fun viewModel(repository: FakeLibraryRepository) = LibraryViewModel(
+    private fun viewModel(
+        repository: FakeLibraryRepository,
+        preferencesRepository: FakeLibraryPreferencesRepository =
+            FakeLibraryPreferencesRepository(),
+    ) = LibraryViewModel(
         observeAlbumsUseCase = ObserveAlbumsUseCase(repository),
+        observeArtistsUseCase = ObserveArtistsUseCase(repository),
+        observeArtistViewModeUseCase = ObserveArtistViewModeUseCase(preferencesRepository),
         observeLibraryFoldersUseCase = ObserveLibraryFoldersUseCase(repository),
         refreshLibraryUseCase = RefreshLibraryUseCase(repository),
         setFolderVisibilityUseCase = SetFolderVisibilityUseCase(repository),
+        setArtistViewModeUseCase = SetArtistViewModeUseCase(preferencesRepository),
     )
 
     private fun folder() = LibraryFolder(
@@ -122,6 +158,8 @@ private class FakeLibraryRepository : LibraryRepository {
 
     override fun observeAlbums() = albums
     override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
+    override fun observeArtists() = MutableStateFlow(emptyList<ArtistSummary>())
+    override fun observeArtistContent(artistId: String) = MutableStateFlow<ArtistContent?>(null)
 
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
 
@@ -138,6 +176,17 @@ private class FakeLibraryRepository : LibraryRepository {
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {
         lastVisibilityChange = folderId to visible
+    }
+}
+
+private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
+    val artistViewMode = MutableStateFlow(ArtistViewMode.List)
+
+    override fun observeHiddenFolderIds() = MutableStateFlow(emptySet<String>())
+    override fun observeArtistViewMode() = artistViewMode
+    override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
+    override suspend fun setArtistViewMode(viewMode: ArtistViewMode) {
+        artistViewMode.value = viewMode
     }
 }
 

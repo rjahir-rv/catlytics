@@ -2,6 +2,7 @@ package com.catlytics.core.data.repository
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.model.ArtistViewMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -30,6 +31,17 @@ class DataStoreLibraryPreferencesRepositoryTest {
 
         repository.setFolderVisible(FOLDER_ID, visible = true)
         assertEquals(emptySet<String>(), repository.observeHiddenFolderIds().first())
+    }
+
+    @Test
+    fun `artist view mode defaults to list and persists changes`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(ArtistViewMode.List, repository.observeArtistViewMode().first())
+
+        repository.setArtistViewMode(ArtistViewMode.Grid)
+
+        assertEquals(ArtistViewMode.Grid, repository.observeArtistViewMode().first())
     }
 
     private fun repository(scope: CoroutineScope): LibraryPreferencesRepository =

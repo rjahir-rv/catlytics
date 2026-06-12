@@ -1,8 +1,8 @@
-package com.catlytics.feature.library.impl.album
+package com.catlytics.feature.library.impl.artist
 
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackController
-import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
@@ -26,28 +26,28 @@ import org.junit.Rule
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class LibraryAlbumViewModelTest {
+class LibraryArtistViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
     @Test
-    fun `opening album exposes its content`() = runTest {
-        val repository = AlbumFakeLibraryRepository()
-        val content = albumContent()
+    fun `opening artist exposes its content`() = runTest {
+        val repository = ArtistFakeLibraryRepository()
+        val content = artistContent()
         repository.content.value = content
-        val viewModel = viewModel(repository, AlbumFakePlaybackController())
+        val viewModel = viewModel(repository, ArtistFakePlaybackController())
         backgroundScope.launch { viewModel.uiState.collect {} }
 
-        viewModel.openAlbum(ALBUM_ID)
+        viewModel.openArtist(ARTIST_ID)
         advanceUntilIdle()
 
-        assertEquals(LibraryAlbumUiState.Success(content), viewModel.uiState.value)
+        assertEquals(LibraryArtistUiState.Success(content), viewModel.uiState.value)
     }
 
     @Test
-    fun `playing track replaces queue with album tracks`() = runTest {
-        val playbackController = AlbumFakePlaybackController()
-        val viewModel = viewModel(AlbumFakeLibraryRepository(), playbackController)
+    fun `playing track replaces queue with artist tracks`() = runTest {
+        val playbackController = ArtistFakePlaybackController()
+        val viewModel = viewModel(ArtistFakeLibraryRepository(), playbackController)
         val queue = listOf(track("one"), track("two"))
 
         viewModel.playTrack(queue[1], queue)
@@ -59,38 +59,42 @@ class LibraryAlbumViewModelTest {
     }
 
     private fun viewModel(
-        repository: AlbumFakeLibraryRepository,
-        playbackController: AlbumFakePlaybackController,
-    ) = LibraryAlbumViewModel(
-        observeAlbumContentUseCase = ObserveAlbumContentUseCase(repository),
+        repository: ArtistFakeLibraryRepository,
+        playbackController: ArtistFakePlaybackController,
+    ) = LibraryArtistViewModel(
+        observeArtistContentUseCase = ObserveArtistContentUseCase(repository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
     )
 
-    private fun albumContent() = AlbumContent(
-        album = Album(ALBUM_ID, "Album", Artist("artist", "Artist"), trackCount = 1),
-        tracks = listOf(track("one")),
-    )
+    private fun artistContent(): ArtistContent {
+        val tracks = listOf(track("one"))
+        return ArtistContent(
+            summary = ArtistSummary(Artist(ARTIST_ID, "Artist"), albumCount = 1, trackCount = 1),
+            albums = listOf(Album("album", "Album", Artist(ARTIST_ID, "Artist"), trackCount = 1)),
+            tracks = tracks,
+        )
+    }
 
     private fun track(id: String) = Track(
         id = id,
         title = "Track $id",
-        artist = Artist("artist", "Artist"),
+        artist = Artist(ARTIST_ID, "Artist"),
         durationMillis = 180_000L,
         mediaUri = "content://media/$id",
     )
 
     private companion object {
-        const val ALBUM_ID = "album-1"
+        const val ARTIST_ID = "artist-1"
     }
 }
 
-private class AlbumFakeLibraryRepository : LibraryRepository {
-    val content = MutableStateFlow<AlbumContent?>(null)
+private class ArtistFakeLibraryRepository : LibraryRepository {
+    val content = MutableStateFlow<ArtistContent?>(null)
 
     override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
-    override fun observeAlbumContent(albumId: String) = content
+    override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
     override fun observeArtists() = MutableStateFlow(emptyList<ArtistSummary>())
-    override fun observeArtistContent(artistId: String) = MutableStateFlow<ArtistContent?>(null)
+    override fun observeArtistContent(artistId: String) = content
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
     override fun observeAllTracks() = MutableStateFlow(emptyList<Track>())
     override fun observeFolders() = MutableStateFlow(emptyList<LibraryFolder>())
@@ -100,7 +104,7 @@ private class AlbumFakeLibraryRepository : LibraryRepository {
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
 }
 
-private class AlbumFakePlaybackController : PlaybackController {
+private class ArtistFakePlaybackController : PlaybackController {
     override val playbackState: Flow<PlaybackState> = MutableStateFlow(PlaybackState())
     lateinit var playedTrack: Track
     lateinit var playedQueue: List<Track>

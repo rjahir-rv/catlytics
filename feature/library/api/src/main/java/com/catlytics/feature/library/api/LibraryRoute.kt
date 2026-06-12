@@ -13,6 +13,12 @@ data class LibraryAlbumRoute(
 ) : NavKey
 
 @Serializable
+data class LibraryArtistRoute(
+    val artistId: String,
+    val artistName: String,
+) : NavKey
+
+@Serializable
 data class LibraryFolderRoute(
     val folderId: String,
     val folderName: String,

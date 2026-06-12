@@ -2,10 +2,14 @@ package com.catlytics.feature.library.impl.root
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.catlytics.core.domain.usecase.ObserveAlbumsUseCase
-import com.catlytics.core.domain.usecase.ObserveLibraryFoldersUseCase
-import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
-import com.catlytics.core.domain.usecase.SetFolderVisibilityUseCase
+import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
+import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
+import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
+import com.catlytics.core.model.ArtistViewMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,25 +24,48 @@ import kotlin.collections.emptyList
 @HiltViewModel
 internal class LibraryViewModel @Inject constructor(
     observeAlbumsUseCase: ObserveAlbumsUseCase,
+    observeArtistsUseCase: ObserveArtistsUseCase,
+    observeArtistViewModeUseCase: ObserveArtistViewModeUseCase,
     observeLibraryFoldersUseCase: ObserveLibraryFoldersUseCase,
     private val refreshLibraryUseCase: RefreshLibraryUseCase,
     private val setFolderVisibilityUseCase: SetFolderVisibilityUseCase,
+    private val setArtistViewModeUseCase: SetArtistViewModeUseCase,
 ) : ViewModel() {
     private val refreshError = MutableStateFlow<String?>(null)
     private val isRefreshing = MutableStateFlow(false)
     private var hasRequestedInitialRefresh = false
 
-    val uiState: StateFlow<LibraryUiState> = combine(
+    private val libraryContent = combine(
         observeAlbumsUseCase().catch { emit(emptyList()) },
+        observeArtistsUseCase().catch { emit(emptyList()) },
+        observeArtistViewModeUseCase().catch { emit(ArtistViewMode.List) },
         observeLibraryFoldersUseCase().catch { emit(emptyList()) },
+    ) { albums, artists, artistViewMode, folders ->
+        LibraryContent(
+            albums = albums,
+            artists = artists,
+            artistViewMode = artistViewMode,
+            folders = folders,
+        )
+    }
+
+    val uiState: StateFlow<LibraryUiState> = combine(
+        libraryContent,
         refreshError,
         isRefreshing,
-    ) { albums, folders, error, refreshing ->
+    ) { content, error, refreshing ->
         when {
             refreshing -> LibraryUiState.Loading
             error != null -> LibraryUiState.Error(error)
-            albums.isEmpty() && folders.isEmpty() -> LibraryUiState.Empty
-            else -> LibraryUiState.Success(albums = albums, folders = folders)
+            content.albums.isEmpty() &&
+                content.artists.isEmpty() &&
+                content.folders.isEmpty() -> LibraryUiState.Empty
+            else -> LibraryUiState.Success(
+                albums = content.albums,
+                artists = content.artists,
+                artistViewMode = content.artistViewMode,
+                folders = content.folders,
+            )
         }
     }.stateIn(
         scope = viewModelScope,
@@ -69,4 +96,17 @@ internal class LibraryViewModel @Inject constructor(
             setFolderVisibilityUseCase(folderId, visible)
         }
     }
+
+    fun setArtistViewMode(viewMode: ArtistViewMode) {
+        viewModelScope.launch {
+            setArtistViewModeUseCase(viewMode)
+        }
+    }
 }
+
+private data class LibraryContent(
+    val albums: List<com.catlytics.core.model.Album>,
+    val artists: List<com.catlytics.core.model.ArtistSummary>,
+    val artistViewMode: ArtistViewMode,
+    val folders: List<com.catlytics.core.model.LibraryFolder>,
+)
