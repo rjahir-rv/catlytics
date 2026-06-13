@@ -34,6 +34,23 @@ class DataStorePlaylistRepositoryTest {
         assertTrue(repository.observePlaylists().first().isEmpty())
     }
 
+    @Test
+    fun `setPlaylistArtwork persists custom uri (falls back in test without context)`() = runTest {
+        val file = temporaryFolder.newFile("playlists-art.preferences_pb")
+        val repository = repository(backgroundScope, file)
+
+        val playlist = repository.createPlaylist("Favoritas")
+        val custom = "content://media/external/images/media/999"
+        repository.setPlaylistArtwork(playlist.id, custom)
+
+        val restored = repository.observePlaylists().first().single()
+        assertEquals(custom, restored.artworkUri)
+
+        repository.setPlaylistArtwork(playlist.id, null)
+        val cleared = repository.observePlaylists().first().single()
+        assertEquals(null, cleared.artworkUri)
+    }
+
     private fun repository(scope: CoroutineScope, file: File) = DataStorePlaylistRepository(
         PreferenceDataStoreFactory.create(scope = scope, produceFile = { file }),
     )

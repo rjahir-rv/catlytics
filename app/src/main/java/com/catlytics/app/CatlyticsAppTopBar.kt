@@ -98,7 +98,11 @@ internal fun LibraryDetailTopAppBar(
     onBack: () -> Unit,
 ) {
     CatlyticsTopAppBar(
-        title = { TopAppBarTitle(title) },
+        title = {
+            if (title.isNotBlank()) {
+                TopAppBarTitle(title)
+            }
+        },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(

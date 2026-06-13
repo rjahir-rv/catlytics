@@ -23,6 +23,11 @@ enum class ArtistViewMode {
     Grid,
 }
 
+enum class PlaylistViewMode {
+    List,
+    Mosaic,
+}
+
 data class Album(
     val id: String,
     val title: String,
@@ -99,6 +104,7 @@ data class Playlist(
     val id: String,
     val name: String,
     val trackIds: List<String>,
+    val artworkUri: String? = null,
 )
 
 data class PlaylistContent(

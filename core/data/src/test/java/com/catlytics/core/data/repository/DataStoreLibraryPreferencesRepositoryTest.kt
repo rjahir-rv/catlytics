@@ -3,6 +3,7 @@ package com.catlytics.core.data.repository
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.PlaylistViewMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -42,6 +43,17 @@ class DataStoreLibraryPreferencesRepositoryTest {
         repository.setArtistViewMode(ArtistViewMode.Grid)
 
         assertEquals(ArtistViewMode.Grid, repository.observeArtistViewMode().first())
+    }
+
+    @Test
+    fun `playlist view mode defaults to list and persists changes`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(PlaylistViewMode.List, repository.observePlaylistViewMode().first())
+
+        repository.setPlaylistViewMode(PlaylistViewMode.Mosaic)
+
+        assertEquals(PlaylistViewMode.Mosaic, repository.observePlaylistViewMode().first())
     }
 
     private fun repository(scope: CoroutineScope): LibraryPreferencesRepository =

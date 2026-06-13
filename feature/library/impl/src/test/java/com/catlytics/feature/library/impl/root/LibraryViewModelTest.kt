@@ -15,6 +15,7 @@ import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
@@ -184,12 +185,17 @@ private class FakeLibraryRepository : LibraryRepository {
 
 private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     val artistViewMode = MutableStateFlow(ArtistViewMode.List)
+    val playlistViewMode = MutableStateFlow(PlaylistViewMode.List)
 
     override fun observeHiddenFolderIds() = MutableStateFlow(emptySet<String>())
     override fun observeArtistViewMode() = artistViewMode
+    override fun observePlaylistViewMode() = playlistViewMode
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
     override suspend fun setArtistViewMode(viewMode: ArtistViewMode) {
         artistViewMode.value = viewMode
+    }
+    override suspend fun setPlaylistViewMode(viewMode: PlaylistViewMode) {
+        playlistViewMode.value = viewMode
     }
 }
 

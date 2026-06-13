@@ -5,6 +5,7 @@ import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.PlaylistViewMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -345,9 +346,11 @@ private object NoOpDataMediator : DataMediator {
 private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     private val hiddenFolderIds = MutableStateFlow(emptySet<String>())
     private val artistViewMode = MutableStateFlow(ArtistViewMode.List)
+    private val playlistViewMode = MutableStateFlow(PlaylistViewMode.List)
 
     override fun observeHiddenFolderIds() = hiddenFolderIds
     override fun observeArtistViewMode() = artistViewMode
+    override fun observePlaylistViewMode() = playlistViewMode
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {
         hiddenFolderIds.update { current ->
@@ -357,5 +360,9 @@ private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
 
     override suspend fun setArtistViewMode(viewMode: ArtistViewMode) {
         artistViewMode.value = viewMode
+    }
+
+    override suspend fun setPlaylistViewMode(viewMode: PlaylistViewMode) {
+        playlistViewMode.value = viewMode
     }
 }

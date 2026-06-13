@@ -175,8 +175,9 @@ fun CatlyticsApp(
                     )
                 }
                 currentRoute is PlaylistDetailRoute -> {
+                    // No title here to avoid duplicating the name shown in the detail header
                     LibraryDetailTopAppBar(
-                        title = currentRoute.playlistName,
+                        title = "",
                         onBack = ::closeCurrentDestination,
                     )
                 }

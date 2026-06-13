@@ -9,7 +9,7 @@ android {
     defaultConfig {
         applicationId = "com.catlytics.app"
         versionCode = 1
-        versionName = "0.0.1"
+        versionName = "0.0.5"
     }
 
     buildTypes {

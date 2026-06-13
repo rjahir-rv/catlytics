@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.PlaylistViewMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
@@ -72,8 +73,29 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         }
     }
 
+    override fun observePlaylistViewMode(): Flow<PlaylistViewMode> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { preferences ->
+            preferences[PLAYLIST_VIEW_MODE]
+                ?.let { stored -> PlaylistViewMode.entries.firstOrNull { it.name == stored } }
+                ?: PlaylistViewMode.List
+        }
+
+    override suspend fun setPlaylistViewMode(viewMode: PlaylistViewMode) {
+        dataStore.edit { preferences ->
+            preferences[PLAYLIST_VIEW_MODE] = viewMode.name
+        }
+    }
+
     private companion object {
         val HIDDEN_FOLDER_IDS = stringSetPreferencesKey("hidden_folder_ids")
         val ARTIST_VIEW_MODE = stringPreferencesKey("artist_view_mode")
+        val PLAYLIST_VIEW_MODE = stringPreferencesKey("playlist_view_mode")
     }
 }

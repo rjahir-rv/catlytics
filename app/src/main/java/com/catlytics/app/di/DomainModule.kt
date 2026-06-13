@@ -20,8 +20,11 @@ import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.CreatePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.DeletePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistViewModeUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.RenamePlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
+import com.catlytics.core.domain.usecase.playlist.SetPlaylistViewModeUseCase
 import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
@@ -71,6 +74,16 @@ object DomainModule {
     fun provideSetArtistViewModeUseCase(
         preferencesRepository: LibraryPreferencesRepository,
     ) = SetArtistViewModeUseCase(preferencesRepository)
+
+    @Provides
+    fun provideObservePlaylistViewModeUseCase(
+        preferencesRepository: LibraryPreferencesRepository,
+    ) = ObservePlaylistViewModeUseCase(preferencesRepository)
+
+    @Provides
+    fun provideSetPlaylistViewModeUseCase(
+        preferencesRepository: LibraryPreferencesRepository,
+    ) = SetPlaylistViewModeUseCase(preferencesRepository)
 
     @Provides
     fun provideObserveLibraryUseCase(
@@ -126,6 +139,10 @@ object DomainModule {
     @Provides
     fun provideRemoveTrackFromPlaylistUseCase(repository: PlaylistRepository) =
         RemoveTrackFromPlaylistUseCase(repository)
+
+    @Provides
+    fun provideSetPlaylistCoverUseCase(repository: PlaylistRepository) =
+        SetPlaylistCoverUseCase(repository)
 
     @Provides
     fun provideObserveListeningStatsUseCase(

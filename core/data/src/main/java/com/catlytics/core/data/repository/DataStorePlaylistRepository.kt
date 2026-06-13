@@ -1,6 +1,7 @@
 package com.catlytics.core.data.repository
 
 import android.content.Context
+import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -10,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.model.Playlist
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
@@ -24,7 +26,6 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 private val Context.playlistsDataStore: DataStore<Preferences> by preferencesDataStore("playlists")
@@ -32,9 +33,10 @@ private val Context.playlistsDataStore: DataStore<Preferences> by preferencesDat
 @Singleton
 class DataStorePlaylistRepository internal constructor(
     private val dataStore: DataStore<Preferences>,
+    private val context: Context? = null,
 ) : PlaylistRepository {
     @Inject
-    constructor(@ApplicationContext context: Context) : this(context.playlistsDataStore)
+    constructor(@ApplicationContext context: Context) : this(context.playlistsDataStore, context)
 
     override fun observePlaylists(): Flow<List<Playlist>> = dataStore.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
@@ -58,8 +60,13 @@ class DataStorePlaylistRepository internal constructor(
         playlists.map { if (it.id == playlistId) it.copy(name = name) else it }
     }
 
-    override suspend fun deletePlaylist(playlistId: String) = update { playlists ->
-        playlists.filterNot { it.id == playlistId }
+    override suspend fun deletePlaylist(playlistId: String) {
+        update { playlists ->
+            playlists.filterNot { it.id == playlistId }
+        }
+        context?.let { ctx ->
+            ctx.filesDir.resolve("playlist_covers/$playlistId.cover").delete()
+        }
     }
 
     override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int {
@@ -82,10 +89,42 @@ class DataStorePlaylistRepository internal constructor(
         }
     }
 
+    override suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?) {
+        val persisted = if (artworkUri != null) {
+            copyCoverToInternalIfPossible(artworkUri, playlistId)
+        } else {
+            context?.let { ctx ->
+                ctx.filesDir.resolve("playlist_covers/$playlistId.cover").delete()
+            }
+            null
+        }
+        update { playlists ->
+            playlists.map { if (it.id == playlistId) it.copy(artworkUri = persisted) else it }
+        }
+    }
+
     private suspend fun update(transform: (List<Playlist>) -> List<Playlist>) {
         dataStore.edit { preferences ->
             preferences[PLAYLISTS] = transform(preferences[PLAYLISTS]?.decodePlaylists().orEmpty())
                 .encodePlaylists()
+        }
+    }
+
+    private fun copyCoverToInternalIfPossible(sourceUri: String, playlistId: String): String {
+        val ctx = context ?: return sourceUri
+        return try {
+            val src = Uri.parse(sourceUri)
+            val coversDir = ctx.filesDir.resolve("playlist_covers").apply { mkdirs() }
+            val target = File(coversDir, "$playlistId.cover")
+            ctx.contentResolver.openInputStream(src)?.use { input ->
+                target.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            target.absolutePath
+        } catch (_: Exception) {
+            // Fallback: store original (e.g. tests without resolver or transient URI)
+            sourceUri
         }
     }
 
@@ -100,6 +139,7 @@ private fun List<Playlist>.encodePlaylists(): String = buildJsonArray {
             put("id", JsonPrimitive(playlist.id))
             put("name", JsonPrimitive(playlist.name))
             put("trackIds", buildJsonArray { playlist.trackIds.forEach { add(JsonPrimitive(it)) } })
+            playlist.artworkUri?.let { put("artworkUri", JsonPrimitive(it)) }
         })
     }
 }.toString()
@@ -111,6 +151,7 @@ private fun String.decodePlaylists(): List<Playlist> = runCatching {
         val name = objectValue["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
         val trackIds = (objectValue["trackIds"] as? JsonArray).orEmpty()
             .map { it.jsonPrimitive.content }
-        Playlist(id, name, trackIds)
+        val artworkUri = objectValue["artworkUri"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+        Playlist(id, name, trackIds, artworkUri)
     }
 }.getOrDefault(emptyList())
