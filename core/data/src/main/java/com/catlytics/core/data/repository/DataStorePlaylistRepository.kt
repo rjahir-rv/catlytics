@@ -1,7 +1,6 @@
 package com.catlytics.core.data.repository
 
 import android.content.Context
-import android.net.Uri
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -27,6 +26,7 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
+import androidx.core.net.toUri
 
 private val Context.playlistsDataStore: DataStore<Preferences> by preferencesDataStore("playlists")
 
@@ -64,9 +64,7 @@ class DataStorePlaylistRepository internal constructor(
         update { playlists ->
             playlists.filterNot { it.id == playlistId }
         }
-        context?.let { ctx ->
-            ctx.filesDir.resolve("playlist_covers/$playlistId.cover").delete()
-        }
+        context?.filesDir?.resolve("playlist_covers/$playlistId.cover")?.delete()
     }
 
     override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int {
@@ -93,9 +91,7 @@ class DataStorePlaylistRepository internal constructor(
         val persisted = if (artworkUri != null) {
             copyCoverToInternalIfPossible(artworkUri, playlistId)
         } else {
-            context?.let { ctx ->
-                ctx.filesDir.resolve("playlist_covers/$playlistId.cover").delete()
-            }
+            context?.filesDir?.resolve("playlist_covers/$playlistId.cover")?.delete()
             null
         }
         update { playlists ->
@@ -113,7 +109,7 @@ class DataStorePlaylistRepository internal constructor(
     private fun copyCoverToInternalIfPossible(sourceUri: String, playlistId: String): String {
         val ctx = context ?: return sourceUri
         return try {
-            val src = Uri.parse(sourceUri)
+            val src = sourceUri.toUri()
             val coversDir = ctx.filesDir.resolve("playlist_covers").apply { mkdirs() }
             val target = File(coversDir, "$playlistId.cover")
             ctx.contentResolver.openInputStream(src)?.use { input ->
@@ -123,7 +119,6 @@ class DataStorePlaylistRepository internal constructor(
             }
             target.absolutePath
         } catch (_: Exception) {
-            // Fallback: store original (e.g. tests without resolver or transient URI)
             sourceUri
         }
     }
