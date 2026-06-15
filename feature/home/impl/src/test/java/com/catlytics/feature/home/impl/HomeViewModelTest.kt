@@ -5,8 +5,9 @@ import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
-import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
+import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
@@ -72,6 +73,30 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `uiState exposes current track id`() = runTest {
+        val tracks = listOf(track(id = "track-1"), track(id = "track-2"))
+        repository.setTracks(tracks)
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+
+        playbackController.setCurrentTrack(tracks[1])
+        advanceUntilIdle()
+
+        assertEquals(
+            HomeUiState.Success(tracks = tracks, currentTrackId = "track-2"),
+            viewModel.uiState.value,
+        )
+
+        playbackController.setCurrentTrack(tracks[0])
+        advanceUntilIdle()
+
+        assertEquals(
+            HomeUiState.Success(tracks = tracks, currentTrackId = "track-1"),
+            viewModel.uiState.value,
+        )
+    }
+
+    @Test
     fun `refreshLibrary surfaces refresh errors`() = runTest {
         repository.refreshResult = Result.failure(IllegalStateException("MediaStore failed"))
         val viewModel = homeViewModel()
@@ -105,6 +130,7 @@ class HomeViewModelTest {
 
     private fun homeViewModel() = HomeViewModel(
         observeLibraryUseCase = ObserveLibraryUseCase(repository),
+        observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
         refreshLibraryUseCase = RefreshLibraryUseCase(repository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
     )
@@ -174,7 +200,8 @@ private class FakeLibraryRepository : LibraryRepository {
 }
 
 private class FakePlaybackController : PlaybackController {
-    override val playbackState: Flow<PlaybackState> = MutableStateFlow(PlaybackState())
+    private val mutablePlaybackState = MutableStateFlow(PlaybackState())
+    override val playbackState: Flow<PlaybackState> = mutablePlaybackState
 
     lateinit var playedTrack: Track
     lateinit var playedQueue: List<Track>
@@ -207,4 +234,8 @@ private class FakePlaybackController : PlaybackController {
     override suspend fun restoreLastSession() = Unit
 
     override suspend fun stop() = Unit
+
+    fun setCurrentTrack(track: Track) {
+        mutablePlaybackState.update { it.copy(currentTrack = track) }
+    }
 }

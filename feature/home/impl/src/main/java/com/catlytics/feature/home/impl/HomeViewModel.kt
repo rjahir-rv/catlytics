@@ -3,8 +3,9 @@ package com.catlytics.feature.home.impl
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
-import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
+import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 internal class HomeViewModel @Inject constructor(
     observeLibraryUseCase: ObserveLibraryUseCase,
+    observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     private val refreshLibraryUseCase: RefreshLibraryUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
 ) : ViewModel() {
@@ -30,14 +32,18 @@ internal class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = combine(
         observeLibraryUseCase()
             .catch { throwable -> emit(emptyList()) },
+        observePlaybackStateUseCase(),
         refreshError,
         isRefreshing,
-    ) { tracks, error, refreshing ->
+    ) { tracks, playbackState, error, refreshing ->
         when {
             refreshing -> HomeUiState.Loading
             error != null -> HomeUiState.Error(error)
             tracks.isEmpty() -> HomeUiState.Empty
-            else -> HomeUiState.Success(tracks)
+            else -> HomeUiState.Success(
+                tracks = tracks,
+                currentTrackId = playbackState.currentTrack?.id,
+            )
         }
     }.stateIn(
         scope = viewModelScope,

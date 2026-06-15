@@ -14,10 +14,10 @@ import kotlinx.coroutines.flow.stateIn
 class ThemeViewModel @Inject constructor(
     appPreferencesRepository: AppPreferencesRepository,
 ) : ViewModel() {
-    val themeMode: StateFlow<ThemeMode> = appPreferencesRepository.observeThemeMode()
+    val themeMode: StateFlow<ThemeMode?> = appPreferencesRepository.observeThemeMode()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
-            initialValue = ThemeMode.System,
+            initialValue = null,
         )
 }

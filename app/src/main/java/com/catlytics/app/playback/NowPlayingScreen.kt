@@ -1,6 +1,9 @@
 package com.catlytics.app.playback
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -12,7 +15,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -20,6 +28,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -32,11 +42,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -83,15 +94,33 @@ fun NowPlayingScreen(
 
     Scaffold(
         modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+        containerColor = MaterialTheme.colorScheme.surface,
         topBar = {
             TopAppBar(
-                title = { /* */ },
+                title = {
+                    Text(
+                        text = "REPRODUCIENDO",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                },
                 colors = TopAppBarDefaults.topAppBarColors(Color.Transparent),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_arrow_down),
                             contentDescription = "Volver",
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(
+                        onClick = { track?.let(onAddToPlaylist) },
+                        enabled = track != null,
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_options),
+                            contentDescription = "Opciones de playlist",
                         )
                     }
                 },
@@ -102,42 +131,54 @@ fun NowPlayingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 16.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AsyncImage(
-                model = track?.artworkUri,
-                contentDescription = track?.let { "Carátula de ${it.title}" },
-                placeholder = painterResource(id = R.drawable.placeholder_album),
-                error = painterResource(id = R.drawable.placeholder_album),
-                fallback = painterResource(id = R.drawable.placeholder_album),
-                contentScale = ContentScale.Crop,
+            NowPlayingArtwork(
+                track = track,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(MaterialTheme.shapes.extraLarge),
-            )
-
-            Spacer(modifier = Modifier.height(28.dp))
-
-            Text(
-                text = track?.title ?: "Sin canción en reproducción",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = track?.artist?.name ?: "selecciona una canción para iniciar",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+                    .widthIn(max = 420.dp),
             )
 
             Spacer(modifier = Modifier.height(32.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
+                        text = track?.title ?: "Sin canción en reproducción",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = track?.artist?.name ?: "Selecciona una canción para iniciar",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_favorite),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .size(28.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             PlaybackProgress(
                 positionMillis = positionMillis,
@@ -146,16 +187,16 @@ fun NowPlayingScreen(
                 onSeekTo = onSeekTo,
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(
                     onClick = onToggleShuffle,
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(48.dp),
                     enabled = track != null,
                 ) {
                     Icon(
@@ -175,17 +216,18 @@ fun NowPlayingScreen(
                 IconButton(
                     onClick = onSkipPrevious,
                     enabled = track != null,
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(64.dp),
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_skip_back),
                         contentDescription = "Anterior",
+                        modifier = Modifier.size(32.dp),
                     )
                 }
                 FilledIconButton(
                     onClick = onTogglePlayback,
                     enabled = track != null,
-                    modifier = Modifier.size(72.dp),
+                    modifier = Modifier.size(80.dp),
                 ) {
                     Icon(
                         painter = if (
@@ -201,22 +243,23 @@ fun NowPlayingScreen(
                         } else {
                             "Reproducir"
                         },
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(40.dp),
                     )
                 }
                 IconButton(
                     onClick = onSkipNext,
                     enabled = track != null,
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(64.dp),
                 ) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_skip_next),
-                        contentDescription = "siguiente",
+                        contentDescription = "Siguiente",
+                        modifier = Modifier.size(32.dp),
                     )
                 }
                 IconButton(
                     onClick = onCycleRepeatMode,
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(48.dp),
                     enabled = track != null,
                 ) {
                     Icon(
@@ -241,48 +284,101 @@ fun NowPlayingScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            Row(
+            Surface(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.82f),
             ) {
-                IconButton(
-                    onClick = { track?.let(onAddToPlaylist) },
-                    enabled = track != null,
-                    modifier = Modifier.size(56.dp),
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_options),
-                        contentDescription = "Opciones de playlist",
-                    )
-                }
-                IconButton(
-                    onClick = { track?.let(onShareTrack) },
-                    enabled = track != null,
-                    modifier = Modifier.size(56.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_share),
-                        contentDescription = "Compartir canción",
-                    )
-                }
-                IconButton(
-                    onClick = { isQueueVisible = true },
-                    enabled = playbackState.queue.isNotEmpty(),
-                    modifier = Modifier.size(56.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_list),
-                        contentDescription = "Abrir cola de reproducción",
-                    )
+                    IconButton(
+                        onClick = { track?.let(onShareTrack) },
+                        enabled = track != null,
+                        modifier = Modifier.size(56.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_share),
+                            contentDescription = "Compartir canción",
+                        )
+                    }
+                    IconButton(
+                        onClick = { isQueueVisible = true },
+                        enabled = playbackState.queue.isNotEmpty(),
+                        modifier = Modifier.size(56.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_list),
+                            contentDescription = "Abrir cola de reproducción",
+                        )
+                    }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
+@Composable
+private fun NowPlayingArtwork(
+    track: Track?,
+    modifier: Modifier = Modifier,
+) {
+    val artworkShape = RoundedCornerShape(28.dp)
+
+    Box(
+        modifier = modifier.aspectRatio(1f),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+                .blur(
+                    radius = 32.dp,
+                    edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                )
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
+                    shape = artworkShape,
+                ),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+                .blur(
+                    radius = 16.dp,
+                    edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                )
+                .background(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.62f),
+                    shape = artworkShape,
+                ),
+        )
+        AsyncImage(
+            model = track?.artworkUri,
+            contentDescription = track?.let { "Carátula de ${it.title}" },
+            placeholder = painterResource(id = R.drawable.placeholder_album),
+            error = painterResource(id = R.drawable.placeholder_album),
+            fallback = painterResource(id = R.drawable.placeholder_album),
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp)
+                .clip(artworkShape),
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlaybackProgress(
     positionMillis: Long,
@@ -295,6 +391,15 @@ private fun PlaybackProgress(
         mutableFloatStateOf(positionMillis.progressFor(durationMillis))
     }
     var isSeeking by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val sliderColors = SliderDefaults.colors(
+        thumbColor = MaterialTheme.colorScheme.primary,
+        activeTrackColor = MaterialTheme.colorScheme.primary,
+        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        disabledThumbColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+        disabledActiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.24f),
+        disabledInactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+    )
     val positionText = remember(positionMillis / MILLIS_PER_SECOND) {
         positionMillis.formatDuration()
     }
@@ -321,6 +426,47 @@ private fun PlaybackProgress(
             },
             enabled = enabled && durationMillis > 0L,
             valueRange = 0f..1f,
+            colors = sliderColors,
+            interactionSource = interactionSource,
+            thumb = {
+                Box(
+                    modifier = Modifier.size(28.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(20.dp)
+                            .blur(
+                                radius = 8.dp,
+                                edgeTreatment = BlurredEdgeTreatment.Unbounded,
+                            )
+                            .background(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                shape = CircleShape,
+                            ),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(14.dp)
+                            .background(
+                                color = if (enabled) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                },
+                                shape = CircleShape,
+                            ),
+                    )
+                }
+            },
+            track = { sliderState ->
+                SliderDefaults.Track(
+                    sliderState = sliderState,
+                    modifier = Modifier.height(8.dp),
+                    colors = sliderColors,
+                    enabled = enabled && durationMillis > 0L,
+                )
+            },
         )
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -328,12 +474,12 @@ private fun PlaybackProgress(
         ) {
             Text(
                 text = positionText,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Text(
                 text = durationText,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

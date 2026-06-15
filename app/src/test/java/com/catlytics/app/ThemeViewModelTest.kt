@@ -15,6 +15,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -36,6 +37,8 @@ class ThemeViewModelTest {
     @Test
     fun `themeMode exposes repository changes`() = runTest {
         val viewModel = ThemeViewModel(repository)
+        assertNull(viewModel.themeMode.value)
+
         backgroundScope.launch { viewModel.themeMode.collect() }
         advanceUntilIdle()
 
