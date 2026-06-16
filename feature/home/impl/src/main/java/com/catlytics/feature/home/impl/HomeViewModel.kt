@@ -6,6 +6,10 @@ import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
+import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
+import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -22,8 +26,10 @@ import kotlinx.coroutines.launch
 internal class HomeViewModel @Inject constructor(
     observeLibraryUseCase: ObserveLibraryUseCase,
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    observePlaylistsUseCase: ObservePlaylistsUseCase,
     private val refreshLibraryUseCase: RefreshLibraryUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
+    private val toggleLikedTrackUseCase: ToggleLikedTrackUseCase,
 ) : ViewModel() {
     private val refreshError = MutableStateFlow<String?>(null)
     private val isRefreshing = MutableStateFlow(false)
@@ -33,9 +39,10 @@ internal class HomeViewModel @Inject constructor(
         observeLibraryUseCase()
             .catch { throwable -> emit(emptyList()) },
         observePlaybackStateUseCase(),
+        observePlaylistsUseCase(),
         refreshError,
         isRefreshing,
-    ) { tracks, playbackState, error, refreshing ->
+    ) { tracks, playbackState, playlists, error, refreshing ->
         when {
             refreshing -> HomeUiState.Loading
             error != null -> HomeUiState.Error(error)
@@ -43,6 +50,11 @@ internal class HomeViewModel @Inject constructor(
             else -> HomeUiState.Success(
                 tracks = tracks,
                 currentTrackId = playbackState.currentTrack?.id,
+                likedTrackIds = playlists
+                    .firstOrNull { it.id == LIKED_PLAYLIST_ID }
+                    ?.trackIds
+                    .orEmpty()
+                    .toSet(),
             )
         }
     }.stateIn(
@@ -78,6 +90,12 @@ internal class HomeViewModel @Inject constructor(
     fun onTrackSelected(track: Track, queue: List<Track>) {
         viewModelScope.launch {
             playTrackUseCase(track, queue)
+        }
+    }
+
+    fun toggleTrackLiked(trackId: String, onResult: (ToggleLikedTrackResult) -> Unit) {
+        viewModelScope.launch {
+            onResult(toggleLikedTrackUseCase(trackId))
         }
     }
 }

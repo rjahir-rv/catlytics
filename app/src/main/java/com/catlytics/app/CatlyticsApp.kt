@@ -1,6 +1,7 @@
 package com.catlytics.app
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -52,6 +53,8 @@ import com.catlytics.app.playback.PlaybackViewModel
 import com.catlytics.app.playback.shareTrack
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
+import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
+import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.navigation.TopLevelBackStack
@@ -92,6 +95,7 @@ fun CatlyticsApp(
             .orEmpty()
     }
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+    val isCurrentTrackLiked by playbackViewModel.isCurrentTrackLiked.collectAsStateWithLifecycle()
     val currentRoute = topLevelBackStack.backStack.lastOrNull()
     val currentTopLevelDestination = TopLevelDestination.entries
         .firstOrNull { it.route == currentRoute }
@@ -275,6 +279,21 @@ fun CatlyticsApp(
                             onMoveQueueItem = playbackViewModel::moveQueueItem,
                             onRemoveQueueItem = playbackViewModel::removeQueueItem,
                             onAddToPlaylist = { playlistSource = PlaylistSource.TrackSource(it.id) },
+                            isCurrentTrackLiked = isCurrentTrackLiked,
+                            onAddCurrentTrackToLiked = {
+                                playbackViewModel.toggleCurrentTrackLiked { result ->
+                                    Toast.makeText(
+                                        context,
+                                        when (result) {
+                                            ToggleLikedTrackResult.Added ->
+                                                "Canción agregada a $LIKED_PLAYLIST_NAME"
+                                            ToggleLikedTrackResult.Removed ->
+                                                "Canción eliminada de $LIKED_PLAYLIST_NAME"
+                                        },
+                                        Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                            },
                         )
                     }
                 },

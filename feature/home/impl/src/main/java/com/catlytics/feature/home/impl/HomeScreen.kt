@@ -2,6 +2,7 @@ package com.catlytics.feature.home.impl
 
 import android.Manifest
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -50,7 +51,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
+import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import java.util.Locale
@@ -92,6 +95,20 @@ internal fun HomeRoute(
         onRequestPermission = { permissionLauncher.launch(permission) },
         onTrackSelected = viewModel::onTrackSelected,
         onAddToPlaylist = onAddToPlaylist,
+        onAddToLiked = { track ->
+            viewModel.toggleTrackLiked(track.id) { result ->
+                Toast.makeText(
+                    context,
+                    when (result) {
+                        ToggleLikedTrackResult.Added ->
+                            "Canción agregada a $LIKED_PLAYLIST_NAME"
+                        ToggleLikedTrackResult.Removed ->
+                            "Canción eliminada de $LIKED_PLAYLIST_NAME"
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        },
     )
 }
 
@@ -103,6 +120,7 @@ internal fun HomeScreen(
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
+    onAddToLiked: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val trackListState = rememberSaveable(saver = LazyListState.Saver) {
@@ -132,9 +150,11 @@ internal fun HomeScreen(
                     TrackList(
                         tracks = filteredTracks,
                         currentTrackId = uiState.currentTrackId,
+                        likedTrackIds = uiState.likedTrackIds,
                         onTrackSelected = onTrackSelected,
                         state = trackListState,
                         onAddToPlaylist = onAddToPlaylist,
+                        onAddToLiked = onAddToLiked,
                     )
                 }
             }
@@ -221,10 +241,12 @@ private fun ErrorContent(
 private fun TrackList(
     tracks: List<Track>,
     currentTrackId: String?,
+    likedTrackIds: Set<String>,
     onTrackSelected: (Track, List<Track>) -> Unit,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     onAddToPlaylist: (PlaylistSource) -> Unit,
+    onAddToLiked: (Track) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -238,7 +260,9 @@ private fun TrackList(
             TrackRow(
                 track = track,
                 isCurrent = track.id == currentTrackId,
+                isLiked = track.id in likedTrackIds,
                 onTrackSelected = { onTrackSelected(track, tracks) },
+                onAddToLiked = { onAddToLiked(track) },
                 onAddToPlaylist = { onAddToPlaylist(PlaylistSource.TrackSource(track.id)) },
             )
         }
@@ -249,7 +273,9 @@ private fun TrackList(
 private fun TrackRow(
     track: Track,
     isCurrent: Boolean,
+    isLiked: Boolean,
     onTrackSelected: () -> Unit,
+    onAddToLiked: () -> Unit,
     onAddToPlaylist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -289,12 +315,24 @@ private fun TrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Icon(
-            painter = painterResource(R.drawable.ic_favorite),
-            contentDescription = null,
-            modifier = Modifier.size(24.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        IconButton(onClick = onAddToLiked) {
+            Icon(
+                painter = painterResource(
+                    if (isLiked) R.drawable.ic_favorite_fill else R.drawable.ic_favorite,
+                ),
+                contentDescription = if (isLiked) {
+                    "Quitar ${track.title} de Tus me gusta"
+                } else {
+                    "Agregar ${track.title} a Tus me gusta"
+                },
+                modifier = Modifier.size(24.dp),
+                tint = if (isLiked) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
         IconButton(onClick = onAddToPlaylist) {
             Icon(
                 painter = painterResource(R.drawable.ic_options),
@@ -404,6 +442,7 @@ private fun HomeScreenPreview() {
             onRequestPermission = {},
             onTrackSelected = { _, _ -> },
             onAddToPlaylist = {},
+            onAddToLiked = {},
         )
     }
 }

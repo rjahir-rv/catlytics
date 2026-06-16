@@ -38,6 +38,8 @@ class NowPlayingScreenTest {
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
                     onAddToPlaylist = {},
+                    isCurrentTrackLiked = false,
+                    onAddCurrentTrackToLiked = {},
                 )
             }
         }
@@ -65,6 +67,8 @@ class NowPlayingScreenTest {
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
                     onAddToPlaylist = {},
+                    isCurrentTrackLiked = false,
+                    onAddCurrentTrackToLiked = {},
                 )
             }
         }
@@ -90,12 +94,99 @@ class NowPlayingScreenTest {
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
                     onAddToPlaylist = {},
+                    isCurrentTrackLiked = false,
+                    onAddCurrentTrackToLiked = {},
                 )
             }
         }
 
         composeRule.onNodeWithText(track.title).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Carátula de ${track.title}").assertIsDisplayed()
+    }
+
+    @Test
+    fun likedButtonAddsCurrentTrack() {
+        var addClicks = 0
+
+        composeRule.setContent {
+            MaterialTheme {
+                NowPlayingScreen(
+                    playbackState = PlaybackState(currentTrack = track),
+                    onShareTrack = {},
+                    onBack = {},
+                    onTogglePlayback = {},
+                    onSkipPrevious = {},
+                    onSkipNext = {},
+                    onSeekTo = {},
+                    onToggleShuffle = {},
+                    onCycleRepeatMode = {},
+                    onPlayQueueItem = {},
+                    onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
+                    onAddToPlaylist = {},
+                    isCurrentTrackLiked = false,
+                    onAddCurrentTrackToLiked = { addClicks++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Agregar a Tus me gusta").performClick()
+
+        assertEquals(1, addClicks)
+    }
+
+    @Test
+    fun likedButtonReflectsLikedState() {
+        composeRule.setContent {
+            MaterialTheme {
+                NowPlayingScreen(
+                    playbackState = PlaybackState(currentTrack = track),
+                    onShareTrack = {},
+                    onBack = {},
+                    onTogglePlayback = {},
+                    onSkipPrevious = {},
+                    onSkipNext = {},
+                    onSeekTo = {},
+                    onToggleShuffle = {},
+                    onCycleRepeatMode = {},
+                    onPlayQueueItem = {},
+                    onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
+                    onAddToPlaylist = {},
+                    isCurrentTrackLiked = true,
+                    onAddCurrentTrackToLiked = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Quitar de Tus me gusta").assertIsDisplayed()
+    }
+
+    @Test
+    fun likedButtonIsDisabledWithoutCurrentTrack() {
+        composeRule.setContent {
+            MaterialTheme {
+                NowPlayingScreen(
+                    playbackState = PlaybackState(),
+                    onShareTrack = {},
+                    onBack = {},
+                    onTogglePlayback = {},
+                    onSkipPrevious = {},
+                    onSkipNext = {},
+                    onSeekTo = {},
+                    onToggleShuffle = {},
+                    onCycleRepeatMode = {},
+                    onPlayQueueItem = {},
+                    onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
+                    onAddToPlaylist = {},
+                    isCurrentTrackLiked = false,
+                    onAddCurrentTrackToLiked = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Agregar a Tus me gusta").assertIsNotEnabled()
     }
 
     private companion object {

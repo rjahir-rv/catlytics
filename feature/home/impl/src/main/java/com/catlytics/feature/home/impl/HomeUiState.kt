@@ -8,6 +8,7 @@ internal sealed interface HomeUiState {
     data class Success(
         val tracks: List<Track>,
         val currentTrackId: String? = null,
+        val likedTrackIds: Set<String> = emptySet(),
     ) : HomeUiState
     data class Error(val message: String) : HomeUiState
 }

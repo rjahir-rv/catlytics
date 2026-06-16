@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistViewMode
 
@@ -77,6 +78,13 @@ internal fun PlaylistsScreen(
         pendingCoverForId = null
     }
 
+    fun requestCoverChange(playlistId: String) {
+        pendingCoverForId = playlistId
+        coverPickerLauncher.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+        )
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         if (playlists.isEmpty()) {
             EmptyPlaylistsContent(modifier = Modifier.align(Alignment.Center))
@@ -87,12 +95,7 @@ internal fun PlaylistsScreen(
                     onClick = onPlaylistSelected,
                     onRename = { editor = it },
                     onDelete = { deleting = it },
-                    onChangeCover = { id ->
-                        pendingCoverForId = id
-                        coverPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                        )
-                    },
+                    onChangeCover = ::requestCoverChange,
                     onClearCover = { id -> onSetCover(id, null) },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -101,12 +104,7 @@ internal fun PlaylistsScreen(
                     onClick = onPlaylistSelected,
                     onRename = { editor = it },
                     onDelete = { deleting = it },
-                    onChangeCover = { id ->
-                        pendingCoverForId = id
-                        coverPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
-                        )
-                    },
+                    onChangeCover = ::requestCoverChange,
                     onClearCover = { id -> onSetCover(id, null) },
                     modifier = Modifier.fillMaxSize(),
                 )
@@ -219,9 +217,6 @@ private fun PlaylistListRow(
     onChangeCover: () -> Unit,
     onClearCover: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val hasCustomCover = playlist.artworkUri != null
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -260,41 +255,13 @@ private fun PlaylistListRow(
             )
         }
 
-        Box {
-            IconButton(onClick = { expanded = true }) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_options),
-                    contentDescription = "Opciones de ${playlist.name}",
-                )
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-            ) {
-                DropdownMenuItem(
-                    text = { Text("Renombrar") },
-                    onClick = { expanded = false; onRename() },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Cambiar portada") },
-                    onClick = { expanded = false; onChangeCover() },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
-                )
-                if (hasCustomCover) {
-                    DropdownMenuItem(
-                        text = { Text("Quitar portada") },
-                        onClick = { expanded = false; onClearCover() },
-                        leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null) },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text("Eliminar") },
-                    onClick = { expanded = false; onDelete() },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null) },
-                )
-            }
-        }
+        PlaylistActionsMenu(
+            playlist = playlist,
+            onRename = onRename,
+            onDelete = onDelete,
+            onChangeCover = onChangeCover,
+            onClearCover = onClearCover,
+        )
     }
 }
 
@@ -342,9 +309,6 @@ private fun PlaylistMosaicCard(
     onChangeCover: () -> Unit,
     onClearCover: () -> Unit,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val hasCustomCover = playlist.artworkUri != null
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -382,41 +346,73 @@ private fun PlaylistMosaicCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Box {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_options),
-                        contentDescription = "Opciones de ${playlist.name}",
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Renombrar") },
-                        onClick = { expanded = false; onRename() },
-                        leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Cambiar portada") },
-                        onClick = { expanded = false; onChangeCover() },
-                        leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
-                    )
-                    if (hasCustomCover) {
-                        DropdownMenuItem(
-                            text = { Text("Quitar portada") },
-                            onClick = { expanded = false; onClearCover() },
-                            leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null) },
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text("Eliminar") },
-                        onClick = { expanded = false; onDelete() },
-                        leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null) },
-                    )
-                }
+            PlaylistActionsMenu(
+                playlist = playlist,
+                onRename = onRename,
+                onDelete = onDelete,
+                onChangeCover = onChangeCover,
+                onClearCover = onClearCover,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaylistActionsMenu(
+    playlist: Playlist,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
+    onChangeCover: () -> Unit,
+    onClearCover: () -> Unit,
+) {
+    if (playlist.id == LIKED_PLAYLIST_ID) return
+
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                painter = painterResource(R.drawable.ic_options),
+                contentDescription = "Opciones de ${playlist.name}",
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            DropdownMenuItem(
+                text = { Text("Renombrar") },
+                onClick = {
+                    expanded = false
+                    onRename()
+                },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
+            )
+            DropdownMenuItem(
+                text = { Text("Cambiar portada") },
+                onClick = {
+                    expanded = false
+                    onChangeCover()
+                },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
+            )
+            if (playlist.artworkUri != null) {
+                DropdownMenuItem(
+                    text = { Text("Quitar portada") },
+                    onClick = {
+                        expanded = false
+                        onClearCover()
+                    },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null) },
+                )
             }
+            DropdownMenuItem(
+                text = { Text("Eliminar") },
+                onClick = {
+                    expanded = false
+                    onDelete()
+                },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null) },
+            )
         }
     }
 }

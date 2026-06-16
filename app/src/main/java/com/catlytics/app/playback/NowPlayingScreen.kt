@@ -87,6 +87,8 @@ fun NowPlayingScreen(
     onMoveQueueItem: (Int, Int) -> Unit,
     onRemoveQueueItem: (Int) -> Unit,
     onAddToPlaylist: (Track) -> Unit,
+    isCurrentTrackLiked: Boolean,
+    onAddCurrentTrackToLiked: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val track = playbackState.currentTrack
@@ -231,14 +233,34 @@ fun NowPlayingScreen(
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_favorite),
-                        contentDescription = null,
+                    IconButton(
+                        onClick = onAddCurrentTrackToLiked,
+                        enabled = track != null,
                         modifier = Modifier
                             .padding(top = 4.dp)
-                            .size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                            .size(48.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                id = if (isCurrentTrackLiked) {
+                                    R.drawable.ic_favorite_fill
+                                } else {
+                                    R.drawable.ic_favorite
+                                },
+                            ),
+                            contentDescription = if (isCurrentTrackLiked) {
+                                "Quitar de Tus me gusta"
+                            } else {
+                                "Agregar a Tus me gusta"
+                            },
+                            modifier = Modifier.size(28.dp),
+                            tint = if (isCurrentTrackLiked) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

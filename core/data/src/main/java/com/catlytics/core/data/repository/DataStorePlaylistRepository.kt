@@ -8,6 +8,8 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.PlaylistRepository
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.Playlist
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -40,12 +42,17 @@ class DataStorePlaylistRepository internal constructor(
 
     override fun observePlaylists(): Flow<List<Playlist>> = dataStore.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
-        .map { preferences -> preferences[PLAYLISTS]?.decodePlaylists().orEmpty() }
+        .map { preferences ->
+            preferences[PLAYLISTS]
+                ?.decodePlaylists()
+                .orEmpty()
+                .withLikedPlaylist()
+        }
 
     override suspend fun createPlaylist(name: String, trackIds: List<String>): Playlist {
         val playlist = Playlist(UUID.randomUUID().toString(), name, trackIds.distinct())
         update { playlists ->
-            require(playlists.none { it.name.equals(name, ignoreCase = true) }) {
+            require(playlists.withLikedPlaylist().none { it.name.equals(name, ignoreCase = true) }) {
                 "Ya existe una playlist con ese nombre."
             }
             playlists + playlist
@@ -54,13 +61,17 @@ class DataStorePlaylistRepository internal constructor(
     }
 
     override suspend fun renamePlaylist(playlistId: String, name: String) = update { playlists ->
-        require(playlists.none { it.id != playlistId && it.name.equals(name, ignoreCase = true) }) {
+        if (playlistId == LIKED_PLAYLIST_ID) return@update playlists.withLikedPlaylist()
+        require(playlists.withLikedPlaylist().none {
+            it.id != playlistId && it.name.equals(name, ignoreCase = true)
+        }) {
             "Ya existe una playlist con ese nombre."
         }
         playlists.map { if (it.id == playlistId) it.copy(name = name) else it }
     }
 
     override suspend fun deletePlaylist(playlistId: String) {
+        if (playlistId == LIKED_PLAYLIST_ID) return
         update { playlists ->
             playlists.filterNot { it.id == playlistId }
         }
@@ -70,7 +81,7 @@ class DataStorePlaylistRepository internal constructor(
     override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int {
         var added = 0
         update { playlists ->
-            playlists.map { playlist ->
+            playlists.withLikedPlaylist().map { playlist ->
                 if (playlist.id != playlistId) return@map playlist
                 val newIds = trackIds.distinct().filterNot(playlist.trackIds::contains)
                 added = newIds.size
@@ -81,7 +92,7 @@ class DataStorePlaylistRepository internal constructor(
     }
 
     override suspend fun removeTrack(playlistId: String, trackId: String) = update { playlists ->
-        playlists.map { playlist ->
+        playlists.withLikedPlaylist().map { playlist ->
             if (playlist.id == playlistId) playlist.copy(trackIds = playlist.trackIds - trackId)
             else playlist
         }
@@ -95,7 +106,8 @@ class DataStorePlaylistRepository internal constructor(
             null
         }
         update { playlists ->
-            playlists.map { if (it.id == playlistId) it.copy(artworkUri = persisted) else it }
+            playlists.withLikedPlaylist()
+                .map { if (it.id == playlistId) it.copy(artworkUri = persisted) else it }
         }
     }
 
@@ -138,6 +150,13 @@ private fun List<Playlist>.encodePlaylists(): String = buildJsonArray {
         })
     }
 }.toString()
+
+private fun List<Playlist>.withLikedPlaylist(): List<Playlist> {
+    val liked = firstOrNull { it.id == LIKED_PLAYLIST_ID }
+        ?.copy(name = LIKED_PLAYLIST_NAME)
+        ?: Playlist(id = LIKED_PLAYLIST_ID, name = LIKED_PLAYLIST_NAME, trackIds = emptyList())
+    return listOf(liked) + filterNot { it.id == LIKED_PLAYLIST_ID }
+}
 
 private fun String.decodePlaylists(): List<Playlist> = runCatching {
     Json.parseToJsonElement(this).jsonArray.mapNotNull { element ->

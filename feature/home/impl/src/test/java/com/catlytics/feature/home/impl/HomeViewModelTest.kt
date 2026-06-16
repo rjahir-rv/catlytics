@@ -1,6 +1,7 @@
 package com.catlytics.feature.home.impl
 
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
@@ -8,13 +9,18 @@ import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
+import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
+import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
@@ -44,11 +50,13 @@ class HomeViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var repository: FakeLibraryRepository
+    private lateinit var playlistRepository: FakePlaylistRepository
     private lateinit var playbackController: FakePlaybackController
 
     @Before
     fun setUp() {
         repository = FakeLibraryRepository()
+        playlistRepository = FakePlaylistRepository()
         playbackController = FakePlaybackController()
     }
 
@@ -97,6 +105,24 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `uiState exposes liked track ids`() = runTest {
+        val tracks = listOf(track(id = "track-1"), track(id = "track-2"))
+        repository.setTracks(tracks)
+        playlistRepository.addTracks(LIKED_PLAYLIST_ID, listOf("track-2"))
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(
+            HomeUiState.Success(
+                tracks = tracks,
+                likedTrackIds = setOf("track-2"),
+            ),
+            viewModel.uiState.value,
+        )
+    }
+
+    @Test
     fun `refreshLibrary surfaces refresh errors`() = runTest {
         repository.refreshResult = Result.failure(IllegalStateException("MediaStore failed"))
         val viewModel = homeViewModel()
@@ -128,11 +154,27 @@ class HomeViewModelTest {
         assertEquals(1, playbackController.startIndex)
     }
 
+    @Test
+    fun `toggleTrackLiked reports whether track was added or removed`() = runTest {
+        val viewModel = homeViewModel()
+        var firstResult: ToggleLikedTrackResult? = null
+        var secondResult: ToggleLikedTrackResult? = null
+
+        viewModel.toggleTrackLiked("track-1") { firstResult = it }
+        viewModel.toggleTrackLiked("track-1") { secondResult = it }
+        advanceUntilIdle()
+
+        assertEquals(ToggleLikedTrackResult.Added, firstResult)
+        assertEquals(ToggleLikedTrackResult.Removed, secondResult)
+    }
+
     private fun homeViewModel() = HomeViewModel(
         observeLibraryUseCase = ObserveLibraryUseCase(repository),
         observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
+        observePlaylistsUseCase = ObservePlaylistsUseCase(playlistRepository),
         refreshLibraryUseCase = RefreshLibraryUseCase(repository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
+        toggleLikedTrackUseCase = ToggleLikedTrackUseCase(playlistRepository),
     )
 
     private fun kotlinx.coroutines.CoroutineScope.startCollecting(viewModel: HomeViewModel) {
@@ -196,6 +238,60 @@ private class FakeLibraryRepository : LibraryRepository {
 
     fun setTracks(newTracks: List<Track>) {
         tracks.update { newTracks }
+    }
+}
+
+private class FakePlaylistRepository : PlaylistRepository {
+    private val playlists = MutableStateFlow(
+        listOf(Playlist(LIKED_PLAYLIST_ID, "Tus me gusta", emptyList())),
+    )
+
+    override fun observePlaylists(): Flow<List<Playlist>> = playlists
+
+    override suspend fun createPlaylist(name: String, trackIds: List<String>): Playlist {
+        val playlist = Playlist("playlist-${playlists.value.size}", name, trackIds.distinct())
+        playlists.update { it + playlist }
+        return playlist
+    }
+
+    override suspend fun renamePlaylist(playlistId: String, name: String) {
+        playlists.update { current ->
+            current.map { if (it.id == playlistId) it.copy(name = name) else it }
+        }
+    }
+
+    override suspend fun deletePlaylist(playlistId: String) {
+        playlists.update { current -> current.filterNot { it.id == playlistId } }
+    }
+
+    override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int {
+        var added = 0
+        playlists.update { current ->
+            current.map { playlist ->
+                if (playlist.id != playlistId) return@map playlist
+                val newIds = trackIds.distinct().filterNot(playlist.trackIds::contains)
+                added = newIds.size
+                playlist.copy(trackIds = playlist.trackIds + newIds)
+            }
+        }
+        return added
+    }
+
+    override suspend fun removeTrack(playlistId: String, trackId: String) {
+        playlists.update { current ->
+            current.map { playlist ->
+                if (playlist.id == playlistId) playlist.copy(trackIds = playlist.trackIds - trackId)
+                else playlist
+            }
+        }
+    }
+
+    override suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?) {
+        playlists.update { current ->
+            current.map { playlist ->
+                if (playlist.id == playlistId) playlist.copy(artworkUri = artworkUri) else playlist
+            }
+        }
     }
 }
 

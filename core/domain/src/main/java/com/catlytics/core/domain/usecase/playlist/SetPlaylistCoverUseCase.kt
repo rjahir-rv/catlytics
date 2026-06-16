@@ -5,7 +5,6 @@ import com.catlytics.core.domain.repository.PlaylistRepository
 class SetPlaylistCoverUseCase(
     private val repository: PlaylistRepository,
 ) {
-    suspend operator fun invoke(playlistId: String, artworkUri: String?) {
+    suspend operator fun invoke(playlistId: String, artworkUri: String?) =
         repository.setPlaylistArtwork(playlistId, artworkUri)
-    }
 }

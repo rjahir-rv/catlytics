@@ -107,6 +107,9 @@ data class Playlist(
     val artworkUri: String? = null,
 )
 
+const val LIKED_PLAYLIST_ID = "system_liked"
+const val LIKED_PLAYLIST_NAME = "Tus me gusta"
+
 data class PlaylistContent(
     val playlist: Playlist,
     val tracks: List<Track>,
