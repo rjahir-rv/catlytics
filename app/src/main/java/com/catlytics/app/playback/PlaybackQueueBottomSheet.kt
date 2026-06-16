@@ -50,8 +50,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -100,7 +100,13 @@ internal fun PlaybackQueueBottomSheet(
     }
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
-    val maxQueueListHeight = (LocalConfiguration.current.screenHeightDp * QueueSheetMaxHeightFraction).dp
+    val density = LocalDensity.current
+    val windowInfo = LocalWindowInfo.current
+    val maxQueueListHeight = remember(density, windowInfo) {
+        with(density) {
+            (windowInfo.containerSize.height * QueueSheetMaxHeightFraction).toDp()
+        }
+    }
     val sheetShape = RoundedCornerShape(topStart = QueueSheetCornerRadius, topEnd = QueueSheetCornerRadius)
     val sheetGradient = remember(gradientColors) {
         Brush.verticalGradient(
@@ -170,7 +176,7 @@ internal fun PlaybackQueueBottomSheet(
                         modifier = placementModifier
                             .padding(horizontal = 16.dp, vertical = 4.dp)
                             .zIndex(if (isDragging) 1f else 0f),
-                    ) { swipeProgress ->
+                    ) { _ ->
                         QueueTrackRow(
                             track = track,
                             isCurrent = track.id == currentTrackId,
@@ -240,16 +246,14 @@ private fun QueueSwipeableItem(
     content: @Composable (swipeProgress: Float) -> Unit,
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart) {
-                onRemove()
-                true
-            } else {
-                false
-            }
-        },
         positionalThreshold = { totalDistance -> totalDistance * 0.45f },
     )
+
+    LaunchedEffect(dismissState.currentValue) {
+        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
+            onRemove()
+        }
+    }
     val swipeProgress = dismissState.progress
     val shape = RoundedCornerShape(20.dp)
     val deleteBackgroundColor = lerp(
