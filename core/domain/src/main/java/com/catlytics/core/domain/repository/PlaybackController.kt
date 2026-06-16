@@ -14,6 +14,8 @@ interface PlaybackController {
 
     suspend fun moveQueueItem(fromIndex: Int, toIndex: Int)
 
+    suspend fun removeQueueItem(index: Int)
+
     suspend fun togglePlayPause()
 
     suspend fun pause()

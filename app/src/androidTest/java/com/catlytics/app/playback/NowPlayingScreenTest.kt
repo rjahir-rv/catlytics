@@ -2,8 +2,10 @@ package com.catlytics.app.playback
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.PlaybackState
@@ -34,6 +36,7 @@ class NowPlayingScreenTest {
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
                     onAddToPlaylist = {},
                 )
             }
@@ -60,12 +63,39 @@ class NowPlayingScreenTest {
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
                     onAddToPlaylist = {},
                 )
             }
         }
 
         composeRule.onNodeWithContentDescription("Compartir canción").assertIsNotEnabled()
+    }
+
+    @Test
+    fun trackWithoutArtworkUsesFallbackAndRemainsVisible() {
+        composeRule.setContent {
+            MaterialTheme {
+                NowPlayingScreen(
+                    playbackState = PlaybackState(currentTrack = track),
+                    onShareTrack = {},
+                    onBack = {},
+                    onTogglePlayback = {},
+                    onSkipPrevious = {},
+                    onSkipNext = {},
+                    onSeekTo = {},
+                    onToggleShuffle = {},
+                    onCycleRepeatMode = {},
+                    onPlayQueueItem = {},
+                    onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
+                    onAddToPlaylist = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(track.title).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Carátula de ${track.title}").assertIsDisplayed()
     }
 
     private companion object {

@@ -46,6 +46,8 @@ private class PlaybackModeFakePlaybackController : PlaybackController {
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
 
+    override suspend fun removeQueueItem(index: Int) = Unit
+
     override suspend fun togglePlayPause() = Unit
 
     override suspend fun pause() = Unit

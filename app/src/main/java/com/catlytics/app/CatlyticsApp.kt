@@ -12,6 +12,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -213,10 +214,16 @@ fun CatlyticsApp(
             }
         },
     ) { innerPadding ->
+        val navigationContentPadding = if (isNowPlayingVisible) {
+            PaddingValues(0.dp)
+        } else {
+            innerPadding
+        }
+
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
                 modifier = Modifier
-                    .padding(innerPadding)
+                    .padding(navigationContentPadding)
                     .padding(bottom = miniPlayerContentPadding),
                 backStack = topLevelBackStack.backStack,
                 onBack = ::closeCurrentDestination,
@@ -266,6 +273,7 @@ fun CatlyticsApp(
                             onShareTrack = context::shareTrack,
                             onPlayQueueItem = playbackViewModel::playQueueItem,
                             onMoveQueueItem = playbackViewModel::moveQueueItem,
+                            onRemoveQueueItem = playbackViewModel::removeQueueItem,
                             onAddToPlaylist = { playlistSource = PlaylistSource.TrackSource(it.id) },
                         )
                     }

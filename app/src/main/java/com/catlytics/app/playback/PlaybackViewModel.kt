@@ -6,6 +6,7 @@ import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayQueueItemUseCase
+import com.catlytics.core.domain.usecase.playback.RemoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.RestorePlaybackSessionUseCase
 import com.catlytics.core.domain.usecase.playback.SeekPlaybackUseCase
 import com.catlytics.core.domain.usecase.playback.SkipPlaybackUseCase
@@ -29,6 +30,7 @@ class PlaybackViewModel @Inject constructor(
     private val cycleRepeatModeUseCase: CycleRepeatModeUseCase,
     private val playQueueItemUseCase: PlayQueueItemUseCase,
     private val moveQueueItemUseCase: MoveQueueItemUseCase,
+    private val removeQueueItemUseCase: RemoveQueueItemUseCase,
     private val restorePlaybackSessionUseCase: RestorePlaybackSessionUseCase,
 ) : ViewModel() {
     val playbackState: StateFlow<PlaybackState> = observePlaybackStateUseCase()
@@ -89,6 +91,12 @@ class PlaybackViewModel @Inject constructor(
     fun moveQueueItem(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {
             moveQueueItemUseCase(fromIndex, toIndex)
+        }
+    }
+
+    fun removeQueueItem(index: Int) {
+        viewModelScope.launch {
+            removeQueueItemUseCase(index)
         }
     }
 }

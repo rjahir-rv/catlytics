@@ -27,6 +27,7 @@ import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistViewModeUseCase
 import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayQueueItemUseCase
+import com.catlytics.core.domain.usecase.playback.RemoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.RestorePlaybackSessionUseCase
@@ -168,6 +169,11 @@ object DomainModule {
     fun provideMoveQueueItemUseCase(
         playbackController: PlaybackController,
     ) = MoveQueueItemUseCase(playbackController)
+
+    @Provides
+    fun provideRemoveQueueItemUseCase(
+        playbackController: PlaybackController,
+    ) = RemoveQueueItemUseCase(playbackController)
 
     @Provides
     fun provideTogglePlaybackUseCase(

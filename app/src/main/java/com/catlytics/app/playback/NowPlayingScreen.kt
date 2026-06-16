@@ -1,5 +1,8 @@
 package com.catlytics.app.playback
 
+import android.graphics.Bitmap
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -45,18 +48,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -73,255 +85,307 @@ fun NowPlayingScreen(
     onShareTrack: (Track) -> Unit,
     onPlayQueueItem: (Int) -> Unit,
     onMoveQueueItem: (Int, Int) -> Unit,
+    onRemoveQueueItem: (Int) -> Unit,
     onAddToPlaylist: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val track = playbackState.currentTrack
     val durationMillis = playbackState.durationMillis
     val positionMillis = playbackState.positionMillis
+    val fallbackGradient = rememberFallbackGradient()
+    var artworkBitmap by remember(track?.artworkUri) { mutableStateOf<Bitmap?>(null) }
+    var gradientColors by remember { mutableStateOf(fallbackGradient) }
     var isQueueVisible by remember { mutableStateOf(false) }
+    val onDismissQueue = remember { { isQueueVisible = false } }
+    val animatedGradientStart by animateColorAsState(
+        targetValue = gradientColors.start,
+        animationSpec = tween(GRADIENT_ANIMATION_MILLIS),
+        label = "NowPlayingGradientStart",
+    )
+    val animatedGradientCenter by animateColorAsState(
+        targetValue = gradientColors.center,
+        animationSpec = tween(GRADIENT_ANIMATION_MILLIS),
+        label = "NowPlayingGradientCenter",
+    )
+    val animatedGradientEnd by animateColorAsState(
+        targetValue = gradientColors.end,
+        animationSpec = tween(GRADIENT_ANIMATION_MILLIS),
+        label = "NowPlayingGradientEnd",
+    )
+
+    LaunchedEffect(track?.artworkUri, artworkBitmap, fallbackGradient) {
+        gradientColors = artworkBitmap?.let { bitmap ->
+            withContext(Dispatchers.Default) {
+                Palette.from(bitmap)
+                    .maximumColorCount(PALETTE_MAX_COLOR_COUNT)
+                    .generate()
+                    .toGradientColors(fallbackGradient)
+            }
+        } ?: fallbackGradient
+    }
 
     if (isQueueVisible) {
         PlaybackQueueBottomSheet(
             queue = playbackState.queue,
             currentTrackId = track?.id,
-            onDismiss = { isQueueVisible = false },
+            gradientColors = NowPlayingGradientColors(
+                start = animatedGradientStart,
+                center = animatedGradientCenter,
+                end = animatedGradientEnd,
+            ),
+            onDismiss = onDismissQueue,
             onPlayQueueItem = onPlayQueueItem,
             onMoveQueueItem = onMoveQueueItem,
+            onRemoveQueueItem = onRemoveQueueItem,
             onAddToPlaylist = onAddToPlaylist,
         )
     }
 
-    Scaffold(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
-        containerColor = MaterialTheme.colorScheme.surface,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "REPRODUCIENDO",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(Color.Transparent),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_arrow_down),
-                            contentDescription = "Volver",
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        animatedGradientStart,
+                        animatedGradientCenter,
+                        animatedGradientEnd,
+                    ),
+                ),
+            ),
+    ) {
+        Scaffold(
+            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = "REPRODUCIENDO",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
                         )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = { track?.let(onAddToPlaylist) },
-                        enabled = track != null,
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_options),
-                            contentDescription = "Opciones de playlist",
-                        )
-                    }
-                },
-            )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            NowPlayingArtwork(
-                track = track,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 420.dp),
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = track?.title ?: "Sin canción en reproducción",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = track?.artist?.name ?: "Selecciona una canción para iniciar",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_favorite),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .padding(top = 4.dp)
-                        .size(28.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            PlaybackProgress(
-                positionMillis = positionMillis,
-                durationMillis = durationMillis,
-                enabled = track != null,
-                onSeekTo = onSeekTo,
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                IconButton(
-                    onClick = onToggleShuffle,
-                    modifier = Modifier.size(48.dp),
-                    enabled = track != null,
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_shuffle_square),
-                        contentDescription = if (playbackState.isShuffleEnabled) {
-                            "Desactivar mezcla"
-                        } else {
-                            "Activar mezcla"
-                        },
-                        tint = if (playbackState.isShuffleEnabled) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            Color.Unspecified
-                        },
-                    )
-                }
-                IconButton(
-                    onClick = onSkipPrevious,
-                    enabled = track != null,
-                    modifier = Modifier.size(64.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_skip_back),
-                        contentDescription = "Anterior",
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-                FilledIconButton(
-                    onClick = onTogglePlayback,
-                    enabled = track != null,
-                    modifier = Modifier.size(80.dp),
-                ) {
-                    Icon(
-                        painter = if (
-                            playbackState.status == PlaybackStatus.Playing ||
-                            playbackState.status == PlaybackStatus.Buffering
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(Color.Transparent),
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_arrow_down),
+                                contentDescription = "Volver",
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { track?.let(onAddToPlaylist) },
+                            enabled = track != null,
                         ) {
-                            painterResource(id = R.drawable.ic_pause)
-                        } else {
-                            painterResource(id = R.drawable.ic_play)
-                        },
-                        contentDescription = if (playbackState.status == PlaybackStatus.Playing) {
-                            "Pausar"
-                        } else {
-                            "Reproducir"
-                        },
-                        modifier = Modifier.size(40.dp),
-                    )
-                }
-                IconButton(
-                    onClick = onSkipNext,
-                    enabled = track != null,
-                    modifier = Modifier.size(64.dp),
-                ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_skip_next),
-                        contentDescription = "Siguiente",
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-                IconButton(
-                    onClick = onCycleRepeatMode,
-                    modifier = Modifier.size(48.dp),
-                    enabled = track != null,
-                ) {
-                    Icon(
-                        painter = painterResource(
-                            id = if (playbackState.repeatMode == PlaybackRepeatMode.One) {
-                                R.drawable.ic_repeat_one
-                            } else {
-                                R.drawable.ic_repeat_round
-                            },
-                        ),
-                        contentDescription = when (playbackState.repeatMode) {
-                            PlaybackRepeatMode.Off -> "Activar repetir canción"
-                            PlaybackRepeatMode.One -> "Activar repetir todo"
-                            PlaybackRepeatMode.All -> "Desactivar repetición"
-                        },
-                        tint = if (playbackState.repeatMode != PlaybackRepeatMode.Off) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.secondary
-                        },
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.82f),
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_options),
+                                contentDescription = "Opciones de playlist",
+                            )
+                        }
+                    },
+                )
+            },
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Row(
+                NowPlayingArtwork(
+                    track = track,
+                    onArtworkLoaded = { artworkBitmap = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                        .widthIn(max = 420.dp),
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = track?.title ?: "Sin canción en reproducción",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = track?.artist?.name ?: "selecciona una canción para iniciar",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_favorite),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                PlaybackProgress(
+                    positionMillis = positionMillis,
+                    durationMillis = durationMillis,
+                    enabled = track != null,
+                    onSeekTo = onSeekTo,
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     IconButton(
-                        onClick = { track?.let(onShareTrack) },
+                        onClick = onToggleShuffle,
+                        modifier = Modifier.size(48.dp),
                         enabled = track != null,
-                        modifier = Modifier.size(56.dp),
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_share),
-                            contentDescription = "Compartir canción",
+                            painter = painterResource(id = R.drawable.ic_shuffle_square),
+                            contentDescription = if (playbackState.isShuffleEnabled) {
+                                "Desactivar mezcla"
+                            } else {
+                                "Activar mezcla"
+                            },
+                            tint = if (playbackState.isShuffleEnabled) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.Unspecified
+                            },
                         )
                     }
                     IconButton(
-                        onClick = { isQueueVisible = true },
-                        enabled = playbackState.queue.isNotEmpty(),
-                        modifier = Modifier.size(56.dp),
+                        onClick = onSkipPrevious,
+                        enabled = track != null,
+                        modifier = Modifier.size(64.dp),
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.ic_list),
-                            contentDescription = "Abrir cola de reproducción",
+                            painter = painterResource(id = R.drawable.ic_skip_back),
+                            contentDescription = "Anterior",
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                    FilledIconButton(
+                        onClick = onTogglePlayback,
+                        enabled = track != null,
+                        modifier = Modifier.size(80.dp),
+                    ) {
+                        Icon(
+                            painter = if (
+                                playbackState.status == PlaybackStatus.Playing ||
+                                playbackState.status == PlaybackStatus.Buffering
+                            ) {
+                                painterResource(id = R.drawable.ic_pause)
+                            } else {
+                                painterResource(id = R.drawable.ic_play)
+                            },
+                            contentDescription = if (playbackState.status == PlaybackStatus.Playing) {
+                                "Pausar"
+                            } else {
+                                "Reproducir"
+                            },
+                            modifier = Modifier.size(40.dp),
+                        )
+                    }
+                    IconButton(
+                        onClick = onSkipNext,
+                        enabled = track != null,
+                        modifier = Modifier.size(64.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_skip_next),
+                            contentDescription = "siguiente",
+                            modifier = Modifier.size(32.dp),
+                        )
+                    }
+                    IconButton(
+                        onClick = onCycleRepeatMode,
+                        modifier = Modifier.size(48.dp),
+                        enabled = track != null,
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                id = if (playbackState.repeatMode == PlaybackRepeatMode.One) {
+                                    R.drawable.ic_repeat_one
+                                } else {
+                                    R.drawable.ic_repeat_round
+                                },
+                            ),
+                            contentDescription = when (playbackState.repeatMode) {
+                                PlaybackRepeatMode.Off -> "Activar repetir canción"
+                                PlaybackRepeatMode.One -> "Activar repetir todo"
+                                PlaybackRepeatMode.All -> "Desactivar repetición"
+                            },
+                            tint = if (playbackState.repeatMode != PlaybackRepeatMode.Off) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.secondary
+                            },
                         )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color.Transparent,
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        IconButton(
+                            onClick = { track?.let(onShareTrack) },
+                            enabled = track != null,
+                            modifier = Modifier.size(56.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_share),
+                                contentDescription = "Compartir canción",
+                            )
+                        }
+                        IconButton(
+                            onClick = { isQueueVisible = true },
+                            enabled = playbackState.queue.isNotEmpty(),
+                            modifier = Modifier.size(56.dp),
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.ic_list),
+                                contentDescription = "Abrir cola de reproducción",
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 }
@@ -329,9 +393,17 @@ fun NowPlayingScreen(
 @Composable
 private fun NowPlayingArtwork(
     track: Track?,
+    onArtworkLoaded: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val artworkShape = RoundedCornerShape(28.dp)
+    val platformContext = LocalPlatformContext.current
+    val artworkRequest = remember(platformContext, track?.artworkUri) {
+        ImageRequest.Builder(platformContext)
+            .data(track?.artworkUri)
+            .allowHardware(false)
+            .build()
+    }
 
     Box(
         modifier = modifier.aspectRatio(1f),
@@ -364,11 +436,14 @@ private fun NowPlayingArtwork(
                 ),
         )
         AsyncImage(
-            model = track?.artworkUri,
+            model = artworkRequest,
             contentDescription = track?.let { "Carátula de ${it.title}" },
             placeholder = painterResource(id = R.drawable.placeholder_album),
             error = painterResource(id = R.drawable.placeholder_album),
             fallback = painterResource(id = R.drawable.placeholder_album),
+            onSuccess = { state ->
+                onArtworkLoaded(state.result.image.toBitmap())
+            },
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
@@ -377,6 +452,44 @@ private fun NowPlayingArtwork(
         )
     }
 }
+
+@Composable
+private fun rememberFallbackGradient(): NowPlayingGradientColors {
+    val colorScheme = MaterialTheme.colorScheme
+    return remember(
+        colorScheme.surface,
+        colorScheme.surfaceContainer,
+        colorScheme.surfaceContainerHighest,
+    ) {
+        NowPlayingGradientColors(
+            start = colorScheme.surfaceContainerHighest,
+            center = colorScheme.surfaceContainer,
+            end = colorScheme.surface,
+        )
+    }
+}
+
+private fun Palette.toGradientColors(
+    fallback: NowPlayingGradientColors,
+): NowPlayingGradientColors {
+    val dominant = dominantSwatch?.rgb?.let(::Color) ?: fallback.start
+    val vibrant = vibrantSwatch?.rgb?.let(::Color) ?: dominant
+    val muted = mutedSwatch?.rgb?.let(::Color) ?: dominant
+
+    return NowPlayingGradientColors(
+        start = vibrant.blendWith(fallback.start),
+        center = dominant.blendWith(fallback.center),
+        end = muted.blendWith(fallback.end),
+    )
+}
+
+private fun Color.blendWith(surface: Color): Color = lerp(this, surface, GRADIENT_SURFACE_BLEND)
+
+internal data class NowPlayingGradientColors(
+    val start: Color,
+    val center: Color,
+    val end: Color,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -400,9 +513,13 @@ private fun PlaybackProgress(
         disabledActiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.24f),
         disabledInactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
     )
-    val positionText = remember(positionMillis / MILLIS_PER_SECOND) {
-        positionMillis.formatDuration()
-    }
+    val displayedPositionMillis = displayedPositionMillis(
+        isSeeking = isSeeking,
+        pendingProgress = pendingProgress,
+        positionMillis = positionMillis,
+        durationMillis = durationMillis,
+    )
+    val positionText = displayedPositionMillis.formatDuration()
     val durationText = remember(durationMillis) {
         durationMillis.formatDuration()
     }
@@ -486,7 +603,20 @@ private fun PlaybackProgress(
     }
 }
 
-private const val MILLIS_PER_SECOND = 1_000L
+private const val GRADIENT_ANIMATION_MILLIS = 500
+private const val GRADIENT_SURFACE_BLEND = 0.58f
+private const val PALETTE_MAX_COLOR_COUNT = 16
+
+internal fun displayedPositionMillis(
+    isSeeking: Boolean,
+    pendingProgress: Float,
+    positionMillis: Long,
+    durationMillis: Long,
+): Long = if (isSeeking) {
+    (durationMillis * pendingProgress).toLong().coerceIn(0L, durationMillis)
+} else {
+    positionMillis
+}
 
 private fun Long.progressFor(durationMillis: Long): Float =
     if (durationMillis > 0L) {

@@ -26,12 +26,20 @@ class QueueUseCasesTest {
 
         assertEquals(1 to 4, playbackController.movedIndices)
     }
+
+    @Test
+    fun `remove queue item dispatches selected index`() = runTest {
+        RemoveQueueItemUseCase(playbackController)(index = 2)
+
+        assertEquals(2, playbackController.removedIndex)
+    }
 }
 
 private class QueueFakePlaybackController : PlaybackController {
     override val playbackState: Flow<PlaybackState> = MutableStateFlow(PlaybackState())
     var playedIndex = -1
     var movedIndices = -1 to -1
+    var removedIndex = -1
 
     override suspend fun play(track: Track, queue: List<Track>, startIndex: Int) = Unit
 
@@ -41,6 +49,10 @@ private class QueueFakePlaybackController : PlaybackController {
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) {
         movedIndices = fromIndex to toIndex
+    }
+
+    override suspend fun removeQueueItem(index: Int) {
+        removedIndex = index
     }
 
     override suspend fun togglePlayPause() = Unit

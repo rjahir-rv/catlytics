@@ -111,6 +111,21 @@ class Media3PlaybackController @Inject constructor(
         }
     }
 
+    override suspend fun removeQueueItem(index: Int) {
+        if (index !in queue.indices) return
+
+        val updatedQueue = queue.toMutableList().apply { removeAt(index) }
+        queue = updatedQueue
+        withController { controller ->
+            controller.removeMediaItem(index)
+            if (updatedQueue.isEmpty()) {
+                controller.stop()
+                queue = emptyList()
+            }
+            updatePlaybackState(controller, forcePersist = true)
+        }
+    }
+
     override suspend fun togglePlayPause() {
         withController { controller ->
             if (controller.isPlaying) {
