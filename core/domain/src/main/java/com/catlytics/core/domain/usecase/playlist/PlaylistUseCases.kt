@@ -6,6 +6,7 @@ import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistContent
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.PlaylistSourcePreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -53,10 +54,77 @@ class AddToPlaylistUseCase(
     private val libraryRepository: LibraryRepository,
 ) {
     suspend operator fun invoke(playlistId: String, source: PlaylistSource): Int =
-        playlistRepository.addTracks(
-            playlistId = playlistId,
-            trackIds = libraryRepository.resolvePlaylistSource(source).map { it.id },
-        )
+        addToPlaylists(listOf(playlistId), source)[playlistId] ?: 0
+
+    suspend fun addToPlaylists(
+        playlistIds: Collection<String>,
+        source: PlaylistSource,
+    ): Map<String, Int> {
+        if (playlistIds.isEmpty()) return emptyMap()
+        val trackIds = libraryRepository.resolvePlaylistSource(source).map { it.id }
+        if (trackIds.isEmpty()) return emptyMap()
+        return playlistRepository.addTracksToPlaylists(playlistIds, trackIds)
+    }
+}
+
+class ResolvePlaylistSourcePreviewUseCase(
+    private val libraryRepository: LibraryRepository,
+) {
+    suspend operator fun invoke(source: PlaylistSource): PlaylistSourcePreview {
+        val tracks = libraryRepository.resolvePlaylistSource(source)
+        val trackIds = tracks.map { it.id }
+        return when (source) {
+            is PlaylistSource.TrackSource -> {
+                val track = tracks.firstOrNull()
+                PlaylistSourcePreview(
+                    title = track?.title ?: "Canción",
+                    subtitle = track?.artist?.name,
+                    artworkUri = track?.artworkUri,
+                    itemCount = tracks.size,
+                    trackIds = trackIds,
+                )
+            }
+            is PlaylistSource.AlbumSource -> {
+                val album = libraryRepository.observeAlbums().first()
+                    .firstOrNull { it.id == source.albumId }
+                PlaylistSourcePreview(
+                    title = album?.title ?: tracks.firstOrNull()?.albumTitle ?: "Álbum",
+                    subtitle = album?.artist?.name ?: tracks.firstOrNull()?.artist?.name,
+                    artworkUri = album?.artworkUri ?: tracks.firstNotNullOfOrNull { it.artworkUri },
+                    itemCount = tracks.size,
+                    trackIds = trackIds,
+                )
+            }
+            is PlaylistSource.ArtistSource -> {
+                val artist = libraryRepository.observeArtists().first()
+                    .firstOrNull { it.artist.id == source.artistId }
+                PlaylistSourcePreview(
+                    title = artist?.artist?.name ?: tracks.firstOrNull()?.artist?.name ?: "Artista",
+                    subtitle = artist?.let { artistSummary ->
+                        if (artistSummary.albumCount == 1) {
+                            "1 álbum"
+                        } else {
+                            "${artistSummary.albumCount} álbumes"
+                        }
+                    },
+                    artworkUri = artist?.artworkUri ?: tracks.firstNotNullOfOrNull { it.artworkUri },
+                    itemCount = tracks.size,
+                    trackIds = trackIds,
+                )
+            }
+            is PlaylistSource.FolderSource -> {
+                val folder = libraryRepository.observeFolders().first()
+                    .firstOrNull { it.id == source.folderId }
+                PlaylistSourcePreview(
+                    title = folder?.name ?: "Carpeta",
+                    subtitle = folder?.path,
+                    artworkUri = tracks.firstNotNullOfOrNull { it.artworkUri },
+                    itemCount = tracks.size,
+                    trackIds = trackIds,
+                )
+            }
+        }
+    }
 }
 
 enum class ToggleLikedTrackResult {

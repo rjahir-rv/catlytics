@@ -61,6 +61,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.catlytics.app.TrackOptionsDropdownMenu
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
@@ -86,7 +87,13 @@ fun NowPlayingScreen(
     onPlayQueueItem: (Int) -> Unit,
     onMoveQueueItem: (Int, Int) -> Unit,
     onRemoveQueueItem: (Int) -> Unit,
-    onAddToPlaylist: (Track) -> Unit,
+    onTrackOptions: (Track) -> Unit,
+    canAddCurrentTrackToQueue: Boolean,
+    onAddCurrentTrackToPlaylist: () -> Unit,
+    onToggleCurrentTrackLikedFromOptions: () -> Unit,
+    onAddCurrentTrackToQueue: () -> Unit,
+    onGoToCurrentTrackAlbum: () -> Unit,
+    onGoToCurrentTrackArtist: () -> Unit,
     isCurrentTrackLiked: Boolean,
     onAddCurrentTrackToLiked: () -> Unit,
     modifier: Modifier = Modifier,
@@ -139,7 +146,7 @@ fun NowPlayingScreen(
             onPlayQueueItem = onPlayQueueItem,
             onMoveQueueItem = onMoveQueueItem,
             onRemoveQueueItem = onRemoveQueueItem,
-            onAddToPlaylist = onAddToPlaylist,
+            onTrackOptions = onTrackOptions,
         )
     }
 
@@ -178,13 +185,16 @@ fun NowPlayingScreen(
                         }
                     },
                     actions = {
-                        IconButton(
-                            onClick = { track?.let(onAddToPlaylist) },
-                            enabled = track != null,
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_options),
-                                contentDescription = "Opciones de playlist",
+                        track?.let { currentTrack ->
+                            TrackOptionsDropdownMenu(
+                                track = currentTrack,
+                                isLiked = isCurrentTrackLiked,
+                                canAddToQueue = canAddCurrentTrackToQueue,
+                                onAddToPlaylist = onAddCurrentTrackToPlaylist,
+                                onToggleLiked = onToggleCurrentTrackLikedFromOptions,
+                                onAddToQueue = onAddCurrentTrackToQueue,
+                                onGoToAlbum = onGoToCurrentTrackAlbum,
+                                onGoToArtist = onGoToCurrentTrackArtist,
                             )
                         }
                     },

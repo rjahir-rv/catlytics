@@ -48,6 +48,8 @@ data class Track(
     val durationMillis: Long,
     val mediaUri: String,
     val artworkUri: String? = null,
+    val albumId: String? = null,
+    val albumTitle: String? = null,
 )
 
 data class LibraryFolder(
@@ -68,6 +70,7 @@ data class PlaybackState(
     val status: PlaybackStatus = PlaybackStatus.Idle,
     val currentTrack: Track? = null,
     val queue: List<Track> = emptyList(),
+    val queueSource: PlaybackQueueSource = PlaybackQueueSource.Static,
     val currentIndex: Int = 0,
     val positionMillis: Long = 0L,
     val durationMillis: Long = 0L,
@@ -91,9 +94,16 @@ enum class PlaybackRepeatMode {
     All,
 }
 
+sealed interface PlaybackQueueSource {
+    data object Static : PlaybackQueueSource
+
+    data class Playlist(val playlistId: String) : PlaybackQueueSource
+}
+
 data class PlaybackSessionSnapshot(
     val queueTrackIds: List<String> = emptyList(),
     val currentTrackId: String? = null,
+    val queueSource: PlaybackQueueSource = PlaybackQueueSource.Static,
     val currentIndex: Int = 0,
     val positionMillis: Long = 0L,
     val isShuffleEnabled: Boolean = false,
@@ -121,6 +131,14 @@ sealed interface PlaylistSource {
     data class ArtistSource(val artistId: String) : PlaylistSource
     data class FolderSource(val folderId: String) : PlaylistSource
 }
+
+data class PlaylistSourcePreview(
+    val title: String,
+    val subtitle: String? = null,
+    val artworkUri: String? = null,
+    val itemCount: Int = 0,
+    val trackIds: List<String> = emptyList(),
+)
 
 data class ListeningStats(
     val totalTracks: Int,

@@ -14,6 +14,11 @@ interface PlaylistRepository {
 
     suspend fun addTracks(playlistId: String, trackIds: List<String>): Int
 
+    suspend fun addTracksToPlaylists(
+        playlistIds: Collection<String>,
+        trackIds: List<String>,
+    ): Map<String, Int>
+
     suspend fun removeTrack(playlistId: String, trackId: String)
 
     suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?)

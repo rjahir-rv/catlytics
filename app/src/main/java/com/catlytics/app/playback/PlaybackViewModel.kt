@@ -2,6 +2,7 @@ package com.catlytics.app.playback
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.domain.usecase.playback.AddQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
@@ -13,9 +14,12 @@ import com.catlytics.core.domain.usecase.playback.SkipPlaybackUseCase
 import com.catlytics.core.domain.usecase.playback.ToggleShuffleUseCase
 import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
 import com.catlytics.core.domain.usecase.playlist.ObserveIsTrackLikedUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -32,12 +36,14 @@ import kotlinx.coroutines.launch
 class PlaybackViewModel @Inject constructor(
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     observeIsTrackLikedUseCase: ObserveIsTrackLikedUseCase,
+    observePlaylistsUseCase: ObservePlaylistsUseCase,
     private val togglePlaybackUseCase: TogglePlaybackUseCase,
     private val skipPlaybackUseCase: SkipPlaybackUseCase,
     private val seekPlaybackUseCase: SeekPlaybackUseCase,
     private val toggleShuffleUseCase: ToggleShuffleUseCase,
     private val cycleRepeatModeUseCase: CycleRepeatModeUseCase,
     private val playQueueItemUseCase: PlayQueueItemUseCase,
+    private val addQueueItemUseCase: AddQueueItemUseCase,
     private val moveQueueItemUseCase: MoveQueueItemUseCase,
     private val removeQueueItemUseCase: RemoveQueueItemUseCase,
     private val restorePlaybackSessionUseCase: RestorePlaybackSessionUseCase,
@@ -58,6 +64,20 @@ class PlaybackViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = false,
+        )
+
+    val likedTrackIds: StateFlow<Set<String>> = observePlaylistsUseCase()
+        .map { playlists ->
+            playlists
+                .firstOrNull { it.id == LIKED_PLAYLIST_ID }
+                ?.trackIds
+                .orEmpty()
+                .toSet()
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptySet(),
         )
 
     init {
@@ -108,6 +128,15 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
+    fun addQueueItem(track: Track, onAdded: () -> Unit) {
+        val state = playbackState.value
+        if (state.currentTrack == null || state.queue.any { it.id == track.id }) return
+        viewModelScope.launch {
+            addQueueItemUseCase(track)
+            onAdded()
+        }
+    }
+
     fun moveQueueItem(fromIndex: Int, toIndex: Int) {
         viewModelScope.launch {
             moveQueueItemUseCase(fromIndex, toIndex)
@@ -122,6 +151,10 @@ class PlaybackViewModel @Inject constructor(
 
     fun toggleCurrentTrackLiked(onResult: (ToggleLikedTrackResult) -> Unit) {
         val trackId = playbackState.value.currentTrack?.id ?: return
+        toggleTrackLiked(trackId, onResult)
+    }
+
+    fun toggleTrackLiked(trackId: String, onResult: (ToggleLikedTrackResult) -> Unit) {
         viewModelScope.launch {
             onResult(toggleLikedTrackUseCase(trackId))
         }

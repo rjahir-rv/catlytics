@@ -6,12 +6,12 @@ import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.feature.library.api.LibraryAlbumRoute
-import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.Track
 
 @Composable
 internal fun LibraryAlbumRoute(
     route: LibraryAlbumRoute,
-    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     viewModel: LibraryAlbumViewModel = hiltViewModel(key = route.albumId),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -23,6 +23,6 @@ internal fun LibraryAlbumRoute(
     LibraryAlbumScreen(
         uiState = uiState,
         onTrackSelected = viewModel::playTrack,
-        onAddToPlaylist = onAddToPlaylist,
+        onTrackOptions = onTrackOptions,
     )
 }

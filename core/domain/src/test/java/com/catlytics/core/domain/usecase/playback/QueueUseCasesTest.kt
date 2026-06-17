@@ -1,6 +1,7 @@
 package com.catlytics.core.domain.usecase.playback
 
 import com.catlytics.core.domain.repository.PlaybackController
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
@@ -18,6 +19,24 @@ class QueueUseCasesTest {
         PlayQueueItemUseCase(playbackController)(index = 3)
 
         assertEquals(3, playbackController.playedIndex)
+    }
+
+    @Test
+    fun `add queue item dispatches selected track`() = runTest {
+        val track = Track(
+            id = "track-1",
+            title = "Track 1",
+            artist = com.catlytics.core.model.Artist(
+                id = "artist-1",
+                name = "Artist 1",
+            ),
+            durationMillis = 180_000L,
+            mediaUri = "content://track-1",
+        )
+
+        AddQueueItemUseCase(playbackController)(track)
+
+        assertEquals(track, playbackController.addedTrack)
     }
 
     @Test
@@ -40,11 +59,21 @@ private class QueueFakePlaybackController : PlaybackController {
     var playedIndex = -1
     var movedIndices = -1 to -1
     var removedIndex = -1
+    var addedTrack: Track? = null
 
-    override suspend fun play(track: Track, queue: List<Track>, startIndex: Int) = Unit
+    override suspend fun play(
+        track: Track,
+        queue: List<Track>,
+        startIndex: Int,
+        queueSource: PlaybackQueueSource,
+    ) = Unit
 
     override suspend fun playQueueItem(index: Int) {
         playedIndex = index
+    }
+
+    override suspend fun addQueueItem(track: Track) {
+        addedTrack = track
     }
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) {

@@ -1,15 +1,20 @@
 package com.catlytics.feature.home.impl
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.catlytics.feature.home.api.HomeRoute
-import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.Track
 
 fun EntryProviderScope<NavKey>.homeEntry(
     searchQuery: () -> String,
-    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
+    contentModifier: Modifier = Modifier,
 ) {
     entry<HomeRoute> {
-        HomeRoute(searchQuery = searchQuery(), onAddToPlaylist = onAddToPlaylist)
+        Box(modifier = contentModifier) {
+            HomeRoute(searchQuery = searchQuery(), onTrackOptions = onTrackOptions)
+        }
     }
 }

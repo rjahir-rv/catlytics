@@ -35,6 +35,7 @@ internal fun LibraryFolderScreen(
     onFolderSelected: (LibraryFolder) -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -73,9 +74,7 @@ internal fun LibraryFolderScreen(
                         TrackRow(
                             track = track,
                             onClick = { onTrackSelected(track, content.tracks) },
-                            onAddToPlaylist = {
-                                onAddToPlaylist(PlaylistSource.TrackSource(track.id))
-                            },
+                            onTrackOptions = { onTrackOptions(track) },
                         )
                         HorizontalDivider()
                     }
@@ -124,7 +123,7 @@ private fun SubfolderRow(folder: LibraryFolder, onClick: () -> Unit, onAddToPlay
 }
 
 @Composable
-private fun TrackRow(track: Track, onClick: () -> Unit, onAddToPlaylist: () -> Unit) {
+private fun TrackRow(track: Track, onClick: () -> Unit, onTrackOptions: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -145,7 +144,7 @@ private fun TrackRow(track: Track, onClick: () -> Unit, onAddToPlaylist: () -> U
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        IconButton(onClick = onAddToPlaylist) {
+        IconButton(onClick = onTrackOptions) {
             Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
         }
     }

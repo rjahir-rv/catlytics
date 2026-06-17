@@ -23,7 +23,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,16 +59,18 @@ import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.Track
 import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.impl.homeEntry
-import com.catlytics.feature.library.impl.navigation.libraryEntry
+import com.catlytics.feature.library.api.LibraryRoute
 import com.catlytics.feature.library.api.LibraryAlbumRoute
 import com.catlytics.feature.library.api.LibraryArtistRoute
 import com.catlytics.feature.library.api.LibraryFolderRoute
-import com.catlytics.feature.playlists.impl.playlistsEntry
-import com.catlytics.feature.playlists.impl.AddToPlaylistSheet
+import com.catlytics.feature.library.impl.navigation.libraryEntry
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
+import com.catlytics.feature.playlists.impl.AddToPlaylistSheet
+import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.settings.impl.settingsEntry
 import com.catlytics.feature.statistics.impl.statisticsEntry
@@ -86,6 +90,8 @@ fun CatlyticsApp(
     var isHomeSearchExpanded by rememberSaveable { mutableStateOf(false) }
     var homeSearchQuery by rememberSaveable { mutableStateOf("") }
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
+    var playlistSheetSession by remember { mutableIntStateOf(0) }
+    var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
     var miniPlayerHeightPx by remember { mutableIntStateOf(0) }
     val density = LocalDensity.current
     val appVersion = remember(context) {
@@ -96,6 +102,7 @@ fun CatlyticsApp(
     }
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val isCurrentTrackLiked by playbackViewModel.isCurrentTrackLiked.collectAsStateWithLifecycle()
+    val likedTrackIds by playbackViewModel.likedTrackIds.collectAsStateWithLifecycle()
     val currentRoute = topLevelBackStack.backStack.lastOrNull()
     val currentTopLevelDestination = TopLevelDestination.entries
         .firstOrNull { it.route == currentRoute }
@@ -122,6 +129,64 @@ fun CatlyticsApp(
     fun openSettings() {
         if (topLevelBackStack.backStack.lastOrNull() != SettingsRoute) {
             topLevelBackStack.add(SettingsRoute)
+        }
+    }
+
+    fun openTrackOptions(
+        track: Track,
+        onRemoveFromPlaylist: (() -> Unit)? = null,
+    ) {
+        trackOptionsRequest = TrackOptionsRequest(
+            track = track,
+            onRemoveFromPlaylist = onRemoveFromPlaylist,
+        )
+    }
+
+    fun openAddToPlaylist(source: PlaylistSource) {
+        playlistSheetSession++
+        playlistSource = source
+    }
+
+    fun navigateToAlbum(track: Track) {
+        val albumId = track.albumId ?: return
+        val albumTitle = track.albumTitle ?: return
+        trackOptionsRequest = null
+        topLevelBackStack.addTopLevel(LibraryRoute)
+        topLevelBackStack.add(LibraryAlbumRoute(albumId, albumTitle))
+    }
+
+    fun navigateToArtist(track: Track) {
+        trackOptionsRequest = null
+        topLevelBackStack.addTopLevel(LibraryRoute)
+        topLevelBackStack.add(LibraryArtistRoute(track.artist.id, track.artist.name))
+    }
+
+    fun canAddTrackToQueue(track: Track): Boolean =
+        playbackState.currentTrack != null &&
+            playbackState.queue.none { it.id == track.id }
+
+    fun toggleTrackLikedWithToast(trackId: String) {
+        playbackViewModel.toggleTrackLiked(trackId) { result ->
+            Toast.makeText(
+                context,
+                when (result) {
+                    ToggleLikedTrackResult.Added ->
+                        "Canción agregada a $LIKED_PLAYLIST_NAME"
+                    ToggleLikedTrackResult.Removed ->
+                        "Canción eliminada de $LIKED_PLAYLIST_NAME"
+                },
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    fun addTrackToQueueWithToast(track: Track) {
+        playbackViewModel.addQueueItem(track) {
+            Toast.makeText(
+                context,
+                "${track.title} agregada a la cola",
+                Toast.LENGTH_SHORT,
+            ).show()
         }
     }
 
@@ -218,17 +283,32 @@ fun CatlyticsApp(
             }
         },
     ) { innerPadding ->
-        val navigationContentPadding = if (isNowPlayingVisible) {
-            PaddingValues(0.dp)
+        var lastRegularNavigationContentPadding by remember { mutableStateOf(PaddingValues(0.dp)) }
+        var lastRegularMiniPlayerContentPadding by remember { mutableStateOf(0.dp) }
+        val regularNavigationContentPadding = if (isNowPlayingVisible) {
+            lastRegularNavigationContentPadding
         } else {
             innerPadding
+        }
+        val regularMiniPlayerContentPadding = if (isNowPlayingVisible) {
+            lastRegularMiniPlayerContentPadding
+        } else {
+            miniPlayerContentPadding
+        }
+        val regularContentModifier = Modifier
+            .padding(regularNavigationContentPadding)
+            .padding(bottom = regularMiniPlayerContentPadding)
+
+        SideEffect {
+            if (!isNowPlayingVisible) {
+                lastRegularNavigationContentPadding = innerPadding
+                lastRegularMiniPlayerContentPadding = miniPlayerContentPadding
+            }
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
-                modifier = Modifier
-                    .padding(navigationContentPadding)
-                    .padding(bottom = miniPlayerContentPadding),
+                modifier = Modifier.fillMaxSize(),
                 backStack = topLevelBackStack.backStack,
                 onBack = ::closeCurrentDestination,
                 transitionSpec = {
@@ -243,15 +323,27 @@ fun CatlyticsApp(
                 entryProvider = entryProvider {
                     homeEntry(
                         searchQuery = { homeSearchQuery },
-                        onAddToPlaylist = { playlistSource = it },
+                        onTrackOptions = { track -> openTrackOptions(track) },
+                        contentModifier = regularContentModifier,
                     )
                     libraryEntry(
                         onDestinationSelected = topLevelBackStack::add,
-                        onAddToPlaylist = { playlistSource = it },
+                        onAddToPlaylist = ::openAddToPlaylist,
+                        onTrackOptions = { track -> openTrackOptions(track) },
+                        contentModifier = regularContentModifier,
                     )
-                    playlistsEntry(onDestinationSelected = topLevelBackStack::add)
-                    settingsEntry(appVersion = appVersion)
-                    statisticsEntry()
+                    playlistsEntry(
+                        onDestinationSelected = topLevelBackStack::add,
+                        onTrackOptions = { track, onRemoveFromPlaylist ->
+                            openTrackOptions(track, onRemoveFromPlaylist)
+                        },
+                        contentModifier = regularContentModifier,
+                    )
+                    settingsEntry(
+                        appVersion = appVersion,
+                        contentModifier = regularContentModifier,
+                    )
+                    statisticsEntry(contentModifier = regularContentModifier)
                     entry<NowPlayingRoute>(
                         metadata = metadata {
                             put(NavDisplay.TransitionKey) {
@@ -278,7 +370,29 @@ fun CatlyticsApp(
                             onPlayQueueItem = playbackViewModel::playQueueItem,
                             onMoveQueueItem = playbackViewModel::moveQueueItem,
                             onRemoveQueueItem = playbackViewModel::removeQueueItem,
-                            onAddToPlaylist = { playlistSource = PlaylistSource.TrackSource(it.id) },
+                            onTrackOptions = { track -> openTrackOptions(track) },
+                            canAddCurrentTrackToQueue = playbackState.currentTrack
+                                ?.let(::canAddTrackToQueue)
+                                ?: false,
+                            onAddCurrentTrackToPlaylist = {
+                                playbackState.currentTrack?.let { track ->
+                                    openAddToPlaylist(PlaylistSource.TrackSource(track.id))
+                                }
+                            },
+                            onToggleCurrentTrackLikedFromOptions = {
+                                playbackState.currentTrack?.let { track ->
+                                    toggleTrackLikedWithToast(track.id)
+                                }
+                            },
+                            onAddCurrentTrackToQueue = {
+                                playbackState.currentTrack?.let(::addTrackToQueueWithToast)
+                            },
+                            onGoToCurrentTrackAlbum = {
+                                playbackState.currentTrack?.let(::navigateToAlbum)
+                            },
+                            onGoToCurrentTrackArtist = {
+                                playbackState.currentTrack?.let(::navigateToArtist)
+                            },
                             isCurrentTrackLiked = isCurrentTrackLiked,
                             onAddCurrentTrackToLiked = {
                                 playbackViewModel.toggleCurrentTrackLiked { result ->
@@ -336,10 +450,44 @@ fun CatlyticsApp(
             }
         }
     }
+    trackOptionsRequest?.let { request ->
+        TrackOptionsSheet(
+            track = request.track,
+            isLiked = request.track.id in likedTrackIds,
+            canAddToQueue = canAddTrackToQueue(request.track),
+            canRemoveFromPlaylist = request.onRemoveFromPlaylist != null,
+            onDismiss = { trackOptionsRequest = null },
+            onAddToPlaylist = {
+                trackOptionsRequest = null
+                openAddToPlaylist(PlaylistSource.TrackSource(request.track.id))
+            },
+            onToggleLiked = {
+                trackOptionsRequest = null
+                toggleTrackLikedWithToast(request.track.id)
+            },
+            onAddToQueue = {
+                trackOptionsRequest = null
+                addTrackToQueueWithToast(request.track)
+            },
+            onGoToAlbum = { navigateToAlbum(request.track) },
+            onGoToArtist = { navigateToArtist(request.track) },
+            onRemoveFromPlaylist = {
+                trackOptionsRequest = null
+                request.onRemoveFromPlaylist?.invoke()
+            },
+        )
+    }
     playlistSource?.let { source ->
-        AddToPlaylistSheet(source = source, onDismiss = { playlistSource = null })
+        key(playlistSheetSession) {
+            AddToPlaylistSheet(source = source, onDismiss = { playlistSource = null })
+        }
     }
 }
+
+private data class TrackOptionsRequest(
+    val track: Track,
+    val onRemoveFromPlaylist: (() -> Unit)? = null,
+)
 
 private const val NOW_PLAYING_TRANSITION_MILLIS = 450
 private const val NAVIGATION_TRANSITION_MILLIS = 280

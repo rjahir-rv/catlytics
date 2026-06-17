@@ -72,7 +72,7 @@ internal fun PlaybackQueueBottomSheet(
     onPlayQueueItem: (Int) -> Unit,
     onMoveQueueItem: (Int, Int) -> Unit,
     onRemoveQueueItem: (Int) -> Unit,
-    onAddToPlaylist: (Track) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var visibleQueue by remember { mutableStateOf(queue) }
@@ -226,7 +226,7 @@ internal fun PlaybackQueueBottomSheet(
                                     },
                                 )
                             },
-                            onAddToPlaylist = { onAddToPlaylist(track) },
+                            onTrackOptions = { onTrackOptions(track) },
                         )
                     }
                 }
@@ -307,7 +307,7 @@ private fun QueueTrackRow(
     isDragging: Boolean,
     onClick: () -> Unit,
     dragModifier: Modifier,
-    onAddToPlaylist: () -> Unit,
+    onTrackOptions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scale by animateFloatAsState(
@@ -350,19 +350,46 @@ private fun QueueTrackRow(
                 .clip(RoundedCornerShape(12.dp)),
         )
         Column(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (isCurrent) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_play),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+                Text(
+                    text = track.title,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
+                    ),
+                    color = if (isCurrent) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+            }
             Text(
-                text = track.title,
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = track.artist.name,
+                text = if (isCurrent) {
+                    "Reproduciendo · ${track.artist.name}"
+                } else {
+                    track.artist.name
+                },
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (isCurrent) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -371,12 +398,12 @@ private fun QueueTrackRow(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .clickable(onClick = onAddToPlaylist),
+                .clickable(onClick = onTrackOptions),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_options),
-                contentDescription = "Agregar ${track.title} a playlist",
+                contentDescription = "Opciones de ${track.title}",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

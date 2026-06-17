@@ -4,6 +4,7 @@ import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
+import com.catlytics.core.domain.usecase.playback.AddQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
@@ -24,6 +25,7 @@ import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistViewModeUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.RenamePlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistViewModeUseCase
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
@@ -140,6 +142,11 @@ object DomainModule {
     ) = AddToPlaylistUseCase(playlistRepository, libraryRepository)
 
     @Provides
+    fun provideResolvePlaylistSourcePreviewUseCase(
+        libraryRepository: LibraryRepository,
+    ) = ResolvePlaylistSourcePreviewUseCase(libraryRepository)
+
+    @Provides
     fun provideToggleLikedTrackUseCase(repository: PlaylistRepository) =
         ToggleLikedTrackUseCase(repository)
 
@@ -174,6 +181,11 @@ object DomainModule {
     fun providePlayQueueItemUseCase(
         playbackController: PlaybackController,
     ) = PlayQueueItemUseCase(playbackController)
+
+    @Provides
+    fun provideAddQueueItemUseCase(
+        playbackController: PlaybackController,
+    ) = AddQueueItemUseCase(playbackController)
 
     @Provides
     fun provideMoveQueueItemUseCase(

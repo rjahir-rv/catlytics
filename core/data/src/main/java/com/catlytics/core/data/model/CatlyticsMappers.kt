@@ -13,6 +13,8 @@ internal fun TrackEntity.toDomain() = Track(
     durationMillis = durationMillis,
     mediaUri = mediaUri,
     artworkUri = artworkUri,
+    albumId = albumId,
+    albumTitle = albumTitle,
 )
 
 internal fun Track.toEntity() = TrackEntity(
@@ -23,4 +25,6 @@ internal fun Track.toEntity() = TrackEntity(
     durationMillis = durationMillis,
     mediaUri = mediaUri,
     artworkUri = artworkUri,
+    albumId = albumId,
+    albumTitle = albumTitle,
 )

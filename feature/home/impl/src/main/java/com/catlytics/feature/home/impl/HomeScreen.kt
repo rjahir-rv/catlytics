@@ -54,7 +54,6 @@ import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
-import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
@@ -62,7 +61,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 internal fun HomeRoute(
     searchQuery: String,
-    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -94,7 +93,7 @@ internal fun HomeRoute(
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = { permissionLauncher.launch(permission) },
         onTrackSelected = viewModel::onTrackSelected,
-        onAddToPlaylist = onAddToPlaylist,
+        onTrackOptions = onTrackOptions,
         onAddToLiked = { track ->
             viewModel.toggleTrackLiked(track.id) { result ->
                 Toast.makeText(
@@ -119,7 +118,7 @@ internal fun HomeScreen(
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
-    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     onAddToLiked: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -153,7 +152,7 @@ internal fun HomeScreen(
                         likedTrackIds = uiState.likedTrackIds,
                         onTrackSelected = onTrackSelected,
                         state = trackListState,
-                        onAddToPlaylist = onAddToPlaylist,
+                        onTrackOptions = onTrackOptions,
                         onAddToLiked = onAddToLiked,
                     )
                 }
@@ -245,7 +244,7 @@ private fun TrackList(
     onTrackSelected: (Track, List<Track>) -> Unit,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
-    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     onAddToLiked: (Track) -> Unit,
 ) {
     LazyColumn(
@@ -263,7 +262,7 @@ private fun TrackList(
                 isLiked = track.id in likedTrackIds,
                 onTrackSelected = { onTrackSelected(track, tracks) },
                 onAddToLiked = { onAddToLiked(track) },
-                onAddToPlaylist = { onAddToPlaylist(PlaylistSource.TrackSource(track.id)) },
+                onTrackOptions = { onTrackOptions(track) },
             )
         }
     }
@@ -276,7 +275,7 @@ private fun TrackRow(
     isLiked: Boolean,
     onTrackSelected: () -> Unit,
     onAddToLiked: () -> Unit,
-    onAddToPlaylist: () -> Unit,
+    onTrackOptions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -333,7 +332,7 @@ private fun TrackRow(
                 },
             )
         }
-        IconButton(onClick = onAddToPlaylist) {
+        IconButton(onClick = onTrackOptions) {
             Icon(
                 painter = painterResource(R.drawable.ic_options),
                 contentDescription = "Opciones de ${track.title}",
@@ -441,7 +440,7 @@ private fun HomeScreenPreview() {
             hasAudioPermission = true,
             onRequestPermission = {},
             onTrackSelected = { _, _ -> },
-            onAddToPlaylist = {},
+            onTrackOptions = {},
             onAddToLiked = {},
         )
     }

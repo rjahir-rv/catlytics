@@ -30,7 +30,6 @@ import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Track
-import com.catlytics.core.model.PlaylistSource
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import java.util.Locale
@@ -40,7 +39,7 @@ import kotlin.time.Duration.Companion.milliseconds
 internal fun LibraryAlbumScreen(
     uiState: LibraryAlbumUiState,
     onTrackSelected: (Track, List<Track>) -> Unit,
-    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -72,7 +71,7 @@ internal fun LibraryAlbumScreen(
                         position = index + 1,
                         track = track,
                         onClick = { onTrackSelected(track, content.tracks) },
-                        onAddToPlaylist = { onAddToPlaylist(PlaylistSource.TrackSource(track.id)) },
+                        onTrackOptions = { onTrackOptions(track) },
                     )
                     HorizontalDivider()
                 }
@@ -130,7 +129,7 @@ private fun AlbumTrackRow(
     position: Int,
     track: Track,
     onClick: () -> Unit,
-    onAddToPlaylist: () -> Unit,
+    onTrackOptions: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -170,7 +169,7 @@ private fun AlbumTrackRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        IconButton(onClick = onAddToPlaylist) {
+        IconButton(onClick = onTrackOptions) {
             Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
         }
     }

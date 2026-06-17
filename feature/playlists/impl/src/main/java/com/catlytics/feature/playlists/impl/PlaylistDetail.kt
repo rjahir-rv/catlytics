@@ -1,5 +1,6 @@
 package com.catlytics.feature.playlists.impl
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,10 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -25,13 +22,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,6 +43,7 @@ import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaylistContent
 import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -102,7 +98,12 @@ internal class PlaylistDetailViewModel @Inject constructor(
     fun remove(trackId: String) =
         viewModelScope.launch { playlistId.value?.let { removeTrack(it, trackId) } }
 
-    fun play(track: Track, queue: List<Track>) = viewModelScope.launch { playTrack(track, queue) }
+    fun play(track: Track, queue: List<Track>) = viewModelScope.launch {
+        val source = playlistId.value
+            ?.let(PlaybackQueueSource::Playlist)
+            ?: PlaybackQueueSource.Static
+        playTrack(track, queue, source)
+    }
 
     fun togglePlayback() = viewModelScope.launch { togglePlaybackUseCase() }
 }
@@ -110,8 +111,10 @@ internal class PlaylistDetailViewModel @Inject constructor(
 @Composable
 internal fun PlaylistDetailRoute(
     playlistId: String,
+    onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
     viewModel: PlaylistDetailViewModel = hiltViewModel(key = playlistId),
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     LaunchedEffect(playlistId) { viewModel.open(playlistId) }
@@ -119,7 +122,16 @@ internal fun PlaylistDetailRoute(
         uiState = uiState,
         playbackState = playbackState,
         onPlay = viewModel::play,
-        onRemove = viewModel::remove,
+        onTrackOptions = { track ->
+            onTrackOptions(track) {
+                viewModel.remove(track.id)
+                Toast.makeText(
+                    context,
+                    "${track.title} eliminada de la playlist",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+        },
         onTogglePlayback = viewModel::togglePlayback,
     )
 }
@@ -129,7 +141,7 @@ private fun PlaylistDetailScreen(
     uiState: PlaylistDetailUiState,
     playbackState: PlaybackState,
     onPlay: (Track, List<Track>) -> Unit,
-    onRemove: (String) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     onTogglePlayback: () -> Unit,
 ) {
     when (uiState) {
@@ -229,7 +241,6 @@ private fun PlaylistDetailScreen(
                 .padding(horizontal = 20.dp),
         ) {
             items(content.tracks, key = Track::id) { track ->
-                var expanded by remember { mutableStateOf(false) }
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -242,17 +253,8 @@ private fun PlaylistDetailScreen(
                         Text(track.title, style = MaterialTheme.typography.titleMedium)
                         Text(track.artist.name, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Box {
-                        IconButton(onClick = { expanded = true }) {
-                            Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
-                        }
-                        DropdownMenu(expanded, { expanded = false }) {
-                            DropdownMenuItem(
-                                text = { Text("Quitar de playlist") },
-                                onClick = { expanded = false; onRemove(track.id) },
-                                leadingIcon = { Icon(Icons.Default.Delete, null) },
-                            )
-                        }
+                    IconButton(onClick = { onTrackOptions(track) }) {
+                        Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
                     }
                 }
             }

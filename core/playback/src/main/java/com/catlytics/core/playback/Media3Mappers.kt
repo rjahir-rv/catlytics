@@ -5,6 +5,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import com.catlytics.core.model.PlaybackRepeatMode
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
@@ -24,6 +25,7 @@ fun Track.toMediaItem(): MediaItem = MediaItem.Builder()
 
 internal fun Player.toPlaybackState(
     queue: List<Track>,
+    queueSource: PlaybackQueueSource,
 ): PlaybackState {
     val currentIndex = currentMediaItemIndex.takeUnless { it < 0 } ?: 0
     val currentTrack = queue.getOrNull(currentIndex)
@@ -31,6 +33,7 @@ internal fun Player.toPlaybackState(
         status = toPlaybackStatus(),
         currentTrack = currentTrack,
         queue = queue,
+        queueSource = queueSource,
         currentIndex = currentIndex,
         positionMillis = currentPosition.coerceAtLeast(0L),
         durationMillis = duration.takeIf { it > 0L } ?: currentTrack?.durationMillis ?: 0L,

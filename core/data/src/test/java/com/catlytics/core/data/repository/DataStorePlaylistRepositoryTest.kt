@@ -38,6 +38,29 @@ class DataStorePlaylistRepositoryTest {
     }
 
     @Test
+    fun `addTracksToPlaylists updates every target playlist in one write`() = runTest {
+        val file = temporaryFolder.newFile("playlists-batch.preferences_pb")
+        val repository = repository(backgroundScope, file)
+
+        val first = repository.createPlaylist("Focus")
+        val second = repository.createPlaylist("Chill")
+
+        val added = repository.addTracksToPlaylists(
+            playlistIds = listOf(first.id, second.id),
+            trackIds = listOf("track-1"),
+        )
+
+        assertEquals(1, added[first.id])
+        assertEquals(1, added[second.id])
+
+        val restored = repository.observePlaylists().first()
+        val focus = restored.single { it.id == first.id }
+        val chill = restored.single { it.id == second.id }
+        assertEquals(listOf("track-1"), focus.trackIds)
+        assertEquals(listOf("track-1"), chill.trackIds)
+    }
+
+    @Test
     fun `setPlaylistArtwork persists custom uri (falls back in test without context)`() = runTest {
         val file = temporaryFolder.newFile("playlists-art.preferences_pb")
         val repository = repository(backgroundScope, file)

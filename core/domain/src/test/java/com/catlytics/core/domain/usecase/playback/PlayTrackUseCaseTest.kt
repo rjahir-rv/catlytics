@@ -2,6 +2,7 @@ package com.catlytics.core.domain.usecase.playback
 
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
@@ -50,6 +51,16 @@ class PlayTrackUseCaseTest {
         assertEquals(1, playbackController.startIndex)
     }
 
+    @Test
+    fun `invoke forwards queue source`() = runTest {
+        val queue = listOf(track("track-1"), track("track-2"))
+        val source = PlaybackQueueSource.Playlist("playlist-1")
+
+        useCase(track = queue[0], queue = queue, queueSource = source)
+
+        assertEquals(source, playbackController.queueSource)
+    }
+
     private fun track(id: String) = Track(
         id = id,
         title = "Track $id",
@@ -67,15 +78,24 @@ private class FakePlaybackController : PlaybackController {
 
     lateinit var playedTrack: Track
     lateinit var playedQueue: List<Track>
+    var queueSource: PlaybackQueueSource = PlaybackQueueSource.Static
     var startIndex: Int = -1
 
-    override suspend fun play(track: Track, queue: List<Track>, startIndex: Int) {
+    override suspend fun play(
+        track: Track,
+        queue: List<Track>,
+        startIndex: Int,
+        queueSource: PlaybackQueueSource,
+    ) {
         playedTrack = track
         playedQueue = queue
         this.startIndex = startIndex
+        this.queueSource = queueSource
     }
 
     override suspend fun playQueueItem(index: Int) = Unit
+
+    override suspend fun addQueueItem(track: Track) = Unit
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
 

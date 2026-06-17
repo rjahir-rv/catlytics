@@ -78,17 +78,25 @@ class DataStorePlaylistRepository internal constructor(
         context?.filesDir?.resolve("playlist_covers/$playlistId.cover")?.delete()
     }
 
-    override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int {
-        var added = 0
+    override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int =
+        addTracksToPlaylists(listOf(playlistId), trackIds)[playlistId] ?: 0
+
+    override suspend fun addTracksToPlaylists(
+        playlistIds: Collection<String>,
+        trackIds: List<String>,
+    ): Map<String, Int> {
+        if (playlistIds.isEmpty() || trackIds.isEmpty()) return emptyMap()
+        val distinctTrackIds = trackIds.distinct()
+        val addedByPlaylist = mutableMapOf<String, Int>()
         update { playlists ->
             playlists.withLikedPlaylist().map { playlist ->
-                if (playlist.id != playlistId) return@map playlist
-                val newIds = trackIds.distinct().filterNot(playlist.trackIds::contains)
-                added = newIds.size
+                if (playlist.id !in playlistIds) return@map playlist
+                val newIds = distinctTrackIds.filterNot(playlist.trackIds::contains)
+                addedByPlaylist[playlist.id] = newIds.size
                 playlist.copy(trackIds = playlist.trackIds + newIds)
             }
         }
-        return added
+        return addedByPlaylist
     }
 
     override suspend fun removeTrack(playlistId: String, trackId: String) = update { playlists ->

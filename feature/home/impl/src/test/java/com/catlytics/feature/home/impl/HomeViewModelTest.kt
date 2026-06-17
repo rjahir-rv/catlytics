@@ -18,6 +18,7 @@ import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Playlist
@@ -264,17 +265,24 @@ private class FakePlaylistRepository : PlaylistRepository {
         playlists.update { current -> current.filterNot { it.id == playlistId } }
     }
 
-    override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int {
-        var added = 0
+    override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int =
+        addTracksToPlaylists(listOf(playlistId), trackIds)[playlistId] ?: 0
+
+    override suspend fun addTracksToPlaylists(
+        playlistIds: Collection<String>,
+        trackIds: List<String>,
+    ): Map<String, Int> {
+        val distinctTrackIds = trackIds.distinct()
+        val addedByPlaylist = mutableMapOf<String, Int>()
         playlists.update { current ->
             current.map { playlist ->
-                if (playlist.id != playlistId) return@map playlist
-                val newIds = trackIds.distinct().filterNot(playlist.trackIds::contains)
-                added = newIds.size
+                if (playlist.id !in playlistIds) return@map playlist
+                val newIds = distinctTrackIds.filterNot(playlist.trackIds::contains)
+                addedByPlaylist[playlist.id] = newIds.size
                 playlist.copy(trackIds = playlist.trackIds + newIds)
             }
         }
-        return added
+        return addedByPlaylist
     }
 
     override suspend fun removeTrack(playlistId: String, trackId: String) {
@@ -303,13 +311,20 @@ private class FakePlaybackController : PlaybackController {
     lateinit var playedQueue: List<Track>
     var startIndex: Int = -1
 
-    override suspend fun play(track: Track, queue: List<Track>, startIndex: Int) {
+    override suspend fun play(
+        track: Track,
+        queue: List<Track>,
+        startIndex: Int,
+        queueSource: PlaybackQueueSource,
+    ) {
         playedTrack = track
         playedQueue = queue
         this.startIndex = startIndex
     }
 
     override suspend fun playQueueItem(index: Int) = Unit
+
+    override suspend fun addQueueItem(track: Track) = Unit
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
 

@@ -10,6 +10,8 @@ import androidx.media3.session.SessionToken
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
+import com.catlytics.core.domain.repository.PlaylistRepository
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackSessionSnapshot
 import com.catlytics.core.model.PlaybackState
@@ -25,10 +27,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -40,6 +45,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class Media3PlaybackController @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val libraryRepository: LibraryRepository,
+    private val playlistRepository: PlaylistRepository,
     private val playbackSessionRepository: PlaybackSessionRepository,
 ) : PlaybackController {
     private val _playbackState = MutableStateFlow(PlaybackState())
@@ -48,12 +54,21 @@ class Media3PlaybackController @Inject constructor(
     private val playbackScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val controllerFuture: ListenableFuture<MediaController>
     private var queue: List<Track> = emptyList()
+    private var queueSource: PlaybackQueueSource = PlaybackQueueSource.Static
     private var progressUpdatesJob: Job? = null
+    private var queueSyncJob: Job? = null
     private var lastSessionSaveTimeMillis = 0L
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             updatePlaybackState(player)
+        }
+
+        override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) return
+            playbackScope.launch {
+                prunePlayedQueueItems(forcePersist = true)
+            }
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -78,16 +93,23 @@ class Media3PlaybackController @Inject constructor(
         )
     }
 
-    override suspend fun play(track: Track, queue: List<Track>, startIndex: Int) {
+    override suspend fun play(
+        track: Track,
+        queue: List<Track>,
+        startIndex: Int,
+        queueSource: PlaybackQueueSource,
+    ) {
         val playbackQueue = queue.ifEmpty { listOf(track) }
         val selectedIndex = startIndex.coerceIn(0, max(playbackQueue.lastIndex, 0))
         this.queue = playbackQueue
+        this.queueSource = queueSource
         withController { controller ->
             controller.setMediaItems(playbackQueue.map { it.toMediaItem() }, selectedIndex, 0L)
             controller.prepare()
             controller.play()
             updatePlaybackState(controller, playbackQueue, forcePersist = true)
         }
+        restartQueueSync()
     }
 
     override suspend fun playQueueItem(index: Int) {
@@ -96,6 +118,16 @@ class Media3PlaybackController @Inject constructor(
         withController { controller ->
             controller.seekTo(index, 0L)
             controller.play()
+            updatePlaybackState(controller, forcePersist = true)
+        }
+    }
+
+    override suspend fun addQueueItem(track: Track) {
+        if (_playbackState.value.currentTrack == null || queue.any { it.id == track.id }) return
+
+        queue = queue + track
+        withController { controller ->
+            controller.addMediaItem(track.toMediaItem())
             updatePlaybackState(controller, forcePersist = true)
         }
     }
@@ -192,6 +224,7 @@ class Media3PlaybackController @Inject constructor(
             .takeUnless { it < 0 }
             ?: snapshot.currentIndex.coerceIn(0, restoredQueue.lastIndex)
         queue = restoredQueue
+        queueSource = snapshot.queueSource
 
         withController { controller ->
             controller.shuffleModeEnabled = snapshot.isShuffleEnabled
@@ -205,11 +238,15 @@ class Media3PlaybackController @Inject constructor(
             controller.pause()
             updatePlaybackState(controller, restoredQueue, forcePersist = true)
         }
+        restartQueueSync()
     }
 
     override suspend fun stop() {
+        stopQueueSync()
+        queueSource = PlaybackQueueSource.Static
         withController { controller ->
             controller.stop()
+            queue = emptyList()
             updatePlaybackState(controller, forcePersist = true)
         }
         playbackSessionRepository.clearSession()
@@ -220,7 +257,7 @@ class Media3PlaybackController @Inject constructor(
         playbackQueue: List<Track> = queue,
         forcePersist: Boolean = false,
     ) {
-        val state = player.toPlaybackState(playbackQueue)
+        val state = player.toPlaybackState(playbackQueue, queueSource)
         _playbackState.value = state
         persistPlaybackSession(state, forcePersist)
         if (player.isPlaying) {
@@ -266,6 +303,7 @@ class Media3PlaybackController @Inject constructor(
         return PlaybackSessionSnapshot(
             queueTrackIds = queue.map { it.id },
             currentTrackId = track.id,
+            queueSource = queueSource,
             currentIndex = currentIndex,
             positionMillis = positionMillis,
             isShuffleEnabled = isShuffleEnabled,
@@ -275,6 +313,108 @@ class Media3PlaybackController @Inject constructor(
 
     private suspend fun withController(block: (MediaController) -> Unit) {
         block(controllerFuture.await())
+    }
+
+    private fun restartQueueSync() {
+        stopQueueSync()
+        queueSyncJob = playbackScope.launch {
+            when (val source = queueSource) {
+                is PlaybackQueueSource.Playlist -> observePlaylistQueue(source.playlistId)
+                    .collect(::reconcileQueue)
+                PlaybackQueueSource.Static -> libraryRepository.observeAllTracks()
+                    .mapToAvailableTrackIds()
+                    .collect(::removeUnavailableQueueItems)
+            }
+        }
+    }
+
+    private fun stopQueueSync() {
+        queueSyncJob?.cancel()
+        queueSyncJob = null
+    }
+
+    private fun observePlaylistQueue(playlistId: String) = combine(
+        playlistRepository.observePlaylists(),
+        libraryRepository.observeAllTracks(),
+    ) { playlists, tracks ->
+        val tracksById = tracks.associateBy { it.id }
+        playlists
+            .firstOrNull { it.id == playlistId }
+            ?.trackIds
+            .orEmpty()
+            .mapNotNull(tracksById::get)
+            .distinctBy(Track::id)
+    }.distinctUntilChanged()
+
+    private fun kotlinx.coroutines.flow.Flow<List<Track>>.mapToAvailableTrackIds() =
+        map { tracks -> tracks.map(Track::id).toSet() }.distinctUntilChanged()
+
+    private suspend fun reconcileQueue(sourceQueue: List<Track>) {
+        if (queue.isEmpty()) return
+        val currentTrackId = _playbackState.value.currentTrack?.id ?: queue.firstOrNull()?.id
+        val currentTrack = currentTrackId?.let { id -> sourceQueue.firstOrNull { it.id == id } }
+
+        if (currentTrack == null) {
+            applyQueueReplacement(sourceQueue, startTrackId = sourceQueue.firstOrNull()?.id)
+            return
+        }
+
+        val sourceCurrentIndex = sourceQueue.indexOfFirst { it.id == currentTrack.id }
+        val upcomingTracks = sourceQueue.drop(sourceCurrentIndex)
+        applyQueueReplacement(upcomingTracks, startTrackId = currentTrack.id)
+    }
+
+    private suspend fun removeUnavailableQueueItems(availableTrackIds: Set<String>) {
+        if (queue.isEmpty()) return
+        val currentTrackId = _playbackState.value.currentTrack?.id
+        val updatedQueue = queue.filter { it.id in availableTrackIds }
+        if (updatedQueue.map(Track::id) == queue.map(Track::id)) return
+        applyQueueReplacement(
+            updatedQueue = updatedQueue,
+            startTrackId = currentTrackId?.takeIf { id -> updatedQueue.any { it.id == id } }
+                ?: updatedQueue.firstOrNull()?.id,
+        )
+    }
+
+    private suspend fun applyQueueReplacement(
+        updatedQueue: List<Track>,
+        startTrackId: String?,
+    ) {
+        queue = updatedQueue
+        withController { controller ->
+            if (updatedQueue.isEmpty() || startTrackId == null) {
+                controller.stop()
+                updatePlaybackState(controller, emptyList(), forcePersist = true)
+                playbackScope.launch { playbackSessionRepository.clearSession() }
+                return@withController
+            }
+
+            val startIndex = updatedQueue.indexOfFirst { it.id == startTrackId }
+                .takeUnless { it < 0 }
+                ?: 0
+            val positionMillis = if (startTrackId == _playbackState.value.currentTrack?.id) {
+                controller.currentPosition.coerceAtLeast(0L)
+            } else {
+                0L
+            }
+            val shouldPlay = controller.playWhenReady
+            controller.setMediaItems(updatedQueue.map { it.toMediaItem() }, startIndex, positionMillis)
+            controller.prepare()
+            controller.playWhenReady = shouldPlay
+            updatePlaybackState(controller, updatedQueue, forcePersist = true)
+        }
+    }
+
+    private suspend fun prunePlayedQueueItems(forcePersist: Boolean) {
+        if (queue.size <= 1) return
+        withController { controller ->
+            val currentIndex = controller.currentMediaItemIndex
+            if (currentIndex <= 0 || currentIndex !in queue.indices) return@withController
+
+            queue = queue.drop(currentIndex)
+            controller.removeMediaItems(0, currentIndex)
+            updatePlaybackState(controller, queue, forcePersist = forcePersist)
+        }
     }
 
     private suspend fun <T> ListenableFuture<T>.await(): T = suspendCancellableCoroutine { continuation ->

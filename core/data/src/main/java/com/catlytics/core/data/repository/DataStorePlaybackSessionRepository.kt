@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackSessionSnapshot
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -54,6 +55,15 @@ class DataStorePlaybackSessionRepository internal constructor(
             preferences[POSITION_MILLIS] = snapshot.positionMillis
             preferences[SHUFFLE_ENABLED] = snapshot.isShuffleEnabled
             preferences[REPEAT_MODE] = snapshot.repeatMode.name
+            preferences[QUEUE_SOURCE_TYPE] = snapshot.queueSource.toPreferenceType()
+            when (val source = snapshot.queueSource) {
+                is PlaybackQueueSource.Playlist -> {
+                    preferences[QUEUE_SOURCE_PLAYLIST_ID] = source.playlistId
+                }
+                PlaybackQueueSource.Static -> {
+                    preferences.remove(QUEUE_SOURCE_PLAYLIST_ID)
+                }
+            }
         }
     }
 
@@ -65,6 +75,8 @@ class DataStorePlaybackSessionRepository internal constructor(
             preferences.remove(POSITION_MILLIS)
             preferences.remove(SHUFFLE_ENABLED)
             preferences.remove(REPEAT_MODE)
+            preferences.remove(QUEUE_SOURCE_TYPE)
+            preferences.remove(QUEUE_SOURCE_PLAYLIST_ID)
         }
     }
 
@@ -78,6 +90,7 @@ class DataStorePlaybackSessionRepository internal constructor(
         return PlaybackSessionSnapshot(
             queueTrackIds = queueTrackIds,
             currentTrackId = this[CURRENT_TRACK_ID],
+            queueSource = toPlaybackQueueSource(),
             currentIndex = this[CURRENT_INDEX] ?: 0,
             positionMillis = this[POSITION_MILLIS] ?: 0L,
             isShuffleEnabled = this[SHUFFLE_ENABLED] ?: false,
@@ -88,10 +101,28 @@ class DataStorePlaybackSessionRepository internal constructor(
     private fun String.toPlaybackRepeatMode(): PlaybackRepeatMode =
         runCatching { PlaybackRepeatMode.valueOf(this) }.getOrDefault(PlaybackRepeatMode.Off)
 
+    private fun Preferences.toPlaybackQueueSource(): PlaybackQueueSource =
+        when (this[QUEUE_SOURCE_TYPE]) {
+            QUEUE_SOURCE_TYPE_PLAYLIST -> this[QUEUE_SOURCE_PLAYLIST_ID]
+                ?.takeIf(String::isNotBlank)
+                ?.let(PlaybackQueueSource::Playlist)
+                ?: PlaybackQueueSource.Static
+            else -> PlaybackQueueSource.Static
+        }
+
+    private fun PlaybackQueueSource.toPreferenceType(): String = when (this) {
+        is PlaybackQueueSource.Playlist -> QUEUE_SOURCE_TYPE_PLAYLIST
+        PlaybackQueueSource.Static -> QUEUE_SOURCE_TYPE_STATIC
+    }
+
     private companion object {
         const val TRACK_ID_SEPARATOR = "|"
+        const val QUEUE_SOURCE_TYPE_STATIC = "static"
+        const val QUEUE_SOURCE_TYPE_PLAYLIST = "playlist"
         val QUEUE_TRACK_IDS = stringPreferencesKey("queue_track_ids")
         val CURRENT_TRACK_ID = stringPreferencesKey("current_track_id")
+        val QUEUE_SOURCE_TYPE = stringPreferencesKey("queue_source_type")
+        val QUEUE_SOURCE_PLAYLIST_ID = stringPreferencesKey("queue_source_playlist_id")
         val CURRENT_INDEX = intPreferencesKey("current_index")
         val POSITION_MILLIS = longPreferencesKey("position_millis")
         val SHUFFLE_ENABLED = booleanPreferencesKey("shuffle_enabled")

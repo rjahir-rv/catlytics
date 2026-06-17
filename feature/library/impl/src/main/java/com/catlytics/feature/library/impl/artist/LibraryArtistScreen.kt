@@ -46,6 +46,7 @@ internal fun LibraryArtistScreen(
     onAlbumSelected: (Album) -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -65,6 +66,7 @@ internal fun LibraryArtistScreen(
             onAlbumSelected = onAlbumSelected,
             onTrackSelected = onTrackSelected,
             onAddToPlaylist = onAddToPlaylist,
+            onTrackOptions = onTrackOptions,
             modifier = modifier,
         )
     }
@@ -76,6 +78,7 @@ private fun ArtistContent(
     onAlbumSelected: (Album) -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
@@ -112,7 +115,7 @@ private fun ArtistContent(
             ArtistTrackRow(
                 track = track,
                 onClick = { onTrackSelected(track, content.tracks) },
-                onAddToPlaylist = { onAddToPlaylist(PlaylistSource.TrackSource(track.id)) },
+                onTrackOptions = { onTrackOptions(track) },
             )
         }
     }
@@ -198,7 +201,7 @@ private fun ArtistAlbumCard(
 private fun ArtistTrackRow(
     track: Track,
     onClick: () -> Unit,
-    onAddToPlaylist: () -> Unit,
+    onTrackOptions: () -> Unit,
 ) {
     Column {
         Row(
@@ -227,7 +230,7 @@ private fun ArtistTrackRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            IconButton(onClick = onAddToPlaylist) {
+            IconButton(onClick = onTrackOptions) {
                 Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
             }
             Text(

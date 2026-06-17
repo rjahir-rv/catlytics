@@ -1,6 +1,7 @@
 package com.catlytics.core.domain.usecase.playback
 
 import com.catlytics.core.domain.repository.PlaybackController
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
@@ -40,9 +41,16 @@ private class PlaybackModeFakePlaybackController : PlaybackController {
     var shuffleEnabled: Boolean? = null
     var repeatMode: PlaybackRepeatMode? = null
 
-    override suspend fun play(track: Track, queue: List<Track>, startIndex: Int) = Unit
+    override suspend fun play(
+        track: Track,
+        queue: List<Track>,
+        startIndex: Int,
+        queueSource: PlaybackQueueSource,
+    ) = Unit
 
     override suspend fun playQueueItem(index: Int) = Unit
+
+    override suspend fun addQueueItem(track: Track) = Unit
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
 

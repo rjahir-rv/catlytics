@@ -37,7 +37,13 @@ class NowPlayingScreenTest {
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
-                    onAddToPlaylist = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = true,
+                    onAddCurrentTrackToPlaylist = {},
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
                     isCurrentTrackLiked = false,
                     onAddCurrentTrackToLiked = {},
                 )
@@ -66,7 +72,13 @@ class NowPlayingScreenTest {
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
-                    onAddToPlaylist = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = false,
+                    onAddCurrentTrackToPlaylist = {},
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
                     isCurrentTrackLiked = false,
                     onAddCurrentTrackToLiked = {},
                 )
@@ -93,7 +105,13 @@ class NowPlayingScreenTest {
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
-                    onAddToPlaylist = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = true,
+                    onAddCurrentTrackToPlaylist = {},
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
                     isCurrentTrackLiked = false,
                     onAddCurrentTrackToLiked = {},
                 )
@@ -123,7 +141,13 @@ class NowPlayingScreenTest {
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
-                    onAddToPlaylist = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = true,
+                    onAddCurrentTrackToPlaylist = {},
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
                     isCurrentTrackLiked = false,
                     onAddCurrentTrackToLiked = { addClicks++ },
                 )
@@ -152,7 +176,13 @@ class NowPlayingScreenTest {
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
-                    onAddToPlaylist = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = false,
+                    onAddCurrentTrackToPlaylist = {},
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
                     isCurrentTrackLiked = true,
                     onAddCurrentTrackToLiked = {},
                 )
@@ -179,7 +209,13 @@ class NowPlayingScreenTest {
                     onPlayQueueItem = {},
                     onMoveQueueItem = { _, _ -> },
                     onRemoveQueueItem = {},
-                    onAddToPlaylist = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = false,
+                    onAddCurrentTrackToPlaylist = {},
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
                     isCurrentTrackLiked = false,
                     onAddCurrentTrackToLiked = {},
                 )
@@ -187,6 +223,44 @@ class NowPlayingScreenTest {
         }
 
         composeRule.onNodeWithContentDescription("Agregar a Tus me gusta").assertIsNotEnabled()
+    }
+
+    @Test
+    fun trackOptionsDropdownInvokesAddToPlaylist() {
+        var addToPlaylistClicks = 0
+
+        composeRule.setContent {
+            MaterialTheme {
+                NowPlayingScreen(
+                    playbackState = PlaybackState(currentTrack = track),
+                    onShareTrack = {},
+                    onBack = {},
+                    onTogglePlayback = {},
+                    onSkipPrevious = {},
+                    onSkipNext = {},
+                    onSeekTo = {},
+                    onToggleShuffle = {},
+                    onCycleRepeatMode = {},
+                    onPlayQueueItem = {},
+                    onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = true,
+                    onAddCurrentTrackToPlaylist = { addToPlaylistClicks++ },
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
+                    isCurrentTrackLiked = false,
+                    onAddCurrentTrackToLiked = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Opciones de ${track.title}").performClick()
+        composeRule.onNodeWithText("Agregar a playlist").performClick()
+
+        assertEquals(1, addToPlaylistClicks)
     }
 
     private companion object {

@@ -3,6 +3,7 @@ package com.catlytics.core.data.repository
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackSessionSnapshot
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +25,7 @@ class DataStorePlaybackSessionRepositoryTest {
         val snapshot = PlaybackSessionSnapshot(
             queueTrackIds = listOf("track-2", "track-1", "track-3"),
             currentTrackId = "track-1",
+            queueSource = PlaybackQueueSource.Playlist("playlist-1"),
             currentIndex = 1,
             positionMillis = 42_000L,
             isShuffleEnabled = true,
@@ -62,6 +64,19 @@ class DataStorePlaybackSessionRepositoryTest {
         val snapshot = repository.observeSession().first()
 
         assertEquals(PlaybackRepeatMode.Off, snapshot?.repeatMode)
+    }
+
+    @Test
+    fun `missing queue source falls back to static`() = runTest {
+        val dataStore = dataStore(backgroundScope)
+        val repository = DataStorePlaybackSessionRepository(dataStore)
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("queue_track_ids")] = "track-1|track-2"
+        }
+
+        val snapshot = repository.observeSession().first()
+
+        assertEquals(PlaybackQueueSource.Static, snapshot?.queueSource)
     }
 
     private fun repository(scope: CoroutineScope): DataStorePlaybackSessionRepository =
