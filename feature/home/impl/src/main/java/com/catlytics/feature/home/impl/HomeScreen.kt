@@ -62,6 +62,8 @@ import kotlin.time.Duration.Companion.milliseconds
 internal fun HomeRoute(
     searchQuery: String,
     onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
+    modifier: Modifier = Modifier,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -94,6 +96,7 @@ internal fun HomeRoute(
         onRequestPermission = { permissionLauncher.launch(permission) },
         onTrackSelected = viewModel::onTrackSelected,
         onTrackOptions = onTrackOptions,
+        bottomPadding = bottomPadding,
         onAddToLiked = { track ->
             viewModel.toggleTrackLiked(track.id) { result ->
                 Toast.makeText(
@@ -108,6 +111,7 @@ internal fun HomeRoute(
                 ).show()
             }
         },
+        modifier = modifier,
     )
 }
 
@@ -119,6 +123,7 @@ internal fun HomeScreen(
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
     onAddToLiked: (Track) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -129,7 +134,7 @@ internal fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(20.dp),
+            .padding(start = 20.dp, top = 20.dp, end = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (!hasAudioPermission) {
@@ -151,7 +156,9 @@ internal fun HomeScreen(
                         currentTrackId = uiState.currentTrackId,
                         likedTrackIds = uiState.likedTrackIds,
                         onTrackSelected = onTrackSelected,
+                        modifier = Modifier.weight(1f),
                         state = trackListState,
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = bottomPadding() + 20.dp),
                         onTrackOptions = onTrackOptions,
                         onAddToLiked = onAddToLiked,
                     )
@@ -244,12 +251,14 @@ private fun TrackList(
     onTrackSelected: (Track, List<Track>) -> Unit,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
+    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp),
     onTrackOptions: (Track) -> Unit,
     onAddToLiked: (Track) -> Unit,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         state = state,
+        contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items(

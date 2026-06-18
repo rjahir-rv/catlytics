@@ -1,4 +1,4 @@
-package com.catlytics.app
+package com.catlytics.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

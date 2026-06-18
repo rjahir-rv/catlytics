@@ -3,6 +3,7 @@ package com.catlytics.feature.playlists.impl
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
@@ -14,6 +15,7 @@ import com.catlytics.feature.playlists.api.PlaylistDetailRoute
 fun EntryProviderScope<NavKey>.playlistsEntry(
     onDestinationSelected: (NavKey) -> Unit,
     onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
+    onPlaylistDetailTopBarColorChange: (Color) -> Unit,
     contentModifier: Modifier = Modifier,
 ) {
     entry<PlaylistsRoute> {
@@ -40,6 +42,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             PlaylistDetailRoute(
                 playlistId = route.playlistId,
                 onTrackOptions = onTrackOptions,
+                onTopBarColorChange = onPlaylistDetailTopBarColorChange,
             )
         }
     }

@@ -1,4 +1,4 @@
-package com.catlytics.app
+package com.catlytics.app.ui.chrome
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -25,8 +25,10 @@ internal fun TopLevelTopAppBar(
     onSearchQueryChange: (String) -> Unit,
     onSearchActionClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    containerColor: Color? = null,
 ) {
     CatlyticsTopAppBar(
+        containerColor = containerColor,
         title = {
             if (isHome && isSearchExpanded) {
                 TextField(
@@ -78,8 +80,10 @@ internal fun TopLevelTopAppBar(
 @Composable
 internal fun SettingsTopAppBar(
     onBack: () -> Unit,
+    containerColor: Color? = null,
 ) {
     CatlyticsTopAppBar(
+        containerColor = containerColor,
         title = { TopAppBarTitle("Ajustes") },
         navigationIcon = {
             IconButton(onClick = onBack) {
@@ -96,8 +100,10 @@ internal fun SettingsTopAppBar(
 internal fun LibraryDetailTopAppBar(
     title: String,
     onBack: () -> Unit,
+    containerColor: Color? = null,
 ) {
     CatlyticsTopAppBar(
+        containerColor = containerColor,
         title = {
             if (title.isNotBlank()) {
                 TopAppBarTitle(title)

@@ -10,6 +10,8 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.app.ui.CatlyticsApp
+import com.catlytics.app.ui.ThemeViewModel
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.ThemeMode
 import dagger.hilt.android.AndroidEntryPoint

@@ -1,4 +1,4 @@
-package com.catlytics.app
+package com.catlytics.app.ui.sheet
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box

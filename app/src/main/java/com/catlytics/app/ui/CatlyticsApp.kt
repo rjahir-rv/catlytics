@@ -1,45 +1,35 @@
-package com.catlytics.app
+package com.catlytics.app.ui
 
 import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -49,10 +39,20 @@ import androidx.navigation3.runtime.metadata
 import androidx.navigation3.ui.NavDisplay
 import coil3.compose.AsyncImage
 import com.catlytics.app.navigation.TopLevelDestination
+import com.catlytics.app.navigation.navigationBackTransition
+import com.catlytics.app.navigation.navigationForwardTransition
+import com.catlytics.app.navigation.nowPlayingEnterTransition
+import com.catlytics.app.navigation.nowPlayingExitTransition
 import com.catlytics.app.playback.NowPlayingRoute
 import com.catlytics.app.playback.NowPlayingScreen
 import com.catlytics.app.playback.PlaybackViewModel
 import com.catlytics.app.playback.shareTrack
+import com.catlytics.app.ui.chrome.CatlyticsBottomBar
+import com.catlytics.app.ui.chrome.LibraryDetailTopAppBar
+import com.catlytics.app.ui.chrome.SettingsTopAppBar
+import com.catlytics.app.ui.chrome.TopLevelTopAppBar
+import com.catlytics.app.ui.sheet.CatlyticsAppSheets
+import com.catlytics.app.ui.sheet.TrackOptionsRequest
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
@@ -69,7 +69,6 @@ import com.catlytics.feature.library.api.LibraryArtistRoute
 import com.catlytics.feature.library.api.LibraryFolderRoute
 import com.catlytics.feature.library.impl.navigation.libraryEntry
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
-import com.catlytics.feature.playlists.impl.AddToPlaylistSheet
 import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.settings.impl.settingsEntry
@@ -83,6 +82,7 @@ fun CatlyticsApp(
     onDeepLinkHandled: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val layoutDirection = LocalLayoutDirection.current
     val topLevelBackStack = remember { TopLevelBackStack(HomeRoute) }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -92,8 +92,7 @@ fun CatlyticsApp(
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
-    var miniPlayerHeightPx by remember { mutableIntStateOf(0) }
-    val density = LocalDensity.current
+    var playlistDetailTopBarColor by remember { mutableStateOf<Color?>(null) }
     val appVersion = remember(context) {
         context.packageManager
             .getPackageInfo(context.packageName, 0)
@@ -114,9 +113,15 @@ fun CatlyticsApp(
     }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
     val isSettingsVisible = currentRoute == SettingsRoute
-    val isMiniPlayerVisible = !isNowPlayingVisible && playbackState.currentTrack != null
-    val miniPlayerContentPadding = with(density) {
-        if (isMiniPlayerVisible) miniPlayerHeightPx.toDp() + MINI_PLAYER_CONTENT_GAP else 0.dp
+    val playlistDetailChromeColor = if (currentRoute is PlaylistDetailRoute) {
+        playlistDetailTopBarColor
+    } else {
+        null
+    }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute !is PlaylistDetailRoute) {
+            playlistDetailTopBarColor = null
+        }
     }
 
     fun closeHomeSearch() {
@@ -249,6 +254,7 @@ fun CatlyticsApp(
                     LibraryDetailTopAppBar(
                         title = "",
                         onBack = ::closeCurrentDestination,
+                        containerColor = playlistDetailChromeColor,
                     )
                 }
                 currentTopLevelDestination != null -> {
@@ -275,34 +281,75 @@ fun CatlyticsApp(
             }
         },
         bottomBar = {
-            if (selectedTopLevelDestination != null && !isNowPlayingVisible) {
-                CatlyticsBottomBar(
-                    selectedRoute = topLevelBackStack.topLevelKey,
-                    onDestinationSelected = topLevelBackStack::addTopLevel,
-                )
+            if (!isNowPlayingVisible) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    playbackState.currentTrack?.let { track ->
+                        CatlyticsMiniPlayer(
+                            title = track.title,
+                            artist = track.artist.name,
+                            isPlaying = playbackState.status == PlaybackStatus.Playing,
+                            isBuffering = playbackState.status == PlaybackStatus.Buffering,
+                            positionMillis = playbackState.positionMillis,
+                            durationMillis = playbackState.durationMillis,
+                            onTogglePlayback = playbackViewModel::togglePlayback,
+                            onSkipPrevious = playbackViewModel::skipPrevious,
+                            onSkipNext = playbackViewModel::skipNext,
+                            onClick = {
+                                if (topLevelBackStack.backStack.lastOrNull() != NowPlayingRoute) {
+                                    topLevelBackStack.add(NowPlayingRoute)
+                                }
+                            },
+                            artwork = { artworkModifier ->
+                                AsyncImage(
+                                    model = track.artworkUri,
+                                    contentDescription = "Carátula de ${track.title}",
+                                    placeholder = painterResource(id = R.drawable.placeholder_album),
+                                    error = painterResource(id = R.drawable.placeholder_album),
+                                    fallback = painterResource(id = R.drawable.placeholder_album),
+                                    contentScale = ContentScale.Crop,
+                                    modifier = artworkModifier,
+                                )
+                            },
+                        )
+                    }
+
+                    if (selectedTopLevelDestination != null) {
+                        CatlyticsBottomBar(
+                            selectedRoute = topLevelBackStack.topLevelKey,
+                            onDestinationSelected = topLevelBackStack::addTopLevel,
+                        )
+                    }
+                }
             }
         },
     ) { innerPadding ->
+        val bottomPaddingState = remember { mutableStateOf(innerPadding.calculateBottomPadding()) }
+        SideEffect {
+            bottomPaddingState.value = innerPadding.calculateBottomPadding()
+        }
         var lastRegularNavigationContentPadding by remember { mutableStateOf(PaddingValues(0.dp)) }
-        var lastRegularMiniPlayerContentPadding by remember { mutableStateOf(0.dp) }
+        val contentPaddingBehindBottomBar = PaddingValues(
+            start = innerPadding.calculateStartPadding(layoutDirection),
+            top = innerPadding.calculateTopPadding(),
+            end = innerPadding.calculateEndPadding(layoutDirection),
+            bottom = 0.dp,
+        )
         val regularNavigationContentPadding = if (isNowPlayingVisible) {
             lastRegularNavigationContentPadding
         } else {
-            innerPadding
+            contentPaddingBehindBottomBar
         }
-        val regularMiniPlayerContentPadding = if (isNowPlayingVisible) {
-            lastRegularMiniPlayerContentPadding
-        } else {
-            miniPlayerContentPadding
+        val contentPaddingState = remember { mutableStateOf(regularNavigationContentPadding) }
+        SideEffect {
+            contentPaddingState.value = regularNavigationContentPadding
         }
-        val regularContentModifier = Modifier
-            .padding(regularNavigationContentPadding)
-            .padding(bottom = regularMiniPlayerContentPadding)
+        val regularContentModifier = androidx.compose.ui.Modifier.composed {
+            androidx.compose.ui.Modifier.padding(contentPaddingState.value)
+        }
 
         SideEffect {
             if (!isNowPlayingVisible) {
-                lastRegularNavigationContentPadding = innerPadding
-                lastRegularMiniPlayerContentPadding = miniPlayerContentPadding
+                lastRegularNavigationContentPadding = contentPaddingBehindBottomBar
             }
         }
 
@@ -324,6 +371,7 @@ fun CatlyticsApp(
                     homeEntry(
                         searchQuery = { homeSearchQuery },
                         onTrackOptions = { track -> openTrackOptions(track) },
+                        bottomPadding = { bottomPaddingState.value },
                         contentModifier = regularContentModifier,
                     )
                     libraryEntry(
@@ -336,6 +384,9 @@ fun CatlyticsApp(
                         onDestinationSelected = topLevelBackStack::add,
                         onTrackOptions = { track, onRemoveFromPlaylist ->
                             openTrackOptions(track, onRemoveFromPlaylist)
+                        },
+                        onPlaylistDetailTopBarColorChange = { color ->
+                            playlistDetailTopBarColor = color
                         },
                         contentModifier = regularContentModifier,
                     )
@@ -412,183 +463,29 @@ fun CatlyticsApp(
                     }
                 },
             )
-
-            if (!isNowPlayingVisible) {
-                playbackState.currentTrack?.let { track ->
-                    CatlyticsMiniPlayer(
-                        title = track.title,
-                        artist = track.artist.name,
-                        isPlaying = playbackState.status == PlaybackStatus.Playing,
-                        isBuffering = playbackState.status == PlaybackStatus.Buffering,
-                        positionMillis = playbackState.positionMillis,
-                        durationMillis = playbackState.durationMillis,
-                        onTogglePlayback = playbackViewModel::togglePlayback,
-                        onSkipPrevious = playbackViewModel::skipPrevious,
-                        onSkipNext = playbackViewModel::skipNext,
-                        onClick = {
-                            if (topLevelBackStack.backStack.lastOrNull() != NowPlayingRoute) {
-                                topLevelBackStack.add(NowPlayingRoute)
-                            }
-                        },
-                        artwork = { artworkModifier ->
-                            AsyncImage(
-                                model = track.artworkUri,
-                                contentDescription = "Carátula de ${track.title}",
-                                placeholder = painterResource(id = R.drawable.placeholder_album),
-                                error = painterResource(id = R.drawable.placeholder_album),
-                                fallback = painterResource(id = R.drawable.placeholder_album),
-                                contentScale = ContentScale.Crop,
-                                modifier = artworkModifier,
-                            )
-                        },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = innerPadding.calculateBottomPadding() + 8.dp)
-                            .onSizeChanged { size -> miniPlayerHeightPx = size.height }
-                    )
-                }
-            }
         }
     }
-    trackOptionsRequest?.let { request ->
-        TrackOptionsSheet(
-            track = request.track,
-            isLiked = request.track.id in likedTrackIds,
-            canAddToQueue = canAddTrackToQueue(request.track),
-            canRemoveFromPlaylist = request.onRemoveFromPlaylist != null,
-            onDismiss = { trackOptionsRequest = null },
-            onAddToPlaylist = {
-                trackOptionsRequest = null
-                openAddToPlaylist(PlaylistSource.TrackSource(request.track.id))
-            },
-            onToggleLiked = {
-                trackOptionsRequest = null
-                toggleTrackLikedWithToast(request.track.id)
-            },
-            onAddToQueue = {
-                trackOptionsRequest = null
-                addTrackToQueueWithToast(request.track)
-            },
-            onGoToAlbum = { navigateToAlbum(request.track) },
-            onGoToArtist = { navigateToArtist(request.track) },
-            onRemoveFromPlaylist = {
-                trackOptionsRequest = null
-                request.onRemoveFromPlaylist?.invoke()
-            },
-        )
-    }
-    playlistSource?.let { source ->
-        key(playlistSheetSession) {
-            AddToPlaylistSheet(source = source, onDismiss = { playlistSource = null })
-        }
-    }
-}
-
-private data class TrackOptionsRequest(
-    val track: Track,
-    val onRemoveFromPlaylist: (() -> Unit)? = null,
-)
-
-private const val NOW_PLAYING_TRANSITION_MILLIS = 450
-private const val NAVIGATION_TRANSITION_MILLIS = 280
-private val MINI_PLAYER_CONTENT_GAP = 8.dp
-
-private fun navigationForwardTransition() =
-    (slideInHorizontally(
-        animationSpec = tween(
-            durationMillis = NAVIGATION_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        initialOffsetX = { fullWidth -> fullWidth / 8 },
-    ) + fadeIn(
-        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
-    )) togetherWith (slideOutHorizontally(
-        animationSpec = tween(
-            durationMillis = NAVIGATION_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        targetOffsetX = { fullWidth -> -fullWidth / 16 },
-    ) + fadeOut(
-        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
-    ))
-
-private fun navigationBackTransition() =
-    (slideInHorizontally(
-        animationSpec = tween(
-            durationMillis = NAVIGATION_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        initialOffsetX = { fullWidth -> -fullWidth / 16 },
-    ) + fadeIn(
-        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
-    )) togetherWith (slideOutHorizontally(
-        animationSpec = tween(
-            durationMillis = NAVIGATION_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        targetOffsetX = { fullWidth -> fullWidth / 8 },
-    ) + fadeOut(
-        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
-    ))
-
-private fun nowPlayingEnterTransition() =
-    slideInVertically(
-        animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        initialOffsetY = { fullHeight -> fullHeight },
-    ) + fadeIn(
-        animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-    ) togetherWith fadeOut(
-        animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
+    CatlyticsAppSheets(
+        trackOptionsRequest = trackOptionsRequest,
+        likedTrackIds = likedTrackIds,
+        canAddTrackToQueue = ::canAddTrackToQueue,
+        onDismissTrackOptions = { trackOptionsRequest = null },
+        onAddTrackToPlaylist = { track ->
+            trackOptionsRequest = null
+            openAddToPlaylist(PlaylistSource.TrackSource(track.id))
+        },
+        onToggleTrackLiked = { track ->
+            trackOptionsRequest = null
+            toggleTrackLikedWithToast(track.id)
+        },
+        onAddTrackToQueue = { track ->
+            trackOptionsRequest = null
+            addTrackToQueueWithToast(track)
+        },
+        onGoToAlbum = ::navigateToAlbum,
+        onGoToArtist = ::navigateToArtist,
+        playlistSource = playlistSource,
+        playlistSheetSession = playlistSheetSession,
+        onDismissPlaylistSheet = { playlistSource = null },
     )
-
-private fun nowPlayingExitTransition() =
-    (fadeIn(
-        animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-    ) togetherWith slideOutVertically(
-        animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        targetOffsetY = { fullHeight -> fullHeight },
-    )).apply {
-        targetContentZIndex = -1f
-    }
-
-@Composable
-private fun CatlyticsBottomBar(
-    selectedRoute: Any,
-    onDestinationSelected: (androidx.navigation3.runtime.NavKey) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    NavigationBar(
-        modifier = modifier,
-    ) {
-        TopLevelDestination.entries.forEach { destination ->
-            NavigationBarItem(
-                selected = selectedRoute == destination.route,
-                onClick = { onDestinationSelected(destination.route) },
-                icon = {
-                    Icon(
-                        painter = painterResource(destination.iconRes),
-                        contentDescription = destination.label,
-                    )
-                },
-                label = {
-                    Text(destination.label)
-                },
-            )
-        }
-    }
 }

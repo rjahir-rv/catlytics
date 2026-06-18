@@ -52,7 +52,7 @@ fun CatlyticsMiniPlayer(
         )
     },
 ) {
-    val containerShape = RoundedCornerShape(24.dp)
+    val containerShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     val positionText = remember(positionMillis / MILLIS_PER_SECOND) {
         positionMillis.formatDuration()
     }
@@ -63,12 +63,11 @@ fun CatlyticsMiniPlayer(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
             .clip(containerShape)
             .animateContentSize(),
         onClick = onClick,
         shape = containerShape,
-        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.85f),
+        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.78f),
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Column {

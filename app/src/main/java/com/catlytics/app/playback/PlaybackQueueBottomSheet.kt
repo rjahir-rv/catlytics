@@ -59,6 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.model.Track
 import kotlin.math.abs
 
@@ -67,7 +68,7 @@ import kotlin.math.abs
 internal fun PlaybackQueueBottomSheet(
     queue: List<Track>,
     currentTrackId: String?,
-    gradientColors: NowPlayingGradientColors,
+    gradientColors: ArtworkGradientColors,
     onDismiss: () -> Unit,
     onPlayQueueItem: (Int) -> Unit,
     onMoveQueueItem: (Int, Int) -> Unit,
@@ -123,20 +124,24 @@ internal fun PlaybackQueueBottomSheet(
         sheetState = sheetState,
         modifier = modifier,
         shape = sheetShape,
-        containerColor = Color.Transparent,
+        containerColor = gradientColors.center,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
-        dragHandle = {
-            BottomSheetDefaults.DragHandle(
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
-            )
-        },
+        dragHandle = null,
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(sheetGradient, sheetShape),
         ) {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                BottomSheetDefaults.DragHandle(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
+                )
+            }
             Text(
                 text = "Cola de reproducción",
                 style = MaterialTheme.typography.titleLarge,
@@ -146,7 +151,8 @@ internal fun PlaybackQueueBottomSheet(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = maxQueueListHeight),
+                    .heightIn(max = maxQueueListHeight)
+                    .background(sheetGradient),
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
                 items(
@@ -174,7 +180,7 @@ internal fun PlaybackQueueBottomSheet(
                                 ?.let(onRemoveQueueItem)
                         },
                         modifier = placementModifier
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .padding(horizontal = 8.dp)
                             .zIndex(if (isDragging) 1f else 0f),
                     ) { _ ->
                         QueueTrackRow(
@@ -239,7 +245,7 @@ internal fun PlaybackQueueBottomSheet(
 @Composable
 private fun QueueSwipeableItem(
     track: Track,
-    gradientColors: NowPlayingGradientColors,
+    gradientColors: ArtworkGradientColors,
     enabled: Boolean,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
@@ -255,7 +261,6 @@ private fun QueueSwipeableItem(
         }
     }
     val swipeProgress = dismissState.progress
-    val shape = RoundedCornerShape(20.dp)
     val deleteBackgroundColor = lerp(
         Color.Transparent,
         gradientColors.end.copy(alpha = 0.72f),
@@ -270,15 +275,14 @@ private fun QueueSwipeableItem(
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = enabled,
         backgroundContent = {
-            if (swipeProgress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(shape)
-                        .background(deleteBackgroundColor)
-                        .padding(horizontal = 24.dp),
-                    contentAlignment = Alignment.CenterEnd,
-                ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(deleteBackgroundColor)
+                    .padding(horizontal = 24.dp),
+                contentAlignment = Alignment.CenterEnd,
+            ) {
+                if (swipeProgress > 0f) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_delete),
                         contentDescription = "Quitar ${track.title} de la cola",
@@ -293,7 +297,11 @@ private fun QueueSwipeableItem(
             }
         },
         content = {
-            Box(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.Transparent),
+            ) {
                 content(swipeProgress)
             }
         },
@@ -318,7 +326,7 @@ private fun QueueTrackRow(
         ),
         label = "queueItemScale",
     )
-    val shape = RoundedCornerShape(20.dp)
+    val dragShape = RoundedCornerShape(20.dp)
     val dragElevation = with(LocalDensity.current) { 12.dp.toPx() }
 
     Row(
@@ -329,10 +337,9 @@ private fun QueueTrackRow(
                 scaleX = scale
                 scaleY = scale
                 shadowElevation = if (isDragging) dragElevation else 0f
-                this.shape = shape
+                this.shape = dragShape
                 clip = isDragging
             }
-            .clip(shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),

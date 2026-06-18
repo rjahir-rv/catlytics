@@ -1,8 +1,6 @@
 package com.catlytics.app.playback
 
 import android.graphics.Bitmap
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -50,26 +48,25 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.palette.graphics.Palette
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
-import com.catlytics.app.TrackOptionsDropdownMenu
+import com.catlytics.app.ui.sheet.TrackOptionsDropdownMenu
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.animateArtworkGradientColors
+import com.catlytics.core.designsystem.component.extractArtworkGradientColors
+import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
 import java.util.Locale
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -101,35 +98,19 @@ fun NowPlayingScreen(
     val track = playbackState.currentTrack
     val durationMillis = playbackState.durationMillis
     val positionMillis = playbackState.positionMillis
-    val fallbackGradient = rememberFallbackGradient()
+    val fallbackGradient = rememberFallbackArtworkGradientColors()
     var artworkBitmap by remember(track?.artworkUri) { mutableStateOf<Bitmap?>(null) }
     var gradientColors by remember { mutableStateOf(fallbackGradient) }
     var isQueueVisible by remember { mutableStateOf(false) }
     val onDismissQueue = remember { { isQueueVisible = false } }
-    val animatedGradientStart by animateColorAsState(
-        targetValue = gradientColors.start,
-        animationSpec = tween(GRADIENT_ANIMATION_MILLIS),
-        label = "NowPlayingGradientStart",
-    )
-    val animatedGradientCenter by animateColorAsState(
-        targetValue = gradientColors.center,
-        animationSpec = tween(GRADIENT_ANIMATION_MILLIS),
-        label = "NowPlayingGradientCenter",
-    )
-    val animatedGradientEnd by animateColorAsState(
-        targetValue = gradientColors.end,
-        animationSpec = tween(GRADIENT_ANIMATION_MILLIS),
-        label = "NowPlayingGradientEnd",
+    val animatedGradientColors = animateArtworkGradientColors(
+        target = gradientColors,
+        labelPrefix = "NowPlayingGradient",
     )
 
     LaunchedEffect(track?.artworkUri, artworkBitmap, fallbackGradient) {
         gradientColors = artworkBitmap?.let { bitmap ->
-            withContext(Dispatchers.Default) {
-                Palette.from(bitmap)
-                    .maximumColorCount(PALETTE_MAX_COLOR_COUNT)
-                    .generate()
-                    .toGradientColors(fallbackGradient)
-            }
+            bitmap.extractArtworkGradientColors(fallbackGradient)
         } ?: fallbackGradient
     }
 
@@ -137,11 +118,7 @@ fun NowPlayingScreen(
         PlaybackQueueBottomSheet(
             queue = playbackState.queue,
             currentTrackId = track?.id,
-            gradientColors = NowPlayingGradientColors(
-                start = animatedGradientStart,
-                center = animatedGradientCenter,
-                end = animatedGradientEnd,
-            ),
+            gradientColors = animatedGradientColors,
             onDismiss = onDismissQueue,
             onPlayQueueItem = onPlayQueueItem,
             onMoveQueueItem = onMoveQueueItem,
@@ -156,9 +133,9 @@ fun NowPlayingScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
-                        animatedGradientStart,
-                        animatedGradientCenter,
-                        animatedGradientEnd,
+                        animatedGradientColors.start,
+                        animatedGradientColors.center,
+                        animatedGradientColors.end,
                     ),
                 ),
             ),
@@ -485,44 +462,6 @@ private fun NowPlayingArtwork(
     }
 }
 
-@Composable
-private fun rememberFallbackGradient(): NowPlayingGradientColors {
-    val colorScheme = MaterialTheme.colorScheme
-    return remember(
-        colorScheme.surface,
-        colorScheme.surfaceContainer,
-        colorScheme.surfaceContainerHighest,
-    ) {
-        NowPlayingGradientColors(
-            start = colorScheme.surfaceContainerHighest,
-            center = colorScheme.surfaceContainer,
-            end = colorScheme.surface,
-        )
-    }
-}
-
-private fun Palette.toGradientColors(
-    fallback: NowPlayingGradientColors,
-): NowPlayingGradientColors {
-    val dominant = dominantSwatch?.rgb?.let(::Color) ?: fallback.start
-    val vibrant = vibrantSwatch?.rgb?.let(::Color) ?: dominant
-    val muted = mutedSwatch?.rgb?.let(::Color) ?: dominant
-
-    return NowPlayingGradientColors(
-        start = vibrant.blendWith(fallback.start),
-        center = dominant.blendWith(fallback.center),
-        end = muted.blendWith(fallback.end),
-    )
-}
-
-private fun Color.blendWith(surface: Color): Color = lerp(this, surface, GRADIENT_SURFACE_BLEND)
-
-internal data class NowPlayingGradientColors(
-    val start: Color,
-    val center: Color,
-    val end: Color,
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PlaybackProgress(
@@ -634,10 +573,6 @@ private fun PlaybackProgress(
         }
     }
 }
-
-private const val GRADIENT_ANIMATION_MILLIS = 500
-private const val GRADIENT_SURFACE_BLEND = 0.58f
-private const val PALETTE_MAX_COLOR_COUNT = 16
 
 internal fun displayedPositionMillis(
     isSeeking: Boolean,
