@@ -2,22 +2,36 @@ package com.catlytics.feature.library.impl.root
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,30 +39,107 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.Album
+import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.sortedAlbumsByDirection
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun LibraryAlbumGrid(
     albums: List<Album>,
+    state: androidx.compose.foundation.lazy.grid.LazyGridState = rememberLazyGridState(),
+    sortDirection: SortDirection,
+    onSortDirectionChange: (SortDirection) -> Unit,
     onAlbumSelected: (Album) -> Unit,
     onAddToPlaylist: (Album) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 160.dp),
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
-    ) {
-        items(
-            items = albums,
-            key = Album::id,
-        ) { album ->
-            AlbumCard(
-                album = album,
-                onClick = { onAlbumSelected(album) },
-                onAddToPlaylist = { onAddToPlaylist(album) },
-            )
+    // Sort inside the leaf component so that the search-filtered input list stays stable.
+    val sortedAlbums: List<Album> = remember(albums, sortDirection) {
+        albums.sortedAlbumsByDirection(sortDirection)
+    }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun selectSortDirection(direction: SortDirection) {
+        if (direction == sortDirection) {
+            onSortDirectionChange(direction)
+            return
+        }
+        coroutineScope.launch {
+            state.scrollToItem(0)
+            onSortDirectionChange(direction)
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            state = state,
+            columns = GridCells.Adaptive(minSize = 160.dp),
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(start = 20.dp, top = 56.dp, end = 20.dp, bottom = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp),
+        ) {
+            items(
+                items = sortedAlbums,
+                key = { album -> "${sortDirection.name}:${album.id}" },
+            ) { album ->
+                AlbumCard(
+                    album = album,
+                    onClick = { onAlbumSelected(album) },
+                    onAddToPlaylist = { onAddToPlaylist(album) },
+                )
+            }
+        }
+
+        // Sort button using ic_filter, same size as view toggle
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            var expanded by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_filter),
+                        contentDescription = "Ordenar alfabéticamente",
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("A-Z") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_down),
+                                contentDescription = null,
+                                modifier = Modifier.graphicsLayer { rotationZ = 180f }
+                            )
+                        },
+                        onClick = {
+                            selectSortDirection(SortDirection.Ascending)
+                            expanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Z-A") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_down),
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            selectSortDirection(SortDirection.Descending)
+                            expanded = false
+                        }
+                    )
+                }
+            }
         }
     }
 }

@@ -13,6 +13,7 @@ import com.catlytics.feature.playlists.api.PlaylistsRoute
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
 
 fun EntryProviderScope<NavKey>.playlistsEntry(
+    searchQuery: () -> String,
     onDestinationSelected: (NavKey) -> Unit,
     onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
     onPlaylistDetailTopBarColorChange: (Color) -> Unit,
@@ -23,6 +24,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             val viewModel: PlaylistsViewModel = hiltViewModel()
             val playlists by viewModel.playlists.collectAsStateWithLifecycle()
             val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
+            val sortDirection by viewModel.sortDirection.collectAsStateWithLifecycle()
             PlaylistsScreen(
                 playlists = playlists,
                 viewMode = viewMode,
@@ -34,6 +36,9 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
                 onRename = viewModel::rename,
                 onDelete = viewModel::delete,
                 onSetCover = viewModel::setCover,
+                searchQuery = searchQuery(),
+                sortDirection = sortDirection,
+                onSortDirectionChange = viewModel::setSortDirection,
             )
         }
     }

@@ -14,6 +14,10 @@ import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveFolderContentUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibrarySortDirectionUseCase
+import com.catlytics.core.domain.usecase.library.SetLibrarySortDirectionUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistSortDirectionUseCase
+import com.catlytics.core.domain.usecase.playlist.SetPlaylistSortDirectionUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveListeningStatsUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
@@ -89,6 +93,26 @@ object DomainModule {
     fun provideSetPlaylistViewModeUseCase(
         preferencesRepository: LibraryPreferencesRepository,
     ) = SetPlaylistViewModeUseCase(preferencesRepository)
+
+    @Provides
+    fun provideObserveLibrarySortDirectionUseCase(
+        preferencesRepository: LibraryPreferencesRepository,
+    ) = ObserveLibrarySortDirectionUseCase(preferencesRepository)
+
+    @Provides
+    fun provideSetLibrarySortDirectionUseCase(
+        preferencesRepository: LibraryPreferencesRepository,
+    ) = SetLibrarySortDirectionUseCase(preferencesRepository)
+
+    @Provides
+    fun provideObservePlaylistSortDirectionUseCase(
+        preferencesRepository: LibraryPreferencesRepository,
+    ) = ObservePlaylistSortDirectionUseCase(preferencesRepository)
+
+    @Provides
+    fun provideSetPlaylistSortDirectionUseCase(
+        preferencesRepository: LibraryPreferencesRepository,
+    ) = SetPlaylistSortDirectionUseCase(preferencesRepository)
 
     @Provides
     fun provideObserveLibraryUseCase(

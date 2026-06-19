@@ -6,9 +6,11 @@ import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibrarySortDirectionUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.SetLibrarySortDirectionUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.ArtistContent
@@ -17,6 +19,7 @@ import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.LibraryFolderContent
+import com.catlytics.core.model.SortDirection
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -55,6 +58,7 @@ class LibraryViewModelTest {
                 albums = emptyList(),
                 artists = emptyList(),
                 artistViewMode = ArtistViewMode.List,
+                sortDirection = SortDirection.Ascending,
                 folders = listOf(folder),
             ),
             viewModel.uiState.value,
@@ -81,6 +85,7 @@ class LibraryViewModelTest {
                 albums = listOf(album),
                 artists = emptyList(),
                 artistViewMode = ArtistViewMode.List,
+                sortDirection = SortDirection.Ascending,
                 folders = emptyList(),
             ),
             viewModel.uiState.value,
@@ -133,9 +138,11 @@ class LibraryViewModelTest {
         observeArtistsUseCase = ObserveArtistsUseCase(repository),
         observeArtistViewModeUseCase = ObserveArtistViewModeUseCase(preferencesRepository),
         observeLibraryFoldersUseCase = ObserveLibraryFoldersUseCase(repository),
+        observeLibrarySortDirectionUseCase = ObserveLibrarySortDirectionUseCase(preferencesRepository),
         refreshLibraryUseCase = RefreshLibraryUseCase(repository),
         setFolderVisibilityUseCase = SetFolderVisibilityUseCase(repository),
         setArtistViewModeUseCase = SetArtistViewModeUseCase(preferencesRepository),
+        setLibrarySortDirectionUseCase = SetLibrarySortDirectionUseCase(preferencesRepository),
     )
 
     private fun folder() = LibraryFolder(
@@ -186,16 +193,26 @@ private class FakeLibraryRepository : LibraryRepository {
 private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     val artistViewMode = MutableStateFlow(ArtistViewMode.List)
     val playlistViewMode = MutableStateFlow(PlaylistViewMode.List)
+    val librarySortDirection = MutableStateFlow(SortDirection.Ascending)
+    val playlistSortDirection = MutableStateFlow(SortDirection.Ascending)
 
     override fun observeHiddenFolderIds() = MutableStateFlow(emptySet<String>())
     override fun observeArtistViewMode() = artistViewMode
     override fun observePlaylistViewMode() = playlistViewMode
+    override fun observeLibrarySortDirection() = librarySortDirection
+    override fun observePlaylistSortDirection() = playlistSortDirection
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
     override suspend fun setArtistViewMode(viewMode: ArtistViewMode) {
         artistViewMode.value = viewMode
     }
     override suspend fun setPlaylistViewMode(viewMode: PlaylistViewMode) {
         playlistViewMode.value = viewMode
+    }
+    override suspend fun setLibrarySortDirection(direction: SortDirection) {
+        librarySortDirection.value = direction
+    }
+    override suspend fun setPlaylistSortDirection(direction: SortDirection) {
+        playlistSortDirection.value = direction
     }
 }
 

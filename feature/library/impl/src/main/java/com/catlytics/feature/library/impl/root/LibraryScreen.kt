@@ -15,7 +15,11 @@ import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +33,10 @@ import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.filterAlbumsByQuery
+import com.catlytics.feature.library.impl.filterArtistsByQuery
+import com.catlytics.feature.library.impl.filterFoldersByQuery
 import kotlinx.coroutines.launch
 
 @Composable
@@ -42,8 +50,17 @@ internal fun LibraryScreen(
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
+    searchQuery: String = "",
+    sortDirection: SortDirection = SortDirection.Ascending,
+    onSortDirectionChange: (SortDirection) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    // Hoist scroll states (using Saver for better stability across recompositions and sort changes)
+    val albumsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val artistsListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val artistsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val foldersListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+
     if (!hasAudioPermission) {
         PermissionRequiredContent(
             onRequestPermission = onRequestPermission,
@@ -56,23 +73,63 @@ internal fun LibraryScreen(
         LibraryUiState.Loading -> LoadingContent(modifier)
         LibraryUiState.Empty -> EmptyContent(modifier)
         is LibraryUiState.Error -> MessageContent(uiState.message, modifier)
-        is LibraryUiState.Success -> LibraryContent(
-            uiState = uiState,
-            onAlbumSelected = onAlbumSelected,
-            onArtistSelected = onArtistSelected,
-            onArtistViewModeChange = onArtistViewModeChange,
-            onFolderVisibilityChange = onFolderVisibilityChange,
-            onFolderSelected = onFolderSelected,
-            onAddToPlaylist = onAddToPlaylist,
-            modifier = modifier.fillMaxSize(),
-        )
+        is LibraryUiState.Success -> {
+            // Stabilize the base (search-filtered) lists so that only actual search changes cause new list refs.
+            // Sorting will be done inside the leaf list components.
+            val filteredAlbums = remember(uiState.albums, searchQuery) {
+                uiState.albums.filterAlbumsByQuery(searchQuery)
+            }
+            val filteredArtists = remember(uiState.artists, searchQuery) {
+                uiState.artists.filterArtistsByQuery(searchQuery)
+            }
+            val filteredFolders = remember(uiState.folders, searchQuery) {
+                uiState.folders.filterFoldersByQuery(searchQuery)
+            }
+
+            if (searchQuery.isNotBlank() &&
+                filteredAlbums.isEmpty() &&
+                filteredArtists.isEmpty() &&
+                filteredFolders.isEmpty()
+            ) {
+                NoSearchResultsContent(modifier)
+            } else {
+                LibraryContent(
+                    albums = filteredAlbums,
+                    artists = filteredArtists,
+                    artistViewMode = uiState.artistViewMode,
+                    folders = filteredFolders,
+                    sortDirection = sortDirection,
+                    onSortDirectionChange = onSortDirectionChange,
+                    albumsGridState = albumsGridState,
+                    artistsListState = artistsListState,
+                    artistsGridState = artistsGridState,
+                    foldersListState = foldersListState,
+                    onAlbumSelected = onAlbumSelected,
+                    onArtistSelected = onArtistSelected,
+                    onArtistViewModeChange = onArtistViewModeChange,
+                    onFolderVisibilityChange = onFolderVisibilityChange,
+                    onFolderSelected = onFolderSelected,
+                    onAddToPlaylist = onAddToPlaylist,
+                    modifier = modifier.fillMaxSize(),
+                )
+            }
+        }
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 private fun LibraryContent(
-    uiState: LibraryUiState.Success,
+    albums: List<Album>,
+    artists: List<ArtistSummary>,
+    artistViewMode: ArtistViewMode,
+    folders: List<LibraryFolder>,
+    sortDirection: SortDirection,
+    onSortDirectionChange: (SortDirection) -> Unit,
+    albumsGridState: LazyGridState,
+    artistsListState: LazyListState,
+    artistsGridState: LazyGridState,
+    foldersListState: LazyListState,
     onAlbumSelected: (Album) -> Unit,
     onArtistSelected: (ArtistSummary) -> Unit,
     onArtistViewModeChange: (ArtistViewMode) -> Unit,
@@ -119,21 +176,31 @@ private fun LibraryContent(
         ) { page ->
             when (LibrarySection.entries[page]) {
                 LibrarySection.Albums -> LibraryAlbumGrid(
-                    albums = uiState.albums,
+                    albums = albums,
+                    state = albumsGridState,
+                    sortDirection = sortDirection,
+                    onSortDirectionChange = onSortDirectionChange,
                     onAlbumSelected = onAlbumSelected,
                     onAddToPlaylist = { onAddToPlaylist(PlaylistSource.AlbumSource(it.id)) },
                 )
                 LibrarySection.Artists -> LibraryArtistCollection(
-                    artists = uiState.artists,
-                    viewMode = uiState.artistViewMode,
+                    artists = artists,
+                    viewMode = artistViewMode,
                     onViewModeChange = onArtistViewModeChange,
+                    sortDirection = sortDirection,
+                    onSortDirectionChange = onSortDirectionChange,
+                    listState = artistsListState,
+                    gridState = artistsGridState,
                     onArtistSelected = onArtistSelected,
                     onAddToPlaylist = {
                         onAddToPlaylist(PlaylistSource.ArtistSource(it.artist.id))
                     },
                 )
                 LibrarySection.Folders -> LibraryFolderList(
-                    folders = uiState.folders,
+                    folders = folders,
+                    state = foldersListState,
+                    sortDirection = sortDirection,
+                    onSortDirectionChange = onSortDirectionChange,
                     onFolderVisibilityChange = onFolderVisibilityChange,
                     onFolderSelected = onFolderSelected,
                     onAddToPlaylist = { onAddToPlaylist(PlaylistSource.FolderSource(it.id)) },
@@ -205,6 +272,24 @@ private fun MessageContent(
     }
 }
 
+@Composable
+private fun NoSearchResultsContent(
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "No encontramos álbumes ni artistas que coincidan con tu búsqueda.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
 @Preview(name = "Phone", widthDp = 390, heightDp = 844, showBackground = true)
 @Preview(name = "Tablet", widthDp = 800, heightDp = 1280, showBackground = true)
 @Composable
@@ -228,6 +313,7 @@ private fun LibraryScreenPreview() {
                     ),
                 ),
                 artistViewMode = ArtistViewMode.List,
+                sortDirection = SortDirection.Ascending,
                 folders = listOf(
                     LibraryFolder(
                         id = "external:Music",
@@ -253,6 +339,9 @@ private fun LibraryScreenPreview() {
             onFolderVisibilityChange = { _, _ -> },
             onFolderSelected = {},
             onAddToPlaylist = {},
+            searchQuery = "",
+            sortDirection = SortDirection.Ascending,
+            onSortDirectionChange = {},
         )
     }
 }

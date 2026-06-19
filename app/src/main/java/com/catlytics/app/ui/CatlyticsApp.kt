@@ -22,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -69,6 +68,7 @@ import com.catlytics.feature.library.api.LibraryArtistRoute
 import com.catlytics.feature.library.api.LibraryFolderRoute
 import com.catlytics.feature.library.impl.navigation.libraryEntry
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
+import com.catlytics.feature.playlists.api.PlaylistsRoute
 import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.settings.impl.settingsEntry
@@ -89,6 +89,10 @@ fun CatlyticsApp(
     val searchFocusRequester = remember { FocusRequester() }
     var isHomeSearchExpanded by rememberSaveable { mutableStateOf(false) }
     var homeSearchQuery by rememberSaveable { mutableStateOf("") }
+    var isLibrarySearchExpanded by rememberSaveable { mutableStateOf(false) }
+    var librarySearchQuery by rememberSaveable { mutableStateOf("") }
+    var isPlaylistsSearchExpanded by rememberSaveable { mutableStateOf(false) }
+    var playlistsSearchQuery by rememberSaveable { mutableStateOf("") }
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
@@ -103,6 +107,9 @@ fun CatlyticsApp(
     val isCurrentTrackLiked by playbackViewModel.isCurrentTrackLiked.collectAsStateWithLifecycle()
     val likedTrackIds by playbackViewModel.likedTrackIds.collectAsStateWithLifecycle()
     val currentRoute = topLevelBackStack.backStack.lastOrNull()
+    val isOnHomeRoot = currentRoute == HomeRoute
+    val isOnLibraryRoot = currentRoute == LibraryRoute
+    val isOnPlaylistsRoot = currentRoute == PlaylistsRoute
     val currentTopLevelDestination = TopLevelDestination.entries
         .firstOrNull { it.route == currentRoute }
     val selectedTopLevelDestination = when (currentRoute) {
@@ -127,6 +134,20 @@ fun CatlyticsApp(
     fun closeHomeSearch() {
         homeSearchQuery = ""
         isHomeSearchExpanded = false
+        focusManager.clearFocus()
+        keyboardController?.hide()
+    }
+
+    fun closeLibrarySearch() {
+        librarySearchQuery = ""
+        isLibrarySearchExpanded = false
+        focusManager.clearFocus()
+        keyboardController?.hide()
+    }
+
+    fun closePlaylistsSearch() {
+        playlistsSearchQuery = ""
+        isPlaylistsSearchExpanded = false
         focusManager.clearFocus()
         keyboardController?.hide()
     }
@@ -195,12 +216,18 @@ fun CatlyticsApp(
         }
     }
 
-    BackHandler(enabled = currentRoute == HomeRoute && isHomeSearchExpanded) {
-        closeHomeSearch()
+    BackHandler(enabled = (isOnHomeRoot && isHomeSearchExpanded) || (isOnLibraryRoot && isLibrarySearchExpanded) || (isOnPlaylistsRoot && isPlaylistsSearchExpanded)) {
+        if (isOnHomeRoot && isHomeSearchExpanded) {
+            closeHomeSearch()
+        } else if (isOnLibraryRoot && isLibrarySearchExpanded) {
+            closeLibrarySearch()
+        } else if (isOnPlaylistsRoot && isPlaylistsSearchExpanded) {
+            closePlaylistsSearch()
+        }
     }
 
-    LaunchedEffect(isHomeSearchExpanded) {
-        if (isHomeSearchExpanded) {
+    LaunchedEffect(isHomeSearchExpanded, isLibrarySearchExpanded, isPlaylistsSearchExpanded) {
+        if (isHomeSearchExpanded || isLibrarySearchExpanded || isPlaylistsSearchExpanded) {
             searchFocusRequester.requestFocus()
             keyboardController?.show()
         }
@@ -209,6 +236,12 @@ fun CatlyticsApp(
     LaunchedEffect(currentRoute) {
         if (currentRoute != HomeRoute && isHomeSearchExpanded) {
             closeHomeSearch()
+        }
+        if (currentRoute != LibraryRoute && isLibrarySearchExpanded) {
+            closeLibrarySearch()
+        }
+        if (currentRoute != PlaylistsRoute && isPlaylistsSearchExpanded) {
+            closePlaylistsSearch()
         }
     }
 
@@ -258,20 +291,63 @@ fun CatlyticsApp(
                     )
                 }
                 currentTopLevelDestination != null -> {
+                    val supportsSearch = isOnHomeRoot || isOnLibraryRoot || isOnPlaylistsRoot
+                    val isSearchExpanded = when {
+                        isOnHomeRoot -> isHomeSearchExpanded
+                        isOnLibraryRoot -> isLibrarySearchExpanded
+                        isOnPlaylistsRoot -> isPlaylistsSearchExpanded
+                        else -> false
+                    }
+                    val currentSearchQuery = when {
+                        isOnHomeRoot -> homeSearchQuery
+                        isOnLibraryRoot -> librarySearchQuery
+                        isOnPlaylistsRoot -> playlistsSearchQuery
+                        else -> ""
+                    }
+                    val searchPlaceholder = when {
+                        isOnHomeRoot -> "Buscar canciones"
+                        isOnLibraryRoot -> "Buscar álbumes o artistas"
+                        isOnPlaylistsRoot -> "Buscar playlists"
+                        else -> "Buscar"
+                    }
+
                     TopLevelTopAppBar(
                         title = currentTopLevelDestination.label,
-                        isHome = currentRoute == HomeRoute,
-                        isSearchExpanded = isHomeSearchExpanded,
-                        searchQuery = homeSearchQuery,
+                        supportsSearch = supportsSearch,
+                        isSearchExpanded = isSearchExpanded,
+                        searchQuery = currentSearchQuery,
                         searchFocusRequester = searchFocusRequester,
-                        onSearchQueryChange = { homeSearchQuery = it },
-                        onSearchActionClick = {
-                            if (isHomeSearchExpanded) {
-                                closeHomeSearch()
-                            } else {
-                                isHomeSearchExpanded = true
+                        onSearchQueryChange = { newValue ->
+                            if (isOnHomeRoot) {
+                                homeSearchQuery = newValue
+                            } else if (isOnLibraryRoot) {
+                                librarySearchQuery = newValue
+                            } else if (isOnPlaylistsRoot) {
+                                playlistsSearchQuery = newValue
                             }
                         },
+                        onSearchActionClick = {
+                            if (isOnHomeRoot) {
+                                if (isHomeSearchExpanded) {
+                                    closeHomeSearch()
+                                } else {
+                                    isHomeSearchExpanded = true
+                                }
+                            } else if (isOnLibraryRoot) {
+                                if (isLibrarySearchExpanded) {
+                                    closeLibrarySearch()
+                                } else {
+                                    isLibrarySearchExpanded = true
+                                }
+                            } else if (isOnPlaylistsRoot) {
+                                if (isPlaylistsSearchExpanded) {
+                                    closePlaylistsSearch()
+                                } else {
+                                    isPlaylistsSearchExpanded = true
+                                }
+                            }
+                        },
+                        searchPlaceholder = searchPlaceholder,
                         onSettingsClick = ::openSettings,
                     )
                 }
@@ -343,9 +419,8 @@ fun CatlyticsApp(
         SideEffect {
             contentPaddingState.value = regularNavigationContentPadding
         }
-        val regularContentModifier = androidx.compose.ui.Modifier.composed {
-            androidx.compose.ui.Modifier.padding(contentPaddingState.value)
-        }
+        val regularContentModifier = Modifier.padding(contentPaddingState.value)
+
 
         SideEffect {
             if (!isNowPlayingVisible) {
@@ -375,12 +450,14 @@ fun CatlyticsApp(
                         contentModifier = regularContentModifier,
                     )
                     libraryEntry(
+                        searchQuery = { librarySearchQuery },
                         onDestinationSelected = topLevelBackStack::add,
                         onAddToPlaylist = ::openAddToPlaylist,
                         onTrackOptions = { track -> openTrackOptions(track) },
                         contentModifier = regularContentModifier,
                     )
                     playlistsEntry(
+                        searchQuery = { playlistsSearchQuery },
                         onDestinationSelected = topLevelBackStack::add,
                         onTrackOptions = { track, onRemoveFromPlaylist ->
                             openTrackOptions(track, onRemoveFromPlaylist)

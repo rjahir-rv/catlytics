@@ -32,13 +32,16 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +53,10 @@ import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistViewMode
+import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.playlists.impl.filterByQuery
+import com.catlytics.feature.playlists.impl.sortedByDirection
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun PlaylistsScreen(
@@ -61,6 +68,9 @@ internal fun PlaylistsScreen(
     onRename: (String, String) -> Unit,
     onDelete: (String) -> Unit,
     onSetCover: (String, String?) -> Unit,
+    searchQuery: String = "",
+    sortDirection: SortDirection = SortDirection.Ascending,
+    onSortDirectionChange: (SortDirection) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     var editor by remember { mutableStateOf<Playlist?>(null) }
@@ -85,13 +95,44 @@ internal fun PlaylistsScreen(
         )
     }
 
+    // Only search filter at this level. Sorting happens inside the list/mosaic components
+    // so that the input list reference stays stable when only sortDirection changes.
+    val filteredPlaylists = remember(playlists, searchQuery) {
+        playlists.filterByQuery(searchQuery)
+    }
+
+    // Hoist scroll states (Saver for stability)
+    val listState = rememberSaveable(saver = androidx.compose.foundation.lazy.LazyListState.Saver) { androidx.compose.foundation.lazy.LazyListState() }
+    val mosaicState = rememberSaveable(saver = androidx.compose.foundation.lazy.grid.LazyGridState.Saver) { androidx.compose.foundation.lazy.grid.LazyGridState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun selectSortDirection(direction: SortDirection) {
+        if (direction == sortDirection) {
+            onSortDirectionChange(direction)
+            return
+        }
+        coroutineScope.launch {
+            when (viewMode) {
+                PlaylistViewMode.List -> listState.scrollToItem(0)
+                PlaylistViewMode.Mosaic -> mosaicState.scrollToItem(0)
+            }
+            onSortDirectionChange(direction)
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
-        if (playlists.isEmpty()) {
-            EmptyPlaylistsContent(modifier = Modifier.align(Alignment.Center))
+        if (filteredPlaylists.isEmpty()) {
+            if (searchQuery.isNotBlank()) {
+                NoSearchResultsContent(modifier = Modifier.align(Alignment.Center))
+            } else {
+                EmptyPlaylistsContent(modifier = Modifier.align(Alignment.Center))
+            }
         } else {
             when (viewMode) {
                 PlaylistViewMode.List -> PlaylistList(
-                    playlists = playlists,
+                    playlists = filteredPlaylists,
+                    sortDirection = sortDirection,
+                    state = listState,
                     onClick = onPlaylistSelected,
                     onRename = { editor = it },
                     onDelete = { deleting = it },
@@ -100,7 +141,9 @@ internal fun PlaylistsScreen(
                     modifier = Modifier.fillMaxSize(),
                 )
                 PlaylistViewMode.Mosaic -> PlaylistMosaic(
-                    playlists = playlists,
+                    playlists = filteredPlaylists,
+                    sortDirection = sortDirection,
+                    state = mosaicState,
                     onClick = onPlaylistSelected,
                     onRename = { editor = it },
                     onDelete = { deleting = it },
@@ -111,14 +154,55 @@ internal fun PlaylistsScreen(
             }
         }
 
-        // View mode toggle (top-end, like artists)
+        // View mode + sort toggles (same level as artists)
         Row(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .fillMaxWidth()
                 .padding(start = 12.dp, top = 8.dp, end = 12.dp),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            var expanded by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_filter),
+                        contentDescription = "Ordenar alfabéticamente",
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("A-Z") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_down),
+                                contentDescription = null,
+                                modifier = Modifier.graphicsLayer { rotationZ = 180f }
+                            )
+                        },
+                        onClick = {
+                            selectSortDirection(SortDirection.Ascending)
+                            expanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Z-A") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_down),
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            selectSortDirection(SortDirection.Descending)
+                            expanded = false
+                        }
+                    )
+                }
+            }
             IconButton(
                 onClick = {
                     onViewModeChange(
@@ -178,6 +262,8 @@ internal fun PlaylistsScreen(
 @Composable
 private fun PlaylistList(
     playlists: List<Playlist>,
+    sortDirection: SortDirection,
+    state: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
     onClick: (Playlist) -> Unit,
     onRename: (Playlist) -> Unit,
     onDelete: (Playlist) -> Unit,
@@ -185,7 +271,12 @@ private fun PlaylistList(
     onClearCover: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val sorted: List<Playlist> = remember(playlists, sortDirection) {
+        playlists.sortedByDirection(sortDirection)
+    }
+
     LazyColumn(
+        state = state,
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
@@ -195,7 +286,7 @@ private fun PlaylistList(
         ),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
-        items(playlists, key = Playlist::id) { playlist ->
+        items(sorted, key = { playlist -> "${sortDirection.name}:${playlist.id}" }) { playlist ->
             PlaylistListRow(
                 playlist = playlist,
                 onClick = { onClick(playlist) },
@@ -268,6 +359,8 @@ private fun PlaylistListRow(
 @Composable
 private fun PlaylistMosaic(
     playlists: List<Playlist>,
+    sortDirection: SortDirection,
+    state: androidx.compose.foundation.lazy.grid.LazyGridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState(),
     onClick: (Playlist) -> Unit,
     onRename: (Playlist) -> Unit,
     onDelete: (Playlist) -> Unit,
@@ -275,7 +368,12 @@ private fun PlaylistMosaic(
     onClearCover: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val sorted: List<Playlist> = remember(playlists, sortDirection) {
+        playlists.sortedByDirection(sortDirection)
+    }
+
     LazyVerticalGrid(
+        state = state,
         columns = GridCells.Adaptive(minSize = 160.dp),
         modifier = modifier,
         contentPadding = PaddingValues(
@@ -287,7 +385,7 @@ private fun PlaylistMosaic(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        items(playlists, key = Playlist::id) { playlist ->
+        items(sorted, key = { playlist -> "${sortDirection.name}:${playlist.id}" }) { playlist ->
             PlaylistMosaicCard(
                 playlist = playlist,
                 onClick = { onClick(playlist) },
@@ -446,6 +544,29 @@ private fun EmptyPlaylistsContent(
 }
 
 @Composable
+private fun NoSearchResultsContent(
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.padding(horizontal = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_playlist),
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            text = "No encontramos playlists que coincidan con tu búsqueda.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}
+
+@Composable
 internal fun NameDialog(
     title: String,
     initialName: String,
@@ -490,6 +611,9 @@ private fun PlaylistsScreenListPreview() {
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },
+            searchQuery = "",
+            sortDirection = SortDirection.Ascending,
+            onSortDirectionChange = {},
         )
     }
 }
@@ -510,6 +634,9 @@ private fun PlaylistsScreenMosaicPreview() {
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },
+            searchQuery = "",
+            sortDirection = SortDirection.Ascending,
+            onSortDirectionChange = {},
         )
     }
 }
@@ -527,6 +654,9 @@ private fun PlaylistsScreenEmptyPreview() {
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },
+            searchQuery = "",
+            sortDirection = SortDirection.Ascending,
+            onSortDirectionChange = {},
         )
     }
 }

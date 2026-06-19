@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -61,9 +62,9 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 internal fun HomeRoute(
     searchQuery: String,
-    onTrackOptions: (Track) -> Unit,
-    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
     modifier: Modifier = Modifier,
+    onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -117,6 +118,7 @@ internal fun HomeRoute(
 
 @Composable
 internal fun HomeScreen(
+    modifier: Modifier = Modifier,
     uiState: HomeUiState,
     searchQuery: String,
     hasAudioPermission: Boolean,
@@ -124,8 +126,8 @@ internal fun HomeScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
     bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
-    onAddToLiked: (Track) -> Unit,
-    modifier: Modifier = Modifier,
+    onAddToLiked: (Track) -> Unit
+,
 ) {
     val trackListState = rememberSaveable(saver = LazyListState.Saver) {
         LazyListState()

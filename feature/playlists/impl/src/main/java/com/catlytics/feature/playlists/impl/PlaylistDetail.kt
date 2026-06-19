@@ -202,9 +202,7 @@ private fun PlaylistDetailScreen(
     }
 
     LaunchedEffect(content.playlist.artworkUri, artworkBitmap, fallbackGradient) {
-        gradientColors = artworkBitmap?.let { bitmap ->
-            bitmap.extractArtworkGradientColors(fallbackGradient)
-        } ?: fallbackGradient
+        gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
     }
 
     Box(

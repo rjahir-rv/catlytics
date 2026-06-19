@@ -193,7 +193,23 @@ class Media3PlaybackController @Inject constructor(
     override suspend fun seekTo(positionMillis: Long) {
         withController { controller ->
             controller.seekTo(positionMillis)
-            updatePlaybackState(controller, forcePersist = true)
+
+            // Only patch position fields. Calling updatePlaybackState here would re-derive
+            // status from potentially transient player state (e.g. brief !playWhenReady or
+            // internal buffering during seek), causing the NowPlaying play/pause icon to flicker.
+            // Listeners will deliver the authoritative state shortly after via onEvents.
+            val current = _playbackState.value
+            val newPos = controller.currentPosition.coerceAtLeast(0L)
+            val newBuffered = controller.bufferedPosition.coerceAtLeast(0L)
+            val newDur = controller.duration.takeIf { it > 0L } ?: current.durationMillis
+
+            val patched = current.copy(
+                positionMillis = newPos,
+                bufferedPositionMillis = newBuffered,
+                durationMillis = newDur,
+            )
+            _playbackState.value = patched
+            persistPlaybackSession(patched, force = true)
         }
     }
 

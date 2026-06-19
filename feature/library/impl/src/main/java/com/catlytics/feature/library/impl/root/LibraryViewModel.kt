@@ -6,10 +6,13 @@ import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibrarySortDirectionUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.SetLibrarySortDirectionUseCase
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.SortDirection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,9 +30,11 @@ internal class LibraryViewModel @Inject constructor(
     observeArtistsUseCase: ObserveArtistsUseCase,
     observeArtistViewModeUseCase: ObserveArtistViewModeUseCase,
     observeLibraryFoldersUseCase: ObserveLibraryFoldersUseCase,
+    observeLibrarySortDirectionUseCase: ObserveLibrarySortDirectionUseCase,
     private val refreshLibraryUseCase: RefreshLibraryUseCase,
     private val setFolderVisibilityUseCase: SetFolderVisibilityUseCase,
     private val setArtistViewModeUseCase: SetArtistViewModeUseCase,
+    private val setLibrarySortDirectionUseCase: SetLibrarySortDirectionUseCase,
 ) : ViewModel() {
     private val refreshError = MutableStateFlow<String?>(null)
     private val isRefreshing = MutableStateFlow(false)
@@ -40,11 +45,13 @@ internal class LibraryViewModel @Inject constructor(
         observeArtistsUseCase().catch { emit(emptyList()) },
         observeArtistViewModeUseCase().catch { emit(ArtistViewMode.List) },
         observeLibraryFoldersUseCase().catch { emit(emptyList()) },
-    ) { albums, artists, artistViewMode, folders ->
+        observeLibrarySortDirectionUseCase().catch { emit(SortDirection.Ascending) },
+    ) { albums, artists, artistViewMode, folders, sortDirection ->
         LibraryContent(
             albums = albums,
             artists = artists,
             artistViewMode = artistViewMode,
+            sortDirection = sortDirection,
             folders = folders,
         )
     }
@@ -64,6 +71,7 @@ internal class LibraryViewModel @Inject constructor(
                 albums = content.albums,
                 artists = content.artists,
                 artistViewMode = content.artistViewMode,
+                sortDirection = content.sortDirection,
                 folders = content.folders,
             )
         }
@@ -102,11 +110,18 @@ internal class LibraryViewModel @Inject constructor(
             setArtistViewModeUseCase(viewMode)
         }
     }
+
+    fun setSortDirection(direction: SortDirection) {
+        viewModelScope.launch {
+            setLibrarySortDirectionUseCase(direction)
+        }
+    }
 }
 
 private data class LibraryContent(
     val albums: List<com.catlytics.core.model.Album>,
     val artists: List<com.catlytics.core.model.ArtistSummary>,
     val artistViewMode: ArtistViewMode,
+    val sortDirection: SortDirection,
     val folders: List<com.catlytics.core.model.LibraryFolder>,
 )

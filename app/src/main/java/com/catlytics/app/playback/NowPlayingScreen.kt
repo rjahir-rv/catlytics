@@ -109,9 +109,7 @@ fun NowPlayingScreen(
     )
 
     LaunchedEffect(track?.artworkUri, artworkBitmap, fallbackGradient) {
-        gradientColors = artworkBitmap?.let { bitmap ->
-            bitmap.extractArtworkGradientColors(fallbackGradient)
-        } ?: fallbackGradient
+        gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
     }
 
     if (isQueueVisible) {

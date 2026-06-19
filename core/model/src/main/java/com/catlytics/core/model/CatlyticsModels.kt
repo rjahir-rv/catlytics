@@ -28,6 +28,11 @@ enum class PlaylistViewMode {
     Mosaic,
 }
 
+enum class SortDirection {
+    Ascending,
+    Descending,
+}
+
 data class Album(
     val id: String,
     val title: String,

@@ -47,7 +47,7 @@ private fun Player.toPlaybackStatus(): PlaybackStatus = when {
     playbackState == Player.STATE_BUFFERING -> PlaybackStatus.Buffering
     playbackState == Player.STATE_ENDED -> PlaybackStatus.Ended
     playbackState == Player.STATE_IDLE -> PlaybackStatus.Idle
-    isPlaying -> PlaybackStatus.Playing
+    playWhenReady -> PlaybackStatus.Playing
     else -> PlaybackStatus.Paused
 }
 

@@ -12,19 +12,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,25 +45,56 @@ import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.sortedArtistsByDirection
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun LibraryArtistCollection(
     artists: List<ArtistSummary>,
     viewMode: ArtistViewMode,
     onViewModeChange: (ArtistViewMode) -> Unit,
+    sortDirection: SortDirection,
+    onSortDirectionChange: (SortDirection) -> Unit,
+    listState: LazyListState = rememberLazyListState(),
+    gridState: LazyGridState = rememberLazyGridState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // Sort inside so the input list is stable on sort-only changes.
+    val sortedArtists: List<ArtistSummary> = remember(artists, sortDirection) {
+        artists.sortedArtistsByDirection(sortDirection)
+    }
+    val coroutineScope = rememberCoroutineScope()
+
+    fun selectSortDirection(direction: SortDirection) {
+        if (direction == sortDirection) {
+            onSortDirectionChange(direction)
+            return
+        }
+        coroutineScope.launch {
+            when (viewMode) {
+                ArtistViewMode.List -> listState.scrollToItem(0)
+                ArtistViewMode.Grid -> gridState.scrollToItem(0)
+            }
+            onSortDirectionChange(direction)
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         when (viewMode) {
             ArtistViewMode.List -> ArtistList(
-                artists = artists,
+                artists = sortedArtists,
+                sortDirection = sortDirection,
+                state = listState,
                 onArtistSelected = onArtistSelected,
                 onAddToPlaylist = onAddToPlaylist,
             )
             ArtistViewMode.Grid -> ArtistGrid(
-                artists = artists,
+                artists = sortedArtists,
+                sortDirection = sortDirection,
+                state = gridState,
                 onArtistSelected = onArtistSelected,
                 onAddToPlaylist = onAddToPlaylist,
             )
@@ -62,8 +105,50 @@ internal fun LibraryArtistCollection(
                 .align(Alignment.TopEnd)
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp),
-            horizontalArrangement = Arrangement.End,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            // Sort button using ic_filter (same size as view toggle)
+            var expanded by remember { mutableStateOf(false) }
+            Box {
+                IconButton(onClick = { expanded = true }) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_filter),
+                        contentDescription = "Ordenar alfabéticamente",
+                    )
+                }
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("A-Z") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_down),
+                                contentDescription = null,
+                                modifier = Modifier.graphicsLayer { rotationZ = 180f }
+                            )
+                        },
+                        onClick = {
+                            selectSortDirection(SortDirection.Ascending)
+                            expanded = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Z-A") },
+                        leadingIcon = {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_arrow_down),
+                                contentDescription = null,
+                            )
+                        },
+                        onClick = {
+                            selectSortDirection(SortDirection.Descending)
+                            expanded = false
+                        }
+                    )
+                }
+            }
             IconButton(
                 onClick = {
                     onViewModeChange(
@@ -91,11 +176,14 @@ internal fun LibraryArtistCollection(
 @Composable
 private fun ArtistList(
     artists: List<ArtistSummary>,
+    sortDirection: SortDirection,
+    state: LazyListState = rememberLazyListState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
+        state = state,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
@@ -105,7 +193,7 @@ private fun ArtistList(
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        items(items = artists, key = { it.artist.id }) { artist ->
+        items(items = artists, key = { artist -> "${sortDirection.name}:${artist.artist.id}" }) { artist ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -133,11 +221,14 @@ private fun ArtistList(
 @Composable
 private fun ArtistGrid(
     artists: List<ArtistSummary>,
+    sortDirection: SortDirection,
+    state: LazyGridState = rememberLazyGridState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
+        state = state,
         columns = GridCells.Adaptive(minSize = 144.dp),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -149,7 +240,7 @@ private fun ArtistGrid(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        items(items = artists, key = { it.artist.id }) { artist ->
+        items(items = artists, key = { artist -> "${sortDirection.name}:${artist.artist.id}" }) { artist ->
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

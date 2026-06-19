@@ -16,6 +16,7 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 
 fun EntryProviderScope<NavKey>.libraryEntry(
+    searchQuery: () -> String,
     onDestinationSelected: (NavKey) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
@@ -24,6 +25,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     entry<LibraryRoute> {
         Box(modifier = contentModifier) {
             LibraryRootRoute(
+                searchQuery = searchQuery(),
                 onAlbumSelected = { album ->
                     onDestinationSelected(LibraryAlbumDestination(album.id, album.title))
                 },

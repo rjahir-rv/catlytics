@@ -11,6 +11,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.PlaylistViewMode
+import com.catlytics.core.model.SortDirection
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import javax.inject.Inject
@@ -87,9 +88,49 @@ class DataStoreLibraryPreferencesRepository internal constructor(
                 ?: PlaylistViewMode.List
         }
 
+    override fun observeLibrarySortDirection(): Flow<SortDirection> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { preferences ->
+            preferences[LIBRARY_SORT_DIRECTION]
+                ?.let { stored -> SortDirection.entries.firstOrNull { it.name == stored } }
+                ?: SortDirection.Ascending
+        }
+
+    override fun observePlaylistSortDirection(): Flow<SortDirection> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { preferences ->
+            preferences[PLAYLIST_SORT_DIRECTION]
+                ?.let { stored -> SortDirection.entries.firstOrNull { it.name == stored } }
+                ?: SortDirection.Ascending
+        }
+
     override suspend fun setPlaylistViewMode(viewMode: PlaylistViewMode) {
         dataStore.edit { preferences ->
             preferences[PLAYLIST_VIEW_MODE] = viewMode.name
+        }
+    }
+
+    override suspend fun setLibrarySortDirection(direction: SortDirection) {
+        dataStore.edit { preferences ->
+            preferences[LIBRARY_SORT_DIRECTION] = direction.name
+        }
+    }
+
+    override suspend fun setPlaylistSortDirection(direction: SortDirection) {
+        dataStore.edit { preferences ->
+            preferences[PLAYLIST_SORT_DIRECTION] = direction.name
         }
     }
 
@@ -97,5 +138,7 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         val HIDDEN_FOLDER_IDS = stringSetPreferencesKey("hidden_folder_ids")
         val ARTIST_VIEW_MODE = stringPreferencesKey("artist_view_mode")
         val PLAYLIST_VIEW_MODE = stringPreferencesKey("playlist_view_mode")
+        val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")
+        val PLAYLIST_SORT_DIRECTION = stringPreferencesKey("playlist_sort_direction")
     }
 }

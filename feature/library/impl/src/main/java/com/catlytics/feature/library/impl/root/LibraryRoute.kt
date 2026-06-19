@@ -14,13 +14,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.root.LibraryUiState
 
 @Composable
 internal fun LibraryRoute(
+    searchQuery: String = "",
     onAlbumSelected: (Album) -> Unit,
     onArtistSelected: (ArtistSummary) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
@@ -60,6 +63,9 @@ internal fun LibraryRoute(
         onFolderVisibilityChange = viewModel::setFolderVisible,
         onFolderSelected = onFolderSelected,
         onAddToPlaylist = onAddToPlaylist,
+        searchQuery = searchQuery,
+        sortDirection = (uiState as? LibraryUiState.Success)?.sortDirection ?: SortDirection.Ascending,
+        onSortDirectionChange = viewModel::setSortDirection,
     )
 }
 

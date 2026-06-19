@@ -18,24 +18,25 @@ import com.catlytics.core.designsystem.component.CatlyticsTopAppBar
 @Composable
 internal fun TopLevelTopAppBar(
     title: String,
-    isHome: Boolean,
+    supportsSearch: Boolean,
     isSearchExpanded: Boolean,
     searchQuery: String,
     searchFocusRequester: FocusRequester,
     onSearchQueryChange: (String) -> Unit,
     onSearchActionClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    searchPlaceholder: String = "Buscar",
     containerColor: Color? = null,
 ) {
     CatlyticsTopAppBar(
         containerColor = containerColor,
         title = {
-            if (isHome && isSearchExpanded) {
+            if (supportsSearch && isSearchExpanded) {
                 TextField(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
                     modifier = Modifier.focusRequester(searchFocusRequester),
-                    placeholder = { Text("Buscar canciones") },
+                    placeholder = { Text(searchPlaceholder) },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -49,7 +50,7 @@ internal fun TopLevelTopAppBar(
             }
         },
         actions = {
-            if (isHome) {
+            if (supportsSearch) {
                 IconButton(onClick = onSearchActionClick) {
                     Icon(
                         painter = painterResource(
@@ -62,7 +63,7 @@ internal fun TopLevelTopAppBar(
                         contentDescription = if (isSearchExpanded) {
                             "Cerrar búsqueda"
                         } else {
-                            "Buscar canciones"
+                            searchPlaceholder
                         },
                     )
                 }
