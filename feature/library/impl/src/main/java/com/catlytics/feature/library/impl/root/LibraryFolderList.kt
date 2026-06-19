@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.LibraryFolder
@@ -52,7 +53,8 @@ internal fun LibraryFolderList(
     onSortDirectionChange: (SortDirection) -> Unit,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
-    onAddToPlaylist: (LibraryFolder) -> Unit
+    onAddToPlaylist: (LibraryFolder) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
 ) {
     // Sort inside the leaf so the passed list (search filtered) is stable when only sort changes.
     val sortedFolders: List<LibraryFolder> = remember(folders, sortDirection) {
@@ -75,7 +77,12 @@ internal fun LibraryFolderList(
         LazyColumn(
             state = state,
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 20.dp, top = 56.dp, end = 20.dp, bottom = 16.dp),
+            contentPadding = PaddingValues(
+                start = 20.dp,
+                top = 56.dp,
+                end = 20.dp,
+                bottom = bottomPadding() + 16.dp,
+            ),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
         item {

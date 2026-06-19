@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
@@ -53,7 +54,8 @@ internal fun LibraryScreen(
     onAddToPlaylist: (PlaylistSource) -> Unit,
     searchQuery: String = "",
     sortDirection: SortDirection = SortDirection.Ascending,
-    onSortDirectionChange: (SortDirection) -> Unit = {}
+    onSortDirectionChange: (SortDirection) -> Unit = {},
+    bottomPadding: () -> Dp = { 0.dp },
 ) {
     // Hoist scroll states (using Saver for better stability across recompositions and sort changes)
     val albumsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
@@ -110,6 +112,7 @@ internal fun LibraryScreen(
                     onFolderVisibilityChange = onFolderVisibilityChange,
                     onFolderSelected = onFolderSelected,
                     onAddToPlaylist = onAddToPlaylist,
+                    bottomPadding = bottomPadding,
                     modifier = modifier.fillMaxSize(),
                 )
             }
@@ -136,6 +139,7 @@ private fun LibraryContent(
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
+    bottomPadding: () -> Dp,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { LibrarySection.entries.size })
@@ -182,6 +186,7 @@ private fun LibraryContent(
                     onSortDirectionChange = onSortDirectionChange,
                     onAlbumSelected = onAlbumSelected,
                     onAddToPlaylist = { onAddToPlaylist(PlaylistSource.AlbumSource(it.id)) },
+                    bottomPadding = bottomPadding,
                 )
                 LibrarySection.Artists -> LibraryArtistCollection(
                     artists = artists,
@@ -195,6 +200,7 @@ private fun LibraryContent(
                     onAddToPlaylist = {
                         onAddToPlaylist(PlaylistSource.ArtistSource(it.artist.id))
                     },
+                    bottomPadding = bottomPadding,
                 )
                 LibrarySection.Folders -> LibraryFolderList(
                     folders = folders,
@@ -204,6 +210,7 @@ private fun LibraryContent(
                     onFolderVisibilityChange = onFolderVisibilityChange,
                     onFolderSelected = onFolderSelected,
                     onAddToPlaylist = { onAddToPlaylist(PlaylistSource.FolderSource(it.id)) },
+                    bottomPadding = bottomPadding,
                 )
             }
         }

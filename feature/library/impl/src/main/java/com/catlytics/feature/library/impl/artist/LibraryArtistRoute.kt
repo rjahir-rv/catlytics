@@ -9,6 +9,8 @@ import com.catlytics.core.model.Album
 import com.catlytics.feature.library.api.LibraryArtistRoute
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun LibraryArtistRoute(
@@ -16,6 +18,7 @@ internal fun LibraryArtistRoute(
     onAlbumSelected: (Album) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
     viewModel: LibraryArtistViewModel = hiltViewModel(key = route.artistId),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -30,5 +33,6 @@ internal fun LibraryArtistRoute(
         onTrackSelected = viewModel::playTrack,
         onAddToPlaylist = onAddToPlaylist,
         onTrackOptions = onTrackOptions,
+        bottomPadding = bottomPadding,
     )
 }

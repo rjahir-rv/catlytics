@@ -50,6 +50,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
@@ -73,7 +74,8 @@ internal fun PlaylistsScreen(
     onSetCover: (String, String?) -> Unit,
     searchQuery: String = "",
     sortDirection: SortDirection = SortDirection.Ascending,
-    onSortDirectionChange: (SortDirection) -> Unit = {}
+    onSortDirectionChange: (SortDirection) -> Unit = {},
+    bottomPadding: () -> Dp = { 0.dp },
 ) {
     var editor by remember { mutableStateOf<Playlist?>(null) }
     var creating by remember { mutableStateOf(false) }
@@ -136,6 +138,7 @@ internal fun PlaylistsScreen(
                     onDelete = { deleting = it },
                     onChangeCover = ::requestCoverChange,
                     onClearCover = { id -> onSetCover(id, null) },
+                    bottomPadding = bottomPadding,
                     modifier = Modifier.fillMaxSize(),
                 )
                 PlaylistViewMode.Mosaic -> PlaylistMosaic(
@@ -147,6 +150,7 @@ internal fun PlaylistsScreen(
                     onDelete = { deleting = it },
                     onChangeCover = ::requestCoverChange,
                     onClearCover = { id -> onSetCover(id, null) },
+                    bottomPadding = bottomPadding,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -268,6 +272,7 @@ private fun PlaylistList(
     onDelete: (Playlist) -> Unit,
     onChangeCover: (String) -> Unit,
     onClearCover: (String) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
 
     ) {
     val sorted: List<Playlist> = remember(playlists, sortDirection) {
@@ -281,7 +286,7 @@ private fun PlaylistList(
             start = 20.dp,
             top = 56.dp,
             end = 20.dp,
-            bottom = 104.dp,
+            bottom = bottomPadding() + 104.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(0.dp),
     ) {
@@ -366,6 +371,7 @@ private fun PlaylistMosaic(
     onDelete: (Playlist) -> Unit,
     onChangeCover: (String) -> Unit,
     onClearCover: (String) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
 
     ) {
     val sorted: List<Playlist> = remember(playlists, sortDirection) {
@@ -380,7 +386,7 @@ private fun PlaylistMosaic(
             start = 20.dp,
             top = 56.dp,
             end = 20.dp,
-            bottom = 104.dp,
+            bottom = bottomPadding() + 104.dp,
         ),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),

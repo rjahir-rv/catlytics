@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
@@ -51,7 +52,8 @@ internal fun LibraryAlbumGrid(
     sortDirection: SortDirection,
     onSortDirectionChange: (SortDirection) -> Unit,
     onAlbumSelected: (Album) -> Unit,
-    onAddToPlaylist: (Album) -> Unit
+    onAddToPlaylist: (Album) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
 ) {
     // Sort inside the leaf component so that the search-filtered input list stays stable.
     val sortedAlbums: List<Album> = remember(albums, sortDirection) {
@@ -75,7 +77,12 @@ internal fun LibraryAlbumGrid(
             state = state,
             columns = GridCells.Adaptive(minSize = 160.dp),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 20.dp, top = 56.dp, end = 20.dp, bottom = 20.dp),
+            contentPadding = PaddingValues(
+                start = 20.dp,
+                top = 56.dp,
+                end = 20.dp,
+                bottom = bottomPadding() + 20.dp,
+            ),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {

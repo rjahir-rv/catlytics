@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
@@ -61,6 +62,7 @@ internal fun LibraryArtistCollection(
     gridState: LazyGridState = rememberLazyGridState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
 ) {
     // Sort inside so the input list is stable on sort-only changes.
     val sortedArtists: List<ArtistSummary> = remember(artists, sortDirection) {
@@ -90,6 +92,7 @@ internal fun LibraryArtistCollection(
                 state = listState,
                 onArtistSelected = onArtistSelected,
                 onAddToPlaylist = onAddToPlaylist,
+                bottomPadding = bottomPadding,
             )
             ArtistViewMode.Grid -> ArtistGrid(
                 artists = sortedArtists,
@@ -97,6 +100,7 @@ internal fun LibraryArtistCollection(
                 state = gridState,
                 onArtistSelected = onArtistSelected,
                 onAddToPlaylist = onAddToPlaylist,
+                bottomPadding = bottomPadding,
             )
         }
 
@@ -181,6 +185,7 @@ private fun ArtistList(
     state: LazyListState = rememberLazyListState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
 ) {
     LazyColumn(
         state = state,
@@ -189,7 +194,7 @@ private fun ArtistList(
             start = 20.dp,
             top = 56.dp,
             end = 20.dp,
-            bottom = 8.dp,
+            bottom = bottomPadding() + 8.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -226,6 +231,7 @@ private fun ArtistGrid(
     state: LazyGridState = rememberLazyGridState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
 ) {
     LazyVerticalGrid(
         state = state,
@@ -235,7 +241,7 @@ private fun ArtistGrid(
             start = 20.dp,
             top = 56.dp,
             end = 20.dp,
-            bottom = 8.dp,
+            bottom = bottomPadding() + 8.dp,
         ),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),

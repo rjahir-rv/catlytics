@@ -11,6 +11,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -27,6 +29,7 @@ internal fun LibraryRoute(
     onArtistSelected: (ArtistSummary) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -65,6 +68,7 @@ internal fun LibraryRoute(
         searchQuery = searchQuery,
         sortDirection = (uiState as? LibraryUiState.Success)?.sortDirection ?: SortDirection.Ascending,
         onSortDirectionChange = viewModel::setSortDirection,
+        bottomPadding = bottomPadding,
     )
 }
 

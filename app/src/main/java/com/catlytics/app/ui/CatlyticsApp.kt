@@ -415,11 +415,7 @@ fun CatlyticsApp(
         } else {
             contentPaddingBehindBottomBar
         }
-        val contentPaddingState = remember { mutableStateOf(regularNavigationContentPadding) }
-        SideEffect {
-            contentPaddingState.value = regularNavigationContentPadding
-        }
-        val regularContentModifier = Modifier.padding(contentPaddingState.value)
+        val regularContentModifier = Modifier.padding(regularNavigationContentPadding)
 
 
         SideEffect {
@@ -454,6 +450,7 @@ fun CatlyticsApp(
                         onDestinationSelected = topLevelBackStack::add,
                         onAddToPlaylist = ::openAddToPlaylist,
                         onTrackOptions = { track -> openTrackOptions(track) },
+                        bottomPadding = { bottomPaddingState.value },
                         contentModifier = regularContentModifier,
                     )
                     playlistsEntry(
@@ -462,6 +459,7 @@ fun CatlyticsApp(
                         onTrackOptions = { track, onRemoveFromPlaylist ->
                             openTrackOptions(track, onRemoveFromPlaylist)
                         },
+                        bottomPadding = { bottomPaddingState.value },
                         onPlaylistDetailTopBarColorChange = { color ->
                             playlistDetailTopBarColor = color
                         },

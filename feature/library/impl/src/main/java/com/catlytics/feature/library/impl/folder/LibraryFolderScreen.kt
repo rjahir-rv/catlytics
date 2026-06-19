@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.LibraryFolder
@@ -36,6 +37,7 @@ internal fun LibraryFolderScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -58,7 +60,12 @@ internal fun LibraryFolderScreen(
             } else {
                 LazyColumn(
                     modifier = modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(20.dp),
+                    contentPadding = PaddingValues(
+                        start = 20.dp,
+                        top = 20.dp,
+                        end = 20.dp,
+                        bottom = bottomPadding() + 20.dp,
+                    ),
                 ) {
                     items(content.subfolders, key = LibraryFolder::id) { folder ->
                         SubfolderRow(

@@ -2,6 +2,8 @@ package com.catlytics.feature.library.impl.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.catlytics.feature.library.api.LibraryAlbumRoute as LibraryAlbumDestination
@@ -20,6 +22,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     onDestinationSelected: (NavKey) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
     contentModifier: Modifier = Modifier,
 ) {
     entry<LibraryRoute> {
@@ -38,12 +41,17 @@ fun EntryProviderScope<NavKey>.libraryEntry(
                     onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
                 },
                 onAddToPlaylist = onAddToPlaylist,
+                bottomPadding = bottomPadding,
             )
         }
     }
     entry<LibraryAlbumDestination> { route ->
         Box(modifier = contentModifier) {
-            LibraryAlbumRoute(route = route, onTrackOptions = onTrackOptions)
+            LibraryAlbumRoute(
+                route = route,
+                onTrackOptions = onTrackOptions,
+                bottomPadding = bottomPadding,
+            )
         }
     }
     entry<LibraryArtistDestination> { route ->
@@ -55,6 +63,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
                 },
                 onAddToPlaylist = onAddToPlaylist,
                 onTrackOptions = onTrackOptions,
+                bottomPadding = bottomPadding,
             )
         }
     }
@@ -67,6 +76,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
                 },
                 onAddToPlaylist = onAddToPlaylist,
                 onTrackOptions = onTrackOptions,
+                bottomPadding = bottomPadding,
             )
         }
     }

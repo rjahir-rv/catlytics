@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,6 +37,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -127,6 +129,7 @@ internal fun PlaylistDetailRoute(
     playlistId: String,
     onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
     viewModel: PlaylistDetailViewModel = hiltViewModel(key = playlistId),
 ) {
     val context = LocalContext.current
@@ -149,6 +152,7 @@ internal fun PlaylistDetailRoute(
         },
         onTogglePlayback = viewModel::togglePlayback,
         onTopBarColorChange = onTopBarColorChange,
+        bottomPadding = bottomPadding,
     )
 }
 
@@ -160,6 +164,7 @@ private fun PlaylistDetailScreen(
     onTrackOptions: (Track) -> Unit,
     onTogglePlayback: () -> Unit,
     onTopBarColorChange: (Color) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
 ) {
     when (uiState) {
         PlaylistDetailUiState.Loading -> {
@@ -297,6 +302,7 @@ private fun PlaylistDetailScreen(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 20.dp),
+                    contentPadding = PaddingValues(bottom = bottomPadding() + 20.dp),
                 ) {
                     items(content.tracks, key = Track::id) { track ->
                         Row(

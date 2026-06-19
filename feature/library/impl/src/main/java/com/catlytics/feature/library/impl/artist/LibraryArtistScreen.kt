@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
@@ -47,6 +48,7 @@ internal fun LibraryArtistScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -67,6 +69,7 @@ internal fun LibraryArtistScreen(
             onTrackSelected = onTrackSelected,
             onAddToPlaylist = onAddToPlaylist,
             onTrackOptions = onTrackOptions,
+            bottomPadding = bottomPadding,
             modifier = modifier,
         )
     }
@@ -79,12 +82,18 @@ private fun ArtistContent(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> Dp,
     modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 160.dp),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(
+            start = 20.dp,
+            top = 20.dp,
+            end = 20.dp,
+            bottom = bottomPadding() + 20.dp,
+        ),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {

@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
@@ -40,6 +41,7 @@ internal fun LibraryAlbumScreen(
     uiState: LibraryAlbumUiState,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
     modifier: Modifier = Modifier,
 ) {
     when (uiState) {
@@ -58,7 +60,12 @@ internal fun LibraryAlbumScreen(
             val content = uiState.content
             LazyColumn(
                 modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(20.dp),
+                contentPadding = PaddingValues(
+                    start = 20.dp,
+                    top = 20.dp,
+                    end = 20.dp,
+                    bottom = bottomPadding() + 20.dp,
+                ),
             ) {
                 item(key = "header") {
                     AlbumHeader(album = content.album)

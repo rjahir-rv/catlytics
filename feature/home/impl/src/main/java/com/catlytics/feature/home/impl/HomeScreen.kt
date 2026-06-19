@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -160,7 +161,10 @@ internal fun HomeScreen(
                         onTrackSelected = onTrackSelected,
                         modifier = Modifier.weight(1f),
                         state = trackListState,
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = bottomPadding() + 20.dp),
+                        contentPadding = PaddingValues(
+                            top = 8.dp,
+                            bottom = bottomPadding() + 20.dp,
+                        ),
                         onTrackOptions = onTrackOptions,
                         onAddToLiked = onAddToLiked,
                     )
@@ -253,7 +257,7 @@ private fun TrackList(
     onTrackSelected: (Track, List<Track>) -> Unit,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
-    contentPadding: androidx.compose.foundation.layout.PaddingValues = androidx.compose.foundation.layout.PaddingValues(0.dp),
+    contentPadding: PaddingValues = PaddingValues(0.dp),
     onTrackOptions: (Track) -> Unit,
     onAddToLiked: (Track) -> Unit,
 ) {
