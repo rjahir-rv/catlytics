@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun LibraryArtistCollection(
     artists: List<ArtistSummary>,
+    modifier: Modifier = Modifier,
     viewMode: ArtistViewMode,
     onViewModeChange: (ArtistViewMode) -> Unit,
     sortDirection: SortDirection,
@@ -60,7 +61,6 @@ internal fun LibraryArtistCollection(
     gridState: LazyGridState = rememberLazyGridState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     // Sort inside so the input list is stable on sort-only changes.
     val sortedArtists: List<ArtistSummary> = remember(artists, sortDirection) {
@@ -177,10 +177,10 @@ internal fun LibraryArtistCollection(
 private fun ArtistList(
     artists: List<ArtistSummary>,
     sortDirection: SortDirection,
+    modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         state = state,
@@ -221,11 +221,11 @@ private fun ArtistList(
 @Composable
 private fun ArtistGrid(
     artists: List<ArtistSummary>,
+    modifier: Modifier = Modifier,
     sortDirection: SortDirection,
     state: LazyGridState = rememberLazyGridState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     LazyVerticalGrid(
         state = state,

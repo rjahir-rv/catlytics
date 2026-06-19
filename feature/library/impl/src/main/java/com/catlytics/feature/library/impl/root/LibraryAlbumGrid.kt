@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
@@ -46,12 +46,12 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun LibraryAlbumGrid(
     albums: List<Album>,
-    state: androidx.compose.foundation.lazy.grid.LazyGridState = rememberLazyGridState(),
+    modifier : Modifier = Modifier,
+    state: LazyGridState = rememberLazyGridState(),
     sortDirection: SortDirection,
     onSortDirectionChange: (SortDirection) -> Unit,
     onAlbumSelected: (Album) -> Unit,
-    onAddToPlaylist: (Album) -> Unit,
-    modifier: Modifier = Modifier,
+    onAddToPlaylist: (Album) -> Unit
 ) {
     // Sort inside the leaf component so that the search-filtered input list stays stable.
     val sortedAlbums: List<Album> = remember(albums, sortDirection) {

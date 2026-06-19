@@ -42,6 +42,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun LibraryScreen(
     uiState: LibraryUiState,
+    modifier: Modifier = Modifier,
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     onAlbumSelected: (Album) -> Unit,
@@ -52,8 +53,7 @@ internal fun LibraryScreen(
     onAddToPlaylist: (PlaylistSource) -> Unit,
     searchQuery: String = "",
     sortDirection: SortDirection = SortDirection.Ascending,
-    onSortDirectionChange: (SortDirection) -> Unit = {},
-    modifier: Modifier = Modifier,
+    onSortDirectionChange: (SortDirection) -> Unit = {}
 ) {
     // Hoist scroll states (using Saver for better stability across recompositions and sort changes)
     val albumsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }

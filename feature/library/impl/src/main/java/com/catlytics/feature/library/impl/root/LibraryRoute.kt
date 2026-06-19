@@ -19,7 +19,6 @@ import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.SortDirection
-import com.catlytics.feature.library.impl.root.LibraryUiState
 
 @Composable
 internal fun LibraryRoute(

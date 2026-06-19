@@ -32,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,13 +46,13 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun LibraryFolderList(
     folders: List<LibraryFolder>,
+    modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     sortDirection: SortDirection,
     onSortDirectionChange: (SortDirection) -> Unit,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
-    onAddToPlaylist: (LibraryFolder) -> Unit,
-    modifier: Modifier = Modifier,
+    onAddToPlaylist: (LibraryFolder) -> Unit
 ) {
     // Sort inside the leaf so the passed list (search filtered) is stable when only sort changes.
     val sortedFolders: List<LibraryFolder> = remember(folders, sortDirection) {

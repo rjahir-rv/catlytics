@@ -16,10 +16,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -54,14 +58,13 @@ import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
-import com.catlytics.feature.playlists.impl.filterByQuery
-import com.catlytics.feature.playlists.impl.sortedByDirection
 import kotlinx.coroutines.launch
 
 @Composable
 internal fun PlaylistsScreen(
     playlists: List<Playlist>,
     viewMode: PlaylistViewMode,
+    modifier: Modifier = Modifier,
     onViewModeChange: (PlaylistViewMode) -> Unit,
     onPlaylistSelected: (Playlist) -> Unit,
     onCreate: (String) -> Unit,
@@ -70,8 +73,7 @@ internal fun PlaylistsScreen(
     onSetCover: (String, String?) -> Unit,
     searchQuery: String = "",
     sortDirection: SortDirection = SortDirection.Ascending,
-    onSortDirectionChange: (SortDirection) -> Unit = {},
-    modifier: Modifier = Modifier,
+    onSortDirectionChange: (SortDirection) -> Unit = {}
 ) {
     var editor by remember { mutableStateOf<Playlist?>(null) }
     var creating by remember { mutableStateOf(false) }
@@ -95,15 +97,11 @@ internal fun PlaylistsScreen(
         )
     }
 
-    // Only search filter at this level. Sorting happens inside the list/mosaic components
-    // so that the input list reference stays stable when only sortDirection changes.
     val filteredPlaylists = remember(playlists, searchQuery) {
         playlists.filterByQuery(searchQuery)
     }
-
-    // Hoist scroll states (Saver for stability)
-    val listState = rememberSaveable(saver = androidx.compose.foundation.lazy.LazyListState.Saver) { androidx.compose.foundation.lazy.LazyListState() }
-    val mosaicState = rememberSaveable(saver = androidx.compose.foundation.lazy.grid.LazyGridState.Saver) { androidx.compose.foundation.lazy.grid.LazyGridState() }
+    val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val mosaicState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
     val coroutineScope = rememberCoroutineScope()
 
     fun selectSortDirection(direction: SortDirection) {
@@ -262,15 +260,16 @@ internal fun PlaylistsScreen(
 @Composable
 private fun PlaylistList(
     playlists: List<Playlist>,
+    modifier: Modifier = Modifier,
     sortDirection: SortDirection,
-    state: androidx.compose.foundation.lazy.LazyListState = androidx.compose.foundation.lazy.rememberLazyListState(),
+    state: LazyListState = rememberLazyListState(),
     onClick: (Playlist) -> Unit,
     onRename: (Playlist) -> Unit,
     onDelete: (Playlist) -> Unit,
     onChangeCover: (String) -> Unit,
     onClearCover: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+
+    ) {
     val sorted: List<Playlist> = remember(playlists, sortDirection) {
         playlists.sortedByDirection(sortDirection)
     }
@@ -360,14 +359,15 @@ private fun PlaylistListRow(
 private fun PlaylistMosaic(
     playlists: List<Playlist>,
     sortDirection: SortDirection,
-    state: androidx.compose.foundation.lazy.grid.LazyGridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState(),
+    modifier: Modifier = Modifier,
+    state: LazyGridState = rememberLazyGridState(),
     onClick: (Playlist) -> Unit,
     onRename: (Playlist) -> Unit,
     onDelete: (Playlist) -> Unit,
     onChangeCover: (String) -> Unit,
     onClearCover: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+
+    ) {
     val sorted: List<Playlist> = remember(playlists, sortDirection) {
         playlists.sortedByDirection(sortDirection)
     }

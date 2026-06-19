@@ -125,7 +125,7 @@ internal fun HomeScreen(
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
-    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
+    bottomPadding: () -> Dp = { 0.dp },
     onAddToLiked: (Track) -> Unit
 ,
 ) {
