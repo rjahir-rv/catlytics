@@ -124,7 +124,7 @@ internal fun PlaybackQueueBottomSheet(
         sheetState = sheetState,
         modifier = modifier,
         shape = sheetShape,
-        containerColor = gradientColors.center,
+        containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
         dragHandle = null,
@@ -132,7 +132,8 @@ internal fun PlaybackQueueBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(sheetGradient, sheetShape),
+                .clip(sheetShape)
+                .background(sheetGradient),
         ) {
             Box(
                 modifier = Modifier.fillMaxWidth(),
@@ -151,8 +152,7 @@ internal fun PlaybackQueueBottomSheet(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = maxQueueListHeight)
-                    .background(sheetGradient),
+                    .heightIn(max = maxQueueListHeight),
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
                 items(
@@ -182,7 +182,7 @@ internal fun PlaybackQueueBottomSheet(
                         modifier = placementModifier
                             .padding(horizontal = 8.dp)
                             .zIndex(if (isDragging) 1f else 0f),
-                    ) { _ ->
+                    ) {
                         QueueTrackRow(
                             track = track,
                             isCurrent = track.id == currentTrackId,
@@ -260,14 +260,18 @@ private fun QueueSwipeableItem(
             onRemove()
         }
     }
-    val swipeProgress = dismissState.progress
+    val isSwipeToDeleteActive = dismissState.dismissDirection == SwipeToDismissBoxValue.EndToStart ||
+        dismissState.targetValue == SwipeToDismissBoxValue.EndToStart ||
+        dismissState.currentValue == SwipeToDismissBoxValue.EndToStart
+    val swipeProgress = if (isSwipeToDeleteActive) dismissState.progress else 0f
     val deleteBackgroundColor = lerp(
         Color.Transparent,
         gradientColors.end.copy(alpha = 0.72f),
         swipeProgress,
     )
-    val iconScale = 0.7f + (0.3f * swipeProgress)
-    val iconAlpha = swipeProgress.coerceIn(0f, 1f)
+    val deleteIconProgress =
+        ((swipeProgress - DeleteIconRevealProgress) / (1f - DeleteIconRevealProgress)).coerceIn(0f, 1f)
+    val iconScale = 0.7f + (0.3f * deleteIconProgress)
 
     SwipeToDismissBox(
         state = dismissState,
@@ -282,7 +286,7 @@ private fun QueueSwipeableItem(
                     .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.CenterEnd,
             ) {
-                if (swipeProgress > 0f) {
+                if (deleteIconProgress > 0f) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_delete),
                         contentDescription = "Quitar ${track.title} de la cola",
@@ -290,7 +294,7 @@ private fun QueueSwipeableItem(
                         modifier = Modifier.graphicsLayer {
                             scaleX = iconScale
                             scaleY = iconScale
-                            alpha = iconAlpha
+                            alpha = deleteIconProgress
                         },
                     )
                 }
@@ -433,6 +437,7 @@ private fun QueueTrackRow(
 
 private val QueueItemHeight = 80.dp
 private val QueueSheetCornerRadius = 28.dp
+private const val DeleteIconRevealProgress = 0.08f
 private const val QueueSheetMaxHeightFraction = 0.55f
 
 private fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T> =

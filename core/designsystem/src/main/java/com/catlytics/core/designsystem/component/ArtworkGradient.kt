@@ -3,10 +3,16 @@ package com.catlytics.core.designsystem.component
 import android.graphics.Bitmap
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.palette.graphics.Palette
@@ -18,6 +24,24 @@ data class ArtworkGradientColors(
     val center: Color,
     val end: Color,
 )
+
+@Composable
+fun ArtworkGradientBackground(
+    colors: ArtworkGradientColors,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(colors.start, colors.center, colors.end),
+                ),
+            ),
+        content = content,
+    )
+}
 
 @Composable
 fun rememberFallbackArtworkGradientColors(): ArtworkGradientColors {

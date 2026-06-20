@@ -33,12 +33,12 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 internal fun LibraryFolderScreen(
     uiState: LibraryFolderUiState,
+    modifier: Modifier = Modifier,
     onFolderSelected: (LibraryFolder) -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
-    modifier: Modifier = Modifier,
 ) {
     when (uiState) {
         LibraryFolderUiState.Loading -> Column(

@@ -1,5 +1,6 @@
 package com.catlytics.feature.library.impl.album
 
+import android.graphics.Bitmap
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,33 +17,48 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
+import coil3.toBitmap
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.animateArtworkGradientColors
+import com.catlytics.core.designsystem.component.extractArtworkGradientColors
+import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Track
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun LibraryAlbumScreen(
     uiState: LibraryAlbumUiState,
+    modifier: Modifier = Modifier,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
-    modifier: Modifier = Modifier,
 ) {
     when (uiState) {
         LibraryAlbumUiState.Loading -> Box(
@@ -58,29 +74,61 @@ internal fun LibraryAlbumScreen(
         is LibraryAlbumUiState.Error -> AlbumMessage(uiState.message, modifier)
         is LibraryAlbumUiState.Success -> {
             val content = uiState.content
-            LazyColumn(
-                modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    start = 20.dp,
-                    top = 20.dp,
-                    end = 20.dp,
-                    bottom = bottomPadding() + 20.dp,
-                ),
+            val platformContext = LocalPlatformContext.current
+            val fallbackGradient = rememberFallbackArtworkGradientColors()
+            val artworkRequest = remember(platformContext, content.album.artworkUri) {
+                ImageRequest.Builder(platformContext)
+                    .data(content.album.artworkUri)
+                    .allowHardware(false)
+                    .build()
+            }
+            var artworkBitmap by remember(content.album.artworkUri) { mutableStateOf<Bitmap?>(null) }
+            var gradientColors by remember { mutableStateOf(fallbackGradient) }
+            val animatedGradientColors = animateArtworkGradientColors(
+                target = gradientColors,
+                labelPrefix = "LibraryAlbumGradient",
+            )
+
+            LaunchedEffect(animatedGradientColors.start) {
+                onTopBarColorChange(animatedGradientColors.start)
+            }
+
+            LaunchedEffect(content.album.artworkUri, artworkBitmap, fallbackGradient) {
+                gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
+            }
+
+            ArtworkGradientBackground(
+                colors = animatedGradientColors,
+                modifier = modifier,
             ) {
-                item(key = "header") {
-                    AlbumHeader(album = content.album)
-                }
-                itemsIndexed(
-                    items = content.tracks,
-                    key = { _, track -> track.id },
-                ) { index, track ->
-                    AlbumTrackRow(
-                        position = index + 1,
-                        track = track,
-                        onClick = { onTrackSelected(track, content.tracks) },
-                        onTrackOptions = { onTrackOptions(track) },
-                    )
-                    HorizontalDivider()
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 20.dp,
+                        top = 20.dp,
+                        end = 20.dp,
+                        bottom = bottomPadding() + 20.dp,
+                    ),
+                ) {
+                    item(key = "header") {
+                        AlbumHeader(
+                            album = content.album,
+                            artworkModel = artworkRequest,
+                            onArtworkLoaded = { artworkBitmap = it },
+                        )
+                    }
+                    itemsIndexed(
+                        items = content.tracks,
+                        key = { _, track -> track.id },
+                    ) { index, track ->
+                        AlbumTrackRow(
+                            position = index + 1,
+                            track = track,
+                            onClick = { onTrackSelected(track, content.tracks) },
+                            onTrackOptions = { onTrackOptions(track) },
+                        )
+                        HorizontalDivider()
+                    }
                 }
             }
         }
@@ -90,6 +138,8 @@ internal fun LibraryAlbumScreen(
 @Composable
 private fun AlbumHeader(
     album: Album,
+    artworkModel: Any?,
+    onArtworkLoaded: (Bitmap) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -100,7 +150,7 @@ private fun AlbumHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         AsyncImage(
-            model = album.artworkUri,
+            model = artworkModel,
             contentDescription = "Portada de ${album.title}",
             modifier = Modifier
                 .fillMaxWidth(0.72f)
@@ -109,6 +159,9 @@ private fun AlbumHeader(
             placeholder = painterResource(R.drawable.placeholder_album),
             error = painterResource(R.drawable.placeholder_album),
             fallback = painterResource(R.drawable.placeholder_album),
+            onSuccess = { state ->
+                onArtworkLoaded(state.result.image.toBitmap())
+            },
             contentScale = ContentScale.Crop,
         )
         Text(

@@ -96,7 +96,7 @@ fun CatlyticsApp(
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
-    var playlistDetailTopBarColor by remember { mutableStateOf<Color?>(null) }
+    var detailTopBarColor by remember { mutableStateOf<Color?>(null) }
     val appVersion = remember(context) {
         context.packageManager
             .getPackageInfo(context.packageName, 0)
@@ -120,15 +120,12 @@ fun CatlyticsApp(
     }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
     val isSettingsVisible = currentRoute == SettingsRoute
-    val playlistDetailChromeColor = if (currentRoute is PlaylistDetailRoute) {
-        playlistDetailTopBarColor
-    } else {
-        null
+    val detailChromeColor = when (currentRoute) {
+        is LibraryAlbumRoute, is LibraryArtistRoute, is PlaylistDetailRoute -> detailTopBarColor
+        else -> null
     }
     LaunchedEffect(currentRoute) {
-        if (currentRoute !is PlaylistDetailRoute) {
-            playlistDetailTopBarColor = null
-        }
+        detailTopBarColor = null
     }
 
     fun closeHomeSearch() {
@@ -268,12 +265,14 @@ fun CatlyticsApp(
                     LibraryDetailTopAppBar(
                         title = currentRoute.albumTitle,
                         onBack = ::closeCurrentDestination,
+                        containerColor = detailChromeColor,
                     )
                 }
                 currentRoute is LibraryArtistRoute -> {
                     LibraryDetailTopAppBar(
                         title = currentRoute.artistName,
                         onBack = ::closeCurrentDestination,
+                        containerColor = detailChromeColor,
                     )
                 }
                 currentRoute is LibraryFolderRoute -> {
@@ -287,7 +286,7 @@ fun CatlyticsApp(
                     LibraryDetailTopAppBar(
                         title = "",
                         onBack = ::closeCurrentDestination,
-                        containerColor = playlistDetailChromeColor,
+                        containerColor = detailChromeColor,
                     )
                 }
                 currentTopLevelDestination != null -> {
@@ -450,6 +449,9 @@ fun CatlyticsApp(
                         onDestinationSelected = topLevelBackStack::add,
                         onAddToPlaylist = ::openAddToPlaylist,
                         onTrackOptions = { track -> openTrackOptions(track) },
+                        onLibraryDetailTopBarColorChange = { color ->
+                            detailTopBarColor = color
+                        },
                         bottomPadding = { bottomPaddingState.value },
                         contentModifier = regularContentModifier,
                     )
@@ -461,7 +463,7 @@ fun CatlyticsApp(
                         },
                         bottomPadding = { bottomPaddingState.value },
                         onPlaylistDetailTopBarColorChange = { color ->
-                            playlistDetailTopBarColor = color
+                            detailTopBarColor = color
                         },
                         contentModifier = regularContentModifier,
                     )
