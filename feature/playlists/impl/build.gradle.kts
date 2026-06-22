@@ -8,11 +8,11 @@ android {
 }
 
 dependencies {
-    api(project(":feature:playlists:api"))
-    implementation(project(":core:navigation"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:model"))
-    implementation(project(":core:designsystem"))
+    api(project(path = ":feature:playlists:api"))
+    implementation(project(path = ":core:navigation"))
+    implementation(project(path = ":core:domain"))
+    implementation(project(path = ":core:model"))
+    implementation(project(path = ":core:designsystem"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material3)

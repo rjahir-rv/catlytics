@@ -8,7 +8,7 @@ android {
 }
 
 dependencies {
-    api(project(":feature:statistics:api"))
-    implementation(project(":core:navigation"))
+    api(project(path = ":feature:statistics:api"))
+    implementation(project(path = ":core:navigation"))
     implementation(libs.androidx.compose.material3)
 }

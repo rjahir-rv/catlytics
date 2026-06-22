@@ -252,7 +252,7 @@ private fun ArtistGrid(
                     .fillMaxWidth()
                     .clickable { onArtistSelected(artist) },
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 ArtistImage(
                     artist = artist,
@@ -260,13 +260,18 @@ private fun ArtistGrid(
                         .fillMaxWidth()
                         .aspectRatio(1f),
                 )
-                ArtistText(
-                    artist = artist,
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                )
-                IconButton(onClick = { onAddToPlaylist(artist) }) {
-                    Icon(painterResource(R.drawable.ic_options), "Opciones de ${artist.artist.name}")
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ArtistText(
+                        artist = artist,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = { onAddToPlaylist(artist) }) {
+                        Icon(painterResource(R.drawable.ic_options), "Opciones de ${artist.artist.name}")
+                    }
                 }
             }
         }

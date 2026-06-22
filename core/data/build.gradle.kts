@@ -8,8 +8,8 @@ android {
 }
 
 dependencies {
-    api(project(":core:domain"))
-    implementation(project(":core:model"))
+    api(project(path = ":core:domain"))
+    implementation(project(path = ":core:model"))
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)

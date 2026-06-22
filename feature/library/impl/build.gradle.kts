@@ -8,10 +8,10 @@ android {
 }
 
 dependencies {
-    api(project(":feature:library:api"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:model"))
-    implementation(project(":core:navigation"))
+    api(project(path = ":feature:library:api"))
+    implementation(project(path = ":core:domain"))
+    implementation(project(path = ":core:model"))
+    implementation(project(path = ":core:navigation"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.core.ktx)

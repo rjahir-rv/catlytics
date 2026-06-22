@@ -1,5 +1,6 @@
 package com.catlytics.app
 
+import com.catlytics.app.ui.ThemeViewModel
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.model.ThemeMode
 import kotlinx.coroutines.Dispatchers

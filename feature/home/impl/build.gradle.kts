@@ -8,10 +8,10 @@ android {
 }
 
 dependencies {
-    api(project(":feature:home:api"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:model"))
-    implementation(project(":core:navigation"))
+    api(project(path = ":feature:home:api"))
+    implementation(project(path = ":core:domain"))
+    implementation(project(path = ":core:model"))
+    implementation(project(path = ":core:navigation"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.material3)

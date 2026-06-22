@@ -4,5 +4,5 @@ plugins {
 }
 
 dependencies {
-    "implementation"(project(":core:designsystem"))
+    "implementation"(project(path = ":core:designsystem"))
 }

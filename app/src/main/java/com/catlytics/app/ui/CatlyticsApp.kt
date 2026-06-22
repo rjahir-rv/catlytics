@@ -270,7 +270,7 @@ fun CatlyticsApp(
                 }
                 currentRoute is LibraryArtistRoute -> {
                     LibraryDetailTopAppBar(
-                        title = currentRoute.artistName,
+                        title = "",
                         onBack = ::closeCurrentDestination,
                         containerColor = detailChromeColor,
                     )
