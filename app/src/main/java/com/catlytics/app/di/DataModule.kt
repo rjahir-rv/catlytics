@@ -15,11 +15,14 @@ import com.catlytics.core.data.repository.DataStorePlaybackSessionRepository
 import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
 import com.catlytics.core.data.repository.DataStorePlaylistRepository
 import com.catlytics.core.domain.repository.AppPreferencesRepository
+import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
+import com.catlytics.core.domain.repository.PlaybackEventRepository
+import com.catlytics.core.data.repository.RoomPlaybackEventRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -34,6 +37,12 @@ interface DataModule {
     fun bindAppPreferencesRepository(
         repository: DataStoreAppPreferencesRepository,
     ): AppPreferencesRepository
+
+    @Binds
+    @Singleton
+    fun bindEqualizerPreferencesRepository(
+        repository: DataStoreAppPreferencesRepository,
+    ): EqualizerPreferencesRepository
 
     @Binds
     @Singleton
@@ -82,4 +91,9 @@ interface DataModule {
     fun bindStatisticsRepository(
         repository: DefaultStatisticsRepository,
     ): StatisticsRepository
+
+    @Binds
+    fun bindPlaybackEventRepository(
+        repository: RoomPlaybackEventRepository,
+    ): PlaybackEventRepository
 }

@@ -1,6 +1,7 @@
 package com.catlytics.feature.playlists.impl
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,10 +21,10 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
     onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     onPlaylistDetailTopBarColorChange: (Color) -> Unit,
-    contentModifier: Modifier = Modifier,
+    contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
 ) {
     entry<PlaylistsRoute> {
-        Box(modifier = contentModifier) {
+        Box(modifier = Modifier.padding(contentPadding())) {
             val viewModel: PlaylistsViewModel = hiltViewModel()
             val playlists by viewModel.playlists.collectAsStateWithLifecycle()
             val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
@@ -47,7 +48,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
         }
     }
     entry<PlaylistDetailRoute> { route ->
-        Box(modifier = contentModifier) {
+        Box(modifier = Modifier.padding(contentPadding())) {
             PlaylistDetailRoute(
                 playlistId = route.playlistId,
                 onTrackOptions = onTrackOptions,

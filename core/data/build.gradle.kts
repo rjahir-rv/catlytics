@@ -1,6 +1,7 @@
 plugins {
     id("catlytics.android.library")
     id("catlytics.android.hilt")
+    id("catlytics.android.room")
 }
 
 android {

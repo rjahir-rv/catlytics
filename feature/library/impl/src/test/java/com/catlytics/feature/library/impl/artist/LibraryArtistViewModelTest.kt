@@ -59,6 +59,48 @@ class LibraryArtistViewModelTest {
         assertEquals(1, playbackController.startIndex)
     }
 
+    @Test
+    fun `searching filters songs and albums by query`() = runTest {
+        val repository = ArtistFakeLibraryRepository()
+        val trackOne = track("one").copy(title = "Bug Like an Angel")
+        val trackTwo = track("two").copy(title = "Heaven")
+        val albumOne = Album("album-1", "Laurel Hell", Artist(ARTIST_ID, "Artist"), trackCount = 1)
+        val albumTwo = Album("album-2", "Be the Cowboy", Artist(ARTIST_ID, "Artist"), trackCount = 1)
+        val content = ArtistContent(
+            summary = ArtistSummary(Artist(ARTIST_ID, "Artist"), albumCount = 2, trackCount = 2),
+            albums = listOf(albumOne, albumTwo),
+            tracks = listOf(trackOne, trackTwo),
+        )
+        repository.content.value = content
+        val viewModel = viewModel(repository, ArtistFakePlaybackController())
+        backgroundScope.launch { viewModel.uiState.collect {} }
+
+        viewModel.openArtist(ARTIST_ID)
+        advanceUntilIdle()
+
+        // Search for track title fragment
+        viewModel.onSearchQueryChanged("bug")
+        advanceUntilIdle()
+
+        val expectedContent = ArtistContent(
+            summary = ArtistSummary(Artist(ARTIST_ID, "Artist"), albumCount = 0, trackCount = 1),
+            albums = emptyList(),
+            tracks = listOf(trackOne),
+        )
+        assertEquals(LibraryArtistUiState.Success(expectedContent, "bug"), viewModel.uiState.value)
+
+        // Search for album title fragment
+        viewModel.onSearchQueryChanged("laurel")
+        advanceUntilIdle()
+
+        val expectedContentAlbum = ArtistContent(
+            summary = ArtistSummary(Artist(ARTIST_ID, "Artist"), albumCount = 1, trackCount = 0),
+            albums = listOf(albumOne),
+            tracks = emptyList(),
+        )
+        assertEquals(LibraryArtistUiState.Success(expectedContentAlbum, "laurel"), viewModel.uiState.value)
+    }
+
     private fun viewModel(
         repository: ArtistFakeLibraryRepository,
         playbackController: ArtistFakePlaybackController,

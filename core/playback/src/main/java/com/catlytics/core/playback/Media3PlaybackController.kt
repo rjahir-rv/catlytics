@@ -47,6 +47,7 @@ class Media3PlaybackController @Inject constructor(
     private val libraryRepository: LibraryRepository,
     private val playlistRepository: PlaylistRepository,
     private val playbackSessionRepository: PlaybackSessionRepository,
+    private val playbackTracker: PlaybackTracker,
 ) : PlaybackController {
     private val _playbackState = MutableStateFlow(PlaybackState())
     override val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -64,14 +65,18 @@ class Media3PlaybackController @Inject constructor(
             updatePlaybackState(player)
         }
 
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            val currentTrack = _playbackState.value.currentTrack
+            playbackTracker.onPlayingChanged(isPlaying, currentTrack)
+        }
+
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
-            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED) return
-            playbackScope.launch {
-                prunePlayedQueueItems(forcePersist = true)
-            }
+            val newTrack = mediaItem?.mediaId?.let { id -> queue.find { it.id == id } }
+            playbackTracker.onTrackTransition(newTrack)
         }
 
         override fun onPlayerError(error: PlaybackException) {
+            playbackTracker.onSessionEnd()
             stopProgressUpdates()
             _playbackState.value = _playbackState.value.copy(status = PlaybackStatus.Error)
         }
@@ -258,6 +263,7 @@ class Media3PlaybackController @Inject constructor(
     }
 
     override suspend fun stop() {
+        playbackTracker.onSessionEnd()
         stopQueueSync()
         queueSource = PlaybackQueueSource.Static
         withController { controller ->
@@ -375,9 +381,7 @@ class Media3PlaybackController @Inject constructor(
             return
         }
 
-        val sourceCurrentIndex = sourceQueue.indexOfFirst { it.id == currentTrack.id }
-        val upcomingTracks = sourceQueue.drop(sourceCurrentIndex)
-        applyQueueReplacement(upcomingTracks, startTrackId = currentTrack.id)
+        applyQueueReplacement(sourceQueue, startTrackId = currentTrack.id)
     }
 
     private suspend fun removeUnavailableQueueItems(availableTrackIds: Set<String>) {
@@ -421,17 +425,6 @@ class Media3PlaybackController @Inject constructor(
         }
     }
 
-    private suspend fun prunePlayedQueueItems(forcePersist: Boolean) {
-        if (queue.size <= 1) return
-        withController { controller ->
-            val currentIndex = controller.currentMediaItemIndex
-            if (currentIndex <= 0 || currentIndex !in queue.indices) return@withController
-
-            queue = queue.drop(currentIndex)
-            controller.removeMediaItems(0, currentIndex)
-            updatePlaybackState(controller, queue, forcePersist = forcePersist)
-        }
-    }
 
     private suspend fun <T> ListenableFuture<T>.await(): T = suspendCancellableCoroutine { continuation ->
         addListener(

@@ -80,12 +80,13 @@ internal fun TopLevelTopAppBar(
 
 @Composable
 internal fun SettingsTopAppBar(
+    title: String = "Ajustes",
     onBack: () -> Unit,
     containerColor: Color? = null,
 ) {
     CatlyticsTopAppBar(
         containerColor = containerColor,
-        title = { TopAppBarTitle("Ajustes") },
+        title = { TopAppBarTitle(title) },
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
@@ -102,11 +103,32 @@ internal fun LibraryDetailTopAppBar(
     title: String,
     onBack: () -> Unit,
     containerColor: Color? = null,
+    supportsSearch: Boolean = false,
+    isSearchExpanded: Boolean = false,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    onSearchActionClick: () -> Unit = {},
+    searchPlaceholder: String = "Buscar",
+    searchFocusRequester: FocusRequester? = null,
 ) {
     CatlyticsTopAppBar(
         containerColor = containerColor,
         title = {
-            if (title.isNotBlank()) {
+            if (supportsSearch && isSearchExpanded) {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    modifier = if (searchFocusRequester != null) Modifier.focusRequester(searchFocusRequester) else Modifier,
+                    placeholder = { Text(searchPlaceholder) },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                )
+            } else if (title.isNotBlank()) {
                 TopAppBarTitle(title)
             }
         },
@@ -116,6 +138,26 @@ internal fun LibraryDetailTopAppBar(
                     painter = painterResource(R.drawable.ic_arrow_left),
                     contentDescription = "Volver",
                 )
+            }
+        },
+        actions = {
+            if (supportsSearch) {
+                IconButton(onClick = onSearchActionClick) {
+                    Icon(
+                        painter = painterResource(
+                            if (isSearchExpanded) {
+                                R.drawable.ic_close
+                            } else {
+                                R.drawable.ic_search
+                            },
+                        ),
+                        contentDescription = if (isSearchExpanded) {
+                            "Cerrar búsqueda"
+                        } else {
+                            searchPlaceholder
+                        },
+                    )
+                }
             }
         },
     )

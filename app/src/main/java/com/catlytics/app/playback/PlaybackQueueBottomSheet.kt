@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetDefaults
@@ -94,6 +95,19 @@ internal fun PlaybackQueueBottomSheet(
         label = "queueDragOffset",
     )
 
+    val listState = rememberLazyListState()
+    var hasScrolledToCurrent by remember { mutableStateOf(false) }
+
+    LaunchedEffect(currentTrackId, visibleQueue) {
+        if (!hasScrolledToCurrent && draggedTrackId == null) {
+            val currentIndex = visibleQueue.indexOfFirst { it.id == currentTrackId }
+            if (currentIndex >= 0) {
+                listState.scrollToItem(currentIndex)
+                hasScrolledToCurrent = true
+            }
+        }
+    }
+
     LaunchedEffect(queue) {
         if (draggedTrackId == null) {
             visibleQueue = queue
@@ -153,6 +167,7 @@ internal fun PlaybackQueueBottomSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = maxQueueListHeight),
+                state = listState,
                 contentPadding = PaddingValues(bottom = 24.dp),
             ) {
                 items(

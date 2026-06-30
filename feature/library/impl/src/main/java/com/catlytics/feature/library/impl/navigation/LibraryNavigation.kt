@@ -1,6 +1,7 @@
 package com.catlytics.feature.library.impl.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
@@ -20,15 +21,17 @@ import com.catlytics.feature.library.impl.root.LibraryRoute as LibraryRootRoute
 
 fun EntryProviderScope<NavKey>.libraryEntry(
     searchQuery: () -> String,
+    artistSearchQuery: () -> String,
+    onArtistSearchQueryChange: (String) -> Unit,
     onDestinationSelected: (NavKey) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
     onLibraryDetailTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
-    contentModifier: Modifier = Modifier,
+    contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
 ) {
     entry<LibraryRoute> {
-        Box(modifier = contentModifier) {
+        Box(modifier = Modifier.padding(contentPadding())) {
             LibraryRootRoute(
                 searchQuery = searchQuery(),
                 onAlbumSelected = { album ->
@@ -48,7 +51,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         }
     }
     entry<LibraryAlbumDestination> { route ->
-        Box(modifier = contentModifier) {
+        Box(modifier = Modifier.padding(contentPadding())) {
             LibraryAlbumRoute(
                 route = route,
                 onTrackOptions = onTrackOptions,
@@ -58,7 +61,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         }
     }
     entry<LibraryArtistDestination> { route ->
-        Box(modifier = contentModifier) {
+        Box(modifier = Modifier.padding(contentPadding())) {
             LibraryArtistRoute(
                 route = route,
                 onAlbumSelected = { album ->
@@ -67,12 +70,14 @@ fun EntryProviderScope<NavKey>.libraryEntry(
                 onAddToPlaylist = onAddToPlaylist,
                 onTrackOptions = onTrackOptions,
                 onTopBarColorChange = onLibraryDetailTopBarColorChange,
+                searchQuery = artistSearchQuery(),
+                onSearchQueryChange = onArtistSearchQueryChange,
                 bottomPadding = bottomPadding,
             )
         }
     }
     entry<LibraryFolderDestination> { route ->
-        Box(modifier = contentModifier) {
+        Box(modifier = Modifier.padding(contentPadding())) {
             LibraryFolderRoute(
                 route = route,
                 onFolderSelected = { folder ->

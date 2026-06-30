@@ -20,6 +20,8 @@ internal fun LibraryArtistRoute(
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     viewModel: LibraryArtistViewModel = hiltViewModel(key = route.artistId),
 ) {
@@ -27,6 +29,10 @@ internal fun LibraryArtistRoute(
 
     LaunchedEffect(route.artistId) {
         viewModel.openArtist(route.artistId)
+    }
+
+    LaunchedEffect(searchQuery) {
+        viewModel.onSearchQueryChanged(searchQuery)
     }
 
     LibraryArtistScreen(

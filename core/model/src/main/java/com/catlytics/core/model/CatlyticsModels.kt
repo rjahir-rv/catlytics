@@ -156,3 +156,73 @@ enum class ThemeMode {
     Light,
     Dark,
 }
+
+data class EqualizerState(
+    val enabled: Boolean = false,
+    val mode: EqualizerMode = EqualizerMode.Preset,
+    val selectedPresetName: String? = null,
+    val presets: List<EqualizerPreset> = emptyList(),
+    val bands: List<EqualizerBand> = emptyList(),
+    val levelRange: EqualizerLevelRange? = null,
+    val isAvailable: Boolean = false,
+    val errorMessage: String? = null,
+)
+
+enum class EqualizerMode {
+    Preset,
+    Custom,
+}
+
+data class EqualizerPreset(
+    val id: Short,
+    val name: String,
+)
+
+data class EqualizerBand(
+    val id: Short,
+    val centerFrequencyHz: Int,
+    val levelMilliBel: Int,
+)
+
+data class EqualizerLevelRange(
+    val minMilliBel: Int,
+    val maxMilliBel: Int,
+)
+
+data class TopTrack(
+    val trackId: String,
+    val title: String,
+    val artistName: String,
+    val artworkUri: String?,
+    val playCount: Int,
+    val totalListenedMillis: Long,
+)
+
+data class TopArtist(
+    val artistId: String,
+    val name: String,
+    val artworkUri: String?,
+    val playCount: Int,
+    val totalListenedMillis: Long,
+)
+
+data class WeeklyStats(
+    val weekStart: Long,
+    val weekEnd: Long,
+    val topTracks: List<TopTrack>,
+    val topArtists: List<TopArtist>,
+    val totalListenedMillis: Long,
+)
+
+data class PlaybackEvent(
+    val trackId: String,
+    val trackTitle: String,
+    val artistId: String,
+    val artistName: String,
+    val artworkUri: String?,
+    val durationListenedMillis: Long,
+    val trackDurationMillis: Long,
+    val timestamp: Long,
+)
+
+

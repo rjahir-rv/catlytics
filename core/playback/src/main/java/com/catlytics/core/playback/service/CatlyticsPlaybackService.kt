@@ -11,8 +11,15 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
+import com.catlytics.core.playback.AndroidEqualizerRepository
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class CatlyticsPlaybackService : MediaSessionService() {
+    @Inject
+    lateinit var equalizerRepository: AndroidEqualizerRepository
+
     private var mediaSession: MediaSession? = null
     private var player: ExoPlayer? = null
     private var audioFocusHandler: PlaybackAudioFocusHandler? = null
@@ -31,6 +38,10 @@ class CatlyticsPlaybackService : MediaSessionService() {
         audioFocusHandler = focusHandler
         exoPlayer.addListener(
             object : Player.Listener {
+                override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                    equalizerRepository.attachAudioSessionId(audioSessionId)
+                }
+
                 override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
                     if (playWhenReady) {
                         ensurePlaybackFocus()
@@ -54,6 +65,7 @@ class CatlyticsPlaybackService : MediaSessionService() {
                 }
             },
         )
+        equalizerRepository.attachAudioSessionId(exoPlayer.audioSessionId)
 
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("catlytics://nowplaying")).apply {
             setPackage(packageName)
@@ -77,6 +89,7 @@ class CatlyticsPlaybackService : MediaSessionService() {
 
     @OptIn(UnstableApi::class)
     override fun onDestroy() {
+        equalizerRepository.release()
         audioFocusHandler?.release()
         mediaSession?.run {
             player.release()

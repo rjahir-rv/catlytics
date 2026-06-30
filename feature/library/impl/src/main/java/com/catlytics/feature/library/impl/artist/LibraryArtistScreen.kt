@@ -523,6 +523,7 @@ private fun Long.formatDuration(): String {
     return String.format(Locale.US, "%d:%02d", minutes, seconds)
 }
 
+
 @Preview(name = "Phone", widthDp = 390, heightDp = 844, showBackground = true)
 @Composable
 private fun LibraryArtistScreenPhonePreview() {

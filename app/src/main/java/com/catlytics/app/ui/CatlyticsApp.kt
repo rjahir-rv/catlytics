@@ -93,10 +93,14 @@ fun CatlyticsApp(
     var librarySearchQuery by rememberSaveable { mutableStateOf("") }
     var isPlaylistsSearchExpanded by rememberSaveable { mutableStateOf(false) }
     var playlistsSearchQuery by rememberSaveable { mutableStateOf("") }
+    var isArtistSearchExpanded by rememberSaveable { mutableStateOf(false) }
+    var artistSearchQuery by rememberSaveable { mutableStateOf("") }
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
     var detailTopBarColor by remember { mutableStateOf<Color?>(null) }
+    var settingsTopBarTitle by remember { mutableStateOf("Ajustes") }
+    var settingsTopBarBackAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val appVersion = remember(context) {
         context.packageManager
             .getPackageInfo(context.packageName, 0)
@@ -126,6 +130,12 @@ fun CatlyticsApp(
     }
     LaunchedEffect(currentRoute) {
         detailTopBarColor = null
+        isArtistSearchExpanded = false
+        artistSearchQuery = ""
+        if (currentRoute != SettingsRoute) {
+            settingsTopBarTitle = "Ajustes"
+            settingsTopBarBackAction = null
+        }
     }
 
     fun closeHomeSearch() {
@@ -213,18 +223,21 @@ fun CatlyticsApp(
         }
     }
 
-    BackHandler(enabled = (isOnHomeRoot && isHomeSearchExpanded) || (isOnLibraryRoot && isLibrarySearchExpanded) || (isOnPlaylistsRoot && isPlaylistsSearchExpanded)) {
+    BackHandler(enabled = (isOnHomeRoot && isHomeSearchExpanded) || (isOnLibraryRoot && isLibrarySearchExpanded) || (isOnPlaylistsRoot && isPlaylistsSearchExpanded) || isArtistSearchExpanded) {
         if (isOnHomeRoot && isHomeSearchExpanded) {
             closeHomeSearch()
         } else if (isOnLibraryRoot && isLibrarySearchExpanded) {
             closeLibrarySearch()
         } else if (isOnPlaylistsRoot && isPlaylistsSearchExpanded) {
             closePlaylistsSearch()
+        } else if (isArtistSearchExpanded) {
+            artistSearchQuery = ""
+            isArtistSearchExpanded = false
         }
     }
 
-    LaunchedEffect(isHomeSearchExpanded, isLibrarySearchExpanded, isPlaylistsSearchExpanded) {
-        if (isHomeSearchExpanded || isLibrarySearchExpanded || isPlaylistsSearchExpanded) {
+    LaunchedEffect(isHomeSearchExpanded, isLibrarySearchExpanded, isPlaylistsSearchExpanded, isArtistSearchExpanded) {
+        if (isHomeSearchExpanded || isLibrarySearchExpanded || isPlaylistsSearchExpanded || isArtistSearchExpanded) {
             searchFocusRequester.requestFocus()
             keyboardController?.show()
         }
@@ -273,6 +286,20 @@ fun CatlyticsApp(
                         title = "",
                         onBack = ::closeCurrentDestination,
                         containerColor = detailChromeColor,
+                        supportsSearch = true,
+                        isSearchExpanded = isArtistSearchExpanded,
+                        searchQuery = artistSearchQuery,
+                        onSearchQueryChange = { artistSearchQuery = it },
+                        onSearchActionClick = {
+                            if (isArtistSearchExpanded) {
+                                artistSearchQuery = ""
+                                isArtistSearchExpanded = false
+                            } else {
+                                isArtistSearchExpanded = true
+                            }
+                        },
+                        searchPlaceholder = "Buscar canciones o álbumes",
+                        searchFocusRequester = searchFocusRequester,
                     )
                 }
                 currentRoute is LibraryFolderRoute -> {
@@ -351,7 +378,10 @@ fun CatlyticsApp(
                     )
                 }
                 isSettingsVisible -> {
-                    SettingsTopAppBar(onBack = ::closeCurrentDestination)
+                    SettingsTopAppBar(
+                        title = settingsTopBarTitle,
+                        onBack = settingsTopBarBackAction ?: ::closeCurrentDestination,
+                    )
                 }
             }
         },
@@ -398,10 +428,9 @@ fun CatlyticsApp(
             }
         },
     ) { innerPadding ->
-        val bottomPaddingState = remember { mutableStateOf(innerPadding.calculateBottomPadding()) }
-        SideEffect {
-            bottomPaddingState.value = innerPadding.calculateBottomPadding()
-        }
+        var lastBottomPadding by remember { mutableStateOf(0.dp) }
+        val currentBottomPadding = innerPadding.calculateBottomPadding()
+
         var lastRegularNavigationContentPadding by remember { mutableStateOf(PaddingValues(0.dp)) }
         val contentPaddingBehindBottomBar = PaddingValues(
             start = innerPadding.calculateStartPadding(layoutDirection),
@@ -409,19 +438,19 @@ fun CatlyticsApp(
             end = innerPadding.calculateEndPadding(layoutDirection),
             bottom = 0.dp,
         )
-        val regularNavigationContentPadding = if (isNowPlayingVisible) {
-            lastRegularNavigationContentPadding
-        } else {
-            contentPaddingBehindBottomBar
-        }
-        val regularContentModifier = Modifier.padding(regularNavigationContentPadding)
-
 
         SideEffect {
             if (!isNowPlayingVisible) {
+                lastBottomPadding = currentBottomPadding
                 lastRegularNavigationContentPadding = contentPaddingBehindBottomBar
             }
         }
+
+        val bottomPaddingToUse = if (isNowPlayingVisible) lastBottomPadding else currentBottomPadding
+        val regularNavigationContentPadding = if (isNowPlayingVisible) lastRegularNavigationContentPadding else contentPaddingBehindBottomBar
+
+        val bottomPaddingState = androidx.compose.runtime.rememberUpdatedState(bottomPaddingToUse)
+        val regularPaddingState = androidx.compose.runtime.rememberUpdatedState(regularNavigationContentPadding)
 
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
@@ -442,10 +471,12 @@ fun CatlyticsApp(
                         searchQuery = { homeSearchQuery },
                         onTrackOptions = { track -> openTrackOptions(track) },
                         bottomPadding = { bottomPaddingState.value },
-                        contentModifier = regularContentModifier,
+                        contentPadding = { regularPaddingState.value },
                     )
                     libraryEntry(
                         searchQuery = { librarySearchQuery },
+                        artistSearchQuery = { artistSearchQuery },
+                        onArtistSearchQueryChange = { artistSearchQuery = it },
                         onDestinationSelected = topLevelBackStack::add,
                         onAddToPlaylist = ::openAddToPlaylist,
                         onTrackOptions = { track -> openTrackOptions(track) },
@@ -453,7 +484,7 @@ fun CatlyticsApp(
                             detailTopBarColor = color
                         },
                         bottomPadding = { bottomPaddingState.value },
-                        contentModifier = regularContentModifier,
+                        contentPadding = { regularPaddingState.value },
                     )
                     playlistsEntry(
                         searchQuery = { playlistsSearchQuery },
@@ -465,13 +496,19 @@ fun CatlyticsApp(
                         onPlaylistDetailTopBarColorChange = { color ->
                             detailTopBarColor = color
                         },
-                        contentModifier = regularContentModifier,
+                        contentPadding = { regularPaddingState.value },
                     )
                     settingsEntry(
                         appVersion = appVersion,
-                        contentModifier = regularContentModifier,
+                        bottomPadding = { bottomPaddingState.value },
+                        onTopBarTitleChange = { title -> settingsTopBarTitle = title },
+                        onTopBarBackActionChange = { action -> settingsTopBarBackAction = action },
+                        contentPadding = { regularPaddingState.value },
                     )
-                    statisticsEntry(contentModifier = regularContentModifier)
+                    statisticsEntry(
+                        bottomPadding = { bottomPaddingState.value },
+                        contentPadding = { regularPaddingState.value },
+                    )
                     entry<NowPlayingRoute>(
                         metadata = metadata {
                             put(NavDisplay.TransitionKey) {

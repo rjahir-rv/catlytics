@@ -1,26 +1,17 @@
 package com.catlytics.feature.settings.impl
 
-import androidx.annotation.DrawableRes
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -28,39 +19,89 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.R
-import com.catlytics.core.designsystem.theme.CatlyticsTheme
+import com.catlytics.core.model.EqualizerMode
+import com.catlytics.core.model.EqualizerPreset
+import com.catlytics.core.model.EqualizerState
 import com.catlytics.core.model.ThemeMode
-
-@Composable
-internal fun SettingsRoute(
-    appVersion: String,
-    viewModel: SettingsViewModel = hiltViewModel(),
-) {
-    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
-
-    SettingsScreen(
-        appVersion = appVersion,
-        themeMode = themeMode,
-        onThemeModeChange = viewModel::setThemeMode,
-    )
-}
+import com.catlytics.feature.settings.impl.components.SettingsDivider
+import com.catlytics.feature.settings.impl.components.SettingsRowText
+import com.catlytics.feature.settings.impl.components.SettingsSection
+import com.catlytics.feature.settings.impl.components.SettingsValueRow
+import com.catlytics.feature.settings.impl.equalizer.EqualizerSettingsContent
 
 @Composable
 internal fun SettingsScreen(
     appVersion: String,
+    modifier: Modifier = Modifier,
     themeMode: ThemeMode,
+    equalizerState: EqualizerState,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onEqualizerEnabledChange: (Boolean) -> Unit,
+    onEqualizerModeChange: (EqualizerMode) -> Unit,
+    onEqualizerPresetSelected: (EqualizerPreset) -> Unit,
+    onCustomBandLevelChange: (Short, Int, Boolean) -> Unit,
+    bottomPadding: () -> Dp = { 0.dp },
+    onTopBarTitleChange: (String) -> Unit = {},
+    onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {}
+) {
+    var destination by rememberSaveable { mutableStateOf(SettingsDestination.Main) }
+
+    LaunchedEffect(destination) {
+        when (destination) {
+            SettingsDestination.Main -> {
+                onTopBarTitleChange("Ajustes")
+                onTopBarBackActionChange(null)
+            }
+            SettingsDestination.Equalizer -> {
+                onTopBarTitleChange("Ecualizador")
+                onTopBarBackActionChange { destination = SettingsDestination.Main }
+            }
+        }
+    }
+
+    when (destination) {
+        SettingsDestination.Main -> SettingsMainContent(
+            appVersion = appVersion,
+            themeMode = themeMode,
+            equalizerState = equalizerState,
+            onThemeModeChange = onThemeModeChange,
+            onEqualizerClick = { destination = SettingsDestination.Equalizer },
+            bottomPadding = bottomPadding,
+            modifier = modifier,
+        )
+        SettingsDestination.Equalizer -> EqualizerSettingsContent(
+            equalizerState = equalizerState,
+            onEqualizerEnabledChange = onEqualizerEnabledChange,
+            onEqualizerModeChange = onEqualizerModeChange,
+            onEqualizerPresetSelected = onEqualizerPresetSelected,
+            onCustomBandLevelChange = onCustomBandLevelChange,
+            bottomPadding = bottomPadding,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+private fun SettingsMainContent(
+    appVersion: String,
+    themeMode: ThemeMode,
+    equalizerState: EqualizerState,
+    onThemeModeChange: (ThemeMode) -> Unit,
+    onEqualizerClick: () -> Unit,
+    bottomPadding: () -> Dp,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 24.dp),
+        modifier = modifier,
+        contentPadding = PaddingValues(
+            start = 20.dp,
+            top = 24.dp,
+            end = 20.dp,
+            bottom = bottomPadding() + 80.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item {
@@ -93,7 +134,9 @@ internal fun SettingsScreen(
                 SettingsDivider()
                 SettingsValueRow(
                     title = "Ecualizador",
-                    value = "Personalizado",
+                    supportingText = "Presets del dispositivo",
+                    value = equalizerState.statusLabel,
+                    onClick = onEqualizerClick,
                 )
                 SettingsDivider()
                 SettingsValueRow(
@@ -119,43 +162,6 @@ internal fun SettingsScreen(
                 SettingsValueRow(title = "Política de privacidad")
             }
         }
-    }
-}
-
-@Composable
-private fun SettingsSection(
-    title: String,
-    @DrawableRes iconRes: Int,
-    modifier: Modifier = Modifier,
-    content: @Composable () -> Unit,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-        ),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        SettingsDivider()
-        content()
     }
 }
 
@@ -224,75 +230,6 @@ private fun ThemeModeOption(
     }
 }
 
-@Composable
-private fun SettingsValueRow(
-    title: String,
-    modifier: Modifier = Modifier,
-    supportingText: String? = null,
-    value: String? = null,
-    showChevron: Boolean = true,
-    onClick: () -> Unit = {},
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = showChevron, onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        SettingsRowText(
-            title = title,
-            supportingText = supportingText,
-            modifier = Modifier.weight(1f),
-        )
-        value?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        if (showChevron) {
-            Icon(
-                painter = painterResource(R.drawable.ic_chevron_right),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingsRowText(
-    title: String,
-    supportingText: String?,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        supportingText?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingsDivider() {
-    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-}
-
 private val ThemeMode.label: String
     get() = when (this) {
         ThemeMode.System -> "Sistema"
@@ -307,14 +244,15 @@ private val ThemeMode.supportingText: String
         ThemeMode.Dark -> "Usar siempre el tema oscuro"
     }
 
-@Preview(showBackground = true)
-@Composable
-private fun SettingsScreenPreview() {
-    CatlyticsTheme {
-        SettingsScreen(
-            appVersion = "0.0.1",
-            themeMode = ThemeMode.System,
-            onThemeModeChange = {},
-        )
+private val EqualizerState.statusLabel: String
+    get() = when {
+        !isAvailable -> "No disponible"
+        enabled -> selectedPresetName ?: "Activo"
+        else -> "Desactivado"
     }
+
+private enum class SettingsDestination {
+    Main,
+    Equalizer,
 }
+
