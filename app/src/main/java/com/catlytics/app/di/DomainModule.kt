@@ -20,6 +20,7 @@ import com.catlytics.core.domain.usecase.playlist.ObservePlaylistSortDirectionUs
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistSortDirectionUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveListeningStatsUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveListeningTotalsUseCase
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
@@ -197,6 +198,11 @@ object DomainModule {
     fun provideObserveWeeklyStatsUseCase(
         playbackEventRepository: PlaybackEventRepository,
     ) = ObserveWeeklyStatsUseCase(playbackEventRepository)
+
+    @Provides
+    fun provideObserveListeningTotalsUseCase(
+        playbackEventRepository: PlaybackEventRepository,
+    ) = ObserveListeningTotalsUseCase(playbackEventRepository)
 
     @Provides
     fun provideObservePlaybackStateUseCase(

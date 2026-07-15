@@ -24,7 +24,7 @@ object DatabaseModule {
                 context,
                 CatlyticsDatabase::class.java,
                 "catlytics.db"
-            ).fallbackToDestructiveMigration(false) // fallback to destructive migration for safety during initial dev/testing
+            ).addMigrations(CatlyticsDatabase.MIGRATION_1_2)
         .build()
     }
 

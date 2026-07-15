@@ -15,4 +15,6 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.coil.compose)
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m3)
 }

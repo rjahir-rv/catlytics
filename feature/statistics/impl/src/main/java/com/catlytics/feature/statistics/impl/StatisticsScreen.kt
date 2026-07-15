@@ -23,7 +23,13 @@ import coil3.request.crossfade
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
+import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.WeeklyStats
+import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
+import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesianLayer
+import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
+import com.patrykandpatrick.vico.compose.cartesian.data.columnModel
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -71,6 +77,7 @@ internal fun StatisticsScreen(
                     StatisticsContent(
                         weekOffset = state.weekOffset,
                         stats = state.stats,
+                        totals = state.totals,
                         onWeekSelected = { viewModel.selectWeek(it) },
                         bottomPadding = bottomPadding
                     )
@@ -84,6 +91,7 @@ internal fun StatisticsScreen(
 private fun StatisticsContent(
     weekOffset: Int,
     stats: WeeklyStats,
+    totals: ListeningTotals,
     onWeekSelected: (Int) -> Unit,
     bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp }
 ) {
@@ -147,7 +155,7 @@ private fun StatisticsContent(
             val formattedTime = if (hours > 0) {
                 "${hours}h ${minutes}m"
             } else {
-                "${minutes} min"
+                "$minutes min"
             }
 
             Card(
@@ -185,6 +193,10 @@ private fun StatisticsContent(
             }
         }
 
+        item {
+            ListeningTotalsRow(totals)
+        }
+
         if (stats.topTracks.isEmpty() && stats.topArtists.isEmpty()) {
             item {
                 Box(
@@ -213,6 +225,14 @@ private fun StatisticsContent(
                 }
             }
         } else {
+            item {
+                WeeklyActivityChart(stats.dailyListening)
+            }
+
+            item {
+                WeeklySummary(stats)
+            }
+
             if (stats.topTracks.isNotEmpty()) {
                 item {
                     Text(
@@ -243,6 +263,175 @@ private fun StatisticsContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ListeningTotalsRow(totals: ListeningTotals) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        ListeningTotalItem(
+            label = "Canciones",
+            value = totals.trackCount,
+            modifier = Modifier.weight(1f),
+        )
+        ListeningTotalItem(
+            label = "Artistas",
+            value = totals.artistCount,
+            modifier = Modifier.weight(1f),
+        )
+        ListeningTotalItem(
+            label = "Álbumes",
+            value = totals.albumCount,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun ListeningTotalItem(
+    label: String,
+    value: Int,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+        ),
+        shape = RoundedCornerShape(12.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 14.dp, horizontal = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = value.toString(),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+            )
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeeklyActivityChart(dailyListening: List<com.catlytics.core.model.DailyListeningStat>) {
+    val modelProducer = remember { CartesianChartModelProducer() }
+    val dailyMinutes = remember(dailyListening) {
+        List(7) { index ->
+            dailyListening.firstOrNull { it.dayOfWeek == index + 1 }
+                ?.totalListenedMillis
+                ?.div(60_000f)
+                ?: 0f
+        }
+    }
+
+    LaunchedEffect(dailyMinutes) {
+        modelProducer.runTransaction {
+            columnModel { series(y = dailyMinutes) }
+        }
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Actividad semanal",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Text(
+                text = "Minutos escuchados por día",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            CartesianChartHost(
+                chart = rememberCartesianChart(
+                    rememberColumnCartesianLayer(),
+                ),
+                modelProducer = modelProducer,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp)
+                    .padding(top = 12.dp),
+            )
+            Row(modifier = Modifier.fillMaxWidth()) {
+                listOf("L", "M", "X", "J", "V", "S", "D").forEach { day ->
+                    Text(
+                        text = day,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeeklySummary(stats: WeeklyStats) {
+    val favoriteArtist = stats.topArtists.firstOrNull()?.name ?: "Sin datos"
+    val favoriteTrack = stats.topTracks.firstOrNull()?.title ?: "Sin datos"
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+        ),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Resumen semanal",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            SummaryValue("Artista favorito", favoriteArtist)
+            SummaryValue("Canción más escuchada", favoriteTrack)
+            SummaryValue("Reproducciones", stats.playCount.toString())
+        }
+    }
+}
+
+@Composable
+private fun SummaryValue(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 3.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+        )
+        Text(
+            text = value,
+            modifier = Modifier.padding(start = 16.dp),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

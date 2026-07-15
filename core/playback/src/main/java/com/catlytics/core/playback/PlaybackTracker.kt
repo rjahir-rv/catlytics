@@ -88,6 +88,8 @@ class PlaybackTracker @Inject constructor(
                         trackTitle = track.title,
                         artistId = track.artist.id,
                         artistName = track.artist.name,
+                        albumId = track.albumId,
+                        albumTitle = track.albumTitle,
                         artworkUri = track.artworkUri,
                         durationListenedMillis = listened,
                         trackDurationMillis = track.durationMillis,

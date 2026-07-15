@@ -394,8 +394,6 @@ fun CatlyticsApp(
                             artist = track.artist.name,
                             isPlaying = playbackState.status == PlaybackStatus.Playing,
                             isBuffering = playbackState.status == PlaybackStatus.Buffering,
-                            positionMillis = playbackState.positionMillis,
-                            durationMillis = playbackState.durationMillis,
                             onTogglePlayback = playbackViewModel::togglePlayback,
                             onSkipPrevious = playbackViewModel::skipPrevious,
                             onSkipNext = playbackViewModel::skipNext,

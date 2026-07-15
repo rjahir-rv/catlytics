@@ -4,6 +4,8 @@ import com.catlytics.core.data.local.room.PlaybackEventDao
 import com.catlytics.core.data.local.room.PlaybackEventEntity
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.PlaybackEvent
+import com.catlytics.core.model.DailyListeningStat
+import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
 import kotlinx.coroutines.CoroutineDispatcher
@@ -36,6 +38,21 @@ class RoomPlaybackEventRepository @Inject constructor(
         return dao.observeTotalListeningTime(startMillis, endMillis).flowOn(ioDispatcher)
     }
 
+    override fun observeDailyListening(
+        startMillis: Long,
+        endMillis: Long
+    ): Flow<List<DailyListeningStat>> {
+        return dao.observeDailyListening(startMillis, endMillis).flowOn(ioDispatcher)
+    }
+
+    override fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int> {
+        return dao.observePlayCount(startMillis, endMillis).flowOn(ioDispatcher)
+    }
+
+    override fun observeListeningTotals(): Flow<ListeningTotals> {
+        return dao.observeListeningTotals().flowOn(ioDispatcher)
+    }
+
     override suspend fun cleanOldEvents(beforeMillis: Long): Int {
         return withContext(ioDispatcher) {
             dao.deleteEventsBefore(beforeMillis)
@@ -49,6 +66,8 @@ private fun PlaybackEvent.toEntity(): PlaybackEventEntity {
         trackTitle = trackTitle,
         artistId = artistId,
         artistName = artistName,
+        albumId = albumId,
+        albumTitle = albumTitle,
         artworkUri = artworkUri,
         durationListenedMillis = durationListenedMillis,
         trackDurationMillis = trackDurationMillis,

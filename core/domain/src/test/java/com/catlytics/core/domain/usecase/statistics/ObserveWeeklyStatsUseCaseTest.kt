@@ -2,6 +2,8 @@ package com.catlytics.core.domain.usecase.statistics
 
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.PlaybackEvent
+import com.catlytics.core.model.DailyListeningStat
+import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +46,17 @@ class FakePlaybackEventRepository2 : PlaybackEventRepository {
         return flowOf(500_000L)
     }
 
+    override fun observeDailyListening(
+        startMillis: Long,
+        endMillis: Long,
+    ): Flow<List<DailyListeningStat>> = flowOf(
+        listOf(DailyListeningStat(dayOfWeek = 1, totalListenedMillis = 120_000L))
+    )
+
+    override fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int> = flowOf(3)
+
+    override fun observeListeningTotals(): Flow<ListeningTotals> = flowOf(ListeningTotals(1, 1, 1))
+
     override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
 }
 
@@ -79,6 +92,8 @@ class ObserveWeeklyStatsUseCaseTest {
         assertEquals(1, stats.topArtists.size)
         assertEquals("artist-1", stats.topArtists[0].artistId)
         assertEquals(500_000L, stats.totalListenedMillis)
+        assertEquals(3, stats.playCount)
+        assertEquals(1, stats.dailyListening.single().dayOfWeek)
     }
 
     @Test

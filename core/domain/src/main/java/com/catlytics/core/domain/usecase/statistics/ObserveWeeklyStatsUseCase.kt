@@ -2,6 +2,7 @@ package com.catlytics.core.domain.usecase.statistics
 
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.WeeklyStats
+import com.catlytics.core.model.DailyListeningStat
 import java.time.Clock
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -16,16 +17,25 @@ class ObserveWeeklyStatsUseCase(
     operator fun invoke(weekOffset: Int = 0): Flow<WeeklyStats> {
         val (start, end) = calculateWeekRange(weekOffset, clock)
         return combine(
-            playbackEventRepository.observeTopTracks(start, end, limit = 5),
-            playbackEventRepository.observeTopArtists(start, end, limit = 5),
-            playbackEventRepository.observeTotalListeningTime(start, end)
-        ) { topTracks, topArtists, totalMillis ->
+            playbackEventRepository.observeTotalListeningTime(start, end),
+            playbackEventRepository.observeDailyListening(start, end),
+            playbackEventRepository.observePlayCount(start, end),
+        ) { totalMillis, dailyListening, playCount ->
+            WeeklyListeningData(totalMillis, dailyListening, playCount)
+        }.combine(
+            combine(
+                playbackEventRepository.observeTopTracks(start, end, limit = 5),
+                playbackEventRepository.observeTopArtists(start, end, limit = 5),
+            ) { topTracks, topArtists -> WeeklyRankings(topTracks, topArtists) }
+        ) { listening, rankings ->
             WeeklyStats(
                 weekStart = start,
                 weekEnd = end,
-                topTracks = topTracks,
-                topArtists = topArtists,
-                totalListenedMillis = totalMillis
+                topTracks = rankings.topTracks,
+                topArtists = rankings.topArtists,
+                totalListenedMillis = listening.totalListenedMillis,
+                dailyListening = listening.dailyListening,
+                playCount = listening.playCount,
             )
         }
     }
@@ -42,4 +52,15 @@ class ObserveWeeklyStatsUseCase(
             endOfWeek.atStartOfDay(zone).toInstant().toEpochMilli()
         )
     }
+
+    private data class WeeklyListeningData(
+        val totalListenedMillis: Long,
+        val dailyListening: List<DailyListeningStat>,
+        val playCount: Int,
+    )
+
+    private data class WeeklyRankings(
+        val topTracks: List<com.catlytics.core.model.TopTrack>,
+        val topArtists: List<com.catlytics.core.model.TopArtist>,
+    )
 }

@@ -151,6 +151,12 @@ data class ListeningStats(
     val totalDurationMillis: Long,
 )
 
+data class ListeningTotals(
+    val trackCount: Int,
+    val artistCount: Int,
+    val albumCount: Int,
+)
+
 enum class ThemeMode {
     System,
     Light,
@@ -212,6 +218,13 @@ data class WeeklyStats(
     val topTracks: List<TopTrack>,
     val topArtists: List<TopArtist>,
     val totalListenedMillis: Long,
+    val dailyListening: List<DailyListeningStat>,
+    val playCount: Int,
+)
+
+data class DailyListeningStat(
+    val dayOfWeek: Int,
+    val totalListenedMillis: Long,
 )
 
 data class PlaybackEvent(
@@ -219,10 +232,11 @@ data class PlaybackEvent(
     val trackTitle: String,
     val artistId: String,
     val artistName: String,
+    val albumId: String?,
+    val albumTitle: String?,
     val artworkUri: String?,
     val durationListenedMillis: Long,
     val trackDurationMillis: Long,
     val timestamp: Long,
 )
-
 

@@ -19,6 +19,8 @@ data class PlaybackEventEntity(
     @ColumnInfo(name = "track_title") val trackTitle: String,
     @ColumnInfo(name = "artist_id") val artistId: String,
     @ColumnInfo(name = "artist_name") val artistName: String,
+    @ColumnInfo(name = "album_id") val albumId: String?,
+    @ColumnInfo(name = "album_title") val albumTitle: String?,
     @ColumnInfo(name = "artwork_uri") val artworkUri: String?,
     @ColumnInfo(name = "duration_listened_millis") val durationListenedMillis: Long,
     @ColumnInfo(name = "track_duration_millis") val trackDurationMillis: Long,
