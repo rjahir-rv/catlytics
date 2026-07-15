@@ -7,6 +7,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -44,6 +46,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -141,12 +144,21 @@ internal fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (!hasAudioPermission) {
-            PermissionRequiredContent(onRequestPermission = onRequestPermission)
+            PermissionRequiredContent(
+                onRequestPermission = onRequestPermission,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(bottom = bottomPadding()),
+            )
             return@Column
         }
 
         when (uiState) {
-            HomeUiState.Empty -> EmptyLibraryContent()
+            HomeUiState.Empty -> EmptyLibraryContent(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(bottom = bottomPadding()),
+            )
             is HomeUiState.Error -> ErrorContent(message = uiState.message)
             HomeUiState.Loading -> LoadingContent()
             is HomeUiState.Success -> {
@@ -188,19 +200,16 @@ private fun PermissionRequiredContent(
     onRequestPermission: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    EmptyStateContent(
+        message = "Catlytics necesita permiso para leer tu musica local.",
         modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "Catlytics necesita permiso para leer tu musica local.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Button(onClick = onRequestPermission) {
-            Text(text = "Permitir acceso a musica")
-        }
-    }
+        contentOffset = (-68).dp,
+        action = {
+            Button(onClick = onRequestPermission) {
+                Text(text = "Permitir acceso a musica")
+            }
+        },
+    )
 }
 
 @Composable
@@ -216,12 +225,50 @@ private fun LoadingContent(
 private fun EmptyLibraryContent(
     modifier: Modifier = Modifier,
 ) {
-    Text(
+    EmptyStateContent(
+        message = "No encontramos canciones en este dispositivo.",
         modifier = modifier,
-        text = "No encontramos canciones en este dispositivo.",
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onBackground,
+        contentOffset = (-34).dp,
     )
+}
+
+@Composable
+private fun EmptyStateContent(
+    message: String,
+    modifier: Modifier = Modifier,
+    contentOffset: Dp = 0.dp,
+    action: @Composable (() -> Unit)? = null,
+) {
+    Box(
+        modifier = modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier.offset(y = contentOffset),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.cat_background),
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.size(200.dp),
+                )
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = message,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            action?.invoke()
+        }
+    }
 }
 
 @Composable
@@ -451,6 +498,38 @@ private fun HomeScreenPreview() {
                 ),
                 currentTrackId = "track-current",
             ),
+            searchQuery = "",
+            hasAudioPermission = true,
+            onRequestPermission = {},
+            onTrackSelected = { _, _ -> },
+            onTrackOptions = {},
+            onAddToLiked = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HomeScreenPermissionRequiredPreview() {
+    CatlyticsTheme {
+        HomeScreen(
+            uiState = HomeUiState.Empty,
+            searchQuery = "",
+            hasAudioPermission = false,
+            onRequestPermission = {},
+            onTrackSelected = { _, _ -> },
+            onTrackOptions = {},
+            onAddToLiked = {},
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun HomeScreenEmptyLibraryPreview() {
+    CatlyticsTheme {
+        HomeScreen(
+            uiState = HomeUiState.Empty,
             searchQuery = "",
             hasAudioPermission = true,
             onRequestPermission = {},
