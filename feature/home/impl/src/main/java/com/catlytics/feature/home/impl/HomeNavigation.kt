@@ -11,6 +11,7 @@ import com.catlytics.core.model.Track
 fun EntryProviderScope<NavKey>.homeEntry(
     searchQuery: () -> String,
     onTrackOptions: (Track) -> Unit,
+    onNavigateToStatistics: () -> Unit,
     bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
     contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
 ) {
@@ -18,6 +19,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
         HomeRoute(
             searchQuery = searchQuery(),
             onTrackOptions = onTrackOptions,
+            onNavigateToStatistics = onNavigateToStatistics,
             bottomPadding = bottomPadding,
             modifier = Modifier.padding(contentPadding()),
         )

@@ -204,6 +204,14 @@ data class TopTrack(
     val totalListenedMillis: Long,
 )
 
+data class RecentlyPlayedTrack(
+    val trackId: String,
+    val title: String,
+    val artistName: String,
+    val artworkUri: String?,
+    val lastListenedAtMillis: Long,
+)
+
 data class TopArtist(
     val artistId: String,
     val name: String,
@@ -239,4 +247,3 @@ data class PlaybackEvent(
     val trackDurationMillis: Long,
     val timestamp: Long,
 )
-

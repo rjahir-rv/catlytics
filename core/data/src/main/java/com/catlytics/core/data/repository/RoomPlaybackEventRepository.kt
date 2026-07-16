@@ -6,6 +6,7 @@ import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
 import kotlinx.coroutines.CoroutineDispatcher
@@ -24,6 +25,10 @@ class RoomPlaybackEventRepository @Inject constructor(
         withContext(ioDispatcher) {
             dao.insert(event.toEntity())
         }
+    }
+
+    override fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>> {
+        return dao.observeRecentlyPlayedTracks(limit).flowOn(ioDispatcher)
     }
 
     override fun observeTopTracks(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopTrack>> {

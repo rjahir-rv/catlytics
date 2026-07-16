@@ -1,7 +1,7 @@
 package com.catlytics.feature.home.impl
 
 import com.catlytics.core.domain.repository.LibraryRepository
-import com.catlytics.core.domain.repository.PlaylistRepository
+import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
@@ -9,26 +9,31 @@ import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
-import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
-import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
-import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
-import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
-import com.catlytics.core.model.Playlist
+import com.catlytics.core.model.PlaybackStatus
+import com.catlytics.core.model.PlaybackEvent
+import com.catlytics.core.model.DailyListeningStat
+import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TopArtist
+import com.catlytics.core.model.TopTrack
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -51,14 +56,14 @@ class HomeViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var repository: FakeLibraryRepository
-    private lateinit var playlistRepository: FakePlaylistRepository
     private lateinit var playbackController: FakePlaybackController
+    private lateinit var playbackEventRepository: FakeHomePlaybackEventRepository
 
     @Before
     fun setUp() {
         repository = FakeLibraryRepository()
-        playlistRepository = FakePlaylistRepository()
         playbackController = FakePlaybackController()
+        playbackEventRepository = FakeHomePlaybackEventRepository()
     }
 
     @Test
@@ -106,18 +111,33 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `uiState exposes liked track ids`() = runTest {
-        val tracks = listOf(track(id = "track-1"), track(id = "track-2"))
+    fun `uiState exposes whether current track is playing`() = runTest {
+        val tracks = listOf(track(id = "track-1"))
         repository.setTracks(tracks)
-        playlistRepository.addTracks(LIKED_PLAYLIST_ID, listOf("track-2"))
         val viewModel = homeViewModel()
         backgroundScope.startCollecting(viewModel)
+
+        playbackController.setCurrentTrack(tracks.first())
+        playbackController.setPlaybackStatus(PlaybackStatus.Playing)
         advanceUntilIdle()
 
         assertEquals(
             HomeUiState.Success(
                 tracks = tracks,
-                likedTrackIds = setOf("track-2"),
+                currentTrackId = "track-1",
+                isCurrentTrackPlaying = true,
+            ),
+            viewModel.uiState.value,
+        )
+
+        playbackController.setPlaybackStatus(PlaybackStatus.Paused)
+        advanceUntilIdle()
+
+        assertEquals(
+            HomeUiState.Success(
+                tracks = tracks,
+                currentTrackId = "track-1",
+                isCurrentTrackPlaying = false,
             ),
             viewModel.uiState.value,
         )
@@ -156,26 +176,33 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `toggleTrackLiked reports whether track was added or removed`() = runTest {
+    fun `uiState resolves recently played tracks and limits weekly top tracks to three`() = runTest {
+        val tracks = (1..4).map { track("track-$it") }
+        repository.setTracks(tracks)
+        playbackEventRepository.recentlyPlayedTracks.value = listOf(
+            RecentlyPlayedTrack("track-3", "Track track-3", "Artist track-3", null, 3L),
+            RecentlyPlayedTrack("missing", "Missing", "Missing", null, 2L),
+            RecentlyPlayedTrack("track-1", "Track track-1", "Artist track-1", null, 1L),
+        )
+        playbackEventRepository.topTracks.value = tracks.mapIndexed { index, track ->
+            TopTrack(track.id, track.title, track.artist.name, null, index + 1, 1L)
+        }
         val viewModel = homeViewModel()
-        var firstResult: ToggleLikedTrackResult? = null
-        var secondResult: ToggleLikedTrackResult? = null
-
-        viewModel.toggleTrackLiked("track-1") { firstResult = it }
-        viewModel.toggleTrackLiked("track-1") { secondResult = it }
+        backgroundScope.startCollecting(viewModel)
         advanceUntilIdle()
 
-        assertEquals(ToggleLikedTrackResult.Added, firstResult)
-        assertEquals(ToggleLikedTrackResult.Removed, secondResult)
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(listOf("track-3", "track-1"), state.recentlyPlayedTracks.map(Track::id))
+        assertEquals(listOf("track-1", "track-2", "track-3"), state.topTracks.map(TopTrack::trackId))
     }
 
     private fun homeViewModel() = HomeViewModel(
         observeLibraryUseCase = ObserveLibraryUseCase(repository),
         observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
-        observePlaylistsUseCase = ObservePlaylistsUseCase(playlistRepository),
+        observeRecentlyPlayedTracksUseCase = ObserveRecentlyPlayedTracksUseCase(playbackEventRepository),
+        observeWeeklyStatsUseCase = ObserveWeeklyStatsUseCase(playbackEventRepository),
         refreshLibraryUseCase = RefreshLibraryUseCase(repository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
-        toggleLikedTrackUseCase = ToggleLikedTrackUseCase(playlistRepository),
     )
 
     private fun kotlinx.coroutines.CoroutineScope.startCollecting(viewModel: HomeViewModel) {
@@ -242,67 +269,6 @@ private class FakeLibraryRepository : LibraryRepository {
     }
 }
 
-private class FakePlaylistRepository : PlaylistRepository {
-    private val playlists = MutableStateFlow(
-        listOf(Playlist(LIKED_PLAYLIST_ID, "Tus me gusta", emptyList())),
-    )
-
-    override fun observePlaylists(): Flow<List<Playlist>> = playlists
-
-    override suspend fun createPlaylist(name: String, trackIds: List<String>): Playlist {
-        val playlist = Playlist("playlist-${playlists.value.size}", name, trackIds.distinct())
-        playlists.update { it + playlist }
-        return playlist
-    }
-
-    override suspend fun renamePlaylist(playlistId: String, name: String) {
-        playlists.update { current ->
-            current.map { if (it.id == playlistId) it.copy(name = name) else it }
-        }
-    }
-
-    override suspend fun deletePlaylist(playlistId: String) {
-        playlists.update { current -> current.filterNot { it.id == playlistId } }
-    }
-
-    override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int =
-        addTracksToPlaylists(listOf(playlistId), trackIds)[playlistId] ?: 0
-
-    override suspend fun addTracksToPlaylists(
-        playlistIds: Collection<String>,
-        trackIds: List<String>,
-    ): Map<String, Int> {
-        val distinctTrackIds = trackIds.distinct()
-        val addedByPlaylist = mutableMapOf<String, Int>()
-        playlists.update { current ->
-            current.map { playlist ->
-                if (playlist.id !in playlistIds) return@map playlist
-                val newIds = distinctTrackIds.filterNot(playlist.trackIds::contains)
-                addedByPlaylist[playlist.id] = newIds.size
-                playlist.copy(trackIds = playlist.trackIds + newIds)
-            }
-        }
-        return addedByPlaylist
-    }
-
-    override suspend fun removeTrack(playlistId: String, trackId: String) {
-        playlists.update { current ->
-            current.map { playlist ->
-                if (playlist.id == playlistId) playlist.copy(trackIds = playlist.trackIds - trackId)
-                else playlist
-            }
-        }
-    }
-
-    override suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?) {
-        playlists.update { current ->
-            current.map { playlist ->
-                if (playlist.id == playlistId) playlist.copy(artworkUri = artworkUri) else playlist
-            }
-        }
-    }
-}
-
 private class FakePlaybackController : PlaybackController {
     private val mutablePlaybackState = MutableStateFlow(PlaybackState())
     override val playbackState: Flow<PlaybackState> = mutablePlaybackState
@@ -351,4 +317,44 @@ private class FakePlaybackController : PlaybackController {
     fun setCurrentTrack(track: Track) {
         mutablePlaybackState.update { it.copy(currentTrack = track) }
     }
+
+    fun setPlaybackStatus(status: PlaybackStatus) {
+        mutablePlaybackState.update { it.copy(status = status) }
+    }
+}
+
+private class FakeHomePlaybackEventRepository : PlaybackEventRepository {
+    val recentlyPlayedTracks = MutableStateFlow(emptyList<RecentlyPlayedTrack>())
+    val topTracks = MutableStateFlow(emptyList<TopTrack>())
+
+    override suspend fun recordEvent(event: PlaybackEvent) = Unit
+
+    override fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>> =
+        recentlyPlayedTracks
+
+    override fun observeTopTracks(
+        startMillis: Long,
+        endMillis: Long,
+        limit: Int,
+    ): Flow<List<TopTrack>> = topTracks
+
+    override fun observeTopArtists(
+        startMillis: Long,
+        endMillis: Long,
+        limit: Int,
+    ): Flow<List<TopArtist>> = flowOf(emptyList())
+
+    override fun observeTotalListeningTime(startMillis: Long, endMillis: Long): Flow<Long> = flowOf(0L)
+
+    override fun observeDailyListening(
+        startMillis: Long,
+        endMillis: Long,
+    ): Flow<List<DailyListeningStat>> = flowOf(emptyList())
+
+    override fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int> = flowOf(0)
+
+    override fun observeListeningTotals(): Flow<ListeningTotals> =
+        flowOf(ListeningTotals(0, 0, 0))
+
+    override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
 }

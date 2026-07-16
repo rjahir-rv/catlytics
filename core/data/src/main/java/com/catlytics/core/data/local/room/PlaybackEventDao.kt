@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +15,19 @@ interface PlaybackEventDao {
 
     @Insert
     suspend fun insert(event: PlaybackEventEntity)
+
+    @Query("""
+        SELECT track_id AS trackId,
+               track_title AS title,
+               artist_name AS artistName,
+               artwork_uri AS artworkUri,
+               MAX(timestamp) AS lastListenedAtMillis
+        FROM playback_events
+        GROUP BY track_id
+        ORDER BY lastListenedAtMillis DESC
+        LIMIT :limit
+    """)
+    fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>>
 
     @Query("""
         SELECT track_id AS trackId, 

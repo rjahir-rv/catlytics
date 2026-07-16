@@ -2,34 +2,13 @@ package com.catlytics.feature.home.impl
 
 import android.Manifest
 import android.os.Build
-import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,37 +16,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
-import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
-import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.model.Artist
-import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.Track
-import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun HomeRoute(
     searchQuery: String,
     modifier: Modifier = Modifier,
     onTrackOptions: (Track) -> Unit,
+    onNavigateToStatistics: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -89,9 +55,7 @@ internal fun HomeRoute(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(hasAudioPermission) {
-        if (hasAudioPermission) {
-            viewModel.refreshLibraryOnce()
-        }
+        if (hasAudioPermission) viewModel.refreshLibraryOnce()
     }
 
     HomeScreen(
@@ -101,40 +65,26 @@ internal fun HomeRoute(
         onRequestPermission = { permissionLauncher.launch(permission) },
         onTrackSelected = viewModel::onTrackSelected,
         onTrackOptions = onTrackOptions,
+        onNavigateToStatistics = onNavigateToStatistics,
         bottomPadding = bottomPadding,
-        onAddToLiked = { track ->
-            viewModel.toggleTrackLiked(track.id) { result ->
-                Toast.makeText(
-                    context,
-                    when (result) {
-                        ToggleLikedTrackResult.Added ->
-                            "Canción agregada a $LIKED_PLAYLIST_NAME"
-                        ToggleLikedTrackResult.Removed ->
-                            "Canción eliminada de $LIKED_PLAYLIST_NAME"
-                    },
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
-        },
         modifier = modifier,
     )
 }
 
 @Composable
 internal fun HomeScreen(
-    modifier: Modifier = Modifier,
     uiState: HomeUiState,
     searchQuery: String,
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    modifier: Modifier = Modifier,
+    onNavigateToStatistics: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
-    onAddToLiked: (Track) -> Unit
-,
 ) {
-    val trackListState = rememberSaveable(saver = LazyListState.Saver) {
-        LazyListState()
+    val trackListState = rememberSaveable(saver = androidx.compose.foundation.lazy.LazyListState.Saver) {
+        androidx.compose.foundation.lazy.LazyListState()
     }
 
     Column(
@@ -166,10 +116,12 @@ internal fun HomeScreen(
                 if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
                     NoSearchResultsContent()
                 } else {
-                    TrackList(
+                    HomeTrackList(
                         tracks = filteredTracks,
+                        recentlyPlayedTracks = uiState.recentlyPlayedTracks,
+                        topTracks = uiState.topTracks,
                         currentTrackId = uiState.currentTrackId,
-                        likedTrackIds = uiState.likedTrackIds,
+                        isCurrentTrackPlaying = uiState.isCurrentTrackPlaying,
                         onTrackSelected = onTrackSelected,
                         modifier = Modifier.weight(1f),
                         state = trackListState,
@@ -178,7 +130,11 @@ internal fun HomeScreen(
                             bottom = bottomPadding() + 20.dp,
                         ),
                         onTrackOptions = onTrackOptions,
-                        onAddToLiked = onAddToLiked,
+                        onRecentlyPlayedTrackSelected = { track ->
+                            onTrackSelected(track, uiState.tracks)
+                        },
+                        onNavigateToStatistics = onNavigateToStatistics,
+                        showHighlights = searchQuery.isBlank(),
                     )
                 }
             }
@@ -195,279 +151,6 @@ private fun rememberRequiredAudioPermission(): String = remember {
     }
 }
 
-@Composable
-private fun PermissionRequiredContent(
-    onRequestPermission: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    EmptyStateContent(
-        message = "Catlytics necesita permiso para leer tu musica local.",
-        modifier = modifier,
-        contentOffset = (-68).dp,
-        action = {
-            Button(onClick = onRequestPermission) {
-                Text(text = "Permitir acceso a musica")
-            }
-        },
-    )
-}
-
-@Composable
-private fun LoadingContent(
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier.fillMaxWidth()) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun EmptyLibraryContent(
-    modifier: Modifier = Modifier,
-) {
-    EmptyStateContent(
-        message = "No encontramos canciones en este dispositivo.",
-        modifier = modifier,
-        contentOffset = (-34).dp,
-    )
-}
-
-@Composable
-private fun EmptyStateContent(
-    message: String,
-    modifier: Modifier = Modifier,
-    contentOffset: Dp = 0.dp,
-    action: @Composable (() -> Unit)? = null,
-) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            modifier = Modifier.offset(y = contentOffset),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.cat_background),
-                    contentDescription = null,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(200.dp),
-                )
-                Text(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    textAlign = TextAlign.Center,
-                )
-            }
-            action?.invoke()
-        }
-    }
-}
-
-@Composable
-private fun NoSearchResultsContent(
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        modifier = modifier,
-        text = "No encontramos canciones que coincidan con tu búsqueda.",
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
-
-@Composable
-private fun ErrorContent(
-    message: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        modifier = modifier,
-        text = message,
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.error,
-    )
-}
-
-@Composable
-private fun TrackList(
-    tracks: List<Track>,
-    currentTrackId: String?,
-    likedTrackIds: Set<String>,
-    onTrackSelected: (Track, List<Track>) -> Unit,
-    modifier: Modifier = Modifier,
-    state: LazyListState = rememberLazyListState(),
-    contentPadding: PaddingValues = PaddingValues(0.dp),
-    onTrackOptions: (Track) -> Unit,
-    onAddToLiked: (Track) -> Unit,
-) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        state = state,
-        contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        items(
-            items = tracks,
-            key = { it.id },
-        ) { track ->
-            TrackRow(
-                track = track,
-                isCurrent = track.id == currentTrackId,
-                isLiked = track.id in likedTrackIds,
-                onTrackSelected = { onTrackSelected(track, tracks) },
-                onAddToLiked = { onAddToLiked(track) },
-                onTrackOptions = { onTrackOptions(track) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun TrackRow(
-    track: Track,
-    isCurrent: Boolean,
-    isLiked: Boolean,
-    onTrackSelected: () -> Unit,
-    onAddToLiked: () -> Unit,
-    onTrackOptions: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .clickable(onClick = onTrackSelected)
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TrackArtwork(
-            track = track,
-            isCurrent = isCurrent,
-        )
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = track.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = if (isCurrent) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onBackground
-                },
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "${track.artist.name} · ${track.durationMillis.formatDuration()}",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        IconButton(onClick = onAddToLiked) {
-            Icon(
-                painter = painterResource(
-                    if (isLiked) R.drawable.ic_favorite_fill else R.drawable.ic_favorite,
-                ),
-                contentDescription = if (isLiked) {
-                    "Quitar ${track.title} de Tus me gusta"
-                } else {
-                    "Agregar ${track.title} a Tus me gusta"
-                },
-                modifier = Modifier.size(24.dp),
-                tint = if (isLiked) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            )
-        }
-        IconButton(onClick = onTrackOptions) {
-            Icon(
-                painter = painterResource(R.drawable.ic_options),
-                contentDescription = "Opciones de ${track.title}",
-            )
-        }
-    }
-}
-
-@Composable
-private fun TrackArtwork(
-    track: Track,
-    isCurrent: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val artworkShape = RoundedCornerShape(10.dp)
-
-    Box(
-        modifier = modifier.size(56.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        if (isCurrent) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .blur(
-                        radius = 16.dp,
-                        edgeTreatment = BlurredEdgeTreatment.Unbounded,
-                    )
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
-                        shape = artworkShape,
-                    ),
-            )
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .blur(
-                        radius = 8.dp,
-                        edgeTreatment = BlurredEdgeTreatment.Unbounded,
-                    )
-                    .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
-                        shape = artworkShape,
-                    ),
-            )
-        }
-        AsyncImage(
-            model = track.artworkUri,
-            contentDescription = null,
-            placeholder = painterResource(R.drawable.placeholder_album),
-            error = painterResource(R.drawable.placeholder_album),
-            fallback = painterResource(R.drawable.placeholder_album),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(48.dp)
-                .clip(artworkShape),
-        )
-    }
-}
-
-private fun Long.formatDuration(): String {
-    val duration = milliseconds
-    val totalSeconds = duration.inWholeSeconds
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.US, "%d:%02d", minutes, seconds)
-    }
-}
-
 @Preview(showBackground = true)
 @Composable
 private fun HomeScreenPreview() {
@@ -478,20 +161,14 @@ private fun HomeScreenPreview() {
                     Track(
                         id = "track-current",
                         title = "Electric Feel",
-                        artist = Artist(
-                            id = "artist-preview",
-                            name = "MGMT",
-                        ),
+                        artist = Artist(id = "artist-preview", name = "MGMT"),
                         durationMillis = 186_000,
                         mediaUri = "content://media/external/audio/media/1",
                     ),
                     Track(
                         id = "track-preview",
                         title = "Canción local con un título bastante largo",
-                        artist = Artist(
-                            id = "artist-local",
-                            name = "Artista local",
-                        ),
+                        artist = Artist(id = "artist-local", name = "Artista local"),
                         durationMillis = 242_000,
                         mediaUri = "content://media/external/audio/media/2",
                     ),
@@ -503,7 +180,6 @@ private fun HomeScreenPreview() {
             onRequestPermission = {},
             onTrackSelected = { _, _ -> },
             onTrackOptions = {},
-            onAddToLiked = {},
         )
     }
 }
@@ -519,7 +195,6 @@ private fun HomeScreenPermissionRequiredPreview() {
             onRequestPermission = {},
             onTrackSelected = { _, _ -> },
             onTrackOptions = {},
-            onAddToLiked = {},
         )
     }
 }
@@ -535,7 +210,6 @@ private fun HomeScreenEmptyLibraryPreview() {
             onRequestPermission = {},
             onTrackSelected = { _, _ -> },
             onTrackOptions = {},
-            onAddToLiked = {},
         )
     }
 }

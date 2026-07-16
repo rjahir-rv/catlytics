@@ -6,11 +6,11 @@ import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
-import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
-import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
-import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
-import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
+import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TopTrack
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,35 +26,46 @@ import kotlinx.coroutines.launch
 internal class HomeViewModel @Inject constructor(
     observeLibraryUseCase: ObserveLibraryUseCase,
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
-    observePlaylistsUseCase: ObservePlaylistsUseCase,
+    observeRecentlyPlayedTracksUseCase: ObserveRecentlyPlayedTracksUseCase,
+    observeWeeklyStatsUseCase: ObserveWeeklyStatsUseCase,
     private val refreshLibraryUseCase: RefreshLibraryUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
-    private val toggleLikedTrackUseCase: ToggleLikedTrackUseCase,
 ) : ViewModel() {
     private val refreshError = MutableStateFlow<String?>(null)
     private val isRefreshing = MutableStateFlow(false)
     private var hasRequestedInitialRefresh = false
 
+    private val libraryAndListening = combine(
+        observeLibraryUseCase().catch { emit(emptyList()) },
+        observeRecentlyPlayedTracksUseCase(RECENTLY_PLAYED_LIMIT),
+        observeWeeklyStatsUseCase(),
+    ) { tracks, recentlyPlayed, weeklyStats ->
+        val tracksById = tracks.associateBy(Track::id)
+        HomeLibraryAndListening(
+            tracks = tracks,
+            recentlyPlayedTracks = recentlyPlayed.mapNotNull { recentlyPlayedTrack ->
+                tracksById[recentlyPlayedTrack.trackId]
+            },
+            topTracks = weeklyStats.topTracks.take(TOP_TRACKS_LIMIT),
+        )
+    }
+
     val uiState: StateFlow<HomeUiState> = combine(
-        observeLibraryUseCase()
-            .catch { throwable -> emit(emptyList()) },
+        libraryAndListening,
         observePlaybackStateUseCase(),
-        observePlaylistsUseCase(),
         refreshError,
         isRefreshing,
-    ) { tracks, playbackState, playlists, error, refreshing ->
+    ) { libraryAndListening, playbackState, error, refreshing ->
         when {
             refreshing -> HomeUiState.Loading
             error != null -> HomeUiState.Error(error)
-            tracks.isEmpty() -> HomeUiState.Empty
+            libraryAndListening.tracks.isEmpty() -> HomeUiState.Empty
             else -> HomeUiState.Success(
-                tracks = tracks,
+                tracks = libraryAndListening.tracks,
+                recentlyPlayedTracks = libraryAndListening.recentlyPlayedTracks,
+                topTracks = libraryAndListening.topTracks,
                 currentTrackId = playbackState.currentTrack?.id,
-                likedTrackIds = playlists
-                    .firstOrNull { it.id == LIKED_PLAYLIST_ID }
-                    ?.trackIds
-                    .orEmpty()
-                    .toSet(),
+                isCurrentTrackPlaying = playbackState.status == PlaybackStatus.Playing,
             )
         }
     }.stateIn(
@@ -93,9 +104,15 @@ internal class HomeViewModel @Inject constructor(
         }
     }
 
-    fun toggleTrackLiked(trackId: String, onResult: (ToggleLikedTrackResult) -> Unit) {
-        viewModelScope.launch {
-            onResult(toggleLikedTrackUseCase(trackId))
-        }
+    private data class HomeLibraryAndListening(
+        val tracks: List<Track>,
+        val recentlyPlayedTracks: List<Track>,
+        val topTracks: List<TopTrack>,
+    )
+
+    private companion object {
+        const val RECENTLY_PLAYED_LIMIT = 10
+        const val TOP_TRACKS_LIMIT = 3
     }
+
 }

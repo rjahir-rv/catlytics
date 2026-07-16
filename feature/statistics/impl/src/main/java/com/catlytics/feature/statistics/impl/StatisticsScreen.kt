@@ -10,8 +10,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,10 +32,23 @@ import com.patrykandpatrick.vico.compose.cartesian.layer.rememberColumnCartesian
 import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.data.CartesianChartModelProducer
 import com.patrykandpatrick.vico.compose.cartesian.data.columnModel
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.CartesianMarkerController
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import com.patrykandpatrick.vico.compose.cartesian.marker.ColumnCartesianLayerMarkerTarget
+import com.patrykandpatrick.vico.compose.cartesian.marker.DefaultCartesianMarker
+import com.patrykandpatrick.vico.compose.cartesian.marker.Interaction
+import com.patrykandpatrick.vico.compose.cartesian.marker.rememberDefaultCartesianMarker
+import com.patrykandpatrick.vico.compose.common.Fill
+import com.patrykandpatrick.vico.compose.common.Insets
+import com.patrykandpatrick.vico.compose.common.component.rememberShapeComponent
+import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -327,6 +342,9 @@ private fun ListeningTotalItem(
 @Composable
 private fun WeeklyActivityChart(dailyListening: List<com.catlytics.core.model.DailyListeningStat>) {
     val modelProducer = remember { CartesianChartModelProducer() }
+    val coroutineScope = rememberCoroutineScope()
+    val markerVisible = remember { mutableStateOf(false) }
+    val hideMarkerJob = remember { mutableStateOf<Job?>(null) }
     val dailyMinutes = remember(dailyListening) {
         List(7) { index ->
             dailyListening.firstOrNull { it.dayOfWeek == index + 1 }
@@ -339,6 +357,41 @@ private fun WeeklyActivityChart(dailyListening: List<com.catlytics.core.model.Da
     LaunchedEffect(dailyMinutes) {
         modelProducer.runTransaction {
             columnModel { series(y = dailyMinutes) }
+        }
+    }
+
+    val markerLabel = rememberTextComponent(
+        style = TextStyle(color = MaterialTheme.colorScheme.onPrimary),
+        padding = Insets(horizontal = 8.dp, vertical = 4.dp),
+        background = rememberShapeComponent(
+            fill = Fill(MaterialTheme.colorScheme.primary),
+            shape = RoundedCornerShape(8.dp),
+        ),
+    )
+    val marker = rememberDefaultCartesianMarker(
+        label = markerLabel,
+        valueFormatter = remember(markerVisible.value) {
+            DefaultCartesianMarker.ValueFormatter { _, targets ->
+                if (!markerVisible.value) return@ValueFormatter ""
+                val minutes = (targets.firstOrNull() as? ColumnCartesianLayerMarkerTarget)
+                    ?.columns
+                    ?.firstOrNull()
+                    ?.entry
+                    ?.y
+                    ?: 0.0
+                "${minutes.toInt()} min"
+            }
+        },
+        labelPosition = DefaultCartesianMarker.LabelPosition.AroundPoint,
+    )
+    val markerController = remember {
+        TimedMarkerController {
+            markerVisible.value = true
+            hideMarkerJob.value?.cancel()
+            hideMarkerJob.value = coroutineScope.launch {
+                delay(2_000)
+                markerVisible.value = false
+            }
         }
     }
 
@@ -360,6 +413,8 @@ private fun WeeklyActivityChart(dailyListening: List<com.catlytics.core.model.Da
             CartesianChartHost(
                 chart = rememberCartesianChart(
                     rememberColumnCartesianLayer(),
+                    marker = marker,
+                    markerController = markerController,
                 ),
                 modelProducer = modelProducer,
                 modifier = Modifier
@@ -379,6 +434,25 @@ private fun WeeklyActivityChart(dailyListening: List<com.catlytics.core.model.Da
                 }
             }
         }
+    }
+}
+
+private class TimedMarkerController(
+    private val onMarkerTapped: () -> Unit,
+) : CartesianMarkerController {
+    override val acceptsLongPress = false
+
+    override fun shouldAcceptInteraction(
+        interaction: Interaction,
+        targets: List<CartesianMarker.Target>,
+    ) = interaction is Interaction.Tap && targets.isNotEmpty()
+
+    override fun shouldShowMarker(
+        interaction: Interaction,
+        targets: List<CartesianMarker.Target>,
+    ): Boolean {
+        onMarkerTapped()
+        return true
     }
 }
 

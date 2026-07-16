@@ -4,9 +4,11 @@ import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -20,8 +22,11 @@ class FakePlaybackEventRepository2 : PlaybackEventRepository {
     var lastStartObserved: Long = 0L
     var lastEndObserved: Long = 0L
     var lastLimitObserved: Int = 0
+    val recentlyPlayedTracks = MutableStateFlow(emptyList<RecentlyPlayedTrack>())
 
     override suspend fun recordEvent(event: PlaybackEvent) {}
+
+    override fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>> = recentlyPlayedTracks
 
     override fun observeTopTracks(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopTrack>> {
         lastStartObserved = startMillis
@@ -58,6 +63,25 @@ class FakePlaybackEventRepository2 : PlaybackEventRepository {
     override fun observeListeningTotals(): Flow<ListeningTotals> = flowOf(ListeningTotals(1, 1, 1))
 
     override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
+}
+
+class ObserveRecentlyPlayedTracksUseCaseTest {
+    private val repository = FakePlaybackEventRepository2()
+    private val useCase = ObserveRecentlyPlayedTracksUseCase(repository)
+
+    @Test
+    fun `observes recently played tracks from repository`() = runTest {
+        val recentTrack = RecentlyPlayedTrack(
+            trackId = "track-1",
+            title = "Track One",
+            artistName = "Artist One",
+            artworkUri = null,
+            lastListenedAtMillis = 1L,
+        )
+        repository.recentlyPlayedTracks.value = listOf(recentTrack)
+
+        assertEquals(listOf(recentTrack), useCase(limit = 10).first())
+    }
 }
 
 class ObserveWeeklyStatsUseCaseTest {

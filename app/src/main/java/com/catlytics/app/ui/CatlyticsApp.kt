@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -73,6 +72,7 @@ import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.settings.impl.settingsEntry
 import com.catlytics.feature.statistics.impl.statisticsEntry
+import com.catlytics.feature.statistics.api.StatisticsRoute
 
 @Composable
 fun CatlyticsApp(
@@ -309,12 +309,12 @@ fun CatlyticsApp(
                     )
                 }
                 currentRoute is PlaylistDetailRoute -> {
-                    // No title here to avoid duplicating the name shown in the detail header
                     LibraryDetailTopAppBar(
                         title = "",
                         onBack = ::closeCurrentDestination,
                         containerColor = detailChromeColor,
                     )
+                    //
                 }
                 currentTopLevelDestination != null -> {
                     val supportsSearch = isOnHomeRoot || isOnLibraryRoot || isOnPlaylistsRoot
@@ -394,6 +394,12 @@ fun CatlyticsApp(
                             artist = track.artist.name,
                             isPlaying = playbackState.status == PlaybackStatus.Playing,
                             isBuffering = playbackState.status == PlaybackStatus.Buffering,
+                            progress = if (playbackState.durationMillis > 0L) {
+                                (playbackState.positionMillis.toFloat() / playbackState.durationMillis)
+                                    .coerceIn(0f, 1f)
+                            } else {
+                                0f
+                            },
                             onTogglePlayback = playbackViewModel::togglePlayback,
                             onSkipPrevious = playbackViewModel::skipPrevious,
                             onSkipNext = playbackViewModel::skipNext,
@@ -468,6 +474,9 @@ fun CatlyticsApp(
                     homeEntry(
                         searchQuery = { homeSearchQuery },
                         onTrackOptions = { track -> openTrackOptions(track) },
+                        onNavigateToStatistics = {
+                            topLevelBackStack.addTopLevel(StatisticsRoute)
+                        },
                         bottomPadding = { bottomPaddingState.value },
                         contentPadding = { regularPaddingState.value },
                     )

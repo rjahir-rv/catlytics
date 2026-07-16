@@ -5,6 +5,7 @@ import com.catlytics.core.model.Artist
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.Track
@@ -27,6 +28,7 @@ class FakePlaybackEventRepository : PlaybackEventRepository {
         recordedEvents.add(event)
     }
 
+    override fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>> = emptyFlow()
     override fun observeTopTracks(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopTrack>> = emptyFlow()
     override fun observeTopArtists(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopArtist>> = emptyFlow()
     override fun observeTotalListeningTime(startMillis: Long, endMillis: Long): Flow<Long> = emptyFlow()
