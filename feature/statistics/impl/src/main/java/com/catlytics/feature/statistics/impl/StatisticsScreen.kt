@@ -10,7 +10,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -49,6 +48,7 @@ import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -390,7 +390,7 @@ private fun WeeklyActivityChart(dailyListening: List<com.catlytics.core.model.Da
             markerVisible.value = true
             hideMarkerJob.value?.cancel()
             hideMarkerJob.value = coroutineScope.launch {
-                delay(2_000)
+                delay(2_000.milliseconds)
                 markerVisible.value = false
             }
         }
