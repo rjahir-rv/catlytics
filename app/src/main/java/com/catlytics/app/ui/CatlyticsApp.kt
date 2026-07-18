@@ -1,8 +1,12 @@
 package com.catlytics.app.ui
 
+import android.Manifest
 import android.net.Uri
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -29,7 +33,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
@@ -78,10 +84,43 @@ import com.catlytics.feature.statistics.api.StatisticsRoute
 fun CatlyticsApp(
     modifier: Modifier = Modifier,
     playbackViewModel: PlaybackViewModel = hiltViewModel(),
+    startupViewModel: AppStartupViewModel = hiltViewModel(),
     deepLinkUri: Uri? = null,
     onDeepLinkHandled: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val audioPermission = remember { requiredAudioPermission() }
+    var hasAudioPermission by remember(audioPermission) {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(
+                context,
+                audioPermission,
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED,
+        )
+    }
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { isGranted ->
+        hasAudioPermission = isGranted
+    }
+    val startupUiState by startupViewModel.uiState.collectAsStateWithLifecycle()
+    val startupError = (startupUiState as? AppStartupUiState.Error)?.message
+    val showStartupLoading = hasAudioPermission && (
+        startupUiState == AppStartupUiState.WaitingForPermission ||
+            startupUiState == AppStartupUiState.Loading
+    )
+    val appContentModifier = if (showStartupLoading) {
+        Modifier
+            .fillMaxSize()
+            .clearAndSetSemantics {}
+    } else {
+        Modifier.fillMaxSize()
+    }
+
+    LaunchedEffect(hasAudioPermission) {
+        startupViewModel.onAudioPermissionState(hasAudioPermission)
+    }
+
     val layoutDirection = LocalLayoutDirection.current
     val topLevelBackStack = remember { TopLevelBackStack(HomeRoute) }
     val focusManager = LocalFocusManager.current
@@ -270,8 +309,9 @@ fun CatlyticsApp(
         topLevelBackStack.removeLast()
     }
 
-    Scaffold(
-        modifier = modifier,
+    Box(modifier = modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = appContentModifier,
         topBar = {
             when {
                 currentRoute is LibraryAlbumRoute -> {
@@ -477,6 +517,11 @@ fun CatlyticsApp(
                         onNavigateToStatistics = {
                             topLevelBackStack.addTopLevel(StatisticsRoute)
                         },
+                        hasAudioPermission = { hasAudioPermission },
+                        onRequestAudioPermission = {
+                            audioPermissionLauncher.launch(audioPermission)
+                        },
+                        startupError = { startupError },
                         bottomPadding = { bottomPaddingState.value },
                         contentPadding = { regularPaddingState.value },
                     )
@@ -489,6 +534,10 @@ fun CatlyticsApp(
                         onTrackOptions = { track -> openTrackOptions(track) },
                         onLibraryDetailTopBarColorChange = { color ->
                             detailTopBarColor = color
+                        },
+                        hasAudioPermission = { hasAudioPermission },
+                        onRequestAudioPermission = {
+                            audioPermissionLauncher.launch(audioPermission)
                         },
                         bottomPadding = { bottomPaddingState.value },
                         contentPadding = { regularPaddingState.value },
@@ -586,7 +635,7 @@ fun CatlyticsApp(
             )
         }
     }
-    CatlyticsAppSheets(
+        CatlyticsAppSheets(
         trackOptionsRequest = trackOptionsRequest,
         likedTrackIds = likedTrackIds,
         canAddTrackToQueue = ::canAddTrackToQueue,
@@ -609,4 +658,16 @@ fun CatlyticsApp(
         playlistSheetSession = playlistSheetSession,
         onDismissPlaylistSheet = { playlistSource = null },
     )
+        BackHandler(enabled = showStartupLoading) {}
+        if (showStartupLoading) {
+            StartupLoadingScreen()
+        }
+    }
 }
+
+private fun requiredAudioPermission(): String =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Manifest.permission.READ_MEDIA_AUDIO
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }

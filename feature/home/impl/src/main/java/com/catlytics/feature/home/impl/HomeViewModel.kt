@@ -3,7 +3,6 @@ package com.catlytics.feature.home.impl
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
-import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
@@ -13,13 +12,11 @@ import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopTrack
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 @HiltViewModel
@@ -28,13 +25,8 @@ internal class HomeViewModel @Inject constructor(
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     observeRecentlyPlayedTracksUseCase: ObserveRecentlyPlayedTracksUseCase,
     observeWeeklyStatsUseCase: ObserveWeeklyStatsUseCase,
-    private val refreshLibraryUseCase: RefreshLibraryUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
 ) : ViewModel() {
-    private val refreshError = MutableStateFlow<String?>(null)
-    private val isRefreshing = MutableStateFlow(false)
-    private var hasRequestedInitialRefresh = false
-
     private val libraryAndListening = combine(
         observeLibraryUseCase().catch { emit(emptyList()) },
         observeRecentlyPlayedTracksUseCase(RECENTLY_PLAYED_LIMIT),
@@ -53,12 +45,8 @@ internal class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = combine(
         libraryAndListening,
         observePlaybackStateUseCase(),
-        refreshError,
-        isRefreshing,
-    ) { libraryAndListening, playbackState, error, refreshing ->
+    ) { libraryAndListening, playbackState ->
         when {
-            refreshing -> HomeUiState.Loading
-            error != null -> HomeUiState.Error(error)
             libraryAndListening.tracks.isEmpty() -> HomeUiState.Empty
             else -> HomeUiState.Success(
                 tracks = libraryAndListening.tracks,
@@ -73,30 +61,6 @@ internal class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = HomeUiState.Loading,
     )
-
-    fun refreshLibrary() {
-        viewModelScope.launch {
-            refreshError.value = null
-            isRefreshing.value = true
-            try {
-                runCatching {
-                    refreshLibraryUseCase()
-                }.onFailure { throwable ->
-                    refreshError.update {
-                        throwable.message ?: "No se pudo cargar la biblioteca musical."
-                    }
-                }
-            } finally {
-                isRefreshing.value = false
-            }
-        }
-    }
-
-    fun refreshLibraryOnce() {
-        if (hasRequestedInitialRefresh) return
-        hasRequestedInitialRefresh = true
-        refreshLibrary()
-    }
 
     fun onTrackSelected(track: Track, queue: List<Track>) {
         viewModelScope.launch {

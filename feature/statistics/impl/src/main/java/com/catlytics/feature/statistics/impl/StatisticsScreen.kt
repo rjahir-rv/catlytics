@@ -78,7 +78,9 @@ internal fun StatisticsScreen(
                 }
                 is StatisticsUiState.Error -> {
                     Box(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -119,7 +121,6 @@ private fun StatisticsContent(
         dateFormatter.format(Instant.ofEpochMilli(stats.weekStart))
     }
     val endText = remember(stats.weekEnd) {
-        // Subtract 1ms to show the date correctly as the end of the week, i.e. Sunday night
         dateFormatter.format(Instant.ofEpochMilli(stats.weekEnd - 1))
     }
     val dateRangeText = "$startText - $endText"
@@ -520,7 +521,6 @@ private fun TopTrackItem(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Rank indicator
         Text(
             text = "$rank",
             fontSize = 18.sp,
@@ -531,7 +531,6 @@ private fun TopTrackItem(
                 .padding(end = 8.dp)
         )
 
-        // Artwork
         Box(
             modifier = Modifier
                 .size(64.dp)
@@ -555,7 +554,6 @@ private fun TopTrackItem(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Titles
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -577,7 +575,6 @@ private fun TopTrackItem(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Play Count
         Row(
             verticalAlignment = Alignment.Bottom
         ) {
@@ -644,7 +641,6 @@ private fun TopArtistItem(
 
         Spacer(modifier = Modifier.width(12.dp))
 
-        // Name
         Text(
             text = artist.name,
             fontWeight = FontWeight.SemiBold,

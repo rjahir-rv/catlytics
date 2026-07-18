@@ -1,27 +1,18 @@
 package com.catlytics.feature.home.impl
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
@@ -34,35 +25,19 @@ internal fun HomeRoute(
     modifier: Modifier = Modifier,
     onTrackOptions: (Track) -> Unit,
     onNavigateToStatistics: () -> Unit,
+    hasAudioPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    startupError: String? = null,
     bottomPadding: () -> Dp = { 0.dp },
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
-    val permission = rememberRequiredAudioPermission()
-    var hasAudioPermission by remember(permission) {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                permission,
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED,
-        )
-    }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { isGranted ->
-        hasAudioPermission = isGranted
-    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(hasAudioPermission) {
-        if (hasAudioPermission) viewModel.refreshLibraryOnce()
-    }
-
     HomeScreen(
-        uiState = uiState,
+        uiState = startupError?.let(HomeUiState::Error) ?: uiState,
         searchQuery = searchQuery,
         hasAudioPermission = hasAudioPermission,
-        onRequestPermission = { permissionLauncher.launch(permission) },
+        onRequestPermission = onRequestPermission,
         onTrackSelected = viewModel::onTrackSelected,
         onTrackOptions = onTrackOptions,
         onNavigateToStatistics = onNavigateToStatistics,
@@ -139,15 +114,6 @@ internal fun HomeScreen(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun rememberRequiredAudioPermission(): String = remember {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_AUDIO
-    } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
     }
 }
 

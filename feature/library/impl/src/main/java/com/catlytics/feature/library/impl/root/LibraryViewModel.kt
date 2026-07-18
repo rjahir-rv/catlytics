@@ -7,7 +7,6 @@ import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibrarySortDirectionUseCase
-import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.SetLibrarySortDirectionUseCase
@@ -15,11 +14,11 @@ import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.SortDirection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.collections.emptyList
@@ -31,15 +30,10 @@ internal class LibraryViewModel @Inject constructor(
     observeArtistViewModeUseCase: ObserveArtistViewModeUseCase,
     observeLibraryFoldersUseCase: ObserveLibraryFoldersUseCase,
     observeLibrarySortDirectionUseCase: ObserveLibrarySortDirectionUseCase,
-    private val refreshLibraryUseCase: RefreshLibraryUseCase,
     private val setFolderVisibilityUseCase: SetFolderVisibilityUseCase,
     private val setArtistViewModeUseCase: SetArtistViewModeUseCase,
     private val setLibrarySortDirectionUseCase: SetLibrarySortDirectionUseCase,
 ) : ViewModel() {
-    private val refreshError = MutableStateFlow<String?>(null)
-    private val isRefreshing = MutableStateFlow(false)
-    private var hasRequestedInitialRefresh = false
-
     private val libraryContent = combine(
         observeAlbumsUseCase().catch { emit(emptyList()) },
         observeArtistsUseCase().catch { emit(emptyList()) },
@@ -56,14 +50,8 @@ internal class LibraryViewModel @Inject constructor(
         )
     }
 
-    val uiState: StateFlow<LibraryUiState> = combine(
-        libraryContent,
-        refreshError,
-        isRefreshing,
-    ) { content, error, refreshing ->
+    val uiState: StateFlow<LibraryUiState> = libraryContent.map { content ->
         when {
-            refreshing -> LibraryUiState.Loading
-            error != null -> LibraryUiState.Error(error)
             content.albums.isEmpty() &&
                 content.artists.isEmpty() &&
                 content.folders.isEmpty() -> LibraryUiState.Empty
@@ -80,24 +68,6 @@ internal class LibraryViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = LibraryUiState.Loading,
     )
-
-    fun refreshLibraryOnce() {
-        if (hasRequestedInitialRefresh) return
-        hasRequestedInitialRefresh = true
-        viewModelScope.launch {
-            refreshError.value = null
-            isRefreshing.value = true
-            try {
-                runCatching { refreshLibraryUseCase() }
-                    .onFailure { error ->
-                        refreshError.value = error.message
-                            ?: "No se pudieron cargar las carpetas musicales."
-                    }
-            } finally {
-                isRefreshing.value = false
-            }
-        }
-    }
 
     fun setFolderVisible(folderId: String, visible: Boolean) {
         viewModelScope.launch {

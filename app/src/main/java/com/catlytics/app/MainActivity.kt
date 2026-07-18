@@ -32,19 +32,17 @@ class MainActivity : ComponentActivity() {
             val themeMode by themeViewModel.themeMode.collectAsStateWithLifecycle()
             val systemInDarkTheme = isSystemInDarkTheme()
 
-            themeMode?.let { loadedThemeMode ->
-                val darkThemeEnabled = when (loadedThemeMode) {
-                    ThemeMode.System -> systemInDarkTheme
-                    ThemeMode.Light -> false
-                    ThemeMode.Dark -> true
-                }
+            val darkThemeEnabled = when (themeMode ?: ThemeMode.System) {
+                ThemeMode.System -> systemInDarkTheme
+                ThemeMode.Light -> false
+                ThemeMode.Dark -> true
+            }
 
-                CatlyticsTheme(darkTheme = darkThemeEnabled) {
-                    CatlyticsApp(
-                        deepLinkUri = deepLinkUri,
-                        onDeepLinkHandled = { deepLinkFlow.value = null },
-                    )
-                }
+            CatlyticsTheme(darkTheme = darkThemeEnabled) {
+                CatlyticsApp(
+                    deepLinkUri = deepLinkUri,
+                    onDeepLinkHandled = { deepLinkFlow.value = null },
+                )
             }
         }
     }

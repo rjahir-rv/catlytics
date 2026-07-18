@@ -27,6 +27,8 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
     onLibraryDetailTopBarColorChange: (Color) -> Unit,
+    hasAudioPermission: () -> Boolean,
+    onRequestAudioPermission: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
 ) {
@@ -46,6 +48,8 @@ fun EntryProviderScope<NavKey>.libraryEntry(
                     onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
                 },
                 onAddToPlaylist = onAddToPlaylist,
+                hasAudioPermission = hasAudioPermission(),
+                onRequestPermission = onRequestAudioPermission,
                 bottomPadding = bottomPadding,
             )
         }

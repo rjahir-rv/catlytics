@@ -6,7 +6,6 @@ import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
-import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
@@ -144,18 +143,6 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `refreshLibrary surfaces refresh errors`() = runTest {
-        repository.refreshResult = Result.failure(IllegalStateException("MediaStore failed"))
-        val viewModel = homeViewModel()
-        backgroundScope.startCollecting(viewModel)
-
-        viewModel.refreshLibrary()
-        advanceUntilIdle()
-
-        assertEquals(HomeUiState.Error("MediaStore failed"), viewModel.uiState.value)
-    }
-
-    @Test
     fun `uiState starts as loading`() = runTest {
         val viewModel = homeViewModel()
 
@@ -201,7 +188,6 @@ class HomeViewModelTest {
         observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
         observeRecentlyPlayedTracksUseCase = ObserveRecentlyPlayedTracksUseCase(playbackEventRepository),
         observeWeeklyStatsUseCase = ObserveWeeklyStatsUseCase(playbackEventRepository),
-        refreshLibraryUseCase = RefreshLibraryUseCase(repository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
     )
 
@@ -244,7 +230,6 @@ private class FakeLibraryRepository : LibraryRepository {
 
     private val tracks = MutableStateFlow(emptyList<Track>())
     private val folders = MutableStateFlow(emptyList<LibraryFolder>())
-    var refreshResult: Result<Unit> = Result.success(Unit)
 
     override fun observeTracks() = tracks
 
@@ -258,9 +243,7 @@ private class FakeLibraryRepository : LibraryRepository {
     override suspend fun resolvePlaylistSource(source: com.catlytics.core.model.PlaylistSource) =
         emptyList<Track>()
 
-    override suspend fun refreshTracks() {
-        refreshResult.getOrThrow()
-    }
+    override suspend fun refreshTracks() = Unit
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
 

@@ -5,13 +5,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.core.model.Track
+import com.catlytics.feature.home.api.HomeRoute
 
 fun EntryProviderScope<NavKey>.homeEntry(
     searchQuery: () -> String,
     onTrackOptions: (Track) -> Unit,
     onNavigateToStatistics: () -> Unit,
+    hasAudioPermission: () -> Boolean,
+    onRequestAudioPermission: () -> Unit,
+    startupError: () -> String?,
     bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
     contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
 ) {
@@ -20,6 +23,9 @@ fun EntryProviderScope<NavKey>.homeEntry(
             searchQuery = searchQuery(),
             onTrackOptions = onTrackOptions,
             onNavigateToStatistics = onNavigateToStatistics,
+            hasAudioPermission = hasAudioPermission(),
+            onRequestPermission = onRequestAudioPermission,
+            startupError = startupError(),
             bottomPadding = bottomPadding,
             modifier = Modifier.padding(contentPadding()),
         )

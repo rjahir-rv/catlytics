@@ -7,7 +7,6 @@ import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibrarySortDirectionUseCase
-import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.SetLibrarySortDirectionUseCase
@@ -115,20 +114,6 @@ class LibraryViewModelTest {
         assertEquals(ArtistViewMode.Grid, preferencesRepository.artistViewMode.value)
     }
 
-    @Test
-    fun `refresh error is exposed`() = runTest {
-        val repository = FakeLibraryRepository().apply {
-            refreshResult = Result.failure(IllegalStateException("MediaStore failed"))
-        }
-        val viewModel = viewModel(repository)
-        backgroundScope.launch { viewModel.uiState.collect() }
-
-        viewModel.refreshLibraryOnce()
-        advanceUntilIdle()
-
-        assertEquals(LibraryUiState.Error("MediaStore failed"), viewModel.uiState.value)
-    }
-
     private fun viewModel(
         repository: FakeLibraryRepository,
         preferencesRepository: FakeLibraryPreferencesRepository =
@@ -139,7 +124,6 @@ class LibraryViewModelTest {
         observeArtistViewModeUseCase = ObserveArtistViewModeUseCase(preferencesRepository),
         observeLibraryFoldersUseCase = ObserveLibraryFoldersUseCase(repository),
         observeLibrarySortDirectionUseCase = ObserveLibrarySortDirectionUseCase(preferencesRepository),
-        refreshLibraryUseCase = RefreshLibraryUseCase(repository),
         setFolderVisibilityUseCase = SetFolderVisibilityUseCase(repository),
         setArtistViewModeUseCase = SetArtistViewModeUseCase(preferencesRepository),
         setLibrarySortDirectionUseCase = SetLibrarySortDirectionUseCase(preferencesRepository),
@@ -161,7 +145,6 @@ class LibraryViewModelTest {
 private class FakeLibraryRepository : LibraryRepository {
     val albums = MutableStateFlow(emptyList<Album>())
     val folders = MutableStateFlow(emptyList<LibraryFolder>())
-    var refreshResult: Result<Unit> = Result.success(Unit)
     var lastVisibilityChange: Pair<String, Boolean>? = null
 
     override fun observeAlbums() = albums
@@ -181,9 +164,7 @@ private class FakeLibraryRepository : LibraryRepository {
     override suspend fun resolvePlaylistSource(source: com.catlytics.core.model.PlaylistSource) =
         emptyList<Track>()
 
-    override suspend fun refreshTracks() {
-        refreshResult.getOrThrow()
-    }
+    override suspend fun refreshTracks() = Unit
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {
         lastVisibilityChange = folderId to visible
