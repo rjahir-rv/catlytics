@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -98,25 +97,21 @@ fun CatlyticsApp(
             ) == android.content.pm.PackageManager.PERMISSION_GRANTED,
         )
     }
+    var isHomeContentReady by remember { mutableStateOf(false) }
     val audioPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { isGranted ->
+        if (isGranted) {
+            isHomeContentReady = false
+        }
         hasAudioPermission = isGranted
     }
     val startupUiState by startupViewModel.uiState.collectAsStateWithLifecycle()
     val startupError = (startupUiState as? AppStartupUiState.Error)?.message
-    val showStartupLoading = hasAudioPermission && (
+    val isLibraryRefreshRunning = hasAudioPermission && (
         startupUiState == AppStartupUiState.WaitingForPermission ||
             startupUiState == AppStartupUiState.Loading
     )
-    val appContentModifier = if (showStartupLoading) {
-        Modifier
-            .fillMaxSize()
-            .clearAndSetSemantics {}
-    } else {
-        Modifier.fillMaxSize()
-    }
-
     LaunchedEffect(hasAudioPermission) {
         startupViewModel.onAudioPermissionState(hasAudioPermission)
     }
@@ -150,6 +145,11 @@ fun CatlyticsApp(
     val isCurrentTrackLiked by playbackViewModel.isCurrentTrackLiked.collectAsStateWithLifecycle()
     val likedTrackIds by playbackViewModel.likedTrackIds.collectAsStateWithLifecycle()
     val currentRoute = topLevelBackStack.backStack.lastOrNull()
+    val isWaitingForHomeContent = hasAudioPermission &&
+        !isLibraryRefreshRunning &&
+        currentRoute == HomeRoute &&
+        !isHomeContentReady
+    val showStartupLoading = isLibraryRefreshRunning || isWaitingForHomeContent
     val isOnHomeRoot = currentRoute == HomeRoute
     val isOnLibraryRoot = currentRoute == LibraryRoute
     val isOnPlaylistsRoot = currentRoute == PlaylistsRoute
@@ -309,9 +309,14 @@ fun CatlyticsApp(
         topLevelBackStack.removeLast()
     }
 
-    Box(modifier = modifier.fillMaxSize()) {
+    BackHandler(enabled = showStartupLoading) {}
+    StartupLoadingGate(
+        isLoading = showStartupLoading,
+        composeContent = !isLibraryRefreshRunning,
+        modifier = modifier.fillMaxSize(),
+    ) {
         Scaffold(
-            modifier = appContentModifier,
+            modifier = Modifier.fillMaxSize(),
         topBar = {
             when {
                 currentRoute is LibraryAlbumRoute -> {
@@ -522,6 +527,7 @@ fun CatlyticsApp(
                             audioPermissionLauncher.launch(audioPermission)
                         },
                         startupError = { startupError },
+                        onContentReady = { isHomeContentReady = true },
                         bottomPadding = { bottomPaddingState.value },
                         contentPadding = { regularPaddingState.value },
                     )
@@ -636,32 +642,28 @@ fun CatlyticsApp(
         }
     }
         CatlyticsAppSheets(
-        trackOptionsRequest = trackOptionsRequest,
-        likedTrackIds = likedTrackIds,
-        canAddTrackToQueue = ::canAddTrackToQueue,
-        onDismissTrackOptions = { trackOptionsRequest = null },
-        onAddTrackToPlaylist = { track ->
-            trackOptionsRequest = null
-            openAddToPlaylist(PlaylistSource.TrackSource(track.id))
-        },
-        onToggleTrackLiked = { track ->
-            trackOptionsRequest = null
-            toggleTrackLikedWithToast(track.id)
-        },
-        onAddTrackToQueue = { track ->
-            trackOptionsRequest = null
-            addTrackToQueueWithToast(track)
-        },
-        onGoToAlbum = ::navigateToAlbum,
-        onGoToArtist = ::navigateToArtist,
-        playlistSource = playlistSource,
-        playlistSheetSession = playlistSheetSession,
-        onDismissPlaylistSheet = { playlistSource = null },
-    )
-        BackHandler(enabled = showStartupLoading) {}
-        if (showStartupLoading) {
-            StartupLoadingScreen()
-        }
+            trackOptionsRequest = trackOptionsRequest,
+            likedTrackIds = likedTrackIds,
+            canAddTrackToQueue = ::canAddTrackToQueue,
+            onDismissTrackOptions = { trackOptionsRequest = null },
+            onAddTrackToPlaylist = { track ->
+                trackOptionsRequest = null
+                openAddToPlaylist(PlaylistSource.TrackSource(track.id))
+            },
+            onToggleTrackLiked = { track ->
+                trackOptionsRequest = null
+                toggleTrackLikedWithToast(track.id)
+            },
+            onAddTrackToQueue = { track ->
+                trackOptionsRequest = null
+                addTrackToQueueWithToast(track)
+            },
+            onGoToAlbum = ::navigateToAlbum,
+            onGoToArtist = ::navigateToArtist,
+            playlistSource = playlistSource,
+            playlistSheetSession = playlistSheetSession,
+            onDismissPlaylistSheet = { playlistSource = null },
+        )
     }
 }
 

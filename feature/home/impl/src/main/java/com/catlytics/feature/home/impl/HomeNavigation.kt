@@ -15,6 +15,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
     hasAudioPermission: () -> Boolean,
     onRequestAudioPermission: () -> Unit,
     startupError: () -> String?,
+    onContentReady: () -> Unit,
     bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
     contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
 ) {
@@ -26,6 +27,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
             hasAudioPermission = hasAudioPermission(),
             onRequestPermission = onRequestAudioPermission,
             startupError = startupError(),
+            onContentReady = onContentReady,
             bottomPadding = bottomPadding,
             modifier = Modifier.padding(contentPadding()),
         )

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -27,19 +28,22 @@ internal fun HomeRoute(
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     startupError: String? = null,
+    onContentReady: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val displayedUiState = startupError?.let(HomeUiState::Error) ?: uiState
 
     HomeScreen(
-        uiState = startupError?.let(HomeUiState::Error) ?: uiState,
+        uiState = displayedUiState,
         searchQuery = searchQuery,
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = onRequestPermission,
         onTrackSelected = viewModel::onTrackSelected,
         onTrackOptions = onTrackOptions,
         onNavigateToStatistics = onNavigateToStatistics,
+        onContentReady = onContentReady,
         bottomPadding = bottomPadding,
         modifier = modifier,
     )
@@ -55,8 +59,15 @@ internal fun HomeScreen(
     onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
     onNavigateToStatistics: () -> Unit = {},
+    onContentReady: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
 ) {
+    LaunchedEffect(uiState, hasAudioPermission) {
+        if (!hasAudioPermission || uiState != HomeUiState.Loading) {
+            onContentReady()
+        }
+    }
+
     val trackListState = rememberSaveable(saver = androidx.compose.foundation.lazy.LazyListState.Saver) {
         androidx.compose.foundation.lazy.LazyListState()
     }

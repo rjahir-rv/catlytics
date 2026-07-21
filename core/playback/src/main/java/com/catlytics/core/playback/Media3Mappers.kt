@@ -1,6 +1,7 @@
 package com.catlytics.core.playback
 
 import android.net.Uri
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -27,12 +28,15 @@ internal fun Player.toPlaybackState(
     queue: List<Track>,
     queueSource: PlaybackQueueSource,
 ): PlaybackState {
-    val currentIndex = currentMediaItemIndex.takeUnless { it < 0 } ?: 0
-    val currentTrack = queue.getOrNull(currentIndex)
+    val playbackQueue = queue.inPlaybackOrder(shuffledMediaItemIndices())
+    val currentTrack = currentMediaItem?.mediaId?.let { mediaId ->
+        playbackQueue.firstOrNull { it.id == mediaId }
+    }
+    val currentIndex = playbackQueue.indexOf(currentTrack).takeUnless { it < 0 } ?: 0
     return PlaybackState(
         status = toPlaybackStatus(),
         currentTrack = currentTrack,
-        queue = queue,
+        queue = playbackQueue,
         queueSource = queueSource,
         currentIndex = currentIndex,
         positionMillis = currentPosition.coerceAtLeast(0L),
@@ -42,6 +46,40 @@ internal fun Player.toPlaybackState(
         repeatMode = repeatMode.toPlaybackRepeatMode(),
     )
 }
+
+private fun Player.shuffledMediaItemIndices(): List<Int>? {
+    if (!shuffleModeEnabled || mediaItemCount == 0) return null
+
+    val currentIndex = currentMediaItemIndex
+    if (currentIndex !in 0 until mediaItemCount) return null
+
+    val visitedIndices = mutableSetOf(currentIndex)
+    val previousIndices = mutableListOf<Int>()
+    var index = currentIndex
+    while (true) {
+        index = currentTimeline.getPreviousWindowIndex(index, effectiveRepeatMode(), true)
+        if (index == C.INDEX_UNSET || !visitedIndices.add(index)) break
+        previousIndices += index
+    }
+
+    val nextIndices = mutableListOf<Int>()
+    index = currentIndex
+    while (true) {
+        index = currentTimeline.getNextWindowIndex(index, effectiveRepeatMode(), true)
+        if (index == C.INDEX_UNSET || !visitedIndices.add(index)) break
+        nextIndices += index
+    }
+
+    return previousIndices.asReversed() + currentIndex + nextIndices
+}
+
+private fun Player.effectiveRepeatMode(): Int = when (repeatMode) {
+    Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
+    else -> repeatMode
+}
+
+internal fun List<Track>.inPlaybackOrder(shuffledIndices: List<Int>?): List<Track> =
+    shuffledIndices?.mapNotNull(::getOrNull)?.takeIf { it.size == size } ?: this
 
 private fun Player.toPlaybackStatus(): PlaybackStatus = when {
     playbackState == Player.STATE_BUFFERING -> PlaybackStatus.Buffering

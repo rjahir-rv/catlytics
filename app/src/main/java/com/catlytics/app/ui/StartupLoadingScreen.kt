@@ -17,6 +17,23 @@ import androidx.compose.ui.unit.dp
 internal const val STARTUP_LOADING_PROGRESS_TAG = "startup_loading_progress"
 
 @Composable
+internal fun StartupLoadingGate(
+    isLoading: Boolean,
+    modifier: Modifier = Modifier,
+    composeContent: Boolean = true,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier = modifier) {
+        if (composeContent) {
+            content()
+        }
+        if (isLoading) {
+            StartupLoadingScreen()
+        }
+    }
+}
+
+@Composable
 internal fun StartupLoadingScreen(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier

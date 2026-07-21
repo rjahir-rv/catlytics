@@ -1,6 +1,9 @@
 package com.catlytics.feature.home.impl
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -142,6 +145,29 @@ class HomeScreenTest {
         assertEquals(secondTrack, selectedTrack)
         assertEquals(listOf(track, secondTrack), selectedQueue)
         assertEquals(1, statisticsClicks)
+    }
+
+    @Test
+    fun contentIsReadyOnlyAfterLoadingStateFinishes() {
+        var uiState: HomeUiState by mutableStateOf(HomeUiState.Loading)
+        var readyCalls = 0
+        composeRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    uiState = uiState,
+                    searchQuery = "",
+                    hasAudioPermission = true,
+                    onRequestPermission = {},
+                    onTrackSelected = { _, _ -> },
+                    onTrackOptions = {},
+                    onContentReady = { readyCalls++ },
+                )
+            }
+        }
+
+        composeRule.runOnIdle { assertEquals(0, readyCalls) }
+        composeRule.runOnIdle { uiState = HomeUiState.Empty }
+        composeRule.runOnIdle { assertEquals(1, readyCalls) }
     }
 
     private val track = Track(

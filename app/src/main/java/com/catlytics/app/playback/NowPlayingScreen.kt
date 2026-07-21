@@ -279,7 +279,7 @@ fun NowPlayingScreen(
                             tint = if (playbackState.isShuffleEnabled) {
                                 MaterialTheme.colorScheme.primary
                             } else {
-                                Color.Unspecified
+                                MaterialTheme.colorScheme.secondary
                             },
                         )
                     }
@@ -419,27 +419,15 @@ private fun NowPlayingArtwork(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp)
-                .blur(
-                    radius = 32.dp,
-                    edgeTreatment = BlurredEdgeTreatment.Unbounded,
-                )
+                .padding(4.dp)
                 .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.42f),
-                    shape = artworkShape,
-                ),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-                .blur(
-                    radius = 16.dp,
-                    edgeTreatment = BlurredEdgeTreatment.Unbounded,
-                )
-                .background(
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.62f),
-                    shape = artworkShape,
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.34f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                            Color.Transparent,
+                        ),
+                    ),
                 ),
         )
         AsyncImage(
@@ -521,19 +509,19 @@ private fun PlaybackProgress(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(12.dp)
                             .blur(
-                                radius = 8.dp,
+                                radius = 4.dp,
                                 edgeTreatment = BlurredEdgeTreatment.Unbounded,
                             )
                             .background(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
                                 shape = CircleShape,
                             ),
                     )
                     Box(
                         modifier = Modifier
-                            .size(14.dp)
+                            .size(8.dp)
                             .background(
                                 color = if (enabled) {
                                     MaterialTheme.colorScheme.primary
@@ -551,6 +539,8 @@ private fun PlaybackProgress(
                     modifier = Modifier.height(8.dp),
                     colors = sliderColors,
                     enabled = enabled && durationMillis > 0L,
+                    thumbTrackGapSize = 0.dp,
+                    trackInsideCornerSize = 0.dp,
                 )
             },
         )

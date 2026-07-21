@@ -118,10 +118,12 @@ class Media3PlaybackController @Inject constructor(
     }
 
     override suspend fun playQueueItem(index: Int) {
-        if (index !in queue.indices) return
+        val trackId = _playbackState.value.queue.getOrNull(index)?.id ?: return
+        val queueIndex = queue.indexOfFirst { it.id == trackId }
+        if (queueIndex < 0) return
 
         withController { controller ->
-            controller.seekTo(index, 0L)
+            controller.seekTo(queueIndex, 0L)
             controller.play()
             updatePlaybackState(controller, forcePersist = true)
         }
@@ -149,12 +151,14 @@ class Media3PlaybackController @Inject constructor(
     }
 
     override suspend fun removeQueueItem(index: Int) {
-        if (index !in queue.indices) return
+        val trackId = _playbackState.value.queue.getOrNull(index)?.id ?: return
+        val queueIndex = queue.indexOfFirst { it.id == trackId }
+        if (queueIndex < 0) return
 
-        val updatedQueue = queue.toMutableList().apply { removeAt(index) }
+        val updatedQueue = queue.toMutableList().apply { removeAt(queueIndex) }
         queue = updatedQueue
         withController { controller ->
-            controller.removeMediaItem(index)
+            controller.removeMediaItem(queueIndex)
             if (updatedQueue.isEmpty()) {
                 controller.stop()
                 queue = emptyList()
@@ -190,7 +194,15 @@ class Media3PlaybackController @Inject constructor(
 
     override suspend fun skipPrevious() {
         withController { controller ->
-            controller.seekToPreviousMediaItem()
+            if (shouldSkipToPreviousMediaItem(
+                    positionMillis = controller.currentPosition,
+                    hasPreviousMediaItem = controller.hasPreviousMediaItem(),
+                )
+            ) {
+                controller.seekToPreviousMediaItem()
+            } else {
+                controller.seekTo(0L)
+            }
             updatePlaybackState(controller, forcePersist = true)
         }
     }
@@ -198,11 +210,6 @@ class Media3PlaybackController @Inject constructor(
     override suspend fun seekTo(positionMillis: Long) {
         withController { controller ->
             controller.seekTo(positionMillis)
-
-            // Only patch position fields. Calling updatePlaybackState here would re-derive
-            // status from potentially transient player state (e.g. brief !playWhenReady or
-            // internal buffering during seek), causing the NowPlaying play/pause icon to flicker.
-            // Listeners will deliver the authoritative state shortly after via onEvents.
             val current = _playbackState.value
             val newPos = controller.currentPosition.coerceAtLeast(0L)
             val newBuffered = controller.bufferedPosition.coerceAtLeast(0L)
@@ -442,6 +449,13 @@ class Media3PlaybackController @Inject constructor(
         const val SESSION_SAVE_INTERVAL_MILLIS = 5_000L
     }
 }
+
+internal fun shouldSkipToPreviousMediaItem(
+    positionMillis: Long,
+    hasPreviousMediaItem: Boolean,
+): Boolean = positionMillis < PREVIOUS_TRACK_THRESHOLD_MILLIS && hasPreviousMediaItem
+
+private const val PREVIOUS_TRACK_THRESHOLD_MILLIS = 5_000L
 
 private fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T> =
     toMutableList().apply {

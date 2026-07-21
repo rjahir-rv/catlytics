@@ -32,6 +32,7 @@ import com.catlytics.core.designsystem.R
 
 @Composable
 fun CatlyticsMiniPlayer(
+    modifier: Modifier = Modifier,
     title: String,
     artist: String,
     isPlaying: Boolean,
@@ -41,7 +42,6 @@ fun CatlyticsMiniPlayer(
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
     artwork: @Composable (Modifier) -> Unit = { artworkModifier ->
         Image(
             painter = painterResource(id = R.drawable.placeholder_album),
