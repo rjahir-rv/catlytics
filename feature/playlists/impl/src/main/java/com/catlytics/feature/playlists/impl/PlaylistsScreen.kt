@@ -233,7 +233,10 @@ internal fun PlaylistsScreen(
             text = { Text("Nueva playlist") },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(20.dp),
+                .padding(
+                    end = 20.dp,
+                    bottom = bottomPadding() + 20.dp,
+                ),
         )
     }
     if (creating) NameDialog("Nueva playlist", "", { creating = false }) {

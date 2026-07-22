@@ -2,6 +2,7 @@ package com.catlytics.feature.settings.impl
 
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerState
@@ -31,7 +32,8 @@ class SettingsViewModelTest {
     fun `setThemeMode persists every available mode`() = runTest {
         val repository = FakeAppPreferencesRepository()
         val equalizerRepository = FakeEqualizerRepository()
-        val viewModel = SettingsViewModel(repository, equalizerRepository)
+        val playbackPreferencesRepository = FakePlaybackPreferencesRepository()
+        val viewModel = SettingsViewModel(repository, equalizerRepository, playbackPreferencesRepository)
 
         ThemeMode.entries.forEach { themeMode ->
             viewModel.setThemeMode(themeMode)
@@ -45,7 +47,11 @@ class SettingsViewModelTest {
     @Test
     fun `setEqualizerEnabled persists requested state`() = runTest {
         val equalizerRepository = FakeEqualizerRepository()
-        val viewModel = SettingsViewModel(FakeAppPreferencesRepository(), equalizerRepository)
+        val viewModel = SettingsViewModel(
+            FakeAppPreferencesRepository(),
+            equalizerRepository,
+            FakePlaybackPreferencesRepository(),
+        )
 
         viewModel.setEqualizerEnabled(true)
         advanceUntilIdle()
@@ -57,7 +63,11 @@ class SettingsViewModelTest {
     @Test
     fun `selectEqualizerPreset persists selected preset`() = runTest {
         val equalizerRepository = FakeEqualizerRepository()
-        val viewModel = SettingsViewModel(FakeAppPreferencesRepository(), equalizerRepository)
+        val viewModel = SettingsViewModel(
+            FakeAppPreferencesRepository(),
+            equalizerRepository,
+            FakePlaybackPreferencesRepository(),
+        )
         val preset = EqualizerPreset(id = 1, name = "Rock")
 
         viewModel.selectEqualizerPreset(preset)
@@ -65,6 +75,22 @@ class SettingsViewModelTest {
 
         assertEquals("Rock", equalizerRepository.state.value.selectedPresetName)
         assertEquals("Rock", viewModel.equalizerState.value.selectedPresetName)
+    }
+
+    @Test
+    fun `setCrossfadeDuration persists requested value`() = runTest {
+        val playbackPreferencesRepository = FakePlaybackPreferencesRepository()
+        val viewModel = SettingsViewModel(
+            FakeAppPreferencesRepository(),
+            FakeEqualizerRepository(),
+            playbackPreferencesRepository,
+        )
+
+        viewModel.setCrossfadeDurationSeconds(7)
+        advanceUntilIdle()
+
+        assertEquals(7, playbackPreferencesRepository.durationSeconds.value)
+        assertEquals(7, viewModel.crossfadeDurationSeconds.value)
     }
 }
 
@@ -110,6 +136,18 @@ private class FakeEqualizerRepository : EqualizerRepository {
     override suspend fun setBandLevelTransient(bandId: Short, level: Int) {}
 
     override suspend fun refreshCapabilities() = Unit
+}
+
+private class FakePlaybackPreferencesRepository : PlaybackPreferencesRepository {
+    val durationSeconds = MutableStateFlow(
+        PlaybackPreferencesRepository.DEFAULT_CROSSFADE_DURATION_SECONDS,
+    )
+
+    override fun observeCrossfadeDurationSeconds(): Flow<Int> = durationSeconds
+
+    override suspend fun setCrossfadeDurationSeconds(seconds: Int) {
+        durationSeconds.value = seconds
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

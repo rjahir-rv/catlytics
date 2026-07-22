@@ -9,19 +9,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MAX_CROSSFADE_DURATION_SECONDS
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MIN_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
@@ -38,7 +46,9 @@ internal fun SettingsScreen(
     modifier: Modifier = Modifier,
     themeMode: ThemeMode,
     equalizerState: EqualizerState,
+    crossfadeDurationSeconds: Int,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onCrossfadeDurationChange: (Int) -> Unit,
     onEqualizerEnabledChange: (Boolean) -> Unit,
     onEqualizerModeChange: (EqualizerMode) -> Unit,
     onEqualizerPresetSelected: (EqualizerPreset) -> Unit,
@@ -67,7 +77,9 @@ internal fun SettingsScreen(
             appVersion = appVersion,
             themeMode = themeMode,
             equalizerState = equalizerState,
+            crossfadeDurationSeconds = crossfadeDurationSeconds,
             onThemeModeChange = onThemeModeChange,
+            onCrossfadeDurationChange = onCrossfadeDurationChange,
             onEqualizerClick = { destination = SettingsDestination.Equalizer },
             bottomPadding = bottomPadding,
             modifier = modifier,
@@ -89,7 +101,9 @@ private fun SettingsMainContent(
     appVersion: String,
     themeMode: ThemeMode,
     equalizerState: EqualizerState,
+    crossfadeDurationSeconds: Int,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onCrossfadeDurationChange: (Int) -> Unit,
     onEqualizerClick: () -> Unit,
     bottomPadding: () -> Dp,
     modifier: Modifier = Modifier,
@@ -127,9 +141,9 @@ private fun SettingsMainContent(
                 title = "Audio",
                 iconRes = R.drawable.ic_audio,
             ) {
-                SettingsValueRow(
-                    title = "Crossfade",
-                    value = "4 s",
+                CrossfadeDurationSlider(
+                    durationSeconds = crossfadeDurationSeconds,
+                    onDurationChange = onCrossfadeDurationChange,
                 )
                 SettingsDivider()
                 SettingsValueRow(
@@ -162,6 +176,59 @@ private fun SettingsMainContent(
                 SettingsValueRow(title = "Política de privacidad")
             }
         }
+    }
+}
+
+@Composable
+private fun CrossfadeDurationSlider(
+    durationSeconds: Int,
+    onDurationChange: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var sliderValue by remember(durationSeconds) { mutableStateOf(durationSeconds.toFloat()) }
+    val selectedSeconds = sliderValue.toInt().coerceIn(
+        MIN_CROSSFADE_DURATION_SECONDS,
+        MAX_CROSSFADE_DURATION_SECONDS,
+    )
+    val valueLabel = if (selectedSeconds == 0) "Desactivado" else "$selectedSeconds s"
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SettingsRowText(
+                title = "Crossfade",
+                supportingText = if (selectedSeconds == 0) {
+                    "Se usará reproducción sin pausas automática"
+                } else {
+                    "Mezcla al terminar una canción"
+                },
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = valueLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Slider(
+            value = sliderValue,
+            onValueChange = { sliderValue = it.toInt().toFloat() },
+            onValueChangeFinished = { onDurationChange(selectedSeconds) },
+            valueRange = MIN_CROSSFADE_DURATION_SECONDS.toFloat()..
+                MAX_CROSSFADE_DURATION_SECONDS.toFloat(),
+            steps = MAX_CROSSFADE_DURATION_SECONDS - MIN_CROSSFADE_DURATION_SECONDS - 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { stateDescription = valueLabel },
+        )
     }
 }
 
@@ -255,4 +322,3 @@ private enum class SettingsDestination {
     Main,
     Equalizer,
 }
-

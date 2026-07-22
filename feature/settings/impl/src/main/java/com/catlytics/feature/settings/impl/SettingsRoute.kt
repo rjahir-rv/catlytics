@@ -19,6 +19,7 @@ internal fun SettingsRoute(
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val equalizerState by viewModel.equalizerState.collectAsStateWithLifecycle()
+    val crossfadeDurationSeconds by viewModel.crossfadeDurationSeconds.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.refreshEqualizer()
@@ -28,7 +29,9 @@ internal fun SettingsRoute(
         appVersion = appVersion,
         themeMode = themeMode,
         equalizerState = equalizerState,
+        crossfadeDurationSeconds = crossfadeDurationSeconds,
         onThemeModeChange = viewModel::setThemeMode,
+        onCrossfadeDurationChange = viewModel::setCrossfadeDurationSeconds,
         onEqualizerEnabledChange = viewModel::setEqualizerEnabled,
         onEqualizerModeChange = viewModel::setEqualizerMode,
         onEqualizerPresetSelected = viewModel::selectEqualizerPreset,

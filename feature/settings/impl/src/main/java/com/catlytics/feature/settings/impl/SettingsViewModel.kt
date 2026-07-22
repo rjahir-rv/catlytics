@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.DEFAULT_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
@@ -19,6 +21,7 @@ import kotlinx.coroutines.launch
 internal class SettingsViewModel @Inject constructor(
     private val appPreferencesRepository: AppPreferencesRepository,
     private val equalizerRepository: EqualizerRepository,
+    private val playbackPreferencesRepository: PlaybackPreferencesRepository,
 ) : ViewModel() {
     val themeMode: StateFlow<ThemeMode> = appPreferencesRepository.observeThemeMode()
         .stateIn(
@@ -32,10 +35,23 @@ internal class SettingsViewModel @Inject constructor(
             started = SharingStarted.Eagerly,
             initialValue = EqualizerState(),
         )
+    val crossfadeDurationSeconds: StateFlow<Int> =
+        playbackPreferencesRepository.observeCrossfadeDurationSeconds()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = DEFAULT_CROSSFADE_DURATION_SECONDS,
+            )
 
     fun setThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
             appPreferencesRepository.setThemeMode(themeMode)
+        }
+    }
+
+    fun setCrossfadeDurationSeconds(seconds: Int) {
+        viewModelScope.launch {
+            playbackPreferencesRepository.setCrossfadeDurationSeconds(seconds)
         }
     }
 

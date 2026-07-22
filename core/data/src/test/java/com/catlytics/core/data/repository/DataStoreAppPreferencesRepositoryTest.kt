@@ -3,6 +3,8 @@ package com.catlytics.core.data.repository
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.model.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
@@ -43,6 +45,38 @@ class DataStoreAppPreferencesRepositoryTest {
         }
 
         assertEquals(ThemeMode.System, repository.observeThemeMode().first())
+    }
+
+    @Test
+    fun `crossfade duration defaults to disabled`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(0, repository.observeCrossfadeDurationSeconds().first())
+    }
+
+    @Test
+    fun `crossfade duration is persisted and clamped`() = runTest {
+        val repository = repository(backgroundScope)
+
+        repository.setCrossfadeDurationSeconds(8)
+        assertEquals(8, repository.observeCrossfadeDurationSeconds().first())
+
+        repository.setCrossfadeDurationSeconds(99)
+        assertEquals(
+            PlaybackPreferencesRepository.MAX_CROSSFADE_DURATION_SECONDS,
+            repository.observeCrossfadeDurationSeconds().first(),
+        )
+    }
+
+    @Test
+    fun `corrupt crossfade duration is clamped when read`() = runTest {
+        val dataStore = dataStore(backgroundScope)
+        val repository = DataStoreAppPreferencesRepository(dataStore)
+        dataStore.edit { preferences ->
+            preferences[intPreferencesKey("crossfade_duration_seconds")] = -5
+        }
+
+        assertEquals(0, repository.observeCrossfadeDurationSeconds().first())
     }
 
     private fun repository(scope: CoroutineScope): DataStoreAppPreferencesRepository =

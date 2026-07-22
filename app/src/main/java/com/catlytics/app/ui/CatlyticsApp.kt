@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -435,6 +436,11 @@ fun CatlyticsApp(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     playbackState.currentTrack?.let { track ->
                         CatlyticsMiniPlayer(
+                            modifier = if (isSettingsVisible) {
+                                Modifier.padding(bottom = 8.dp)
+                            } else {
+                                Modifier
+                            },
                             title = track.title,
                             artist = track.artist.name,
                             isPlaying = playbackState.status == PlaybackStatus.Playing,

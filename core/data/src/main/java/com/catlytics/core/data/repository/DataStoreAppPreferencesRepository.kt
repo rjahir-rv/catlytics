@@ -6,11 +6,16 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.DEFAULT_CROSSFADE_DURATION_SECONDS
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MAX_CROSSFADE_DURATION_SECONDS
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MIN_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -28,7 +33,7 @@ private val Context.appPreferencesDataStore: DataStore<Preferences> by preferenc
 @Singleton
 class DataStoreAppPreferencesRepository internal constructor(
     private val dataStore: DataStore<Preferences>,
-) : AppPreferencesRepository, EqualizerPreferencesRepository {
+) : AppPreferencesRepository, EqualizerPreferencesRepository, PlaybackPreferencesRepository {
     @Inject
     constructor(
         @ApplicationContext context: Context,
@@ -49,6 +54,28 @@ class DataStoreAppPreferencesRepository internal constructor(
     override suspend fun setThemeMode(themeMode: ThemeMode) {
         dataStore.edit { preferences ->
             preferences[THEME_MODE] = themeMode.name
+        }
+    }
+
+    override fun observeCrossfadeDurationSeconds(): Flow<Int> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { preferences ->
+            (preferences[CROSSFADE_DURATION_SECONDS] ?: DEFAULT_CROSSFADE_DURATION_SECONDS)
+                .coerceIn(MIN_CROSSFADE_DURATION_SECONDS, MAX_CROSSFADE_DURATION_SECONDS)
+        }
+
+    override suspend fun setCrossfadeDurationSeconds(seconds: Int) {
+        dataStore.edit { preferences ->
+            preferences[CROSSFADE_DURATION_SECONDS] = seconds.coerceIn(
+                MIN_CROSSFADE_DURATION_SECONDS,
+                MAX_CROSSFADE_DURATION_SECONDS,
+            )
         }
     }
 
@@ -142,6 +169,7 @@ class DataStoreAppPreferencesRepository internal constructor(
 
     private companion object {
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val CROSSFADE_DURATION_SECONDS = intPreferencesKey("crossfade_duration_seconds")
         val EQUALIZER_ENABLED = booleanPreferencesKey("equalizer_enabled")
         val EQUALIZER_PRESET_NAME = stringPreferencesKey("equalizer_preset_name")
         val EQUALIZER_MODE = stringPreferencesKey("equalizer_mode")

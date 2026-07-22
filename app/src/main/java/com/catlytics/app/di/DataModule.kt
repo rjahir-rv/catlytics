@@ -19,6 +19,7 @@ import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.repository.PlaybackEventRepository
@@ -43,6 +44,12 @@ interface DataModule {
     fun bindEqualizerPreferencesRepository(
         repository: DataStoreAppPreferencesRepository,
     ): EqualizerPreferencesRepository
+
+    @Binds
+    @Singleton
+    fun bindPlaybackPreferencesRepository(
+        repository: DataStoreAppPreferencesRepository,
+    ): PlaybackPreferencesRepository
 
     @Binds
     @Singleton
