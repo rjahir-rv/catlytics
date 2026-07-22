@@ -3,7 +3,6 @@ package com.catlytics.core.playback.service
 import android.app.PendingIntent
 import android.content.Intent
 import android.media.AudioManager
-import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C

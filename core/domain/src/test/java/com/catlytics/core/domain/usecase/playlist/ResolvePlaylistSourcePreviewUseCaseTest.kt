@@ -100,7 +100,7 @@ class ResolvePlaylistSourcePreviewUseCaseTest {
                 is PlaylistSource.ArtistSource -> tracks.filter { it.artist.id == source.artistId }
                 is PlaylistSource.FolderSource -> emptyList()
             }
-        override suspend fun refreshTracks() = Unit
+        override suspend fun refreshTracks() = 0
         override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
     }
 }

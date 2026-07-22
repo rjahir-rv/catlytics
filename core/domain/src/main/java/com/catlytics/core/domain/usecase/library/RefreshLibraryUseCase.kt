@@ -5,7 +5,5 @@ import com.catlytics.core.domain.repository.LibraryRepository
 class RefreshLibraryUseCase(
     private val libraryRepository: LibraryRepository,
 ) {
-    suspend operator fun invoke() {
-        libraryRepository.refreshTracks()
-    }
+    suspend operator fun invoke(): Int = libraryRepository.refreshTracks()
 }

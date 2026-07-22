@@ -1,5 +1,8 @@
 package com.catlytics.core.data.local
 
+import com.catlytics.core.model.MusicScanDurationFilter
+import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.MusicScanSizeFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -168,4 +171,59 @@ class MediaStoreAudioMapperTest {
 
         assertNull(track)
     }
+
+    @Test
+    fun `duration filter excludes only tracks below selected limit`() {
+        val settings = MusicScanSettings(
+            durationFilter = MusicScanDurationFilter.Seconds30,
+        )
+
+        val belowLimit = track(durationMillis = 29_999L, scanSettings = settings)
+        val atLimit = track(durationMillis = 30_000L, scanSettings = settings)
+
+        assertNull(belowLimit)
+        requireNotNull(atLimit)
+    }
+
+    @Test
+    fun `size filter excludes only files below selected limit`() {
+        val settings = MusicScanSettings(
+            sizeFilter = MusicScanSizeFilter.Kilobytes500,
+        )
+        val limit = requireNotNull(settings.sizeFilter.minimumSizeBytes)
+
+        val belowLimit = track(fileSizeBytes = limit - 1L, scanSettings = settings)
+        val atLimit = track(fileSizeBytes = limit, scanSettings = settings)
+
+        assertNull(belowLimit)
+        requireNotNull(atLimit)
+    }
+
+    @Test
+    fun `disabled scan filters keep valid music regardless of size`() {
+        val track = track(
+            durationMillis = 1L,
+            fileSizeBytes = 1L,
+            scanSettings = MusicScanSettings(),
+        )
+
+        requireNotNull(track)
+    }
+
+    private fun track(
+        durationMillis: Long = 180_000L,
+        fileSizeBytes: Long = 2L * 1_024L * 1_024L,
+        scanSettings: MusicScanSettings,
+    ) = MediaStoreAudioMapper.toTrackEntity(
+        id = 42L,
+        title = "Local Song",
+        artist = "Local Artist",
+        artistId = 7L,
+        albumId = 9L,
+        durationMillis = durationMillis,
+        fileSizeBytes = fileSizeBytes,
+        isMusic = 1,
+        mediaUri = "content://media/external/audio/media/42",
+        scanSettings = scanSettings,
+    )
 }

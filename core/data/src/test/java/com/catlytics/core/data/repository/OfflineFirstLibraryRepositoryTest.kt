@@ -24,6 +24,25 @@ class OfflineFirstLibraryRepositoryTest {
     )
 
     @Test
+    fun `refresh returns only tracks that were not present before the scan`() = runTest {
+        val existingTrack = track("existing")
+        val newTrack = track("new")
+        localDataSource.replaceTracks(listOf(existingTrack))
+        val refreshingRepository = OfflineFirstLibraryRepository(
+            localDataSource = localDataSource,
+            mediator = object : DataMediator {
+                override suspend fun syncLibrary() {
+                    localDataSource.replaceTracks(listOf(existingTrack, newTrack))
+                }
+            },
+            preferencesRepository = preferencesRepository,
+        )
+
+        assertEquals(1, refreshingRepository.refreshTracks())
+        assertEquals(0, refreshingRepository.refreshTracks())
+    }
+
+    @Test
     fun `hidden folder is filtered while remaining available in folder list`() = runTest {
         localDataSource.replaceTracks(
             listOf(
@@ -350,8 +369,10 @@ private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     private val playlistViewMode = MutableStateFlow(PlaylistViewMode.List)
     private val librarySortDirection = MutableStateFlow(SortDirection.Ascending)
     private val playlistSortDirection = MutableStateFlow(SortDirection.Ascending)
+    private val musicScanSettings = MutableStateFlow(com.catlytics.core.model.MusicScanSettings())
 
     override fun observeHiddenFolderIds() = hiddenFolderIds
+    override fun observeMusicScanSettings() = musicScanSettings
     override fun observeArtistViewMode() = artistViewMode
     override fun observePlaylistViewMode() = playlistViewMode
     override fun observeLibrarySortDirection() = librarySortDirection
@@ -361,6 +382,18 @@ private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
         hiddenFolderIds.update { current ->
             if (visible) current - folderId else current + folderId
         }
+    }
+
+    override suspend fun setMusicScanDurationFilter(
+        filter: com.catlytics.core.model.MusicScanDurationFilter,
+    ) {
+        musicScanSettings.value = musicScanSettings.value.copy(durationFilter = filter)
+    }
+
+    override suspend fun setMusicScanSizeFilter(
+        filter: com.catlytics.core.model.MusicScanSizeFilter,
+    ) {
+        musicScanSettings.value = musicScanSettings.value.copy(sizeFilter = filter)
     }
 
     override suspend fun setArtistViewMode(viewMode: ArtistViewMode) {

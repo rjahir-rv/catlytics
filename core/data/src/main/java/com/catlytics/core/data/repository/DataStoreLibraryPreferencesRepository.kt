@@ -10,6 +10,9 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.MusicScanDurationFilter
+import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -43,6 +46,29 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         }
         .map { preferences -> preferences[HIDDEN_FOLDER_IDS].orEmpty() }
 
+    override fun observeMusicScanSettings(): Flow<MusicScanSettings> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { preferences ->
+            MusicScanSettings(
+                durationFilter = preferences[MUSIC_SCAN_DURATION_FILTER]
+                    ?.let { stored ->
+                        MusicScanDurationFilter.entries.firstOrNull { it.name == stored }
+                    }
+                    ?: MusicScanDurationFilter.Disabled,
+                sizeFilter = preferences[MUSIC_SCAN_SIZE_FILTER]
+                    ?.let { stored ->
+                        MusicScanSizeFilter.entries.firstOrNull { it.name == stored }
+                    }
+                    ?: MusicScanSizeFilter.Disabled,
+            )
+        }
+
     override fun observeArtistViewMode(): Flow<ArtistViewMode> = dataStore.data
         .catch { error ->
             if (error is IOException) {
@@ -65,6 +91,18 @@ class DataStoreLibraryPreferencesRepository internal constructor(
             } else {
                 hiddenFolderIds + folderId
             }
+        }
+    }
+
+    override suspend fun setMusicScanDurationFilter(filter: MusicScanDurationFilter) {
+        dataStore.edit { preferences ->
+            preferences[MUSIC_SCAN_DURATION_FILTER] = filter.name
+        }
+    }
+
+    override suspend fun setMusicScanSizeFilter(filter: MusicScanSizeFilter) {
+        dataStore.edit { preferences ->
+            preferences[MUSIC_SCAN_SIZE_FILTER] = filter.name
         }
     }
 
@@ -136,6 +174,8 @@ class DataStoreLibraryPreferencesRepository internal constructor(
 
     private companion object {
         val HIDDEN_FOLDER_IDS = stringSetPreferencesKey("hidden_folder_ids")
+        val MUSIC_SCAN_DURATION_FILTER = stringPreferencesKey("music_scan_duration_filter")
+        val MUSIC_SCAN_SIZE_FILTER = stringPreferencesKey("music_scan_size_filter")
         val ARTIST_VIEW_MODE = stringPreferencesKey("artist_view_mode")
         val PLAYLIST_VIEW_MODE = stringPreferencesKey("playlist_view_mode")
         val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")

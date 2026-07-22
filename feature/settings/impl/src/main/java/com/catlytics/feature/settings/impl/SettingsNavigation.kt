@@ -11,6 +11,8 @@ import com.catlytics.feature.settings.api.SettingsRoute
 
 fun EntryProviderScope<NavKey>.settingsEntry(
     appVersion: String,
+    hasAudioPermission: () -> Boolean = { true },
+    onRequestAudioPermission: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     onTopBarTitleChange: (String) -> Unit = {},
     onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {},
@@ -20,6 +22,8 @@ fun EntryProviderScope<NavKey>.settingsEntry(
         Box(modifier = Modifier.padding(contentPadding())) {
             SettingsRoute(
                 appVersion = appVersion,
+                hasAudioPermission = hasAudioPermission(),
+                onRequestAudioPermission = onRequestAudioPermission,
                 bottomPadding = bottomPadding,
                 onTopBarTitleChange = onTopBarTitleChange,
                 onTopBarBackActionChange = onTopBarBackActionChange,

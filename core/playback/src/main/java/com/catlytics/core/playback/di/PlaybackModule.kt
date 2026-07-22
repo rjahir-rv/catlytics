@@ -2,7 +2,9 @@ package com.catlytics.core.playback.di
 
 import com.catlytics.core.domain.repository.EqualizerRepository
 import com.catlytics.core.domain.repository.PlaybackController
+import com.catlytics.core.domain.repository.SleepTimerController
 import com.catlytics.core.playback.AndroidEqualizerRepository
+import com.catlytics.core.playback.DefaultSleepTimerController
 import com.catlytics.core.playback.Media3PlaybackController
 import dagger.Binds
 import dagger.Module
@@ -18,6 +20,12 @@ interface PlaybackModule {
     fun bindPlaybackController(
         controller: Media3PlaybackController,
     ): PlaybackController
+
+    @Binds
+    @Singleton
+    fun bindSleepTimerController(
+        controller: DefaultSleepTimerController,
+    ): SleepTimerController
 
     @Binds
     @Singleton

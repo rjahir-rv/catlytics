@@ -29,7 +29,7 @@ interface LibraryRepository {
 
     suspend fun resolvePlaylistSource(source: PlaylistSource): List<Track>
 
-    suspend fun refreshTracks()
+    suspend fun refreshTracks(): Int
 
     suspend fun setFolderVisible(folderId: String, visible: Boolean)
 }

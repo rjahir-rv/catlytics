@@ -2,15 +2,39 @@ package com.catlytics.feature.settings.impl
 
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
+import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
+import com.catlytics.core.domain.repository.SleepTimerController
+import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
+import com.catlytics.core.domain.usecase.library.ObserveMusicScanSettingsUseCase
+import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
+import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
+import com.catlytics.core.domain.usecase.library.SetMusicScanDurationFilterUseCase
+import com.catlytics.core.domain.usecase.library.SetMusicScanSizeFilterUseCase
+import com.catlytics.core.model.Album
+import com.catlytics.core.model.AlbumContent
+import com.catlytics.core.model.ArtistContent
+import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.LibraryFolderContent
+import com.catlytics.core.model.MusicScanDurationFilter
+import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.MusicScanSizeFilter
+import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.PlaylistViewMode
+import com.catlytics.core.model.SortDirection
+import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.ThemeMode
+import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -33,7 +57,7 @@ class SettingsViewModelTest {
         val repository = FakeAppPreferencesRepository()
         val equalizerRepository = FakeEqualizerRepository()
         val playbackPreferencesRepository = FakePlaybackPreferencesRepository()
-        val viewModel = SettingsViewModel(repository, equalizerRepository, playbackPreferencesRepository)
+        val viewModel = viewModel(repository, equalizerRepository, playbackPreferencesRepository)
 
         ThemeMode.entries.forEach { themeMode ->
             viewModel.setThemeMode(themeMode)
@@ -47,7 +71,7 @@ class SettingsViewModelTest {
     @Test
     fun `setEqualizerEnabled persists requested state`() = runTest {
         val equalizerRepository = FakeEqualizerRepository()
-        val viewModel = SettingsViewModel(
+        val viewModel = viewModel(
             FakeAppPreferencesRepository(),
             equalizerRepository,
             FakePlaybackPreferencesRepository(),
@@ -63,7 +87,7 @@ class SettingsViewModelTest {
     @Test
     fun `selectEqualizerPreset persists selected preset`() = runTest {
         val equalizerRepository = FakeEqualizerRepository()
-        val viewModel = SettingsViewModel(
+        val viewModel = viewModel(
             FakeAppPreferencesRepository(),
             equalizerRepository,
             FakePlaybackPreferencesRepository(),
@@ -80,7 +104,7 @@ class SettingsViewModelTest {
     @Test
     fun `setCrossfadeDuration persists requested value`() = runTest {
         val playbackPreferencesRepository = FakePlaybackPreferencesRepository()
-        val viewModel = SettingsViewModel(
+        val viewModel = viewModel(
             FakeAppPreferencesRepository(),
             FakeEqualizerRepository(),
             playbackPreferencesRepository,
@@ -92,6 +116,132 @@ class SettingsViewModelTest {
         assertEquals(7, playbackPreferencesRepository.durationSeconds.value)
         assertEquals(7, viewModel.crossfadeDurationSeconds.value)
     }
+
+    @Test
+    fun `sleep timer can be started and cancelled`() = runTest {
+        val sleepTimerController = FakeSleepTimerController()
+        val viewModel = viewModel(sleepTimerController = sleepTimerController)
+
+        viewModel.startSleepTimer(durationMinutes = 45)
+
+        assertEquals(listOf(45), sleepTimerController.startedDurations)
+        assertEquals(
+            SleepTimerState.Active(2_700_000L, 2_700_000L),
+            viewModel.sleepTimerState.value,
+        )
+
+        viewModel.cancelSleepTimer()
+
+        assertEquals(1, sleepTimerController.cancelCalls)
+        assertEquals(SleepTimerState.Inactive, viewModel.sleepTimerState.value)
+    }
+
+    @Test
+    fun `scan filters persist and successful scan exposes count`() = runTest {
+        val libraryRepository = FakeLibraryRepository(refreshResult = 23)
+        val libraryPreferencesRepository = FakeLibraryPreferencesRepository()
+        val viewModel = viewModel(
+            libraryRepository = libraryRepository,
+            libraryPreferencesRepository = libraryPreferencesRepository,
+        )
+
+        viewModel.setMusicScanDurationFilter(MusicScanDurationFilter.Seconds30)
+        viewModel.setMusicScanSizeFilter(MusicScanSizeFilter.Megabyte1)
+        advanceUntilIdle()
+        viewModel.scanMusic()
+        advanceUntilIdle()
+
+        assertEquals(
+            MusicScanSettings(
+                durationFilter = MusicScanDurationFilter.Seconds30,
+                sizeFilter = MusicScanSizeFilter.Megabyte1,
+            ),
+            libraryPreferencesRepository.settings.value,
+        )
+        assertEquals(MusicScanStatus.Success(23), viewModel.musicScanStatus.value)
+        assertEquals(1, libraryRepository.refreshCalls)
+    }
+
+    @Test
+    fun `scan failure is exposed to the screen`() = runTest {
+        val libraryRepository = FakeLibraryRepository(refreshError = IllegalStateException("Falló MediaStore"))
+        val viewModel = viewModel(libraryRepository = libraryRepository)
+
+        viewModel.scanMusic()
+        advanceUntilIdle()
+
+        assertEquals(MusicScanStatus.Error("Falló MediaStore"), viewModel.musicScanStatus.value)
+    }
+
+    private fun viewModel(
+        appPreferencesRepository: AppPreferencesRepository = FakeAppPreferencesRepository(),
+        equalizerRepository: EqualizerRepository = FakeEqualizerRepository(),
+        playbackPreferencesRepository: PlaybackPreferencesRepository = FakePlaybackPreferencesRepository(),
+        sleepTimerController: SleepTimerController = FakeSleepTimerController(),
+        libraryRepository: FakeLibraryRepository = FakeLibraryRepository(),
+        libraryPreferencesRepository: FakeLibraryPreferencesRepository =
+            FakeLibraryPreferencesRepository(),
+    ) = SettingsViewModel(
+        appPreferencesRepository = appPreferencesRepository,
+        equalizerRepository = equalizerRepository,
+        playbackPreferencesRepository = playbackPreferencesRepository,
+        sleepTimerController = sleepTimerController,
+        observeLibraryFoldersUseCase = ObserveLibraryFoldersUseCase(libraryRepository),
+        observeMusicScanSettingsUseCase =
+            ObserveMusicScanSettingsUseCase(libraryPreferencesRepository),
+        refreshLibraryUseCase = RefreshLibraryUseCase(libraryRepository),
+        setFolderVisibilityUseCase = SetFolderVisibilityUseCase(libraryRepository),
+        setMusicScanDurationFilterUseCase =
+            SetMusicScanDurationFilterUseCase(libraryPreferencesRepository),
+        setMusicScanSizeFilterUseCase =
+            SetMusicScanSizeFilterUseCase(libraryPreferencesRepository),
+    )
+}
+
+private class FakeLibraryRepository(
+    private val refreshResult: Int = 0,
+    private val refreshError: Throwable? = null,
+) : LibraryRepository {
+    var refreshCalls = 0
+        private set
+
+    override fun observeAlbums() = flowOf(emptyList<Album>())
+    override fun observeAlbumContent(albumId: String) = flowOf<AlbumContent?>(null)
+    override fun observeArtists() = flowOf(emptyList<ArtistSummary>())
+    override fun observeArtistContent(artistId: String) = flowOf<ArtistContent?>(null)
+    override fun observeTracks() = flowOf(emptyList<Track>())
+    override fun observeAllTracks() = flowOf(emptyList<Track>())
+    override fun observeFolders() = flowOf(emptyList<LibraryFolder>())
+    override fun observeFolderContent(folderId: String) = flowOf<LibraryFolderContent?>(null)
+    override suspend fun resolvePlaylistSource(source: PlaylistSource) = emptyList<Track>()
+    override suspend fun refreshTracks(): Int {
+        refreshCalls++
+        refreshError?.let { throw it }
+        return refreshResult
+    }
+    override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
+}
+
+private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
+    val settings = MutableStateFlow(MusicScanSettings())
+
+    override fun observeHiddenFolderIds() = flowOf(emptySet<String>())
+    override fun observeMusicScanSettings() = settings
+    override fun observeArtistViewMode() = flowOf(com.catlytics.core.model.ArtistViewMode.List)
+    override fun observePlaylistViewMode() = flowOf(PlaylistViewMode.List)
+    override fun observeLibrarySortDirection() = flowOf(SortDirection.Ascending)
+    override fun observePlaylistSortDirection() = flowOf(SortDirection.Ascending)
+    override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
+    override suspend fun setMusicScanDurationFilter(filter: MusicScanDurationFilter) {
+        settings.value = settings.value.copy(durationFilter = filter)
+    }
+    override suspend fun setMusicScanSizeFilter(filter: MusicScanSizeFilter) {
+        settings.value = settings.value.copy(sizeFilter = filter)
+    }
+    override suspend fun setArtistViewMode(viewMode: com.catlytics.core.model.ArtistViewMode) = Unit
+    override suspend fun setPlaylistViewMode(viewMode: PlaylistViewMode) = Unit
+    override suspend fun setLibrarySortDirection(direction: SortDirection) = Unit
+    override suspend fun setPlaylistSortDirection(direction: SortDirection) = Unit
 }
 
 private class FakeAppPreferencesRepository : AppPreferencesRepository {
@@ -147,6 +297,24 @@ private class FakePlaybackPreferencesRepository : PlaybackPreferencesRepository 
 
     override suspend fun setCrossfadeDurationSeconds(seconds: Int) {
         durationSeconds.value = seconds
+    }
+}
+
+private class FakeSleepTimerController : SleepTimerController {
+    private val mutableState = MutableStateFlow<SleepTimerState>(SleepTimerState.Inactive)
+    override val state = mutableState
+    val startedDurations = mutableListOf<Int>()
+    var cancelCalls = 0
+
+    override fun start(durationMinutes: Int) {
+        startedDurations += durationMinutes
+        val durationMillis = durationMinutes * 60_000L
+        mutableState.value = SleepTimerState.Active(durationMillis, durationMillis)
+    }
+
+    override fun cancel() {
+        cancelCalls += 1
+        mutableState.value = SleepTimerState.Inactive
     }
 }
 

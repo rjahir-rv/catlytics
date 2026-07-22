@@ -164,7 +164,7 @@ private class FakeLibraryRepository : LibraryRepository {
     override suspend fun resolvePlaylistSource(source: com.catlytics.core.model.PlaylistSource) =
         emptyList<Track>()
 
-    override suspend fun refreshTracks() = Unit
+    override suspend fun refreshTracks() = 0
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {
         lastVisibilityChange = folderId to visible
@@ -178,11 +178,19 @@ private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     val playlistSortDirection = MutableStateFlow(SortDirection.Ascending)
 
     override fun observeHiddenFolderIds() = MutableStateFlow(emptySet<String>())
+    override fun observeMusicScanSettings() =
+        MutableStateFlow(com.catlytics.core.model.MusicScanSettings())
     override fun observeArtistViewMode() = artistViewMode
     override fun observePlaylistViewMode() = playlistViewMode
     override fun observeLibrarySortDirection() = librarySortDirection
     override fun observePlaylistSortDirection() = playlistSortDirection
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
+    override suspend fun setMusicScanDurationFilter(
+        filter: com.catlytics.core.model.MusicScanDurationFilter,
+    ) = Unit
+    override suspend fun setMusicScanSizeFilter(
+        filter: com.catlytics.core.model.MusicScanSizeFilter,
+    ) = Unit
     override suspend fun setArtistViewMode(viewMode: ArtistViewMode) {
         artistViewMode.value = viewMode
     }

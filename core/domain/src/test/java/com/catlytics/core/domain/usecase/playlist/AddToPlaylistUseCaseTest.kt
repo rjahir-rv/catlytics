@@ -106,7 +106,7 @@ class AddToPlaylistUseCaseTest {
                 is PlaylistSource.TrackSource -> tracks.filter { it.id == source.trackId }
                 else -> emptyList()
             }
-        override suspend fun refreshTracks() = Unit
+        override suspend fun refreshTracks() = 0
         override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
     }
 }

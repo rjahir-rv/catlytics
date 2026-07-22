@@ -105,8 +105,12 @@ class OfflineFirstLibraryRepository @Inject constructor(
         }.map(TrackEntity::toDomain)
     }
 
-    override suspend fun refreshTracks() {
+    override suspend fun refreshTracks(): Int {
+        val previousTrackIds = localDataSource.observeTracks().first()
+            .mapTo(mutableSetOf(), TrackEntity::id)
         mediator.syncLibrary()
+        return localDataSource.observeTracks().first()
+            .count { track -> track.id !in previousTrackIds }
     }
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {

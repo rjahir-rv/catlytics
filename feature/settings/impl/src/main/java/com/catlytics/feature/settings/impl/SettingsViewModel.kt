@@ -5,15 +5,30 @@ import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
+import com.catlytics.core.domain.repository.SleepTimerController
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.DEFAULT_CROSSFADE_DURATION_SECONDS
+import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
+import com.catlytics.core.domain.usecase.library.ObserveMusicScanSettingsUseCase
+import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
+import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
+import com.catlytics.core.domain.usecase.library.SetMusicScanDurationFilterUseCase
+import com.catlytics.core.domain.usecase.library.SetMusicScanSizeFilterUseCase
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.MusicScanDurationFilter
+import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -22,7 +37,16 @@ internal class SettingsViewModel @Inject constructor(
     private val appPreferencesRepository: AppPreferencesRepository,
     private val equalizerRepository: EqualizerRepository,
     private val playbackPreferencesRepository: PlaybackPreferencesRepository,
+    private val sleepTimerController: SleepTimerController,
+    observeLibraryFoldersUseCase: ObserveLibraryFoldersUseCase,
+    observeMusicScanSettingsUseCase: ObserveMusicScanSettingsUseCase,
+    private val refreshLibraryUseCase: RefreshLibraryUseCase,
+    private val setFolderVisibilityUseCase: SetFolderVisibilityUseCase,
+    private val setMusicScanDurationFilterUseCase: SetMusicScanDurationFilterUseCase,
+    private val setMusicScanSizeFilterUseCase: SetMusicScanSizeFilterUseCase,
 ) : ViewModel() {
+    val sleepTimerState = sleepTimerController.state
+
     val themeMode: StateFlow<ThemeMode> = appPreferencesRepository.observeThemeMode()
         .stateIn(
             scope = viewModelScope,
@@ -42,6 +66,22 @@ internal class SettingsViewModel @Inject constructor(
                 started = SharingStarted.Eagerly,
                 initialValue = DEFAULT_CROSSFADE_DURATION_SECONDS,
             )
+    val libraryFolders: StateFlow<List<LibraryFolder>> = observeLibraryFoldersUseCase()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = emptyList(),
+        )
+    val musicScanSettings: StateFlow<MusicScanSettings> = observeMusicScanSettingsUseCase()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = MusicScanSettings(),
+        )
+
+    private val _musicScanStatus = MutableStateFlow<MusicScanStatus>(MusicScanStatus.Idle)
+    val musicScanStatus: StateFlow<MusicScanStatus> = _musicScanStatus.asStateFlow()
+    private var scanSettingsUpdateJob: Job? = null
 
     fun setThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
@@ -52,6 +92,52 @@ internal class SettingsViewModel @Inject constructor(
     fun setCrossfadeDurationSeconds(seconds: Int) {
         viewModelScope.launch {
             playbackPreferencesRepository.setCrossfadeDurationSeconds(seconds)
+        }
+    }
+
+    fun startSleepTimer(durationMinutes: Int) {
+        sleepTimerController.start(durationMinutes)
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerController.cancel()
+    }
+
+    fun setFolderVisible(folderId: String, visible: Boolean) {
+        viewModelScope.launch {
+            setFolderVisibilityUseCase(folderId, visible)
+        }
+    }
+
+    fun setMusicScanDurationFilter(filter: MusicScanDurationFilter) {
+        _musicScanStatus.value = MusicScanStatus.Idle
+        scanSettingsUpdateJob = viewModelScope.launch {
+            setMusicScanDurationFilterUseCase(filter)
+        }
+    }
+
+    fun setMusicScanSizeFilter(filter: MusicScanSizeFilter) {
+        _musicScanStatus.value = MusicScanStatus.Idle
+        scanSettingsUpdateJob = viewModelScope.launch {
+            setMusicScanSizeFilterUseCase(filter)
+        }
+    }
+
+    fun scanMusic() {
+        if (_musicScanStatus.value == MusicScanStatus.Scanning) return
+
+        _musicScanStatus.value = MusicScanStatus.Scanning
+        viewModelScope.launch {
+            _musicScanStatus.value = try {
+                scanSettingsUpdateJob?.join()
+                MusicScanStatus.Success(refreshLibraryUseCase())
+            } catch (cancellationException: CancellationException) {
+                throw cancellationException
+            } catch (throwable: Throwable) {
+                MusicScanStatus.Error(
+                    throwable.message ?: "No se pudo escanear la música del dispositivo.",
+                )
+            }
         }
     }
 
@@ -88,4 +174,11 @@ internal class SettingsViewModel @Inject constructor(
             equalizerRepository.refreshCapabilities()
         }
     }
+}
+
+internal sealed interface MusicScanStatus {
+    data object Idle : MusicScanStatus
+    data object Scanning : MusicScanStatus
+    data class Success(val newTrackCount: Int) : MusicScanStatus
+    data class Error(val message: String) : MusicScanStatus
 }

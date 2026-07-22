@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.os.Build
 import android.provider.MediaStore
 import com.catlytics.core.data.model.TrackEntity
+import com.catlytics.core.model.MusicScanSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -14,7 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 interface MediaStoreLibraryDataSource {
-    suspend fun loadTracks(): List<TrackEntity>
+    suspend fun loadTracks(settings: MusicScanSettings): List<TrackEntity>
 }
 
 class AndroidMediaStoreLibraryDataSource @Inject constructor(
@@ -22,7 +23,9 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
 ) : MediaStoreLibraryDataSource {
     private val contentResolver = context.contentResolver
 
-    override suspend fun loadTracks(): List<TrackEntity> = withContext(Dispatchers.IO) {
+    override suspend fun loadTracks(
+        settings: MusicScanSettings,
+    ): List<TrackEntity> = withContext(Dispatchers.IO) {
         val tracks = mutableListOf<TrackEntity>()
         contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
@@ -48,6 +51,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             val trackNumberColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val isMusicColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
             val relativePathColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH)
             } else {
@@ -80,8 +84,10 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
                     album = cursor.getString(albumColumn),
                     trackNumber = cursor.getInt(trackNumberColumn),
                     durationMillis = cursor.getLong(durationColumn),
+                    fileSizeBytes = cursor.getLong(sizeColumn),
                     isMusic = cursor.getInt(isMusicColumn),
                     mediaUri = mediaUri,
+                    scanSettings = settings,
                     folder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         MediaStoreAudioMapper.folderFromRelativePath(
                             volumeName = cursor.getString(volumeNameColumn),
@@ -110,6 +116,7 @@ internal object MediaStoreAudioMapper {
         add(MediaStore.Audio.Media.TRACK)
         add(MediaStore.Audio.Media.DURATION)
         add(MediaStore.Audio.Media.IS_MUSIC)
+        add(MediaStore.Audio.Media.SIZE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             add(MediaStore.Audio.Media.RELATIVE_PATH)
             add(MediaStore.Audio.Media.VOLUME_NAME)
@@ -128,11 +135,19 @@ internal object MediaStoreAudioMapper {
         album: String? = null,
         trackNumber: Int = 0,
         durationMillis: Long,
+        fileSizeBytes: Long = 0L,
         isMusic: Int,
         mediaUri: String,
         folder: MediaFolderMetadata? = null,
+        scanSettings: MusicScanSettings = MusicScanSettings(),
     ): TrackEntity? {
         if (isMusic == 0 || durationMillis <= 0L) return null
+        if (scanSettings.durationFilter.minimumDurationMillis?.let { durationMillis < it } == true) {
+            return null
+        }
+        if (scanSettings.sizeFilter.minimumSizeBytes?.let { fileSizeBytes < it } == true) {
+            return null
+        }
 
         val normalizedArtist = artist
             ?.takeUnless { it.isBlank() || it == UNKNOWN_ARTIST }

@@ -100,9 +100,10 @@ private class FakeStartupLibraryRepository(
     override fun observeFolderContent(folderId: String) = flowOf<LibraryFolderContent?>(null)
     override suspend fun resolvePlaylistSource(source: PlaylistSource) = emptyList<Track>()
 
-    override suspend fun refreshTracks() {
+    override suspend fun refreshTracks(): Int {
         refreshCalls++
         onRefresh()
+        return 0
     }
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit

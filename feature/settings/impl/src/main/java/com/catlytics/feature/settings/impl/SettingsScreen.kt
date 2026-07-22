@@ -1,5 +1,6 @@
 package com.catlytics.feature.settings.impl
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -33,6 +35,11 @@ import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Compan
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.MusicScanDurationFilter
+import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.MusicScanSizeFilter
+import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsRowText
@@ -47,8 +54,20 @@ internal fun SettingsScreen(
     themeMode: ThemeMode,
     equalizerState: EqualizerState,
     crossfadeDurationSeconds: Int,
+    sleepTimerState: SleepTimerState,
+    libraryFolders: List<LibraryFolder>,
+    musicScanSettings: MusicScanSettings,
+    musicScanStatus: MusicScanStatus,
+    hasAudioPermission: Boolean,
+    onRequestAudioPermission: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
     onCrossfadeDurationChange: (Int) -> Unit,
+    onSleepTimerStart: (Int) -> Unit,
+    onSleepTimerCancel: () -> Unit,
+    onFolderVisibilityChange: (String, Boolean) -> Unit,
+    onMusicScanDurationFilterChange: (MusicScanDurationFilter) -> Unit,
+    onMusicScanSizeFilterChange: (MusicScanSizeFilter) -> Unit,
+    onScanMusic: () -> Unit,
     onEqualizerEnabledChange: (Boolean) -> Unit,
     onEqualizerModeChange: (EqualizerMode) -> Unit,
     onEqualizerPresetSelected: (EqualizerPreset) -> Unit,
@@ -58,6 +77,18 @@ internal fun SettingsScreen(
     onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {}
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.Main) }
+    var showSleepTimerSheet by rememberSaveable { mutableStateOf(false) }
+
+    fun navigateBack() {
+        destination = when (destination) {
+            SettingsDestination.ScanFolders -> SettingsDestination.MusicScan
+            SettingsDestination.Equalizer,
+            SettingsDestination.MusicScan -> SettingsDestination.Main
+            SettingsDestination.Main -> SettingsDestination.Main
+        }
+    }
+
+    BackHandler(enabled = destination != SettingsDestination.Main, onBack = ::navigateBack)
 
     LaunchedEffect(destination) {
         when (destination) {
@@ -67,7 +98,15 @@ internal fun SettingsScreen(
             }
             SettingsDestination.Equalizer -> {
                 onTopBarTitleChange("Ecualizador")
-                onTopBarBackActionChange { destination = SettingsDestination.Main }
+                onTopBarBackActionChange(::navigateBack)
+            }
+            SettingsDestination.MusicScan -> {
+                onTopBarTitleChange("Escanear música")
+                onTopBarBackActionChange(::navigateBack)
+            }
+            SettingsDestination.ScanFolders -> {
+                onTopBarTitleChange("Carpetas")
+                onTopBarBackActionChange(::navigateBack)
             }
         }
     }
@@ -78,9 +117,12 @@ internal fun SettingsScreen(
             themeMode = themeMode,
             equalizerState = equalizerState,
             crossfadeDurationSeconds = crossfadeDurationSeconds,
+            sleepTimerState = sleepTimerState,
             onThemeModeChange = onThemeModeChange,
             onCrossfadeDurationChange = onCrossfadeDurationChange,
+            onSleepTimerClick = { showSleepTimerSheet = true },
             onEqualizerClick = { destination = SettingsDestination.Equalizer },
+            onMusicScanClick = { destination = SettingsDestination.MusicScan },
             bottomPadding = bottomPadding,
             modifier = modifier,
         )
@@ -93,6 +135,40 @@ internal fun SettingsScreen(
             bottomPadding = bottomPadding,
             modifier = modifier,
         )
+        SettingsDestination.MusicScan -> MusicScanSettingsContent(
+            folders = libraryFolders,
+            settings = musicScanSettings,
+            scanStatus = musicScanStatus,
+            hasAudioPermission = hasAudioPermission,
+            onRequestAudioPermission = onRequestAudioPermission,
+            onFoldersClick = { destination = SettingsDestination.ScanFolders },
+            onDurationFilterChange = onMusicScanDurationFilterChange,
+            onSizeFilterChange = onMusicScanSizeFilterChange,
+            onScanMusic = onScanMusic,
+            bottomPadding = bottomPadding,
+            modifier = modifier,
+        )
+        SettingsDestination.ScanFolders -> ScanFoldersContent(
+            folders = libraryFolders,
+            onFolderVisibilityChange = onFolderVisibilityChange,
+            bottomPadding = bottomPadding,
+            modifier = modifier,
+        )
+    }
+
+    if (showSleepTimerSheet) {
+        SleepTimerBottomSheet(
+            state = sleepTimerState,
+            onStart = { minutes ->
+                onSleepTimerStart(minutes)
+                showSleepTimerSheet = false
+            },
+            onCancel = {
+                onSleepTimerCancel()
+                showSleepTimerSheet = false
+            },
+            onDismiss = { showSleepTimerSheet = false },
+        )
     }
 }
 
@@ -102,9 +178,12 @@ private fun SettingsMainContent(
     themeMode: ThemeMode,
     equalizerState: EqualizerState,
     crossfadeDurationSeconds: Int,
+    sleepTimerState: SleepTimerState,
     onThemeModeChange: (ThemeMode) -> Unit,
     onCrossfadeDurationChange: (Int) -> Unit,
+    onSleepTimerClick: () -> Unit,
     onEqualizerClick: () -> Unit,
+    onMusicScanClick: () -> Unit,
     bottomPadding: () -> Dp,
     modifier: Modifier = Modifier,
 ) {
@@ -138,9 +217,31 @@ private fun SettingsMainContent(
         }
         item {
             SettingsSection(
+                title = "Biblioteca",
+                iconRes = R.drawable.ic_library,
+            ) {
+                SettingsValueRow(
+                    title = "Escanear música",
+                    supportingText = "Carpetas y filtros para encontrar música local",
+                    onClick = onMusicScanClick,
+                )
+            }
+        }
+        item {
+            SettingsSection(
                 title = "Audio",
                 iconRes = R.drawable.ic_audio,
             ) {
+                SettingsValueRow(
+                    title = "Temporizador de sueño",
+                    supportingText = when (sleepTimerState) {
+                        SleepTimerState.Inactive -> "Pausa la música después de un tiempo"
+                        is SleepTimerState.Active -> "Quedan ${formatSleepTimerRemaining(sleepTimerState.remainingMillis)}"
+                    },
+                    value = if (sleepTimerState is SleepTimerState.Active) "Activo" else null,
+                    onClick = onSleepTimerClick,
+                )
+                SettingsDivider()
                 CrossfadeDurationSlider(
                     durationSeconds = crossfadeDurationSeconds,
                     onDurationChange = onCrossfadeDurationChange,
@@ -185,7 +286,7 @@ private fun CrossfadeDurationSlider(
     onDurationChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var sliderValue by remember(durationSeconds) { mutableStateOf(durationSeconds.toFloat()) }
+    var sliderValue by remember(durationSeconds) { mutableFloatStateOf(durationSeconds.toFloat()) }
     val selectedSeconds = sliderValue.toInt().coerceIn(
         MIN_CROSSFADE_DURATION_SECONDS,
         MAX_CROSSFADE_DURATION_SECONDS,
@@ -321,4 +422,6 @@ private val EqualizerState.statusLabel: String
 private enum class SettingsDestination {
     Main,
     Equalizer,
+    MusicScan,
+    ScanFolders,
 }

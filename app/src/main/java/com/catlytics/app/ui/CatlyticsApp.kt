@@ -568,6 +568,10 @@ fun CatlyticsApp(
                     )
                     settingsEntry(
                         appVersion = appVersion,
+                        hasAudioPermission = { hasAudioPermission },
+                        onRequestAudioPermission = {
+                            audioPermissionLauncher.launch(audioPermission)
+                        },
                         bottomPadding = { bottomPaddingState.value },
                         onTopBarTitleChange = { title -> settingsTopBarTitle = title },
                         onTopBarBackActionChange = { action -> settingsTopBarBackAction = action },

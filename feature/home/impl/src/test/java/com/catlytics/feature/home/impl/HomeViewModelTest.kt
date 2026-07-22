@@ -243,7 +243,7 @@ private class FakeLibraryRepository : LibraryRepository {
     override suspend fun resolvePlaylistSource(source: com.catlytics.core.model.PlaylistSource) =
         emptyList<Track>()
 
-    override suspend fun refreshTracks() = Unit
+    override suspend fun refreshTracks() = 0
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
 
