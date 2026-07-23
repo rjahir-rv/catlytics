@@ -82,6 +82,7 @@ internal fun SettingsScreen(
     fun navigateBack() {
         destination = when (destination) {
             SettingsDestination.ScanFolders -> SettingsDestination.MusicScan
+            SettingsDestination.About,
             SettingsDestination.Equalizer,
             SettingsDestination.MusicScan -> SettingsDestination.Main
             SettingsDestination.Main -> SettingsDestination.Main
@@ -98,6 +99,10 @@ internal fun SettingsScreen(
             }
             SettingsDestination.Equalizer -> {
                 onTopBarTitleChange("Ecualizador")
+                onTopBarBackActionChange(::navigateBack)
+            }
+            SettingsDestination.About -> {
+                onTopBarTitleChange("Acerca de Catlytics")
                 onTopBarBackActionChange(::navigateBack)
             }
             SettingsDestination.MusicScan -> {
@@ -123,6 +128,12 @@ internal fun SettingsScreen(
             onSleepTimerClick = { showSleepTimerSheet = true },
             onEqualizerClick = { destination = SettingsDestination.Equalizer },
             onMusicScanClick = { destination = SettingsDestination.MusicScan },
+            onAboutClick = { destination = SettingsDestination.About },
+            bottomPadding = bottomPadding,
+            modifier = modifier,
+        )
+        SettingsDestination.About -> AboutSettingsContent(
+            appVersion = appVersion,
             bottomPadding = bottomPadding,
             modifier = modifier,
         )
@@ -184,6 +195,7 @@ private fun SettingsMainContent(
     onSleepTimerClick: () -> Unit,
     onEqualizerClick: () -> Unit,
     onMusicScanClick: () -> Unit,
+    onAboutClick: () -> Unit,
     bottomPadding: () -> Dp,
     modifier: Modifier = Modifier,
 ) {
@@ -207,19 +219,8 @@ private fun SettingsMainContent(
                     onThemeModeSelected = onThemeModeChange,
                 )
                 SettingsDivider()
-                SettingsValueRow(
-                    title = "Color de acento",
-                    value = "Rosa",
-                )
-                SettingsDivider()
                 SettingsValueRow(title = "Notificaciones")
-            }
-        }
-        item {
-            SettingsSection(
-                title = "Biblioteca",
-                iconRes = R.drawable.ic_library,
-            ) {
+                SettingsDivider()
                 SettingsValueRow(
                     title = "Escanear música",
                     supportingText = "Carpetas y filtros para encontrar música local",
@@ -253,12 +254,6 @@ private fun SettingsMainContent(
                     value = equalizerState.statusLabel,
                     onClick = onEqualizerClick,
                 )
-                SettingsDivider()
-                SettingsValueRow(
-                    title = "Calidad de audio",
-                    supportingText = "Reproducción local",
-                    value = "Sin perdida",
-                )
             }
         }
         item {
@@ -267,12 +262,11 @@ private fun SettingsMainContent(
                 iconRes = R.drawable.ic_info,
             ) {
                 SettingsValueRow(
-                    title = "Version",
+                    title = "Acerca de Catlytics",
+                    supportingText = "Información de la app y código fuente",
                     value = appVersion,
-                    showChevron = false,
+                    onClick = onAboutClick,
                 )
-                SettingsDivider()
-                SettingsValueRow(title = "Términos del servicio")
                 SettingsDivider()
                 SettingsValueRow(title = "Política de privacidad")
             }
@@ -421,6 +415,7 @@ private val EqualizerState.statusLabel: String
 
 private enum class SettingsDestination {
     Main,
+    About,
     Equalizer,
     MusicScan,
     ScanFolders,

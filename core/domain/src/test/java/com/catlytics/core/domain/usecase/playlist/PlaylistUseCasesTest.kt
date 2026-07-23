@@ -61,6 +61,16 @@ class PlaylistUseCasesTest {
             }
         }
 
+        override suspend fun updatePlaylistDetails(
+            playlistId: String,
+            name: String,
+            description: String,
+        ) {
+            playlists.value = playlists.value.map {
+                if (it.id == playlistId) it.copy(name = name, description = description) else it
+            }
+        }
+
         override suspend fun deletePlaylist(playlistId: String) {
             playlists.value = playlists.value.filterNot { it.id == playlistId }
         }
@@ -87,6 +97,12 @@ class PlaylistUseCasesTest {
             playlists.value = playlists.value.map { playlist ->
                 if (playlist.id == playlistId) playlist.copy(trackIds = playlist.trackIds - trackId)
                 else playlist
+            }
+        }
+
+        override suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>) {
+            playlists.value = playlists.value.map {
+                if (it.id == playlistId) it.copy(trackIds = orderedTrackIds) else it
             }
         }
 

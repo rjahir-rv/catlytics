@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -25,6 +27,8 @@ internal fun HomeRoute(
     modifier: Modifier = Modifier,
     onTrackOptions: (Track) -> Unit,
     onNavigateToStatistics: () -> Unit,
+    onNavigateToDailyPlaylist: () -> Unit,
+    onNavigateToFavorites: () -> Unit,
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     startupError: String? = null,
@@ -41,6 +45,12 @@ internal fun HomeRoute(
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = onRequestPermission,
         onTrackSelected = viewModel::onTrackSelected,
+        onPlayDailyPlaylist = {
+            viewModel.onPlayDailyPlaylist()
+            onNavigateToDailyPlaylist()
+        },
+        onShuffleAll = viewModel::onShuffleAll,
+        onOpenFavorites = onNavigateToFavorites,
         onTrackOptions = onTrackOptions,
         onNavigateToStatistics = onNavigateToStatistics,
         onContentReady = onContentReady,
@@ -58,6 +68,9 @@ internal fun HomeScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
+    onPlayDailyPlaylist: () -> Unit = {},
+    onShuffleAll: () -> Unit = {},
+    onOpenFavorites: () -> Unit = {},
     onNavigateToStatistics: () -> Unit = {},
     onContentReady: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
@@ -71,11 +84,12 @@ internal fun HomeScreen(
     val trackListState = rememberSaveable(saver = androidx.compose.foundation.lazy.LazyListState.Saver) {
         androidx.compose.foundation.lazy.LazyListState()
     }
+    var areFeaturedSectionsVisible by rememberSaveable { mutableStateOf(true) }
 
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(start = 20.dp, top = 20.dp, end = 20.dp),
+            .padding(horizontal = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         if (!hasAudioPermission) {
@@ -83,7 +97,7 @@ internal fun HomeScreen(
                 onRequestPermission = onRequestPermission,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(bottom = bottomPadding()),
+                    .padding(top = 20.dp, bottom = bottomPadding()),
             )
             return@Column
         }
@@ -92,26 +106,35 @@ internal fun HomeScreen(
             HomeUiState.Empty -> EmptyLibraryContent(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(bottom = bottomPadding()),
+                    .padding(top = 20.dp, bottom = bottomPadding()),
             )
-            is HomeUiState.Error -> ErrorContent(message = uiState.message)
-            HomeUiState.Loading -> LoadingContent()
+            is HomeUiState.Error -> ErrorContent(
+                message = uiState.message,
+                modifier = Modifier.padding(top = 20.dp),
+            )
+            HomeUiState.Loading -> LoadingContent(modifier = Modifier.padding(top = 20.dp))
             is HomeUiState.Success -> {
                 val filteredTracks = uiState.tracks.filterByQuery(searchQuery)
                 if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
-                    NoSearchResultsContent()
+                    NoSearchResultsContent(modifier = Modifier.padding(top = 20.dp))
                 } else {
                     HomeTrackList(
                         tracks = filteredTracks,
+                        dailyPlaylistTrackCount = uiState.dailyPlaylistTrackCount,
+                        canShuffleAll = uiState.canShuffleAll,
+                        favoriteTrackCount = uiState.favoriteTracks.size,
                         recentlyPlayedTracks = uiState.recentlyPlayedTracks,
                         topTracks = uiState.topTracks,
                         currentTrackId = uiState.currentTrackId,
                         isCurrentTrackPlaying = uiState.isCurrentTrackPlaying,
                         onTrackSelected = onTrackSelected,
+                        onPlayDailyPlaylist = onPlayDailyPlaylist,
+                        onShuffleAll = onShuffleAll,
+                        onOpenFavorites = onOpenFavorites,
                         modifier = Modifier.weight(1f),
                         state = trackListState,
                         contentPadding = PaddingValues(
-                            top = 8.dp,
+                            top = 28.dp,
                             bottom = bottomPadding() + 20.dp,
                         ),
                         onTrackOptions = onTrackOptions,
@@ -120,6 +143,10 @@ internal fun HomeScreen(
                         },
                         onNavigateToStatistics = onNavigateToStatistics,
                         showHighlights = searchQuery.isBlank(),
+                        areFeaturedSectionsVisible = areFeaturedSectionsVisible,
+                        onToggleFeaturedSections = {
+                            areFeaturedSectionsVisible = !areFeaturedSectionsVisible
+                        },
                     )
                 }
             }

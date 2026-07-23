@@ -10,6 +10,8 @@ interface PlaylistRepository {
 
     suspend fun renamePlaylist(playlistId: String, name: String)
 
+    suspend fun updatePlaylistDetails(playlistId: String, name: String, description: String)
+
     suspend fun deletePlaylist(playlistId: String)
 
     suspend fun addTracks(playlistId: String, trackIds: List<String>): Int
@@ -20,6 +22,8 @@ interface PlaylistRepository {
     ): Map<String, Int>
 
     suspend fun removeTrack(playlistId: String, trackId: String)
+
+    suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>)
 
     suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?)
 }

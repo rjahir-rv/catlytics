@@ -152,6 +152,8 @@ class AddToPlaylistViewModel @Inject constructor(
 fun AddToPlaylistSheet(
     source: PlaylistSource,
     onDismiss: () -> Unit,
+    excludedPlaylistIds: Set<String> = emptySet(),
+    allowCreate: Boolean = true,
     viewModel: AddToPlaylistViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -182,16 +184,21 @@ fun AddToPlaylistSheet(
             item {
                 AddToPlaylistHeader(preview = preview)
             }
-            item {
-                ListItem(
-                    headlineContent = { Text("Nueva playlist") },
-                    leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { creating = true },
-                )
+            if (allowCreate) {
+                item {
+                    ListItem(
+                        headlineContent = { Text("Nueva playlist") },
+                        leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { creating = true },
+                    )
+                }
             }
-            items(playlists, key = Playlist::id) { playlist ->
+            items(
+                items = playlists.filterNot { it.id in excludedPlaylistIds },
+                key = Playlist::id,
+            ) { playlist ->
                 val isSelected = playlist.id in selectedPlaylistIds
                 val isFullyAdded = isPlaylistFullyAdded(playlist, sourceTrackIds)
                 val pendingCount = pendingTrackCount(playlist, sourceTrackIds)

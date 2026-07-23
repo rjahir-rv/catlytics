@@ -45,6 +45,23 @@ class RenamePlaylistUseCase(private val repository: PlaylistRepository) {
     }
 }
 
+class UpdatePlaylistDetailsUseCase(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(id: String, name: String, description: String) {
+        val normalizedName = name.trim()
+        require(normalizedName.isNotEmpty()) { "El nombre no puede estar vacío." }
+        repository.updatePlaylistDetails(id, normalizedName, description.trim())
+    }
+}
+
+class ReorderPlaylistTracksUseCase(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(playlistId: String, orderedTrackIds: List<String>) {
+        require(orderedTrackIds.size == orderedTrackIds.distinct().size) {
+            "El orden contiene canciones duplicadas."
+        }
+        repository.reorderTracks(playlistId, orderedTrackIds)
+    }
+}
+
 class DeletePlaylistUseCase(private val repository: PlaylistRepository) {
     suspend operator fun invoke(id: String) = repository.deletePlaylist(id)
 }
@@ -123,6 +140,12 @@ class ResolvePlaylistSourcePreviewUseCase(
                     trackIds = trackIds,
                 )
             }
+            is PlaylistSource.TrackCollectionSource -> PlaylistSourcePreview(
+                title = source.title,
+                artworkUri = source.artworkUri,
+                itemCount = tracks.size,
+                trackIds = trackIds,
+            )
         }
     }
 }

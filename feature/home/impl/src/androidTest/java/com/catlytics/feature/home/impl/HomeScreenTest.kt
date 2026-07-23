@@ -148,6 +148,134 @@ class HomeScreenTest {
     }
 
     @Test
+    fun quickActionsAreShownIndividuallyAndDispatchTheirCallbacks() {
+        var uiState: HomeUiState by mutableStateOf(
+            HomeUiState.Success(
+                tracks = List(5) { index -> track.copy(id = "track-$index") },
+                dailyPlaylistTrackCount = 5,
+            ),
+        )
+        var dailyClicks = 0
+        var shuffleClicks = 0
+        var favoriteClicks = 0
+        composeRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    uiState = uiState,
+                    searchQuery = "",
+                    hasAudioPermission = true,
+                    onRequestPermission = {},
+                    onTrackSelected = { _, _ -> },
+                    onTrackOptions = {},
+                    onPlayDailyPlaylist = { dailyClicks++ },
+                    onShuffleAll = { shuffleClicks++ },
+                    onOpenFavorites = { favoriteClicks++ },
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithContentDescription("Reproducir y abrir Playlist diaria")
+            .performClick()
+        composeRule.runOnIdle {
+            uiState = HomeUiState.Success(
+                tracks = listOf(track, track.copy(id = "track-2")),
+                canShuffleAll = true,
+            )
+        }
+        composeRule
+            .onNodeWithContentDescription("Reproducir todas las canciones aleatoriamente")
+            .performClick()
+        composeRule.runOnIdle {
+            uiState = HomeUiState.Success(
+                tracks = listOf(track),
+                favoriteTracks = listOf(track),
+            )
+        }
+        composeRule.onNodeWithContentDescription("Abrir Favoritos").performClick()
+
+        assertEquals(1, dailyClicks)
+        assertEquals(1, shuffleClicks)
+        assertEquals(1, favoriteClicks)
+    }
+
+    @Test
+    fun quickActionsAreHiddenDuringSearch() {
+        composeRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    uiState = HomeUiState.Success(
+                        tracks = List(5) { index -> track.copy(id = "track-$index") },
+                        dailyPlaylistTrackCount = 5,
+                        canShuffleAll = true,
+                        favoriteTracks = listOf(track),
+                    ),
+                    searchQuery = "Canción",
+                    hasAudioPermission = true,
+                    onRequestPermission = {},
+                    onTrackSelected = { _, _ -> },
+                    onTrackOptions = {},
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithText("Accesos rápidos").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Playlist diaria").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Aleatorio").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Favoritos").assertCountEquals(0)
+    }
+
+    @Test
+    fun featuredSectionsCanBeHiddenAndShownFromTheTracksHeader() {
+        val tracks = List(5) { index ->
+            track.copy(id = "track-$index", title = "Canción $index")
+        }
+        composeRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    uiState = HomeUiState.Success(
+                        tracks = tracks,
+                        dailyPlaylistTrackCount = 5,
+                        canShuffleAll = true,
+                        favoriteTracks = listOf(track),
+                        recentlyPlayedTracks = listOf(track),
+                        topTracks = listOf(
+                            TopTrack(
+                                trackId = track.id,
+                                title = track.title,
+                                artistName = track.artist.name,
+                                artworkUri = null,
+                                playCount = 2,
+                                totalListenedMillis = 120_000L,
+                            ),
+                        ),
+                    ),
+                    searchQuery = "",
+                    hasAudioPermission = true,
+                    onRequestPermission = {},
+                    onTrackSelected = { _, _ -> },
+                    onTrackOptions = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Ocultar secciones destacadas").performClick()
+
+        composeRule.onNodeWithText("Accesos rápidos").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Playlist diaria").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Aleatorio").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Favoritos").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Últimas escuchadas").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Top 3 de esta semana").assertCountEquals(0)
+        composeRule.onNodeWithText("Canción 0").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Mostrar secciones destacadas").performClick()
+
+        composeRule.onNodeWithText("Playlist diaria").assertIsDisplayed()
+        composeRule.onNodeWithText("Últimas escuchadas").assertIsDisplayed()
+        composeRule.onNodeWithText("Top 3 de esta semana").assertIsDisplayed()
+    }
+
+    @Test
     fun contentIsReadyOnlyAfterLoadingStateFinishes() {
         var uiState: HomeUiState by mutableStateOf(HomeUiState.Loading)
         var readyCalls = 0

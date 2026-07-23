@@ -8,6 +8,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SleepTimerEngineTest {
@@ -29,12 +30,12 @@ class SleepTimerEngineTest {
             engine.state.value,
         )
 
-        advanceTimeBy(299_999L)
+        advanceTimeBy(299_999L.milliseconds)
         runCurrent()
         assertEquals(0, pauseCalls)
         assertTrue(engine.state.value is SleepTimerState.Active)
 
-        advanceTimeBy(1L)
+        advanceTimeBy(1L.milliseconds)
         runCurrent()
         assertEquals(1, pauseCalls)
         assertEquals(SleepTimerState.Inactive, engine.state.value)
@@ -50,9 +51,9 @@ class SleepTimerEngineTest {
         )
 
         engine.start(durationMinutes = 5)
-        advanceTimeBy(60_000L)
+        advanceTimeBy(60_000L.milliseconds)
         engine.cancel()
-        advanceTimeBy(300_000L)
+        advanceTimeBy(300_000L.milliseconds)
         runCurrent()
 
         assertEquals(0, pauseCalls)
@@ -69,15 +70,15 @@ class SleepTimerEngineTest {
         )
 
         engine.start(durationMinutes = 5)
-        advanceTimeBy(60_000L)
+        advanceTimeBy(60_000L.milliseconds)
         engine.start(durationMinutes = 10)
-        advanceTimeBy(240_000L)
+        advanceTimeBy(240_000L.milliseconds)
         runCurrent()
 
         assertEquals(0, pauseCalls)
         assertEquals(600_000L, (engine.state.value as SleepTimerState.Active).totalDurationMillis)
 
-        advanceTimeBy(360_000L)
+        advanceTimeBy(360_000L.milliseconds)
         runCurrent()
         assertEquals(1, pauseCalls)
         assertEquals(SleepTimerState.Inactive, engine.state.value)

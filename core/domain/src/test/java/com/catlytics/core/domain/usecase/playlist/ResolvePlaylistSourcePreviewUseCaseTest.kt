@@ -99,6 +99,10 @@ class ResolvePlaylistSourcePreviewUseCaseTest {
                 is PlaylistSource.AlbumSource -> tracks.filter { it.albumId == source.albumId }
                 is PlaylistSource.ArtistSource -> tracks.filter { it.artist.id == source.artistId }
                 is PlaylistSource.FolderSource -> emptyList()
+                is PlaylistSource.TrackCollectionSource -> {
+                    val byId = tracks.associateBy(Track::id)
+                    source.trackIds.mapNotNull(byId::get)
+                }
             }
         override suspend fun refreshTracks() = 0
         override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit

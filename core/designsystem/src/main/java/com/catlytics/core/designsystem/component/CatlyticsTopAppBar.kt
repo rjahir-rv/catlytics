@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.catlytics.core.designsystem.component
 
 import androidx.compose.foundation.layout.RowScope
@@ -6,13 +8,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatlyticsTopAppBar(
     title: @Composable () -> Unit,
@@ -20,6 +22,7 @@ fun CatlyticsTopAppBar(
     containerColor: Color? = null,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     val resolvedContainerColor = containerColor ?: MaterialTheme.colorScheme.background
 
@@ -34,6 +37,7 @@ fun CatlyticsTopAppBar(
             titleContentColor = MaterialTheme.colorScheme.onBackground,
         ),
         modifier = modifier,
+        scrollBehavior = scrollBehavior,
     )
 }
 

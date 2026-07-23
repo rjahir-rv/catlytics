@@ -120,6 +120,7 @@ data class Playlist(
     val name: String,
     val trackIds: List<String>,
     val artworkUri: String? = null,
+    val description: String = "",
 )
 
 const val LIKED_PLAYLIST_ID = "system_liked"
@@ -135,6 +136,11 @@ sealed interface PlaylistSource {
     data class AlbumSource(val albumId: String) : PlaylistSource
     data class ArtistSource(val artistId: String) : PlaylistSource
     data class FolderSource(val folderId: String) : PlaylistSource
+    data class TrackCollectionSource(
+        val title: String,
+        val artworkUri: String?,
+        val trackIds: List<String>,
+    ) : PlaylistSource
 }
 
 data class PlaylistSourcePreview(

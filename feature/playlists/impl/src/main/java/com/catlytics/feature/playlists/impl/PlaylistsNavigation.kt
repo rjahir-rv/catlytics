@@ -19,6 +19,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
     searchQuery: () -> String,
     onDestinationSelected: (NavKey) -> Unit,
     onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
+    onPlaylistDeleted: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     onPlaylistDetailTopBarColorChange: (Color) -> Unit,
     contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
@@ -53,6 +54,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
                 playlistId = route.playlistId,
                 onTrackOptions = onTrackOptions,
                 onTopBarColorChange = onPlaylistDetailTopBarColorChange,
+                onDeleted = onPlaylistDeleted,
                 bottomPadding = bottomPadding,
             )
         }

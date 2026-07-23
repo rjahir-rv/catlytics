@@ -102,6 +102,10 @@ class OfflineFirstLibraryRepository @Inject constructor(
             is PlaylistSource.FolderSource -> tracks.filter { entity ->
                 entity.toFolderAncestors().any { it.folderId == source.folderId }
             }.sortedBy { it.title.lowercase() }
+            is PlaylistSource.TrackCollectionSource -> {
+                val tracksById = tracks.associateBy(TrackEntity::id)
+                source.trackIds.mapNotNull(tracksById::get)
+            }
         }.map(TrackEntity::toDomain)
     }
 

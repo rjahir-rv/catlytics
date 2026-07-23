@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -23,11 +25,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
@@ -60,12 +64,14 @@ import com.catlytics.app.ui.sheet.TrackOptionsRequest
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
+import com.catlytics.feature.home.api.DailyPlaylistRoute
 import com.catlytics.feature.home.impl.homeEntry
 import com.catlytics.feature.library.api.LibraryRoute
 import com.catlytics.feature.library.api.LibraryAlbumRoute
@@ -80,6 +86,7 @@ import com.catlytics.feature.settings.impl.settingsEntry
 import com.catlytics.feature.statistics.impl.statisticsEntry
 import com.catlytics.feature.statistics.api.StatisticsRoute
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CatlyticsApp(
     modifier: Modifier = Modifier,
@@ -160,10 +167,24 @@ fun CatlyticsApp(
         is LibraryAlbumRoute, is LibraryArtistRoute, is LibraryFolderRoute ->
             TopLevelDestination.Library
         is PlaylistDetailRoute -> TopLevelDestination.Playlists
+        DailyPlaylistRoute -> TopLevelDestination.Home
         else -> currentTopLevelDestination
     }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
     val isSettingsVisible = currentRoute == SettingsRoute
+    val isCurrentSearchExpanded = when (currentRoute) {
+        HomeRoute -> isHomeSearchExpanded
+        LibraryRoute -> isLibrarySearchExpanded
+        PlaylistsRoute -> isPlaylistsSearchExpanded
+        is LibraryArtistRoute -> isArtistSearchExpanded
+        else -> false
+    }
+    val canTopBarScroll = rememberUpdatedState(
+        !isNowPlayingVisible && !isCurrentSearchExpanded,
+    )
+    val topBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
+        canScroll = remember { { canTopBarScroll.value } },
+    )
     val detailChromeColor = when (currentRoute) {
         is LibraryAlbumRoute, is LibraryArtistRoute, is PlaylistDetailRoute -> detailTopBarColor
         else -> null
@@ -176,6 +197,10 @@ fun CatlyticsApp(
             settingsTopBarTitle = "Ajustes"
             settingsTopBarBackAction = null
         }
+    }
+    LaunchedEffect(currentRoute, settingsTopBarTitle, isCurrentSearchExpanded) {
+        topBarScrollBehavior.state.heightOffset = 0f
+        topBarScrollBehavior.state.contentOffset = 0f
     }
 
     fun closeHomeSearch() {
@@ -317,7 +342,9 @@ fun CatlyticsApp(
         modifier = modifier.fillMaxSize(),
     ) {
         Scaffold(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(topBarScrollBehavior.nestedScrollConnection),
         topBar = {
             when {
                 currentRoute is LibraryAlbumRoute -> {
@@ -325,6 +352,7 @@ fun CatlyticsApp(
                         title = currentRoute.albumTitle,
                         onBack = ::closeCurrentDestination,
                         containerColor = detailChromeColor,
+                        scrollBehavior = topBarScrollBehavior,
                     )
                 }
                 currentRoute is LibraryArtistRoute -> {
@@ -346,12 +374,14 @@ fun CatlyticsApp(
                         },
                         searchPlaceholder = "Buscar canciones o álbumes",
                         searchFocusRequester = searchFocusRequester,
+                        scrollBehavior = topBarScrollBehavior,
                     )
                 }
                 currentRoute is LibraryFolderRoute -> {
                     LibraryDetailTopAppBar(
                         title = currentRoute.folderName,
                         onBack = ::closeCurrentDestination,
+                        scrollBehavior = topBarScrollBehavior,
                     )
                 }
                 currentRoute is PlaylistDetailRoute -> {
@@ -359,8 +389,16 @@ fun CatlyticsApp(
                         title = "",
                         onBack = ::closeCurrentDestination,
                         containerColor = detailChromeColor,
+                        scrollBehavior = topBarScrollBehavior,
                     )
                     //
+                }
+                currentRoute == DailyPlaylistRoute -> {
+                    LibraryDetailTopAppBar(
+                        title = "Playlist diaria",
+                        onBack = ::closeCurrentDestination,
+                        scrollBehavior = topBarScrollBehavior,
+                    )
                 }
                 currentTopLevelDestination != null -> {
                     val supportsSearch = isOnHomeRoot || isOnLibraryRoot || isOnPlaylistsRoot
@@ -421,12 +459,14 @@ fun CatlyticsApp(
                         },
                         searchPlaceholder = searchPlaceholder,
                         onSettingsClick = ::openSettings,
+                        scrollBehavior = topBarScrollBehavior,
                     )
                 }
                 isSettingsVisible -> {
                     SettingsTopAppBar(
                         title = settingsTopBarTitle,
                         onBack = settingsTopBarBackAction ?: ::closeCurrentDestination,
+                        scrollBehavior = topBarScrollBehavior,
                     )
                 }
             }
@@ -528,6 +568,18 @@ fun CatlyticsApp(
                         onNavigateToStatistics = {
                             topLevelBackStack.addTopLevel(StatisticsRoute)
                         },
+                        onNavigateToDailyPlaylist = {
+                            topLevelBackStack.add(DailyPlaylistRoute)
+                        },
+                        onNavigateToFavorites = {
+                            topLevelBackStack.addTopLevel(PlaylistsRoute)
+                            topLevelBackStack.add(
+                                PlaylistDetailRoute(
+                                    playlistId = LIKED_PLAYLIST_ID,
+                                    playlistName = LIKED_PLAYLIST_NAME,
+                                ),
+                            )
+                        },
                         hasAudioPermission = { hasAudioPermission },
                         onRequestAudioPermission = {
                             audioPermissionLauncher.launch(audioPermission)
@@ -557,6 +609,7 @@ fun CatlyticsApp(
                     playlistsEntry(
                         searchQuery = { playlistsSearchQuery },
                         onDestinationSelected = topLevelBackStack::add,
+                        onPlaylistDeleted = ::closeCurrentDestination,
                         onTrackOptions = { track, onRemoveFromPlaylist ->
                             openTrackOptions(track, onRemoveFromPlaylist)
                         },

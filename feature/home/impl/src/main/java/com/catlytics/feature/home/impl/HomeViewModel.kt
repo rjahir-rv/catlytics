@@ -2,11 +2,15 @@ package com.catlytics.feature.home.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopTrack
@@ -25,6 +29,9 @@ internal class HomeViewModel @Inject constructor(
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
     observeRecentlyPlayedTracksUseCase: ObserveRecentlyPlayedTracksUseCase,
     observeWeeklyStatsUseCase: ObserveWeeklyStatsUseCase,
+    observePlaylistContentUseCase: ObservePlaylistContentUseCase,
+    private val generateDailyPlaylistUseCase: GenerateDailyPlaylistUseCase,
+    private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
 ) : ViewModel() {
     private val libraryAndListening = combine(
@@ -45,11 +52,17 @@ internal class HomeViewModel @Inject constructor(
     val uiState: StateFlow<HomeUiState> = combine(
         libraryAndListening,
         observePlaybackStateUseCase(),
-    ) { libraryAndListening, playbackState ->
+        observePlaylistContentUseCase(LIKED_PLAYLIST_ID).catch { emit(null) },
+    ) { libraryAndListening, playbackState, likedPlaylist ->
         when {
             libraryAndListening.tracks.isEmpty() -> HomeUiState.Empty
             else -> HomeUiState.Success(
                 tracks = libraryAndListening.tracks,
+                dailyPlaylistTrackCount = generateDailyPlaylistUseCase(
+                    libraryAndListening.tracks,
+                ).size,
+                canShuffleAll = libraryAndListening.tracks.size >= MIN_SHUFFLE_TRACK_COUNT,
+                favoriteTracks = likedPlaylist?.tracks.orEmpty(),
                 recentlyPlayedTracks = libraryAndListening.recentlyPlayedTracks,
                 topTracks = libraryAndListening.topTracks,
                 currentTrackId = playbackState.currentTrack?.id,
@@ -68,6 +81,23 @@ internal class HomeViewModel @Inject constructor(
         }
     }
 
+    fun onPlayDailyPlaylist() {
+        val tracks = (uiState.value as? HomeUiState.Success)?.tracks.orEmpty()
+        val dailyPlaylist = generateDailyPlaylistUseCase(tracks)
+        val firstTrack = dailyPlaylist.firstOrNull() ?: return
+        viewModelScope.launch {
+            playTrackUseCase(firstTrack, dailyPlaylist)
+        }
+    }
+
+    fun onShuffleAll() {
+        val tracks = (uiState.value as? HomeUiState.Success)?.tracks.orEmpty()
+        if (tracks.size < MIN_SHUFFLE_TRACK_COUNT) return
+        viewModelScope.launch {
+            playShuffledQueueUseCase(tracks)
+        }
+    }
+
     private data class HomeLibraryAndListening(
         val tracks: List<Track>,
         val recentlyPlayedTracks: List<Track>,
@@ -77,6 +107,7 @@ internal class HomeViewModel @Inject constructor(
     private companion object {
         const val RECENTLY_PLAYED_LIMIT = 10
         const val TOP_TRACKS_LIMIT = 3
+        const val MIN_SHUFFLE_TRACK_COUNT = 2
     }
 
 }

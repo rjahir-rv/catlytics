@@ -4,6 +4,7 @@ import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
+import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.playback.AddQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
@@ -35,13 +36,16 @@ import com.catlytics.core.domain.usecase.playlist.ObserveIsTrackLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistViewModeUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.ReorderPlaylistTracksUseCase
 import com.catlytics.core.domain.usecase.playlist.RenamePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistViewModeUseCase
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
+import com.catlytics.core.domain.usecase.playlist.UpdatePlaylistDetailsUseCase
 import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayQueueItemUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.RemoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
@@ -61,6 +65,9 @@ import dagger.hilt.components.SingletonComponent
 @Module
 @InstallIn(SingletonComponent::class)
 object DomainModule {
+    @Provides
+    fun provideGenerateDailyPlaylistUseCase() = GenerateDailyPlaylistUseCase()
+
     @Provides
     fun provideObserveAlbumContentUseCase(
         libraryRepository: LibraryRepository,
@@ -179,6 +186,14 @@ object DomainModule {
     fun provideRenamePlaylistUseCase(repository: PlaylistRepository) = RenamePlaylistUseCase(repository)
 
     @Provides
+    fun provideUpdatePlaylistDetailsUseCase(repository: PlaylistRepository) =
+        UpdatePlaylistDetailsUseCase(repository)
+
+    @Provides
+    fun provideReorderPlaylistTracksUseCase(repository: PlaylistRepository) =
+        ReorderPlaylistTracksUseCase(repository)
+
+    @Provides
     fun provideDeletePlaylistUseCase(repository: PlaylistRepository) = DeletePlaylistUseCase(repository)
 
     @Provides
@@ -237,6 +252,11 @@ object DomainModule {
     fun providePlayTrackUseCase(
         playbackController: PlaybackController,
     ) = PlayTrackUseCase(playbackController)
+
+    @Provides
+    fun providePlayShuffledQueueUseCase(
+        playbackController: PlaybackController,
+    ) = PlayShuffledQueueUseCase(playbackController)
 
     @Provides
     fun providePlayQueueItemUseCase(

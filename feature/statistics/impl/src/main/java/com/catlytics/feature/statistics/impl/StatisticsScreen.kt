@@ -50,7 +50,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun StatisticsScreen(
     modifier: Modifier = Modifier,
@@ -59,46 +58,40 @@ internal fun StatisticsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Scaffold(
-        modifier = modifier
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when (val state = uiState) {
-                is StatisticsUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+    Box(
+        modifier = modifier.fillMaxSize()
+    ) {
+        when (val state = uiState) {
+            is StatisticsUiState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
-                is StatisticsUiState.Error -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Ocurrió un error al cargar las estadísticas.",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-                }
-                is StatisticsUiState.Success -> {
-                    StatisticsContent(
-                        weekOffset = state.weekOffset,
-                        stats = state.stats,
-                        totals = state.totals,
-                        onWeekSelected = { viewModel.selectWeek(it) },
-                        bottomPadding = bottomPadding
+            }
+            is StatisticsUiState.Error -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Ocurrió un error al cargar las estadísticas.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.error
                     )
                 }
+            }
+            is StatisticsUiState.Success -> {
+                StatisticsContent(
+                    weekOffset = state.weekOffset,
+                    stats = state.stats,
+                    totals = state.totals,
+                    onWeekSelected = { viewModel.selectWeek(it) },
+                    bottomPadding = bottomPadding
+                )
             }
         }
     }

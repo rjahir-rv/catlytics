@@ -1,6 +1,13 @@
 package com.catlytics.feature.home.impl
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,6 +26,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -26,8 +35,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -39,11 +53,17 @@ import com.catlytics.core.model.Track
 @Composable
 internal fun HomeTrackList(
     tracks: List<Track>,
+    dailyPlaylistTrackCount: Int,
+    canShuffleAll: Boolean,
+    favoriteTrackCount: Int,
     recentlyPlayedTracks: List<Track>,
     topTracks: List<TopTrack>,
     currentTrackId: String?,
     isCurrentTrackPlaying: Boolean,
     onTrackSelected: (Track, List<Track>) -> Unit,
+    onPlayDailyPlaylist: () -> Unit,
+    onShuffleAll: () -> Unit,
+    onOpenFavorites: () -> Unit,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -51,6 +71,8 @@ internal fun HomeTrackList(
     onRecentlyPlayedTrackSelected: (Track) -> Unit,
     onNavigateToStatistics: () -> Unit,
     showHighlights: Boolean,
+    areFeaturedSectionsVisible: Boolean,
+    onToggleFeaturedSections: () -> Unit,
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -59,14 +81,51 @@ internal fun HomeTrackList(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (showHighlights) {
-            item {
-                HomeHighlights(
-                    recentlyPlayedTracks = recentlyPlayedTracks,
-                    topTracks = topTracks,
-                    onRecentlyPlayedTrackSelected = onRecentlyPlayedTrackSelected,
-                    onNavigateToStatistics = onNavigateToStatistics,
-                    modifier = Modifier.padding(bottom = 8.dp),
+            item(key = "featured-sections-header") {
+                FeaturedSectionsHeader(
+                    areFeaturedSectionsVisible = areFeaturedSectionsVisible,
+                    onToggleFeaturedSections = onToggleFeaturedSections,
                 )
+            }
+            item(key = "featured-sections-content") {
+                AnimatedVisibility(
+                    visible = areFeaturedSectionsVisible,
+                    enter = expandVertically(
+                        animationSpec = tween(durationMillis = 260),
+                        expandFrom = Alignment.Top,
+                    ) + fadeIn(animationSpec = tween(durationMillis = 180)),
+                    exit = shrinkVertically(
+                        animationSpec = tween(durationMillis = 240),
+                        shrinkTowards = Alignment.Top,
+                    ) + fadeOut(animationSpec = tween(durationMillis = 160)),
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        if (
+                            dailyPlaylistTrackCount > 0 ||
+                            canShuffleAll ||
+                            favoriteTrackCount > 0
+                        ) {
+                            HomeQuickActions(
+                                dailyPlaylistTrackCount = dailyPlaylistTrackCount,
+                                canShuffleAll = canShuffleAll,
+                                favoriteTrackCount = favoriteTrackCount,
+                                onPlayDailyPlaylist = onPlayDailyPlaylist,
+                                onShuffleAll = onShuffleAll,
+                                onOpenFavorites = onOpenFavorites,
+                            )
+                        }
+                        HomeHighlights(
+                            recentlyPlayedTracks = recentlyPlayedTracks,
+                            topTracks = topTracks,
+                            onRecentlyPlayedTrackSelected = onRecentlyPlayedTrackSelected,
+                            onNavigateToStatistics = onNavigateToStatistics,
+                            modifier = Modifier.padding(bottom = 8.dp),
+                        )
+                    }
+                }
             }
             item {
                 Text(
@@ -83,6 +142,167 @@ internal fun HomeTrackList(
                 isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
                 onTrackSelected = { onTrackSelected(track, tracks) },
                 onTrackOptions = { onTrackOptions(track) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun FeaturedSectionsHeader(
+    areFeaturedSectionsVisible: Boolean,
+    onToggleFeaturedSections: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Accesos rápidos",
+            style = MaterialTheme.typography.titleMedium,
+        )
+        IconButton(onClick = onToggleFeaturedSections) {
+            Icon(
+                painter = painterResource(
+                    if (areFeaturedSectionsVisible) {
+                        R.drawable.ic_hide
+                    } else {
+                        R.drawable.ic_show
+                    },
+                ),
+                contentDescription = if (areFeaturedSectionsVisible) {
+                    "Ocultar secciones destacadas"
+                } else {
+                    "Mostrar secciones destacadas"
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeQuickActions(
+    dailyPlaylistTrackCount: Int,
+    canShuffleAll: Boolean,
+    favoriteTrackCount: Int,
+    onPlayDailyPlaylist: () -> Unit,
+    onShuffleAll: () -> Unit,
+    onOpenFavorites: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(end = 4.dp),
+        ) {
+            if (dailyPlaylistTrackCount > 0) {
+                item(key = "daily-playlist") {
+                    HomeQuickActionCard(
+                        title = "Playlist diaria",
+                        subtitle = "$dailyPlaylistTrackCount canciones para hoy",
+                        icon = R.drawable.ic_playlist,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        gradientTarget = MaterialTheme.colorScheme.tertiaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        contentDescription = "Reproducir y abrir Playlist diaria",
+                        onClick = onPlayDailyPlaylist,
+                    )
+                }
+            }
+            if (canShuffleAll) {
+                item(key = "shuffle-all") {
+                    HomeQuickActionCard(
+                        title = "Aleatorio",
+                        subtitle = "Reproducir todas",
+                        icon = R.drawable.ic_shuffle_square,
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        gradientTarget = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        contentDescription = "Reproducir todas las canciones aleatoriamente",
+                        onClick = onShuffleAll,
+                    )
+                }
+            }
+            if (favoriteTrackCount > 0) {
+                item(key = "favorites") {
+                    HomeQuickActionCard(
+                        title = "Favoritos",
+                        subtitle = if (favoriteTrackCount == 1) {
+                            "1 canción"
+                        } else {
+                            "$favoriteTrackCount canciones"
+                        },
+                        icon = R.drawable.ic_favorite_fill,
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        gradientTarget = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        contentDescription = "Abrir Favoritos",
+                        onClick = onOpenFavorites,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeQuickActionCard(
+    title: String,
+    subtitle: String,
+    icon: Int,
+    containerColor: Color,
+    gradientTarget: Color,
+    contentColor: Color,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Card(
+        onClick = onClick,
+        modifier = modifier
+            .width(168.dp)
+            .heightIn(min = 104.dp)
+            .semantics { this.contentDescription = contentDescription },
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent,
+            contentColor = contentColor,
+        ),
+        shape = RoundedCornerShape(16.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            containerColor,
+                            lerp(containerColor, gradientTarget, 0.22f),
+                        ),
+                    ),
+                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = contentColor.copy(alpha = 0.8f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

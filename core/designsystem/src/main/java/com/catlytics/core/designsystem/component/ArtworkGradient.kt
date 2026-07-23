@@ -85,29 +85,31 @@ fun animateArtworkGradientColors(
 
 suspend fun Bitmap.extractArtworkGradientColors(
     fallback: ArtworkGradientColors,
+    surfaceBlend: Float = ARTWORK_GRADIENT_SURFACE_BLEND,
 ): ArtworkGradientColors = withContext(Dispatchers.Default) {
     Palette.from(this@extractArtworkGradientColors)
         .maximumColorCount(PALETTE_MAX_COLOR_COUNT)
         .generate()
-        .toArtworkGradientColors(fallback)
+        .toArtworkGradientColors(fallback, surfaceBlend.coerceIn(0f, 1f))
 }
 
 private fun Palette.toArtworkGradientColors(
     fallback: ArtworkGradientColors,
+    surfaceBlend: Float,
 ): ArtworkGradientColors {
     val dominant = dominantSwatch?.rgb?.let(::Color) ?: fallback.start
     val vibrant = vibrantSwatch?.rgb?.let(::Color) ?: dominant
     val muted = mutedSwatch?.rgb?.let(::Color) ?: dominant
 
     return ArtworkGradientColors(
-        start = vibrant.blendWith(fallback.start),
-        center = dominant.blendWith(fallback.center),
-        end = muted.blendWith(fallback.end),
+        start = vibrant.blendWith(fallback.start, surfaceBlend),
+        center = dominant.blendWith(fallback.center, surfaceBlend),
+        end = muted.blendWith(fallback.end, surfaceBlend),
     )
 }
 
-private fun Color.blendWith(surface: Color): Color =
-    lerp(this, surface, ARTWORK_GRADIENT_SURFACE_BLEND)
+private fun Color.blendWith(surface: Color, surfaceBlend: Float): Color =
+    lerp(this, surface, surfaceBlend)
 
 private const val ARTWORK_GRADIENT_ANIMATION_MILLIS = 500
 private const val ARTWORK_GRADIENT_SURFACE_BLEND = 0.58f

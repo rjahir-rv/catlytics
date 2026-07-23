@@ -26,10 +26,13 @@ class DataStorePlaylistRepositoryTest {
         assertEquals(2, repository.addTracks(playlist.id, listOf("one", "two", "one")))
         assertEquals(0, repository.addTracks(playlist.id, listOf("one", "two")))
         repository.renamePlaylist(playlist.id, "Viaje")
+        repository.updatePlaylistDetails(playlist.id, "Viaje", "Para manejar de noche")
+        repository.reorderTracks(playlist.id, listOf("two", "one"))
         repository.removeTrack(playlist.id, "one")
 
         val restored = repository.observePlaylists().first().single { it.id == playlist.id }
         assertEquals("Viaje", restored.name)
+        assertEquals("Para manejar de noche", restored.description)
         assertEquals(listOf("two"), restored.trackIds)
 
         repository.deletePlaylist(playlist.id)
@@ -75,6 +78,21 @@ class DataStorePlaylistRepositoryTest {
         repository.setPlaylistArtwork(playlist.id, null)
         val cleared = repository.observePlaylists().first().single { it.id == playlist.id }
         assertEquals(null, cleared.artworkUri)
+    }
+
+    @Test
+    fun `reorder preserves unmentioned track ids at the end`() = runTest {
+        val file = temporaryFolder.newFile("playlists-order.preferences_pb")
+        val repository = repository(backgroundScope, file)
+        val playlist = repository.createPlaylist(
+            name = "Orden",
+            trackIds = listOf("one", "missing", "two"),
+        )
+
+        repository.reorderTracks(playlist.id, listOf("two", "one"))
+
+        val restored = repository.observePlaylists().first().single { it.id == playlist.id }
+        assertEquals(listOf("two", "one", "missing"), restored.trackIds)
     }
 
     @Test

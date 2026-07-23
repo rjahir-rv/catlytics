@@ -70,6 +70,26 @@ class DataStorePlaylistRepository internal constructor(
         playlists.map { if (it.id == playlistId) it.copy(name = name) else it }
     }
 
+    override suspend fun updatePlaylistDetails(
+        playlistId: String,
+        name: String,
+        description: String,
+    ) = update { playlists ->
+        if (playlistId == LIKED_PLAYLIST_ID) return@update playlists.withLikedPlaylist()
+        require(playlists.withLikedPlaylist().none {
+            it.id != playlistId && it.name.equals(name, ignoreCase = true)
+        }) {
+            "Ya existe una playlist con ese nombre."
+        }
+        playlists.map { playlist ->
+            if (playlist.id == playlistId) {
+                playlist.copy(name = name, description = description)
+            } else {
+                playlist
+            }
+        }
+    }
+
     override suspend fun deletePlaylist(playlistId: String) {
         if (playlistId == LIKED_PLAYLIST_ID) return
         update { playlists ->
@@ -105,6 +125,18 @@ class DataStorePlaylistRepository internal constructor(
             else playlist
         }
     }
+
+    override suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>) =
+        update { playlists ->
+            playlists.withLikedPlaylist().map { playlist ->
+                if (playlist.id != playlistId) return@map playlist
+                require(orderedTrackIds.all(playlist.trackIds::contains)) {
+                    "El orden contiene canciones que no pertenecen a la playlist."
+                }
+                val requested = orderedTrackIds.toSet()
+                playlist.copy(trackIds = orderedTrackIds + playlist.trackIds.filterNot(requested::contains))
+            }
+        }
 
     override suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?) {
         val persisted = if (artworkUri != null) {
@@ -155,6 +187,8 @@ private fun List<Playlist>.encodePlaylists(): String = buildJsonArray {
             put("name", JsonPrimitive(playlist.name))
             put("trackIds", buildJsonArray { playlist.trackIds.forEach { add(JsonPrimitive(it)) } })
             playlist.artworkUri?.let { put("artworkUri", JsonPrimitive(it)) }
+            playlist.description.takeIf(String::isNotBlank)
+                ?.let { put("description", JsonPrimitive(it)) }
         })
     }
 }.toString()
@@ -174,6 +208,7 @@ private fun String.decodePlaylists(): List<Playlist> = runCatching {
         val trackIds = (objectValue["trackIds"] as? JsonArray).orEmpty()
             .map { it.jsonPrimitive.content }
         val artworkUri = objectValue["artworkUri"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
-        Playlist(id, name, trackIds, artworkUri)
+        val description = objectValue["description"]?.jsonPrimitive?.content.orEmpty()
+        Playlist(id, name, trackIds, artworkUri, description)
     }
 }.getOrDefault(emptyList())

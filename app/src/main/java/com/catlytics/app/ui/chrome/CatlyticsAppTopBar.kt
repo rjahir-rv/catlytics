@@ -1,11 +1,15 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package com.catlytics.app.ui.chrome
 
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -27,9 +31,11 @@ internal fun TopLevelTopAppBar(
     onSettingsClick: () -> Unit,
     searchPlaceholder: String = "Buscar",
     containerColor: Color? = null,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     CatlyticsTopAppBar(
         containerColor = containerColor,
+        scrollBehavior = scrollBehavior,
         title = {
             if (supportsSearch && isSearchExpanded) {
                 TextField(
@@ -83,9 +89,11 @@ internal fun SettingsTopAppBar(
     title: String = "Ajustes",
     onBack: () -> Unit,
     containerColor: Color? = null,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     CatlyticsTopAppBar(
         containerColor = containerColor,
+        scrollBehavior = scrollBehavior,
         title = { TopAppBarTitle(title) },
         navigationIcon = {
             IconButton(onClick = onBack) {
@@ -110,9 +118,11 @@ internal fun LibraryDetailTopAppBar(
     onSearchActionClick: () -> Unit = {},
     searchPlaceholder: String = "Buscar",
     searchFocusRequester: FocusRequester? = null,
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     CatlyticsTopAppBar(
         containerColor = containerColor,
+        scrollBehavior = scrollBehavior,
         title = {
             if (supportsSearch && isSearchExpanded) {
                 TextField(

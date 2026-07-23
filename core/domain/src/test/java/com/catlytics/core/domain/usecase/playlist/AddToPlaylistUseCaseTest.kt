@@ -52,6 +52,46 @@ class AddToPlaylistUseCaseTest {
         assertEquals(listOf("track-1"), playlists.first { it.id == "playlist-2" }.trackIds)
     }
 
+    @Test
+    fun `track collection keeps source order and ignores duplicate destination tracks`() = runTest {
+        val playlistRepository = FakePlaylistRepository(
+            playlists = listOf(
+                Playlist(id = "source", name = "Origen", trackIds = listOf("track-2", "track-1")),
+                Playlist(id = "target", name = "Destino", trackIds = listOf("track-2")),
+            ),
+        )
+        val libraryRepository = FakeLibraryRepository(
+            tracks = listOf(
+                track(id = "track-1", title = "One"),
+                track(id = "track-2", title = "Two"),
+            ),
+        )
+        val useCase = AddToPlaylistUseCase(playlistRepository, libraryRepository)
+
+        val added = useCase(
+            playlistId = "target",
+            source = PlaylistSource.TrackCollectionSource(
+                title = "Origen",
+                artworkUri = null,
+                trackIds = listOf("track-2", "track-1"),
+            ),
+        )
+
+        assertEquals(1, added)
+        assertEquals(
+            listOf("track-2", "track-1"),
+            playlistRepository.playlists.value.first { it.id == "target" }.trackIds,
+        )
+    }
+
+    private fun track(id: String, title: String) = Track(
+        id = id,
+        title = title,
+        artist = Artist(id = "artist-1", name = "Artist"),
+        durationMillis = 180_000L,
+        mediaUri = "content://$id",
+    )
+
     private class FakePlaylistRepository(
         playlists: List<Playlist>,
     ) : PlaylistRepository {
@@ -66,6 +106,11 @@ class AddToPlaylistUseCaseTest {
         }
 
         override suspend fun renamePlaylist(playlistId: String, name: String) = Unit
+        override suspend fun updatePlaylistDetails(
+            playlistId: String,
+            name: String,
+            description: String,
+        ) = Unit
         override suspend fun deletePlaylist(playlistId: String) = Unit
 
         override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int =
@@ -87,6 +132,7 @@ class AddToPlaylistUseCaseTest {
         }
 
         override suspend fun removeTrack(playlistId: String, trackId: String) = Unit
+        override suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>) = Unit
         override suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?) = Unit
     }
 
@@ -104,6 +150,10 @@ class AddToPlaylistUseCaseTest {
         override suspend fun resolvePlaylistSource(source: PlaylistSource): List<Track> =
             when (source) {
                 is PlaylistSource.TrackSource -> tracks.filter { it.id == source.trackId }
+                is PlaylistSource.TrackCollectionSource -> {
+                    val byId = tracks.associateBy(Track::id)
+                    source.trackIds.mapNotNull(byId::get)
+                }
                 else -> emptyList()
             }
         override suspend fun refreshTracks() = 0
