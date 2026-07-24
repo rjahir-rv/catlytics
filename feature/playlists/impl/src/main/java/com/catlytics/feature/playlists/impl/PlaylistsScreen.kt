@@ -76,6 +76,7 @@ internal fun PlaylistsScreen(
     sortDirection: SortDirection = SortDirection.Ascending,
     onSortDirectionChange: (SortDirection) -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     var editor by remember { mutableStateOf<Playlist?>(null) }
     var creating by remember { mutableStateOf(false) }
@@ -139,6 +140,7 @@ internal fun PlaylistsScreen(
                     onChangeCover = ::requestCoverChange,
                     onClearCover = { id -> onSetCover(id, null) },
                     bottomPadding = bottomPadding,
+                    scaffoldContentPadding = scaffoldContentPadding,
                     modifier = Modifier.fillMaxSize(),
                 )
                 PlaylistViewMode.Mosaic -> PlaylistMosaic(
@@ -151,6 +153,7 @@ internal fun PlaylistsScreen(
                     onChangeCover = ::requestCoverChange,
                     onClearCover = { id -> onSetCover(id, null) },
                     bottomPadding = bottomPadding,
+                    scaffoldContentPadding = scaffoldContentPadding,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -161,7 +164,11 @@ internal fun PlaylistsScreen(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .fillMaxWidth()
-                .padding(start = 12.dp, top = 8.dp, end = 12.dp),
+                .padding(
+                    start = 12.dp,
+                    top = scaffoldContentPadding.calculateTopPadding() + 8.dp,
+                    end = 12.dp,
+                ),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             var expanded by remember { mutableStateOf(false) }
@@ -276,6 +283,7 @@ private fun PlaylistList(
     onChangeCover: (String) -> Unit,
     onClearCover: (String) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 
     ) {
     val sorted: List<Playlist> = remember(playlists, sortDirection) {
@@ -287,7 +295,7 @@ private fun PlaylistList(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 56.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 56.dp,
             end = 20.dp,
             bottom = bottomPadding() + 104.dp,
         ),
@@ -375,6 +383,7 @@ private fun PlaylistMosaic(
     onChangeCover: (String) -> Unit,
     onClearCover: (String) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 
     ) {
     val sorted: List<Playlist> = remember(playlists, sortDirection) {
@@ -387,7 +396,7 @@ private fun PlaylistMosaic(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 56.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 56.dp,
             end = 20.dp,
             bottom = bottomPadding() + 104.dp,
         ),

@@ -3,6 +3,7 @@ package com.catlytics.feature.settings.impl
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -14,6 +15,7 @@ internal fun SettingsRoute(
     hasAudioPermission: Boolean = true,
     onRequestAudioPermission: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     onTopBarTitleChange: (String) -> Unit = {},
     onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel(),
@@ -54,6 +56,7 @@ internal fun SettingsRoute(
         onEqualizerPresetSelected = viewModel::selectEqualizerPreset,
         onCustomBandLevelChange = viewModel::setCustomBandLevel,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
         onTopBarTitleChange = onTopBarTitleChange,
         onTopBarBackActionChange = onTopBarBackActionChange,
     )

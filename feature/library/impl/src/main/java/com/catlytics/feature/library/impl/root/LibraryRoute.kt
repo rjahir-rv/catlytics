@@ -1,6 +1,7 @@
 package com.catlytics.feature.library.impl.root
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -22,6 +23,7 @@ internal fun LibraryRoute(
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -40,5 +42,6 @@ internal fun LibraryRoute(
         sortDirection = (uiState as? LibraryUiState.Success)?.sortDirection ?: SortDirection.Ascending,
         onSortDirectionChange = viewModel::setSortDirection,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
     )
 }

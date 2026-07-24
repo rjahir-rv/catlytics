@@ -1,7 +1,5 @@
 package com.catlytics.feature.statistics.impl
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
@@ -13,8 +11,8 @@ fun EntryProviderScope<NavKey>.statisticsEntry(
 ) {
     entry<StatisticsRoute> {
         StatisticsScreen(
-            modifier = Modifier.padding(contentPadding()),
-            bottomPadding = bottomPadding
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = contentPadding(),
         )
     }
 }

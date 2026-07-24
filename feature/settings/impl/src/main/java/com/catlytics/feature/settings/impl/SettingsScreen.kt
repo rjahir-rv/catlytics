@@ -73,6 +73,7 @@ internal fun SettingsScreen(
     onEqualizerPresetSelected: (EqualizerPreset) -> Unit,
     onCustomBandLevelChange: (Short, Int, Boolean) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     onTopBarTitleChange: (String) -> Unit = {},
     onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {}
 ) {
@@ -130,11 +131,13 @@ internal fun SettingsScreen(
             onMusicScanClick = { destination = SettingsDestination.MusicScan },
             onAboutClick = { destination = SettingsDestination.About },
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.About -> AboutSettingsContent(
             appVersion = appVersion,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.Equalizer -> EqualizerSettingsContent(
@@ -144,6 +147,7 @@ internal fun SettingsScreen(
             onEqualizerPresetSelected = onEqualizerPresetSelected,
             onCustomBandLevelChange = onCustomBandLevelChange,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.MusicScan -> MusicScanSettingsContent(
@@ -157,12 +161,14 @@ internal fun SettingsScreen(
             onSizeFilterChange = onMusicScanSizeFilterChange,
             onScanMusic = onScanMusic,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.ScanFolders -> ScanFoldersContent(
             folders = libraryFolders,
             onFolderVisibilityChange = onFolderVisibilityChange,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
     }
@@ -197,13 +203,14 @@ private fun SettingsMainContent(
     onMusicScanClick: () -> Unit,
     onAboutClick: () -> Unit,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 24.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
             end = 20.dp,
             bottom = bottomPadding() + 80.dp,
         ),

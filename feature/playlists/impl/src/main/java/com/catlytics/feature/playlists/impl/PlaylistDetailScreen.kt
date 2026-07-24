@@ -71,6 +71,7 @@ internal fun PlaylistDetailScreen(
     onDelete: () -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
         PlaylistDetailUiState.Loading -> {
@@ -184,7 +185,12 @@ internal fun PlaylistDetailScreen(
                     onFocusChange = { searchFocused = it },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 8.dp),
+                        .padding(
+                            start = 20.dp,
+                            top = scaffoldContentPadding.calculateTopPadding() + 8.dp,
+                            end = 20.dp,
+                            bottom = 8.dp,
+                        ),
                 )
             }
 
@@ -193,7 +199,10 @@ internal fun PlaylistDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(scrollConnection),
-                contentPadding = PaddingValues(bottom = bottomPadding() + 20.dp),
+                contentPadding = PaddingValues(
+                    top = scaffoldContentPadding.calculateTopPadding(),
+                    bottom = bottomPadding() + 20.dp,
+                ),
             ) {
                 item(key = "playlist-header") {
                     PlaylistHeader(

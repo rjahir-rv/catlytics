@@ -1,19 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
--->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup rules for Android 12 (API 31) and newer. -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Listening history and detailed statistics. -->
+        <include domain="database" path="catlytics.db" />
+
+        <!-- User preferences and playlists. Playback state is intentionally transient. -->
+        <include domain="file" path="datastore/app_preferences.preferences_pb" />
+        <include domain="file" path="datastore/library_preferences.preferences_pb" />
+        <include domain="file" path="datastore/playlists.preferences_pb" />
+        <include domain="file" path="playlist_covers/" />
     </cloud-backup>
-    <!--
+
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- Keep device-to-device transfers consistent with cloud restore. -->
+        <include domain="database" path="catlytics.db" />
+        <include domain="file" path="datastore/app_preferences.preferences_pb" />
+        <include domain="file" path="datastore/library_preferences.preferences_pb" />
+        <include domain="file" path="datastore/playlists.preferences_pb" />
+        <include domain="file" path="playlist_covers/" />
     </device-transfer>
-    -->
 </data-extraction-rules>

@@ -30,6 +30,7 @@ internal fun EqualizerSettingsContent(
     onEqualizerPresetSelected: (EqualizerPreset) -> Unit,
     onCustomBandLevelChange: (Short, Int, Boolean) -> Unit,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -38,7 +39,7 @@ internal fun EqualizerSettingsContent(
             .background(MaterialTheme.colorScheme.surface),
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 24.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
             end = 20.dp,
             bottom = bottomPadding() + 80.dp,
         ),

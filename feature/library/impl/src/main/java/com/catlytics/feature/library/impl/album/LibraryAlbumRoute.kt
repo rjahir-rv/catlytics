@@ -1,6 +1,7 @@
 package com.catlytics.feature.library.impl.album
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -17,6 +18,7 @@ internal fun LibraryAlbumRoute(
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: LibraryAlbumViewModel = hiltViewModel(key = route.albumId),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -31,5 +33,6 @@ internal fun LibraryAlbumRoute(
         onTrackOptions = onTrackOptions,
         onTopBarColorChange = onTopBarColorChange,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
     )
 }

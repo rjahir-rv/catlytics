@@ -86,6 +86,7 @@ internal fun DailyPlaylistRoute(
     onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: DailyPlaylistViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +95,7 @@ internal fun DailyPlaylistRoute(
         onTrackSelected = viewModel::onTrackSelected,
         onTrackOptions = onTrackOptions,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
         modifier = modifier,
     )
 }
@@ -105,10 +107,13 @@ internal fun DailyPlaylistScreen(
     onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
         DailyPlaylistUiState.Loading -> Box(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .fillMaxSize()
+                .padding(top = scaffoldContentPadding.calculateTopPadding()),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
@@ -117,7 +122,12 @@ internal fun DailyPlaylistScreen(
         DailyPlaylistUiState.Empty -> Box(
             modifier = modifier
                 .fillMaxSize()
-                .padding(20.dp),
+                .padding(
+                    start = 20.dp,
+                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                    end = 20.dp,
+                    bottom = 20.dp,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -127,42 +137,44 @@ internal fun DailyPlaylistScreen(
             )
         }
 
-        is DailyPlaylistUiState.Success -> Column(
+        is DailyPlaylistUiState.Success -> LazyColumn(
             modifier = modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = bottomPadding() + 20.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                Text(
+            item(key = "daily-playlist-header") {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = 20.dp,
+                            top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                            end = 20.dp,
+                            bottom = 12.dp,
+                        ),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text(
                     text = "Tu selección para hoy",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                Text(
-                    text = "${uiState.tracks.size} canciones elegidas para ti",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 20.dp),
-                contentPadding = PaddingValues(bottom = bottomPadding() + 20.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                items(items = uiState.tracks, key = Track::id) { track ->
-                    TrackRow(
-                        track = track,
-                        isCurrent = track.id == uiState.currentTrackId,
-                        isPlaying = track.id == uiState.currentTrackId &&
-                            uiState.isCurrentTrackPlaying,
-                        onTrackSelected = { onTrackSelected(track, uiState.tracks) },
-                        onTrackOptions = { onTrackOptions(track) },
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                    Text(
+                        text = "${uiState.tracks.size} canciones elegidas para ti",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            items(items = uiState.tracks, key = Track::id) { track ->
+                TrackRow(
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    track = track,
+                    isCurrent = track.id == uiState.currentTrackId,
+                    isPlaying = track.id == uiState.currentTrackId &&
+                        uiState.isCurrentTrackPlaying,
+                    onTrackSelected = { onTrackSelected(track, uiState.tracks) },
+                    onTrackOptions = { onTrackOptions(track) },
+                )
             }
         }
     }

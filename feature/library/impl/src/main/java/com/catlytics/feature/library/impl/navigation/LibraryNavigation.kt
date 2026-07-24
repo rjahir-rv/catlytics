@@ -1,8 +1,5 @@
 package com.catlytics.feature.library.impl.navigation
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,64 +30,60 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
 ) {
     entry<LibraryRoute> {
-        Box(modifier = Modifier.padding(contentPadding())) {
-            LibraryRootRoute(
-                searchQuery = searchQuery(),
-                onAlbumSelected = { album ->
-                    onDestinationSelected(LibraryAlbumDestination(album.id, album.title))
-                },
-                onArtistSelected = { artist ->
-                    onDestinationSelected(
-                        LibraryArtistDestination(artist.artist.id, artist.artist.name),
-                    )
-                },
-                onFolderSelected = { folder ->
-                    onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
-                },
-                onAddToPlaylist = onAddToPlaylist,
-                hasAudioPermission = hasAudioPermission(),
-                onRequestPermission = onRequestAudioPermission,
-                bottomPadding = bottomPadding,
-            )
-        }
+        LibraryRootRoute(
+            searchQuery = searchQuery(),
+            onAlbumSelected = { album ->
+                onDestinationSelected(LibraryAlbumDestination(album.id, album.title))
+            },
+            onArtistSelected = { artist ->
+                onDestinationSelected(
+                    LibraryArtistDestination(artist.artist.id, artist.artist.name),
+                )
+            },
+            onFolderSelected = { folder ->
+                onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
+            },
+            onAddToPlaylist = onAddToPlaylist,
+            hasAudioPermission = hasAudioPermission(),
+            onRequestPermission = onRequestAudioPermission,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = contentPadding(),
+        )
     }
     entry<LibraryAlbumDestination> { route ->
-        Box(modifier = Modifier.padding(contentPadding())) {
-            LibraryAlbumRoute(
-                route = route,
-                onTrackOptions = onTrackOptions,
-                onTopBarColorChange = onLibraryDetailTopBarColorChange,
-                bottomPadding = bottomPadding,
-            )
-        }
+        LibraryAlbumRoute(
+            route = route,
+            onTrackOptions = onTrackOptions,
+            onTopBarColorChange = onLibraryDetailTopBarColorChange,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = contentPadding(),
+        )
     }
     entry<LibraryArtistDestination> { route ->
-        Box(modifier = Modifier.padding(contentPadding())) {
-            LibraryArtistRoute(
-                route = route,
-                onAlbumSelected = { album ->
-                    onDestinationSelected(LibraryAlbumDestination(album.id, album.title))
-                },
-                onAddToPlaylist = onAddToPlaylist,
-                onTrackOptions = onTrackOptions,
-                onTopBarColorChange = onLibraryDetailTopBarColorChange,
-                searchQuery = artistSearchQuery(),
-                onSearchQueryChange = onArtistSearchQueryChange,
-                bottomPadding = bottomPadding,
-            )
-        }
+        LibraryArtistRoute(
+            route = route,
+            onAlbumSelected = { album ->
+                onDestinationSelected(LibraryAlbumDestination(album.id, album.title))
+            },
+            onAddToPlaylist = onAddToPlaylist,
+            onTrackOptions = onTrackOptions,
+            onTopBarColorChange = onLibraryDetailTopBarColorChange,
+            searchQuery = artistSearchQuery(),
+            onSearchQueryChange = onArtistSearchQueryChange,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = contentPadding(),
+        )
     }
     entry<LibraryFolderDestination> { route ->
-        Box(modifier = Modifier.padding(contentPadding())) {
-            LibraryFolderRoute(
-                route = route,
-                onFolderSelected = { folder ->
-                    onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
-                },
-                onAddToPlaylist = onAddToPlaylist,
-                onTrackOptions = onTrackOptions,
-                bottomPadding = bottomPadding,
-            )
-        }
+        LibraryFolderRoute(
+            route = route,
+            onFolderSelected = { folder ->
+                onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
+            },
+            onAddToPlaylist = onAddToPlaylist,
+            onTrackOptions = onTrackOptions,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = contentPadding(),
+        )
     }
 }

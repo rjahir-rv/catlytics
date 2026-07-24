@@ -63,6 +63,7 @@ internal fun LibraryArtistCollection(
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    topPadding: Dp = 0.dp,
 ) {
     // Sort inside so the input list is stable on sort-only changes.
     val sortedArtists: List<ArtistSummary> = remember(artists, sortDirection) {
@@ -93,6 +94,7 @@ internal fun LibraryArtistCollection(
                 onArtistSelected = onArtistSelected,
                 onAddToPlaylist = onAddToPlaylist,
                 bottomPadding = bottomPadding,
+                topPadding = topPadding,
             )
             ArtistViewMode.Grid -> ArtistGrid(
                 artists = sortedArtists,
@@ -101,6 +103,7 @@ internal fun LibraryArtistCollection(
                 onArtistSelected = onArtistSelected,
                 onAddToPlaylist = onAddToPlaylist,
                 bottomPadding = bottomPadding,
+                topPadding = topPadding,
             )
         }
 
@@ -108,7 +111,7 @@ internal fun LibraryArtistCollection(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp),
+                .padding(start = 12.dp, top = topPadding, end = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             // Sort button using ic_filter (same size as view toggle)
@@ -186,13 +189,14 @@ private fun ArtistList(
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    topPadding: Dp = 0.dp,
 ) {
     LazyColumn(
         state = state,
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 56.dp,
+            top = topPadding + 56.dp,
             end = 20.dp,
             bottom = bottomPadding() + 8.dp,
         ),
@@ -232,6 +236,7 @@ private fun ArtistGrid(
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    topPadding: Dp = 0.dp,
 ) {
     LazyVerticalGrid(
         state = state,
@@ -239,7 +244,7 @@ private fun ArtistGrid(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 56.dp,
+            top = topPadding + 56.dp,
             end = 20.dp,
             bottom = bottomPadding() + 8.dp,
         ),

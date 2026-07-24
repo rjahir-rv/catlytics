@@ -1,6 +1,7 @@
 package com.catlytics.feature.playlists.impl
 
 import android.widget.Toast
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,6 +20,7 @@ internal fun PlaylistDetailRoute(
     onTopBarColorChange: (Color) -> Unit,
     onDeleted: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: PlaylistDetailViewModel = hiltViewModel(key = playlistId),
 ) {
     val context = LocalContext.current
@@ -63,5 +65,6 @@ internal fun PlaylistDetailRoute(
         onDelete = viewModel::delete,
         onTopBarColorChange = onTopBarColorChange,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
     )
 }

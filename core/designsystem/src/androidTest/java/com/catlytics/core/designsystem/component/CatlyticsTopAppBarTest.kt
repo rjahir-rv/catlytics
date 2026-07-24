@@ -4,6 +4,8 @@ package com.catlytics.core.designsystem.component
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +37,18 @@ class CatlyticsTopAppBarTest {
     fun enterAlwaysScrollBehaviorHidesAndRevealsTopBar() {
         setScrollableContent(canScroll = { true })
 
+        val viewportBounds = composeRule
+            .onNodeWithTag(SCROLLABLE_CONTENT_TAG)
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val firstItemBounds = composeRule
+            .onNodeWithTag(FIRST_ITEM_TAG)
+            .fetchSemanticsNode()
+            .boundsInRoot
+
+        assertEquals(0f, viewportBounds.top, 0.5f)
+        assertTrue(firstItemBounds.top > viewportBounds.top)
+
         composeRule.onNodeWithTag(SCROLLABLE_CONTENT_TAG).performTouchInput { swipeUp() }
         composeRule.waitForIdle()
 
@@ -60,6 +74,46 @@ class CatlyticsTopAppBarTest {
         composeRule.runOnIdle {
             assertEquals(0f, scrollBehavior.state.heightOffset, 0f)
         }
+    }
+
+    @Test
+    fun scaffoldPaddingKeepsGridViewportEdgeToEdge() {
+        composeRule.setContent {
+            MaterialTheme {
+                Scaffold(
+                    topBar = {
+                        CatlyticsTopAppBar(title = { Text("Playlists") })
+                    },
+                ) { contentPadding ->
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .testTag(GRID_CONTENT_TAG),
+                        contentPadding = contentPadding,
+                    ) {
+                        item {
+                            Text(
+                                text = "First grid item",
+                                modifier = Modifier.testTag(FIRST_GRID_ITEM_TAG),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        val viewportBounds = composeRule
+            .onNodeWithTag(GRID_CONTENT_TAG)
+            .fetchSemanticsNode()
+            .boundsInRoot
+        val firstItemBounds = composeRule
+            .onNodeWithTag(FIRST_GRID_ITEM_TAG)
+            .fetchSemanticsNode()
+            .boundsInRoot
+
+        assertEquals(0f, viewportBounds.top, 0.5f)
+        assertTrue(firstItemBounds.top > viewportBounds.top)
     }
 
     private fun setScrollableContent(canScroll: () -> Boolean) {
@@ -89,6 +143,12 @@ class CatlyticsTopAppBarTest {
                             .testTag(SCROLLABLE_CONTENT_TAG),
                         contentPadding = contentPadding,
                     ) {
+                        item {
+                            Text(
+                                text = "First item",
+                                modifier = Modifier.testTag(FIRST_ITEM_TAG),
+                            )
+                        }
                         items((1..100).toList()) { item ->
                             Text("Canción $item")
                         }
@@ -100,5 +160,8 @@ class CatlyticsTopAppBarTest {
 
     private companion object {
         const val SCROLLABLE_CONTENT_TAG = "top-bar-scrollable-content"
+        const val FIRST_ITEM_TAG = "first-scrollable-item"
+        const val GRID_CONTENT_TAG = "edge-to-edge-grid"
+        const val FIRST_GRID_ITEM_TAG = "first-grid-item"
     }
 }

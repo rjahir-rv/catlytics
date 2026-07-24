@@ -86,6 +86,7 @@ internal fun LibraryArtistScreen(
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
         LibraryArtistUiState.Loading -> Box(
@@ -107,6 +108,7 @@ internal fun LibraryArtistScreen(
             onTrackOptions = onTrackOptions,
             onTopBarColorChange = onTopBarColorChange,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
     }
@@ -121,6 +123,7 @@ private fun ArtistContent(
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     val selectedSectionIndex = rememberSaveable(content.summary.artist.id) { mutableIntStateOf(0) }
@@ -181,7 +184,7 @@ private fun ArtistContent(
                 onArtworkLoaded = { artworkBitmap = it },
                 modifier = Modifier.padding(
                     start = 20.dp,
-                    top = 20.dp,
+                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
                     end = 20.dp,
                     bottom = 8.dp,
                 ),

@@ -1,6 +1,7 @@
 package com.catlytics.feature.library.impl.artist
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
@@ -23,6 +24,7 @@ internal fun LibraryArtistRoute(
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: LibraryArtistViewModel = hiltViewModel(key = route.artistId),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -43,5 +45,6 @@ internal fun LibraryArtistRoute(
         onTrackOptions = onTrackOptions,
         onTopBarColorChange = onTopBarColorChange,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
     )
 }

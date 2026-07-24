@@ -1,13 +1,12 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
--->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup rules for Android 11 (API 30) and older. -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Listening history and detailed statistics. -->
+    <include domain="database" path="catlytics.db" />
+
+    <!-- User preferences and playlists. Playback state is intentionally transient. -->
+    <include domain="file" path="datastore/app_preferences.preferences_pb" />
+    <include domain="file" path="datastore/library_preferences.preferences_pb" />
+    <include domain="file" path="datastore/playlists.preferences_pb" />
+    <include domain="file" path="playlist_covers/" />
 </full-backup-content>

@@ -1,7 +1,5 @@
 package com.catlytics.feature.home.impl
 
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
@@ -34,14 +32,14 @@ fun EntryProviderScope<NavKey>.homeEntry(
             startupError = startupError(),
             onContentReady = onContentReady,
             bottomPadding = bottomPadding,
-            modifier = Modifier.padding(contentPadding()),
+            scaffoldContentPadding = contentPadding(),
         )
     }
     entry<DailyPlaylistRoute> {
         DailyPlaylistRoute(
             onTrackOptions = onTrackOptions,
             bottomPadding = bottomPadding,
-            modifier = Modifier.padding(contentPadding()),
+            scaffoldContentPadding = contentPadding(),
         )
     }
 }

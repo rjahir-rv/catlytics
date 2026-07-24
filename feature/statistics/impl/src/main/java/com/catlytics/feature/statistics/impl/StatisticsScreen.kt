@@ -54,7 +54,8 @@ import kotlin.time.Duration.Companion.milliseconds
 internal fun StatisticsScreen(
     modifier: Modifier = Modifier,
     viewModel: StatisticsViewModel = hiltViewModel(),
-    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp }
+    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -90,7 +91,8 @@ internal fun StatisticsScreen(
                     stats = state.stats,
                     totals = state.totals,
                     onWeekSelected = { viewModel.selectWeek(it) },
-                    bottomPadding = bottomPadding
+                    bottomPadding = bottomPadding,
+                    scaffoldContentPadding = scaffoldContentPadding,
                 )
             }
         }
@@ -103,7 +105,8 @@ private fun StatisticsContent(
     stats: WeeklyStats,
     totals: ListeningTotals,
     onWeekSelected: (Int) -> Unit,
-    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp }
+    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val dateFormatter = remember {
         DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault())
@@ -123,7 +126,10 @@ private fun StatisticsContent(
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-        contentPadding = PaddingValues(bottom = bottomPadding() + 24.dp)
+        contentPadding = PaddingValues(
+            top = scaffoldContentPadding.calculateTopPadding(),
+            bottom = bottomPadding() + 24.dp,
+        ),
     ) {
         item {
             // Week selector row

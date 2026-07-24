@@ -24,6 +24,7 @@ private const val CATLYTICS_REPOSITORY_URL = "https://github.com/rjahir-rv/catly
 internal fun AboutSettingsContent(
     appVersion: String,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -32,7 +33,7 @@ internal fun AboutSettingsContent(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 24.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
             end = 20.dp,
             bottom = bottomPadding() + 80.dp,
         ),

@@ -64,6 +64,7 @@ internal fun MusicScanSettingsContent(
     onSizeFilterChange: (MusicScanSizeFilter) -> Unit,
     onScanMusic: () -> Unit,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     val visibleFolderCount = folders.count(LibraryFolder::isVisible)
@@ -73,7 +74,7 @@ internal fun MusicScanSettingsContent(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 24.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
             end = 20.dp,
             bottom = bottomPadding() + 24.dp,
         ),
@@ -334,6 +335,7 @@ internal fun ScanFoldersContent(
     folders: List<LibraryFolder>,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     val sortedFolders = remember(folders) { folders.sortedBy { it.path.lowercase() } }
@@ -342,7 +344,7 @@ internal fun ScanFoldersContent(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 24.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
             end = 20.dp,
             bottom = bottomPadding() + 24.dp,
         ),

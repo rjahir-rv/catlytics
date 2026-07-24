@@ -34,6 +34,7 @@ internal fun HomeRoute(
     startupError: String? = null,
     onContentReady: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -55,6 +56,7 @@ internal fun HomeRoute(
         onNavigateToStatistics = onNavigateToStatistics,
         onContentReady = onContentReady,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
         modifier = modifier,
     )
 }
@@ -74,6 +76,7 @@ internal fun HomeScreen(
     onNavigateToStatistics: () -> Unit = {},
     onContentReady: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     LaunchedEffect(uiState, hasAudioPermission) {
         if (!hasAudioPermission || uiState != HomeUiState.Loading) {
@@ -97,7 +100,10 @@ internal fun HomeScreen(
                 onRequestPermission = onRequestPermission,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(top = 20.dp, bottom = bottomPadding()),
+                    .padding(
+                        top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                        bottom = bottomPadding(),
+                    ),
             )
             return@Column
         }
@@ -106,13 +112,22 @@ internal fun HomeScreen(
             HomeUiState.Empty -> EmptyLibraryContent(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(top = 20.dp, bottom = bottomPadding()),
+                    .padding(
+                        top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                        bottom = bottomPadding(),
+                    ),
             )
             is HomeUiState.Error -> ErrorContent(
                 message = uiState.message,
-                modifier = Modifier.padding(top = 20.dp),
+                modifier = Modifier.padding(
+                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                ),
             )
-            HomeUiState.Loading -> LoadingContent(modifier = Modifier.padding(top = 20.dp))
+            HomeUiState.Loading -> LoadingContent(
+                modifier = Modifier.padding(
+                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                ),
+            )
             is HomeUiState.Success -> {
                 val filteredTracks = uiState.tracks.filterByQuery(searchQuery)
                 if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
@@ -134,7 +149,7 @@ internal fun HomeScreen(
                         modifier = Modifier.weight(1f),
                         state = trackListState,
                         contentPadding = PaddingValues(
-                            top = 28.dp,
+                            top = scaffoldContentPadding.calculateTopPadding() + 28.dp,
                             bottom = bottomPadding() + 20.dp,
                         ),
                         onTrackOptions = onTrackOptions,

@@ -59,6 +59,7 @@ internal fun LibraryAlbumScreen(
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
         LibraryAlbumUiState.Loading -> Box(
@@ -105,7 +106,7 @@ internal fun LibraryAlbumScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = 20.dp,
-                        top = 20.dp,
+                        top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
                         end = 20.dp,
                         bottom = bottomPadding() + 20.dp,
                     ),
