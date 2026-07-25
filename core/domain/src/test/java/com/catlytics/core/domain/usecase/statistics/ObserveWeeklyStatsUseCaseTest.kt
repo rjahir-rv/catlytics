@@ -81,14 +81,13 @@ class FakePlaybackEventRepository2 : PlaybackEventRepository {
 
     override suspend fun getAllEvents(): List<PlaybackEvent> = emptyList()
 
-    override suspend fun insertEvents(events: List<PlaybackEvent>) = Unit
+    override suspend fun replaceEvents(events: List<PlaybackEvent>) = Unit
 
-    override suspend fun deleteAllEvents() = Unit
+    override suspend fun insertEventsIfAbsent(events: List<PlaybackEvent>): Int = 0
 
     override fun observeBackupSummary(): Flow<com.catlytics.core.model.StatisticsBackupSummary> =
         flowOf(com.catlytics.core.model.StatisticsBackupSummary(0, null, null))
 
-    override suspend fun getEventFingerprints(): Set<String> = emptySet()
 }
 
 class ObserveRecentlyPlayedTracksUseCaseTest {

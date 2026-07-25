@@ -232,9 +232,9 @@ private fun ListeningTotalItem(
 
 @Composable
 internal fun NarrativeSummaryCard(
-    narrative: ListeningNarrative,
-    title: String = "Tu resumen",
     modifier: Modifier = Modifier,
+    narrative: ListeningNarrative,
+    title: String = "Tu resumen"
 ) {
     if (!narrative.eligible) return
 
@@ -377,11 +377,11 @@ private fun NarrativeStatRow(
 
 @Composable
 internal fun NarrativeProgressHint(
+    modifier: Modifier = Modifier,
     totalListenedMillis: Long,
     thresholdMillis: Long = 3_600_000L,
-    modifier: Modifier = Modifier,
 ) {
-    if (totalListenedMillis <= 0L || totalListenedMillis >= thresholdMillis) return
+    if (totalListenedMillis !in 1..<thresholdMillis) return
     val progress = (totalListenedMillis.toFloat() / thresholdMillis.toFloat()).coerceIn(0f, 1f)
     val remaining = thresholdMillis - totalListenedMillis
 
@@ -425,9 +425,9 @@ internal fun NarrativeProgressHint(
 
 @Composable
 internal fun ExploreStatsCta(
-    onClick: () -> Unit,
-    enabled: Boolean = true,
     modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    enabled: Boolean = true
 ) {
     Card(
         modifier = modifier
@@ -657,12 +657,12 @@ private fun PeriodMetric(value: String, label: String) {
 
 @Composable
 internal fun ActivityChart(
+    modifier: Modifier = Modifier,
     dailyListening: List<DailyListeningStat>,
     dayCount: Int,
     title: String,
     subtitle: String,
-    dayLabels: List<String>? = null,
-    modifier: Modifier = Modifier,
+    dayLabels: List<String>? = null
 ) {
     val safeDayCount = dayCount.coerceAtLeast(1)
     val dailyMinutes = remember(dailyListening, safeDayCount) {

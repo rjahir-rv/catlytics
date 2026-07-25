@@ -47,14 +47,12 @@ class FakePlaybackEventRepository : PlaybackEventRepository {
     override fun observeActiveListeningDays(): Flow<List<java.time.LocalDate>> = emptyFlow()
     override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
     override suspend fun getAllEvents(): List<PlaybackEvent> = recordedEvents.toList()
-    override suspend fun insertEvents(events: List<PlaybackEvent>) {
+    override suspend fun replaceEvents(events: List<PlaybackEvent>) {
+        recordedEvents.clear()
         recordedEvents.addAll(events)
     }
-    override suspend fun deleteAllEvents() {
-        recordedEvents.clear()
-    }
+    override suspend fun insertEventsIfAbsent(events: List<PlaybackEvent>): Int = 0
     override fun observeBackupSummary(): Flow<com.catlytics.core.model.StatisticsBackupSummary> = emptyFlow()
-    override suspend fun getEventFingerprints(): Set<String> = emptySet()
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

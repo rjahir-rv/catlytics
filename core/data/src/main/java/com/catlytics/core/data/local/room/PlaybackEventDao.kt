@@ -3,6 +3,7 @@ package com.catlytics.core.data.local.room
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.PeriodUniqueCounts
@@ -32,6 +33,28 @@ interface PlaybackEventDao {
 
     @Insert
     suspend fun insertAll(events: List<PlaybackEventEntity>)
+
+    @Transaction
+    suspend fun replaceAllEvents(events: List<PlaybackEventEntity>) {
+        deleteAllEvents()
+        events.chunked(IMPORT_BATCH_SIZE).forEach { insertAll(it) }
+    }
+
+    @Transaction
+    suspend fun insertEventsIfAbsent(events: List<PlaybackEventEntity>): Int {
+        val fingerprints = getEventFingerprints().toMutableSet()
+        val newEvents = events.filter { event ->
+            fingerprints.add(
+                PlaybackEventFingerprintRow(
+                    trackId = event.trackId,
+                    timestamp = event.timestamp,
+                    durationListenedMillis = event.durationListenedMillis,
+                ),
+            )
+        }
+        newEvents.chunked(IMPORT_BATCH_SIZE).forEach { insertAll(it) }
+        return newEvents.size
+    }
 
     @Query("""
         SELECT track_id AS trackId,
@@ -184,4 +207,8 @@ interface PlaybackEventDao {
         """,
     )
     suspend fun getEventFingerprints(): List<PlaybackEventFingerprintRow>
+
+    private companion object {
+        const val IMPORT_BATCH_SIZE = 500
+    }
 }

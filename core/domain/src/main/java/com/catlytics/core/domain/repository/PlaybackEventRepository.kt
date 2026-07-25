@@ -36,16 +36,14 @@ interface PlaybackEventRepository {
     /** Full event stream for backup export. */
     suspend fun getAllEvents(): List<PlaybackEvent>
 
-    /** Insert many events (e.g. import). Caller owns deduplication strategy. */
-    suspend fun insertEvents(events: List<PlaybackEvent>)
-
-    suspend fun deleteAllEvents()
-
-    fun observeBackupSummary(): Flow<StatisticsBackupSummary>
+    /** Atomically replace the complete listening history. */
+    suspend fun replaceEvents(events: List<PlaybackEvent>)
 
     /**
-     * Natural-key fingerprints already stored: trackId|timestamp|durationListenedMillis.
-     * Used to skip duplicates on merge import.
+     * Atomically insert events whose natural fingerprint is not already stored.
+     * Returns the number of newly inserted events.
      */
-    suspend fun getEventFingerprints(): Set<String>
+    suspend fun insertEventsIfAbsent(events: List<PlaybackEvent>): Int
+
+    fun observeBackupSummary(): Flow<StatisticsBackupSummary>
 }

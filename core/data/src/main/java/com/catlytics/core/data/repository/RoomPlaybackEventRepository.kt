@@ -92,20 +92,16 @@ class RoomPlaybackEventRepository @Inject constructor(
         }
     }
 
-    override suspend fun insertEvents(events: List<PlaybackEvent>) {
-        if (events.isEmpty()) return
+    override suspend fun replaceEvents(events: List<PlaybackEvent>) {
         withContext(ioDispatcher) {
-            events.chunked(INSERT_BATCH_SIZE).forEach { batch ->
-                dao.insertAll(batch.map { it.toEntity() })
-            }
+            dao.replaceAllEvents(events.map { it.toEntity() })
         }
     }
 
-    override suspend fun deleteAllEvents() {
-        withContext(ioDispatcher) {
-            dao.deleteAllEvents()
+    override suspend fun insertEventsIfAbsent(events: List<PlaybackEvent>): Int =
+        if (events.isEmpty()) 0 else withContext(ioDispatcher) {
+            dao.insertEventsIfAbsent(events.map { it.toEntity() })
         }
-    }
 
     override fun observeBackupSummary(): Flow<StatisticsBackupSummary> {
         return dao.observeBackupSummary()
@@ -118,29 +114,7 @@ class RoomPlaybackEventRepository @Inject constructor(
             }
             .flowOn(ioDispatcher)
     }
-
-    override suspend fun getEventFingerprints(): Set<String> {
-        return withContext(ioDispatcher) {
-            dao.getEventFingerprints().mapTo(mutableSetOf()) { row ->
-                playbackEventFingerprint(
-                    trackId = row.trackId,
-                    timestamp = row.timestamp,
-                    durationListenedMillis = row.durationListenedMillis,
-                )
-            }
-        }
-    }
-
-    companion object {
-        private const val INSERT_BATCH_SIZE = 500
-    }
 }
-
-internal fun playbackEventFingerprint(
-    trackId: String,
-    timestamp: Long,
-    durationListenedMillis: Long,
-): String = "$trackId|$timestamp|$durationListenedMillis"
 
 private fun PlaybackEvent.toEntity(): PlaybackEventEntity {
     return PlaybackEventEntity(

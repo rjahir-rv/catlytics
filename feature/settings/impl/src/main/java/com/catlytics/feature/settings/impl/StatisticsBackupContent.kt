@@ -233,6 +233,13 @@ private fun ImportConfirmDialog(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (preview.eventCount == 0) {
+                    Text(
+                        text = "Este respaldo está vacío. Reemplazar eliminará todo el historial local.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         },
         confirmButton = {
