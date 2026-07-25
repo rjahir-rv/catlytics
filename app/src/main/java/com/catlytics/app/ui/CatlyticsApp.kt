@@ -8,13 +8,19 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
@@ -29,8 +35,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
@@ -84,6 +93,7 @@ import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.settings.impl.settingsEntry
 import com.catlytics.feature.statistics.impl.statisticsEntry
+import com.catlytics.feature.statistics.api.StatisticsExploreRoute
 import com.catlytics.feature.statistics.api.StatisticsRoute
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,6 +135,9 @@ fun CatlyticsApp(
     }
 
     val layoutDirection = LocalLayoutDirection.current
+    val statusBarHeight = WindowInsets.statusBars
+        .asPaddingValues()
+        .calculateTopPadding()
     val topLevelBackStack = remember { TopLevelBackStack(HomeRoute) }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -168,10 +181,20 @@ fun CatlyticsApp(
             TopLevelDestination.Library
         is PlaylistDetailRoute -> TopLevelDestination.Playlists
         DailyPlaylistRoute -> TopLevelDestination.Home
+        StatisticsExploreRoute -> TopLevelDestination.Statistics
         else -> currentTopLevelDestination
     }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
     val isSettingsVisible = currentRoute == SettingsRoute
+    val isDetailTopBarVisible = when (currentRoute) {
+        is LibraryAlbumRoute,
+        is LibraryArtistRoute,
+        is LibraryFolderRoute,
+        is PlaylistDetailRoute,
+        DailyPlaylistRoute,
+        StatisticsExploreRoute -> true
+        else -> false
+    }
     val isCurrentSearchExpanded = when (currentRoute) {
         HomeRoute -> isHomeSearchExpanded
         LibraryRoute -> isLibrarySearchExpanded
@@ -345,6 +368,8 @@ fun CatlyticsApp(
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(topBarScrollBehavior.nestedScrollConnection),
+            containerColor = detailChromeColor ?: MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             when {
                 currentRoute is LibraryAlbumRoute -> {
@@ -396,6 +421,13 @@ fun CatlyticsApp(
                 currentRoute == DailyPlaylistRoute -> {
                     LibraryDetailTopAppBar(
                         title = "Playlist diaria",
+                        onBack = ::closeCurrentDestination,
+                        scrollBehavior = topBarScrollBehavior,
+                    )
+                }
+                currentRoute == StatisticsExploreRoute -> {
+                    LibraryDetailTopAppBar(
+                        title = "Explorar estadísticas",
                         onBack = ::closeCurrentDestination,
                         scrollBehavior = topBarScrollBehavior,
                     )
@@ -529,7 +561,11 @@ fun CatlyticsApp(
         var lastRegularNavigationContentPadding by remember { mutableStateOf(PaddingValues(0.dp)) }
         val contentPaddingBehindBottomBar = PaddingValues(
             start = innerPadding.calculateStartPadding(layoutDirection),
-            top = innerPadding.calculateTopPadding(),
+            top = calculateTopContentPadding(
+                scaffoldTopPadding = innerPadding.calculateTopPadding(),
+                statusBarPadding = statusBarHeight,
+                collapsedFraction = topBarScrollBehavior.state.collapsedFraction,
+            ),
             end = innerPadding.calculateEndPadding(layoutDirection),
             bottom = 0.dp,
         )
@@ -544,8 +580,8 @@ fun CatlyticsApp(
         val bottomPaddingToUse = if (isNowPlayingVisible) lastBottomPadding else currentBottomPadding
         val regularNavigationContentPadding = if (isNowPlayingVisible) lastRegularNavigationContentPadding else contentPaddingBehindBottomBar
 
-        val bottomPaddingState = androidx.compose.runtime.rememberUpdatedState(bottomPaddingToUse)
-        val regularPaddingState = androidx.compose.runtime.rememberUpdatedState(regularNavigationContentPadding)
+        val bottomPaddingState = rememberUpdatedState(bottomPaddingToUse)
+        val regularPaddingState = rememberUpdatedState(regularNavigationContentPadding)
 
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
@@ -633,6 +669,11 @@ fun CatlyticsApp(
                     statisticsEntry(
                         bottomPadding = { bottomPaddingState.value },
                         contentPadding = { regularPaddingState.value },
+                        onNavigateToExplore = {
+                            if (topLevelBackStack.backStack.lastOrNull() != StatisticsExploreRoute) {
+                                topLevelBackStack.add(StatisticsExploreRoute)
+                            }
+                        },
                     )
                     entry<NowPlayingRoute>(
                         metadata = metadata {
@@ -654,6 +695,8 @@ fun CatlyticsApp(
                             onSkipPrevious = playbackViewModel::skipPrevious,
                             onSkipNext = playbackViewModel::skipNext,
                             onSeekTo = playbackViewModel::seekTo,
+                            onSeekBackward10Seconds = playbackViewModel::seekBackward10Seconds,
+                            onSeekForward10Seconds = playbackViewModel::seekForward10Seconds,
                             onToggleShuffle = playbackViewModel::toggleShuffle,
                             onCycleRepeatMode = playbackViewModel::cycleRepeatMode,
                             onShareTrack = context::shareTrack,
@@ -702,6 +745,28 @@ fun CatlyticsApp(
                     }
                 },
             )
+
+            if (!isNowPlayingVisible && !isDetailTopBarVisible) {
+                val scrimColor = detailChromeColor ?: MaterialTheme.colorScheme.background
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .height(statusBarHeight + 24.dp)
+                        .graphicsLayer {
+                            alpha = topBarScrollBehavior.state.collapsedFraction
+                        }
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colorStops = arrayOf(
+                                    0f to scrimColor.copy(alpha = 0.96f),
+                                    0.55f to scrimColor.copy(alpha = 0.72f),
+                                    1f to scrimColor.copy(alpha = 0f),
+                                ),
+                            ),
+                        ),
+                )
+            }
         }
     }
         CatlyticsAppSheets(
@@ -729,6 +794,14 @@ fun CatlyticsApp(
         )
     }
 }
+
+internal fun calculateTopContentPadding(
+    scaffoldTopPadding: androidx.compose.ui.unit.Dp,
+    statusBarPadding: androidx.compose.ui.unit.Dp,
+    collapsedFraction: Float,
+): androidx.compose.ui.unit.Dp =
+    (scaffoldTopPadding - statusBarPadding * collapsedFraction.coerceIn(0f, 1f))
+        .coerceAtLeast(0.dp)
 
 private fun requiredAudioPermission(): String =
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

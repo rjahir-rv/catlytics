@@ -22,11 +22,19 @@ import com.catlytics.core.domain.usecase.library.SetMusicScanDurationFilterUseCa
 import com.catlytics.core.domain.usecase.library.SetMusicScanSizeFilterUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistSortDirectionUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistSortDirectionUseCase
+import com.catlytics.core.domain.usecase.statistics.BuildListeningNarrativeUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveListeningStatsUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveListeningStreakUseCase
+import com.catlytics.core.domain.usecase.statistics.ObservePeriodStatsUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveListeningTotalsUseCase
+import com.catlytics.core.domain.usecase.statistics.ExportStatisticsBackupUseCase
+import com.catlytics.core.domain.usecase.statistics.ImportStatisticsBackupUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveStatisticsBackupSummaryUseCase
+import com.catlytics.core.domain.usecase.statistics.PreviewStatisticsBackupUseCase
 import com.catlytics.core.domain.repository.PlaybackEventRepository
+import com.catlytics.core.domain.repository.StatisticsBackupRepository
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
 import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
@@ -239,9 +247,42 @@ object DomainModule {
     ) = ObserveWeeklyStatsUseCase(playbackEventRepository)
 
     @Provides
+    fun provideObservePeriodStatsUseCase(
+        playbackEventRepository: PlaybackEventRepository,
+    ) = ObservePeriodStatsUseCase(playbackEventRepository)
+
+    @Provides
+    fun provideObserveListeningStreakUseCase(
+        playbackEventRepository: PlaybackEventRepository,
+    ) = ObserveListeningStreakUseCase(playbackEventRepository)
+
+    @Provides
+    fun provideBuildListeningNarrativeUseCase() = BuildListeningNarrativeUseCase()
+
+    @Provides
     fun provideObserveListeningTotalsUseCase(
         playbackEventRepository: PlaybackEventRepository,
     ) = ObserveListeningTotalsUseCase(playbackEventRepository)
+
+    @Provides
+    fun provideObserveStatisticsBackupSummaryUseCase(
+        statisticsBackupRepository: StatisticsBackupRepository,
+    ) = ObserveStatisticsBackupSummaryUseCase(statisticsBackupRepository)
+
+    @Provides
+    fun provideExportStatisticsBackupUseCase(
+        statisticsBackupRepository: StatisticsBackupRepository,
+    ) = ExportStatisticsBackupUseCase(statisticsBackupRepository)
+
+    @Provides
+    fun providePreviewStatisticsBackupUseCase(
+        statisticsBackupRepository: StatisticsBackupRepository,
+    ) = PreviewStatisticsBackupUseCase(statisticsBackupRepository)
+
+    @Provides
+    fun provideImportStatisticsBackupUseCase(
+        statisticsBackupRepository: StatisticsBackupRepository,
+    ) = ImportStatisticsBackupUseCase(statisticsBackupRepository)
 
     @Provides
     fun provideObservePlaybackStateUseCase(

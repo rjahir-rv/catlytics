@@ -13,8 +13,7 @@ dependencies {
     implementation(project(path = ":core:domain"))
     implementation(project(path = ":core:model"))
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.coil.compose)
-    implementation(libs.vico.compose)
-    implementation(libs.vico.compose.m3)
 }

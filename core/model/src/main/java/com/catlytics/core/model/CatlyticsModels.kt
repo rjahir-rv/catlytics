@@ -163,6 +163,13 @@ data class ListeningTotals(
     val albumCount: Int,
 )
 
+/** Unique entity counts within a time range. */
+data class PeriodUniqueCounts(
+    val trackCount: Int,
+    val artistCount: Int,
+    val albumCount: Int,
+)
+
 enum class ThemeMode {
     System,
     Light,
@@ -226,6 +233,62 @@ data class TopArtist(
     val totalListenedMillis: Long,
 )
 
+data class TopAlbum(
+    val albumId: String,
+    val title: String,
+    val artistName: String,
+    val artworkUri: String?,
+    val playCount: Int,
+    val totalListenedMillis: Long,
+)
+
+enum class StatsGranularity {
+    WEEK,
+    MONTH,
+}
+
+data class StatsPeriodRange(
+    val granularity: StatsGranularity,
+    val offset: Int,
+    val startMillis: Long,
+    val endMillis: Long,
+    val label: String,
+)
+
+data class PeriodStats(
+    val range: StatsPeriodRange,
+    val totalListenedMillis: Long,
+    val playCount: Int,
+    val uniqueTracks: Int,
+    val uniqueArtists: Int,
+    val uniqueAlbums: Int,
+    val dailyListening: List<DailyListeningStat>,
+    val topTracks: List<TopTrack>,
+    val topArtists: List<TopArtist>,
+    val topAlbums: List<TopAlbum>,
+) {
+    val isEmpty: Boolean
+        get() = totalListenedMillis == 0L && playCount == 0
+}
+
+data class ListeningStreak(
+    val currentDays: Int,
+    val lastActiveDayEpochDay: Long?,
+)
+
+/**
+ * Spotify-style narrative summary for a listening period.
+ * [eligible] is true when the period has at least one hour of listening.
+ */
+data class ListeningNarrative(
+    val eligible: Boolean,
+    val totalListenedMillis: Long,
+    val topArtist: TopArtist?,
+    val topTrack: TopTrack?,
+    val headline: String,
+    val supportingLines: List<String>,
+)
+
 data class WeeklyStats(
     val weekStart: Long,
     val weekEnd: Long,
@@ -236,8 +299,12 @@ data class WeeklyStats(
     val playCount: Int,
 )
 
+/**
+ * Listening total for a day bucket within a period.
+ * [dayIndex] is 1-based: Mon=1..Sun=7 for weeks, day-of-month for months.
+ */
 data class DailyListeningStat(
-    val dayOfWeek: Int,
+    val dayIndex: Int,
     val totalListenedMillis: Long,
 )
 
@@ -253,3 +320,35 @@ data class PlaybackEvent(
     val trackDurationMillis: Long,
     val timestamp: Long,
 )
+
+/** Local summary of stored listening events for backup UI. */
+data class StatisticsBackupSummary(
+    val eventCount: Long,
+    val firstEventMillis: Long?,
+    val lastEventMillis: Long?,
+)
+
+data class StatisticsBackupPreview(
+    val schemaVersion: Int,
+    val exportedAtMillis: Long,
+    val eventCount: Int,
+    val firstEventMillis: Long?,
+    val lastEventMillis: Long?,
+)
+
+data class StatisticsExportResult(
+    val eventCount: Int,
+)
+
+data class StatisticsImportResult(
+    val importedCount: Int,
+    val skippedDuplicateCount: Int,
+    val totalInFile: Int,
+)
+
+enum class StatisticsImportMode {
+    /** Keep existing events and only insert non-duplicates from the file. */
+    Merge,
+    /** Delete all local events, then insert the file contents. */
+    Replace,
+}

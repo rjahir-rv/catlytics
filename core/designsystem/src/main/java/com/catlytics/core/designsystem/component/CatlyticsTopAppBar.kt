@@ -20,11 +20,14 @@ fun CatlyticsTopAppBar(
     title: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     containerColor: Color? = null,
+    scrolledContainerColor: Color? = null,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     val resolvedContainerColor = containerColor ?: MaterialTheme.colorScheme.background
+    val resolvedScrolledContainerColor =
+        scrolledContainerColor ?: resolvedContainerColor.copy(alpha = 0f)
 
     TopAppBar(
         title = title,
@@ -32,7 +35,7 @@ fun CatlyticsTopAppBar(
         actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = resolvedContainerColor,
-            scrolledContainerColor = resolvedContainerColor,
+            scrolledContainerColor = resolvedScrolledContainerColor,
             navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
             titleContentColor = MaterialTheme.colorScheme.onBackground,
         ),

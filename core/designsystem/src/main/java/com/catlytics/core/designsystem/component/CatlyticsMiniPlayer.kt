@@ -51,7 +51,7 @@ fun CatlyticsMiniPlayer(
         )
     },
 ) {
-    val containerShape = RoundedCornerShape(28.dp)
+    val containerShape = RoundedCornerShape(20.dp)
 
     Surface(
         modifier = modifier

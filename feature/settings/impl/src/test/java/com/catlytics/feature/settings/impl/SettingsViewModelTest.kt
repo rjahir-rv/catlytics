@@ -6,12 +6,17 @@ import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.SleepTimerController
+import com.catlytics.core.domain.repository.StatisticsBackupRepository
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveMusicScanSettingsUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanDurationFilterUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanSizeFilterUseCase
+import com.catlytics.core.domain.usecase.statistics.ExportStatisticsBackupUseCase
+import com.catlytics.core.domain.usecase.statistics.ImportStatisticsBackupUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveStatisticsBackupSummaryUseCase
+import com.catlytics.core.domain.usecase.statistics.PreviewStatisticsBackupUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.ArtistContent
@@ -28,6 +33,11 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
 import com.catlytics.core.model.SleepTimerState
+import com.catlytics.core.model.StatisticsBackupPreview
+import com.catlytics.core.model.StatisticsBackupSummary
+import com.catlytics.core.model.StatisticsExportResult
+import com.catlytics.core.model.StatisticsImportMode
+import com.catlytics.core.model.StatisticsImportResult
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
@@ -181,6 +191,7 @@ class SettingsViewModelTest {
         libraryRepository: FakeLibraryRepository = FakeLibraryRepository(),
         libraryPreferencesRepository: FakeLibraryPreferencesRepository =
             FakeLibraryPreferencesRepository(),
+        statisticsBackupRepository: StatisticsBackupRepository = FakeStatisticsBackupRepository(),
     ) = SettingsViewModel(
         appPreferencesRepository = appPreferencesRepository,
         equalizerRepository = equalizerRepository,
@@ -195,7 +206,39 @@ class SettingsViewModelTest {
             SetMusicScanDurationFilterUseCase(libraryPreferencesRepository),
         setMusicScanSizeFilterUseCase =
             SetMusicScanSizeFilterUseCase(libraryPreferencesRepository),
+        observeStatisticsBackupSummaryUseCase =
+            ObserveStatisticsBackupSummaryUseCase(statisticsBackupRepository),
+        exportStatisticsBackupUseCase = ExportStatisticsBackupUseCase(statisticsBackupRepository),
+        previewStatisticsBackupUseCase = PreviewStatisticsBackupUseCase(statisticsBackupRepository),
+        importStatisticsBackupUseCase = ImportStatisticsBackupUseCase(statisticsBackupRepository),
     )
+}
+
+private class FakeStatisticsBackupRepository : StatisticsBackupRepository {
+    override fun observeLocalSummary(): Flow<StatisticsBackupSummary> =
+        flowOf(StatisticsBackupSummary(0, null, null))
+
+    override suspend fun exportToUri(
+        uri: String,
+        appVersion: String,
+    ): Result<StatisticsExportResult> = Result.success(StatisticsExportResult(0))
+
+    override suspend fun previewFromUri(uri: String): Result<StatisticsBackupPreview> =
+        Result.success(
+            StatisticsBackupPreview(
+                schemaVersion = 1,
+                exportedAtMillis = 0L,
+                eventCount = 0,
+                firstEventMillis = null,
+                lastEventMillis = null,
+            ),
+        )
+
+    override suspend fun importFromUri(
+        uri: String,
+        mode: StatisticsImportMode,
+    ): Result<StatisticsImportResult> =
+        Result.success(StatisticsImportResult(0, 0, 0))
 }
 
 private class FakeLibraryRepository(

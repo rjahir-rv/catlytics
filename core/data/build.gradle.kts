@@ -2,6 +2,7 @@ plugins {
     id("catlytics.android.library")
     id("catlytics.android.hilt")
     id("catlytics.android.room")
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {

@@ -110,6 +110,14 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
+    fun seekBackward10Seconds() {
+        seekBy(-SEEK_INTERVAL_MILLIS)
+    }
+
+    fun seekForward10Seconds() {
+        seekBy(SEEK_INTERVAL_MILLIS)
+    }
+
     fun toggleShuffle() {
         viewModelScope.launch {
             toggleShuffleUseCase(!playbackState.value.isShuffleEnabled)
@@ -158,5 +166,37 @@ class PlaybackViewModel @Inject constructor(
         viewModelScope.launch {
             onResult(toggleLikedTrackUseCase(trackId))
         }
+    }
+
+    private fun seekBy(offsetMillis: Long) {
+        val state = playbackState.value
+        if (state.currentTrack == null) return
+
+        viewModelScope.launch {
+            seekPlaybackUseCase(
+                calculateRelativeSeekPosition(
+                    positionMillis = state.positionMillis,
+                    durationMillis = state.durationMillis,
+                    offsetMillis = offsetMillis,
+                ),
+            )
+        }
+    }
+
+    private companion object {
+        const val SEEK_INTERVAL_MILLIS = 10_000L
+    }
+}
+
+internal fun calculateRelativeSeekPosition(
+    positionMillis: Long,
+    durationMillis: Long,
+    offsetMillis: Long,
+): Long {
+    val targetPosition = (positionMillis + offsetMillis).coerceAtLeast(0L)
+    return if (durationMillis > 0L) {
+        targetPosition.coerceAtMost(durationMillis)
+    } else {
+        targetPosition
     }
 }

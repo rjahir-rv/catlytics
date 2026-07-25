@@ -120,8 +120,11 @@ internal fun LibraryDetailTopAppBar(
     searchFocusRequester: FocusRequester? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
+    val resolvedContainerColor = containerColor ?: MaterialTheme.colorScheme.background
+
     CatlyticsTopAppBar(
-        containerColor = containerColor,
+        containerColor = resolvedContainerColor,
+        scrolledContainerColor = resolvedContainerColor,
         scrollBehavior = scrollBehavior,
         title = {
             if (supportsSearch && isSearchExpanded) {

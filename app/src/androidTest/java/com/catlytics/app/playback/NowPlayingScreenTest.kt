@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -17,6 +18,46 @@ import org.junit.Test
 class NowPlayingScreenTest {
     @get:Rule
     val composeRule = createComposeRule()
+
+    @Test
+    fun bufferingShowsLoadingFeedbackInPlaybackButton() {
+        composeRule.setContent {
+            MaterialTheme {
+                NowPlayingScreen(
+                    playbackState = PlaybackState(
+                        currentTrack = track,
+                        status = PlaybackStatus.Buffering,
+                    ),
+                    onShareTrack = {},
+                    onBack = {},
+                    onTogglePlayback = {},
+                    onSkipPrevious = {},
+                    onSkipNext = {},
+                    onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
+                    onToggleShuffle = {},
+                    onCycleRepeatMode = {},
+                    onPlayQueueItem = {},
+                    onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = true,
+                    onAddCurrentTrackToPlaylist = {},
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
+                    isCurrentTrackLiked = false,
+                    onAddCurrentTrackToLiked = {},
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithContentDescription("Pausar reproducción; cargando")
+            .fetchSemanticsNode()
+    }
 
     @Test
     fun shareButtonSharesCurrentTrack() {
@@ -32,6 +73,8 @@ class NowPlayingScreenTest {
                     onSkipPrevious = {},
                     onSkipNext = {},
                     onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
                     onToggleShuffle = {},
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
@@ -67,6 +110,8 @@ class NowPlayingScreenTest {
                     onSkipPrevious = {},
                     onSkipNext = {},
                     onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
                     onToggleShuffle = {},
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
@@ -100,6 +145,8 @@ class NowPlayingScreenTest {
                     onSkipPrevious = {},
                     onSkipNext = {},
                     onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
                     onToggleShuffle = {},
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
@@ -136,6 +183,8 @@ class NowPlayingScreenTest {
                     onSkipPrevious = {},
                     onSkipNext = {},
                     onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
                     onToggleShuffle = {},
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
@@ -171,6 +220,8 @@ class NowPlayingScreenTest {
                     onSkipPrevious = {},
                     onSkipNext = {},
                     onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
                     onToggleShuffle = {},
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
@@ -204,6 +255,8 @@ class NowPlayingScreenTest {
                     onSkipPrevious = {},
                     onSkipNext = {},
                     onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
                     onToggleShuffle = {},
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},
@@ -239,6 +292,8 @@ class NowPlayingScreenTest {
                     onSkipPrevious = {},
                     onSkipNext = {},
                     onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
                     onToggleShuffle = {},
                     onCycleRepeatMode = {},
                     onPlayQueueItem = {},

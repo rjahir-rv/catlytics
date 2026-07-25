@@ -23,6 +23,8 @@ import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.repository.PlaybackEventRepository
+import com.catlytics.core.domain.repository.StatisticsBackupRepository
+import com.catlytics.core.data.repository.DefaultStatisticsBackupRepository
 import com.catlytics.core.data.repository.RoomPlaybackEventRepository
 import dagger.Binds
 import dagger.Module
@@ -103,4 +105,10 @@ interface DataModule {
     fun bindPlaybackEventRepository(
         repository: RoomPlaybackEventRepository,
     ): PlaybackEventRepository
+
+    @Binds
+    @Singleton
+    fun bindStatisticsBackupRepository(
+        repository: DefaultStatisticsBackupRepository,
+    ): StatisticsBackupRepository
 }

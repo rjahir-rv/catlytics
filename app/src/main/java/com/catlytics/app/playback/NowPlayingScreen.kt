@@ -5,11 +5,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,18 +24,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,10 +47,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -59,6 +64,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.catlytics.app.ui.sheet.TrackOptionsDropdownMenu
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsTopAppBar
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
@@ -78,6 +84,8 @@ fun NowPlayingScreen(
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
     onSeekTo: (Long) -> Unit,
+    onSeekBackward10Seconds: () -> Unit,
+    onSeekForward10Seconds: () -> Unit,
     onToggleShuffle: () -> Unit,
     onCycleRepeatMode: () -> Unit,
     onShareTrack: (Track) -> Unit,
@@ -96,8 +104,6 @@ fun NowPlayingScreen(
     modifier: Modifier = Modifier,
 ) {
     val track = playbackState.currentTrack
-    val durationMillis = playbackState.durationMillis
-    val positionMillis = playbackState.positionMillis
     val fallbackGradient = rememberFallbackArtworkGradientColors()
     var artworkBitmap by remember(track?.artworkUri) { mutableStateOf<Bitmap?>(null) }
     var gradientColors by remember { mutableStateOf(fallbackGradient) }
@@ -142,15 +148,14 @@ fun NowPlayingScreen(
             modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
             containerColor = Color.Transparent,
             topBar = {
-                TopAppBar(
+                CatlyticsTopAppBar(
                     title = {
                         Text(
-                            text = "REPRODUCIENDO",
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            text = "Reproduciendo ahora",
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(Color.Transparent),
+                    containerColor = Color.Transparent,
                     navigationIcon = {
                         IconButton(onClick = onBack) {
                             Icon(
@@ -176,223 +181,390 @@ fun NowPlayingScreen(
                 )
             },
         ) { innerPadding ->
-            Column(
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                    .verticalScroll(rememberScrollState()),
+                contentAlignment = Alignment.TopCenter,
             ) {
-                NowPlayingArtwork(
-                    track = track,
-                    onArtworkLoaded = { artworkBitmap = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .widthIn(max = 420.dp),
-                )
+                val useTwoColumns = maxWidth >= TWO_COLUMN_MIN_WIDTH
+                val contentModifier = Modifier
+                    .widthIn(max = NOW_PLAYING_MAX_WIDTH)
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = if (useTwoColumns) 32.dp else 20.dp,
+                        vertical = 12.dp,
+                    )
 
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.Top,
-                ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = track?.title ?: "Sin canción en reproducción",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                        Text(
-                            text = track?.artist?.name ?: "selecciona una canción para iniciar",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                    IconButton(
-                        onClick = onAddCurrentTrackToLiked,
-                        enabled = track != null,
-                        modifier = Modifier
-                            .padding(top = 4.dp)
-                            .size(48.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(
-                                id = if (isCurrentTrackLiked) {
-                                    R.drawable.ic_favorite_fill
-                                } else {
-                                    R.drawable.ic_favorite
-                                },
-                            ),
-                            contentDescription = if (isCurrentTrackLiked) {
-                                "Quitar de Tus me gusta"
-                            } else {
-                                "Agregar a Tus me gusta"
-                            },
-                            modifier = Modifier.size(28.dp),
-                            tint = if (isCurrentTrackLiked) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                PlaybackProgress(
-                    positionMillis = positionMillis,
-                    durationMillis = durationMillis,
-                    enabled = track != null,
-                    onSeekTo = onSeekTo,
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(
-                        onClick = onToggleShuffle,
-                        modifier = Modifier.size(48.dp),
-                        enabled = track != null,
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_shuffle_square),
-                            contentDescription = if (playbackState.isShuffleEnabled) {
-                                "Desactivar mezcla"
-                            } else {
-                                "Activar mezcla"
-                            },
-                            tint = if (playbackState.isShuffleEnabled) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.secondary
-                            },
-                        )
-                    }
-                    IconButton(
-                        onClick = onSkipPrevious,
-                        enabled = track != null,
-                        modifier = Modifier.size(64.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_skip_back),
-                            contentDescription = "Anterior",
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-                    FilledIconButton(
-                        onClick = onTogglePlayback,
-                        enabled = track != null,
-                        modifier = Modifier.size(80.dp),
-                    ) {
-                        Icon(
-                            painter = if (
-                                playbackState.status == PlaybackStatus.Playing ||
-                                playbackState.status == PlaybackStatus.Buffering
-                            ) {
-                                painterResource(id = R.drawable.ic_pause)
-                            } else {
-                                painterResource(id = R.drawable.ic_play)
-                            },
-                            contentDescription = if (playbackState.status == PlaybackStatus.Playing) {
-                                "Pausar"
-                            } else {
-                                "Reproducir"
-                            },
-                            modifier = Modifier.size(40.dp),
-                        )
-                    }
-                    IconButton(
-                        onClick = onSkipNext,
-                        enabled = track != null,
-                        modifier = Modifier.size(64.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_skip_next),
-                            contentDescription = "siguiente",
-                            modifier = Modifier.size(32.dp),
-                        )
-                    }
-                    IconButton(
-                        onClick = onCycleRepeatMode,
-                        modifier = Modifier.size(48.dp),
-                        enabled = track != null,
-                    ) {
-                        Icon(
-                            painter = painterResource(
-                                id = if (playbackState.repeatMode == PlaybackRepeatMode.One) {
-                                    R.drawable.ic_repeat_one
-                                } else {
-                                    R.drawable.ic_repeat_round
-                                },
-                            ),
-                            contentDescription = when (playbackState.repeatMode) {
-                                PlaybackRepeatMode.Off -> "Activar repetir canción"
-                                PlaybackRepeatMode.One -> "Activar repetir todo"
-                                PlaybackRepeatMode.All -> "Desactivar repetición"
-                            },
-                            tint = if (playbackState.repeatMode != PlaybackRepeatMode.Off) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.secondary
-                            },
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(24.dp),
-                    color = Color.Transparent,
-                ) {
+                if (useTwoColumns) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = contentModifier,
+                        horizontalArrangement = Arrangement.spacedBy(40.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        IconButton(
-                            onClick = { track?.let(onShareTrack) },
-                            enabled = track != null,
-                            modifier = Modifier.size(56.dp),
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_share),
-                                contentDescription = "Compartir canción",
-                            )
-                        }
-                        IconButton(
-                            onClick = { isQueueVisible = true },
-                            enabled = playbackState.queue.isNotEmpty(),
-                            modifier = Modifier.size(56.dp),
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.ic_list),
-                                contentDescription = "Abrir cola de reproducción",
-                            )
-                        }
+                        NowPlayingArtwork(
+                            track = track,
+                            onArtworkLoaded = { artworkBitmap = it },
+                            modifier = Modifier
+                                .weight(1f)
+                                .widthIn(max = 440.dp),
+                        )
+                        NowPlayingDetails(
+                            playbackState = playbackState,
+                            track = track,
+                            isCurrentTrackLiked = isCurrentTrackLiked,
+                            onAddCurrentTrackToLiked = onAddCurrentTrackToLiked,
+                            onSeekTo = onSeekTo,
+                            onSeekBackward10Seconds = onSeekBackward10Seconds,
+                            onSeekForward10Seconds = onSeekForward10Seconds,
+                            onToggleShuffle = onToggleShuffle,
+                            onSkipPrevious = onSkipPrevious,
+                            onTogglePlayback = onTogglePlayback,
+                            onSkipNext = onSkipNext,
+                            onCycleRepeatMode = onCycleRepeatMode,
+                            onShareTrack = onShareTrack,
+                            onOpenQueue = { isQueueVisible = true },
+                            modifier = Modifier
+                                .weight(1f)
+                                .widthIn(max = 480.dp),
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = contentModifier,
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        NowPlayingArtwork(
+                            track = track,
+                            onArtworkLoaded = { artworkBitmap = it },
+                            modifier = Modifier
+                                .widthIn(max = 420.dp)
+                                .fillMaxWidth(),
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        NowPlayingDetails(
+                            playbackState = playbackState,
+                            track = track,
+                            isCurrentTrackLiked = isCurrentTrackLiked,
+                            onAddCurrentTrackToLiked = onAddCurrentTrackToLiked,
+                            onSeekTo = onSeekTo,
+                            onSeekBackward10Seconds = onSeekBackward10Seconds,
+                            onSeekForward10Seconds = onSeekForward10Seconds,
+                            onToggleShuffle = onToggleShuffle,
+                            onSkipPrevious = onSkipPrevious,
+                            onTogglePlayback = onTogglePlayback,
+                            onSkipNext = onSkipNext,
+                            onCycleRepeatMode = onCycleRepeatMode,
+                            onShareTrack = onShareTrack,
+                            onOpenQueue = { isQueueVisible = true },
+                        )
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
+        }
+    }
+}
+
+@Composable
+private fun NowPlayingDetails(
+    playbackState: PlaybackState,
+    track: Track?,
+    isCurrentTrackLiked: Boolean,
+    onAddCurrentTrackToLiked: () -> Unit,
+    onSeekTo: (Long) -> Unit,
+    onSeekBackward10Seconds: () -> Unit,
+    onSeekForward10Seconds: () -> Unit,
+    onToggleShuffle: () -> Unit,
+    onSkipPrevious: () -> Unit,
+    onTogglePlayback: () -> Unit,
+    onSkipNext: () -> Unit,
+    onCycleRepeatMode: () -> Unit,
+    onShareTrack: (Track) -> Unit,
+    onOpenQueue: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = track?.title ?: "Sin canción en reproducción",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = track?.artist?.name ?: "Selecciona una canción para iniciar",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            IconToggleButton(
+                checked = isCurrentTrackLiked,
+                onCheckedChange = { onAddCurrentTrackToLiked() },
+                enabled = track != null,
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    painter = painterResource(
+                        id = if (isCurrentTrackLiked) {
+                            R.drawable.ic_favorite_fill
+                        } else {
+                            R.drawable.ic_favorite
+                        },
+                    ),
+                    contentDescription = if (isCurrentTrackLiked) {
+                        "Quitar de Tus me gusta"
+                    } else {
+                        "Agregar a Tus me gusta"
+                    },
+                    modifier = Modifier.size(26.dp),
+                    tint = if (isCurrentTrackLiked) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        PlaybackProgress(
+            positionMillis = playbackState.positionMillis,
+            bufferedPositionMillis = playbackState.bufferedPositionMillis,
+            durationMillis = playbackState.durationMillis,
+            enabled = track != null,
+            onSeekTo = onSeekTo,
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        PlaybackControls(
+            playbackState = playbackState,
+            enabled = track != null,
+            onSkipPrevious = onSkipPrevious,
+            onSeekBackward10Seconds = onSeekBackward10Seconds,
+            onTogglePlayback = onTogglePlayback,
+            onSeekForward10Seconds = onSeekForward10Seconds,
+            onSkipNext = onSkipNext,
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        PlaybackSecondaryActions(
+            playbackState = playbackState,
+            track = track,
+            hasQueue = playbackState.queue.isNotEmpty(),
+            onToggleShuffle = onToggleShuffle,
+            onShareTrack = onShareTrack,
+            onOpenQueue = onOpenQueue,
+            onCycleRepeatMode = onCycleRepeatMode,
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+    }
+}
+
+@Composable
+private fun PlaybackControls(
+    playbackState: PlaybackState,
+    enabled: Boolean,
+    onSkipPrevious: () -> Unit,
+    onSeekBackward10Seconds: () -> Unit,
+    onTogglePlayback: () -> Unit,
+    onSeekForward10Seconds: () -> Unit,
+    onSkipNext: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val isPlayingOrBuffering =
+        playbackState.status == PlaybackStatus.Playing ||
+            playbackState.status == PlaybackStatus.Buffering
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(
+            onClick = onSkipPrevious,
+            enabled = enabled,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_skip_back),
+                contentDescription = "Anterior",
+                modifier = Modifier.size(30.dp),
+            )
+        }
+        IconButton(
+            onClick = onSeekBackward10Seconds,
+            enabled = enabled,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_replay_10),
+                contentDescription = "Retroceder 10 segundos",
+                modifier = Modifier.size(28.dp),
+            )
+        }
+        FilledIconButton(
+            onClick = onTogglePlayback,
+            enabled = enabled,
+            modifier = Modifier.size(72.dp),
+        ) {
+            if (playbackState.status == PlaybackStatus.Buffering) {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .semantics {
+                            contentDescription = "Pausar reproducción; cargando"
+                        },
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 3.dp,
+                )
+            } else {
+                Icon(
+                    painter = if (isPlayingOrBuffering) {
+                        painterResource(id = R.drawable.ic_pause)
+                    } else {
+                        painterResource(id = R.drawable.ic_play)
+                    },
+                    contentDescription = if (isPlayingOrBuffering) {
+                        "Pausar"
+                    } else {
+                        "Reproducir"
+                    },
+                    modifier = Modifier.size(36.dp),
+                )
+            }
+        }
+        IconButton(
+            onClick = onSeekForward10Seconds,
+            enabled = enabled,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_forward_10),
+                contentDescription = "Adelantar 10 segundos",
+                modifier = Modifier.size(28.dp),
+            )
+        }
+        IconButton(
+            onClick = onSkipNext,
+            enabled = enabled,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_skip_next),
+                contentDescription = "Siguiente",
+                modifier = Modifier.size(30.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun PlaybackSecondaryActions(
+    playbackState: PlaybackState,
+    track: Track?,
+    hasQueue: Boolean,
+    onToggleShuffle: () -> Unit,
+    onShareTrack: (Track) -> Unit,
+    onOpenQueue: () -> Unit,
+    onCycleRepeatMode: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconToggleButton(
+            checked = playbackState.isShuffleEnabled,
+            onCheckedChange = { onToggleShuffle() },
+            enabled = track != null,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_shuffle),
+                contentDescription = if (playbackState.isShuffleEnabled) {
+                    "Desactivar mezcla"
+                } else {
+                    "Activar mezcla"
+                },
+                tint = if (playbackState.isShuffleEnabled) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
+        }
+        IconButton(
+            onClick = { track?.let(onShareTrack) },
+            enabled = track != null,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_share),
+                contentDescription = "Compartir canción",
+            )
+        }
+        IconButton(
+            onClick = onOpenQueue,
+            enabled = hasQueue,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_list),
+                contentDescription = "Abrir cola de reproducción",
+            )
+        }
+        IconButton(
+            onClick = onCycleRepeatMode,
+            enabled = track != null,
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    stateDescription = when (playbackState.repeatMode) {
+                        PlaybackRepeatMode.Off -> "Repetición desactivada"
+                        PlaybackRepeatMode.One -> "Repitiendo canción"
+                        PlaybackRepeatMode.All -> "Repitiendo cola"
+                    }
+                },
+        ) {
+            Icon(
+                painter = painterResource(
+                    id = if (playbackState.repeatMode == PlaybackRepeatMode.One) {
+                        R.drawable.ic_repeat_one
+                    } else {
+                        R.drawable.ic_repeat_round
+                    },
+                ),
+                contentDescription = when (playbackState.repeatMode) {
+                    PlaybackRepeatMode.Off -> "Activar repetir canción"
+                    PlaybackRepeatMode.One -> "Activar repetir todo"
+                    PlaybackRepeatMode.All -> "Desactivar repetición"
+                },
+                tint = if (playbackState.repeatMode != PlaybackRepeatMode.Off) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
         }
     }
 }
@@ -442,7 +614,12 @@ private fun NowPlayingArtwork(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(20.dp)
+                .padding(8.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = artworkShape,
+                    clip = false,
+                )
                 .clip(artworkShape),
         )
     }
@@ -452,6 +629,7 @@ private fun NowPlayingArtwork(
 @Composable
 private fun PlaybackProgress(
     positionMillis: Long,
+    bufferedPositionMillis: Long,
     durationMillis: Long,
     enabled: Boolean,
     onSeekTo: (Long) -> Unit,
@@ -480,6 +658,7 @@ private fun PlaybackProgress(
     val durationText = remember(durationMillis) {
         durationMillis.formatDuration()
     }
+    val bufferedProgress = bufferedPositionMillis.progressFor(durationMillis)
 
     LaunchedEffect(positionMillis, durationMillis) {
         if (!isSeeking) {
@@ -534,14 +713,47 @@ private fun PlaybackProgress(
                 }
             },
             track = { sliderState ->
-                SliderDefaults.Track(
-                    sliderState = sliderState,
-                    modifier = Modifier.height(8.dp),
-                    colors = sliderColors,
-                    enabled = enabled && durationMillis > 0L,
-                    thumbTrackGapSize = 0.dp,
-                    trackInsideCornerSize = 0.dp,
-                )
+                val trackEnabled = enabled && durationMillis > 0L
+                val activeColor = if (trackEnabled) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.24f)
+                }
+                val bufferedColor = if (trackEnabled) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.16f)
+                }
+                val inactiveColor = if (trackEnabled) {
+                    MaterialTheme.colorScheme.surfaceContainerHighest
+                } else {
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(CircleShape)
+                        .background(inactiveColor),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(
+                                bufferedProgress
+                                    .coerceAtLeast(sliderState.value)
+                                    .coerceIn(0f, 1f),
+                            )
+                            .background(bufferedColor),
+                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(sliderState.value.coerceIn(0f, 1f))
+                            .background(activeColor),
+                    )
+                }
             },
         )
         Row(
@@ -592,3 +804,6 @@ private fun Long.formatDuration(): String {
         String.format(Locale.US, "%d:%02d", minutes, seconds)
     }
 }
+
+private val TWO_COLUMN_MIN_WIDTH = 640.dp
+private val NOW_PLAYING_MAX_WIDTH = 1_040.dp

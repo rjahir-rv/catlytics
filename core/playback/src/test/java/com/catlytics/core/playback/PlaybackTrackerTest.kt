@@ -31,11 +31,30 @@ class FakePlaybackEventRepository : PlaybackEventRepository {
     override fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>> = emptyFlow()
     override fun observeTopTracks(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopTrack>> = emptyFlow()
     override fun observeTopArtists(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopArtist>> = emptyFlow()
+    override fun observeTopAlbums(
+        startMillis: Long,
+        endMillis: Long,
+        limit: Int,
+    ): Flow<List<com.catlytics.core.model.TopAlbum>> = emptyFlow()
     override fun observeTotalListeningTime(startMillis: Long, endMillis: Long): Flow<Long> = emptyFlow()
     override fun observeDailyListening(startMillis: Long, endMillis: Long): Flow<List<DailyListeningStat>> = emptyFlow()
     override fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int> = emptyFlow()
+    override fun observePeriodUniqueCounts(
+        startMillis: Long,
+        endMillis: Long,
+    ): Flow<com.catlytics.core.model.PeriodUniqueCounts> = emptyFlow()
     override fun observeListeningTotals(): Flow<ListeningTotals> = emptyFlow()
+    override fun observeActiveListeningDays(): Flow<List<java.time.LocalDate>> = emptyFlow()
     override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
+    override suspend fun getAllEvents(): List<PlaybackEvent> = recordedEvents.toList()
+    override suspend fun insertEvents(events: List<PlaybackEvent>) {
+        recordedEvents.addAll(events)
+    }
+    override suspend fun deleteAllEvents() {
+        recordedEvents.clear()
+    }
+    override fun observeBackupSummary(): Flow<com.catlytics.core.model.StatisticsBackupSummary> = emptyFlow()
+    override suspend fun getEventFingerprints(): Set<String> = emptySet()
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

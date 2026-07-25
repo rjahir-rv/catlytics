@@ -445,6 +445,12 @@ private class FakeHomePlaybackEventRepository : PlaybackEventRepository {
         limit: Int,
     ): Flow<List<TopArtist>> = flowOf(emptyList())
 
+    override fun observeTopAlbums(
+        startMillis: Long,
+        endMillis: Long,
+        limit: Int,
+    ): Flow<List<com.catlytics.core.model.TopAlbum>> = flowOf(emptyList())
+
     override fun observeTotalListeningTime(startMillis: Long, endMillis: Long): Flow<Long> = flowOf(0L)
 
     override fun observeDailyListening(
@@ -454,8 +460,28 @@ private class FakeHomePlaybackEventRepository : PlaybackEventRepository {
 
     override fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int> = flowOf(0)
 
+    override fun observePeriodUniqueCounts(
+        startMillis: Long,
+        endMillis: Long,
+    ): Flow<com.catlytics.core.model.PeriodUniqueCounts> =
+        flowOf(com.catlytics.core.model.PeriodUniqueCounts(0, 0, 0))
+
     override fun observeListeningTotals(): Flow<ListeningTotals> =
         flowOf(ListeningTotals(0, 0, 0))
 
+    override fun observeActiveListeningDays(): Flow<List<java.time.LocalDate>> =
+        flowOf(emptyList())
+
     override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
+
+    override suspend fun getAllEvents(): List<PlaybackEvent> = emptyList()
+
+    override suspend fun insertEvents(events: List<PlaybackEvent>) = Unit
+
+    override suspend fun deleteAllEvents() = Unit
+
+    override fun observeBackupSummary(): Flow<com.catlytics.core.model.StatisticsBackupSummary> =
+        flowOf(com.catlytics.core.model.StatisticsBackupSummary(0, null, null))
+
+    override suspend fun getEventFingerprints(): Set<String> = emptySet()
 }

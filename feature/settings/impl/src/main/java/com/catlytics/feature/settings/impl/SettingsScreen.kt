@@ -40,6 +40,9 @@ import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.SleepTimerState
+import com.catlytics.core.model.StatisticsBackupPreview
+import com.catlytics.core.model.StatisticsBackupSummary
+import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsRowText
@@ -59,6 +62,9 @@ internal fun SettingsScreen(
     musicScanSettings: MusicScanSettings,
     musicScanStatus: MusicScanStatus,
     hasAudioPermission: Boolean,
+    statisticsBackupSummary: StatisticsBackupSummary,
+    statisticsBackupStatus: StatisticsBackupStatus,
+    importPreview: StatisticsBackupPreview?,
     onRequestAudioPermission: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
     onCrossfadeDurationChange: (Int) -> Unit,
@@ -72,6 +78,11 @@ internal fun SettingsScreen(
     onEqualizerModeChange: (EqualizerMode) -> Unit,
     onEqualizerPresetSelected: (EqualizerPreset) -> Unit,
     onCustomBandLevelChange: (Short, Int, Boolean) -> Unit,
+    onExportStatisticsClick: () -> Unit,
+    onImportStatisticsClick: () -> Unit,
+    onConfirmImport: (StatisticsImportMode) -> Unit,
+    onDismissImportPreview: () -> Unit,
+    onDismissStatisticsBackupStatus: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     onTopBarTitleChange: (String) -> Unit = {},
     onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {}
@@ -84,7 +95,8 @@ internal fun SettingsScreen(
             SettingsDestination.ScanFolders -> SettingsDestination.MusicScan
             SettingsDestination.About,
             SettingsDestination.Equalizer,
-            SettingsDestination.MusicScan -> SettingsDestination.Main
+            SettingsDestination.MusicScan,
+            SettingsDestination.StatisticsBackup -> SettingsDestination.Main
             SettingsDestination.Main -> SettingsDestination.Main
         }
     }
@@ -113,6 +125,10 @@ internal fun SettingsScreen(
                 onTopBarTitleChange("Carpetas")
                 onTopBarBackActionChange(::navigateBack)
             }
+            SettingsDestination.StatisticsBackup -> {
+                onTopBarTitleChange("Estadísticas")
+                onTopBarBackActionChange(::navigateBack)
+            }
         }
     }
 
@@ -128,6 +144,7 @@ internal fun SettingsScreen(
             onSleepTimerClick = { showSleepTimerSheet = true },
             onEqualizerClick = { destination = SettingsDestination.Equalizer },
             onMusicScanClick = { destination = SettingsDestination.MusicScan },
+            onStatisticsBackupClick = { destination = SettingsDestination.StatisticsBackup },
             onAboutClick = { destination = SettingsDestination.About },
             bottomPadding = bottomPadding,
             modifier = modifier,
@@ -165,6 +182,18 @@ internal fun SettingsScreen(
             bottomPadding = bottomPadding,
             modifier = modifier,
         )
+        SettingsDestination.StatisticsBackup -> StatisticsBackupContent(
+            summary = statisticsBackupSummary,
+            operationStatus = statisticsBackupStatus,
+            importPreview = importPreview,
+            onExportClick = onExportStatisticsClick,
+            onImportClick = onImportStatisticsClick,
+            onConfirmImport = onConfirmImport,
+            onDismissImportPreview = onDismissImportPreview,
+            onDismissStatus = onDismissStatisticsBackupStatus,
+            bottomPadding = bottomPadding,
+            modifier = modifier,
+        )
     }
 
     if (showSleepTimerSheet) {
@@ -195,6 +224,7 @@ private fun SettingsMainContent(
     onSleepTimerClick: () -> Unit,
     onEqualizerClick: () -> Unit,
     onMusicScanClick: () -> Unit,
+    onStatisticsBackupClick: () -> Unit,
     onAboutClick: () -> Unit,
     bottomPadding: () -> Dp,
     modifier: Modifier = Modifier,
@@ -253,6 +283,18 @@ private fun SettingsMainContent(
                     supportingText = "Presets del dispositivo",
                     value = equalizerState.statusLabel,
                     onClick = onEqualizerClick,
+                )
+            }
+        }
+        item {
+            SettingsSection(
+                title = "Datos y recuperación",
+                iconRes = R.drawable.ic_line_chart,
+            ) {
+                SettingsValueRow(
+                    title = "Estadísticas",
+                    supportingText = "Exportar o recuperar tu historial de escucha",
+                    onClick = onStatisticsBackupClick,
                 )
             }
         }
@@ -419,4 +461,5 @@ private enum class SettingsDestination {
     Equalizer,
     MusicScan,
     ScanFolders,
+    StatisticsBackup,
 }
