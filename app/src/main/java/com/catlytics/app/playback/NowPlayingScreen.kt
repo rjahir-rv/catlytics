@@ -1,6 +1,8 @@
 package com.catlytics.app.playback
 
 import android.graphics.Bitmap
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +26,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
@@ -426,24 +427,18 @@ private fun PlaybackControls(
             enabled = enabled,
             modifier = Modifier.size(72.dp),
         ) {
-            if (playbackState.status == PlaybackStatus.Buffering) {
-                CircularProgressIndicator(
-                    modifier = Modifier
-                        .size(30.dp)
-                        .semantics {
-                            contentDescription = "Pausar reproducción; cargando"
-                        },
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 3.dp,
-                )
-            } else {
+            Crossfade(
+                targetState = isPlayingOrBuffering,
+                animationSpec = tween(durationMillis = PLAYBACK_ICON_CROSSFADE_MILLIS),
+                label = "PlaybackIconCrossfade",
+            ) { showPauseIcon ->
                 Icon(
-                    painter = if (isPlayingOrBuffering) {
+                    painter = if (showPauseIcon) {
                         painterResource(id = R.drawable.ic_pause)
                     } else {
                         painterResource(id = R.drawable.ic_play)
                     },
-                    contentDescription = if (isPlayingOrBuffering) {
+                    contentDescription = if (showPauseIcon) {
                         "Pausar"
                     } else {
                         "Reproducir"
@@ -605,9 +600,9 @@ private fun NowPlayingArtwork(
         AsyncImage(
             model = artworkRequest,
             contentDescription = track?.let { "Carátula de ${it.title}" },
-            placeholder = painterResource(id = R.drawable.placeholder_album),
-            error = painterResource(id = R.drawable.placeholder_album),
-            fallback = painterResource(id = R.drawable.placeholder_album),
+            placeholder = painterResource(id = R.drawable.placeholder_track),
+            error = painterResource(id = R.drawable.placeholder_track),
+            fallback = painterResource(id = R.drawable.placeholder_track),
             onSuccess = { state ->
                 onArtworkLoaded(state.result.image.toBitmap())
             },
@@ -807,3 +802,4 @@ private fun Long.formatDuration(): String {
 
 private val TWO_COLUMN_MIN_WIDTH = 640.dp
 private val NOW_PLAYING_MAX_WIDTH = 1_040.dp
+private const val PLAYBACK_ICON_CROSSFADE_MILLIS = 150

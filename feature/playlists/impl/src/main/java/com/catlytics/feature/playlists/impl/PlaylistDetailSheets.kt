@@ -136,9 +136,9 @@ internal fun AddTracksToPlaylistSheet(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(RoundedCornerShape(10.dp)),
-                                placeholder = painterResource(R.drawable.placeholder_album),
-                                error = painterResource(R.drawable.placeholder_album),
-                                fallback = painterResource(R.drawable.placeholder_album),
+                                placeholder = painterResource(R.drawable.placeholder_track),
+                                error = painterResource(R.drawable.placeholder_track),
+                                fallback = painterResource(R.drawable.placeholder_track),
                                 contentScale = ContentScale.Crop,
                             )
                             Column(Modifier.weight(1f)) {

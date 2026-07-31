@@ -23,6 +23,42 @@ class PlaybackQueueOrderTest {
 
         assertEquals(listOf("one", "two", "three"), queue.map(Track::id))
     }
+
+    @Test
+    fun `inserts a new track immediately after the current track`() {
+        val queue = listOf(track("one"), track("two"), track("three"))
+
+        val updatedQueue = queue.withTrackAfterCurrent(
+            currentTrackId = "two",
+            track = track("four"),
+        )
+
+        assertEquals(listOf("one", "two", "four", "three"), updatedQueue.map(Track::id))
+    }
+
+    @Test
+    fun `moves an existing queued track immediately after the current track`() {
+        val queue = listOf(track("one"), track("two"), track("three"), track("four"))
+
+        val updatedQueue = queue.withTrackAfterCurrent(
+            currentTrackId = "one",
+            track = queue.last(),
+        )
+
+        assertEquals(listOf("one", "four", "two", "three"), updatedQueue.map(Track::id))
+    }
+
+    @Test
+    fun `does not duplicate or move the current track`() {
+        val queue = listOf(track("one"), track("two"), track("three"))
+
+        val updatedQueue = queue.withTrackAfterCurrent(
+            currentTrackId = "two",
+            track = queue[1],
+        )
+
+        assertEquals(queue, updatedQueue)
+    }
 }
 
 private fun track(id: String) = Track(

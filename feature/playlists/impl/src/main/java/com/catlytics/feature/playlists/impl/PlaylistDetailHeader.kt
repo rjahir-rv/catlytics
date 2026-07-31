@@ -38,6 +38,7 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.toBitmap
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
@@ -72,15 +73,22 @@ internal fun PlaylistHeader(
                 contentAlignment = Alignment.Center,
             ) {
                 val artworkSize = (maxWidth * 0.72f).coerceAtMost(280.dp)
+                val coverPlaceholder = painterResource(
+                    if (playlist.id == LIKED_PLAYLIST_ID) {
+                        R.drawable.placeholder_favorites
+                    } else {
+                        R.drawable.placeholder_playlist
+                    },
+                )
                 AsyncImage(
                     model = artworkRequest,
                     contentDescription = "Portada de ${playlist.name}",
                     modifier = Modifier
                         .size(artworkSize)
                         .clip(RoundedCornerShape(24.dp)),
-                    placeholder = painterResource(R.drawable.placeholder_playlist),
-                    error = painterResource(R.drawable.placeholder_playlist),
-                    fallback = painterResource(R.drawable.placeholder_playlist),
+                    placeholder = coverPlaceholder,
+                    error = coverPlaceholder,
+                    fallback = coverPlaceholder,
                     onSuccess = { state -> onArtworkLoaded(state.result.image.toBitmap()) },
                     contentScale = ContentScale.Crop,
                 )

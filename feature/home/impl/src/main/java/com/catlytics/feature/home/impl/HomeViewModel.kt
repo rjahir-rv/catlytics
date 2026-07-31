@@ -45,7 +45,9 @@ internal class HomeViewModel @Inject constructor(
             recentlyPlayedTracks = recentlyPlayed.mapNotNull { recentlyPlayedTrack ->
                 tracksById[recentlyPlayedTrack.trackId]
             },
-            topTracks = weeklyStats.topTracks.take(TOP_TRACKS_LIMIT),
+            topTracks = weeklyStats.topTracks
+                .filter { topTrack -> topTrack.trackId in tracksById }
+                .take(TOP_TRACKS_LIMIT),
         )
     }
 
@@ -78,6 +80,20 @@ internal class HomeViewModel @Inject constructor(
     fun onTrackSelected(track: Track, queue: List<Track>) {
         viewModelScope.launch {
             playTrackUseCase(track, queue)
+        }
+    }
+
+    fun onTopTrackSelected(trackId: String) {
+        val state = uiState.value as? HomeUiState.Success ?: return
+        val tracksById = state.tracks.associateBy(Track::id)
+        val topTracksQueue = state.topTracks.mapNotNull { topTrack ->
+            tracksById[topTrack.trackId]
+        }
+        val selectedTrack = tracksById[trackId] ?: return
+        if (topTracksQueue.none { it.id == selectedTrack.id }) return
+
+        viewModelScope.launch {
+            playTrackUseCase(selectedTrack, topTracksQueue)
         }
     }
 

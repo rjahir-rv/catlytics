@@ -180,6 +180,27 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `onTopTrackSelected plays top three queue in ranking order`() = runTest {
+        val tracks = (1..4).map { track("track-$it") }
+        repository.setTracks(tracks)
+        playbackEventRepository.topTracks.value = listOf(
+            TopTrack("track-3", tracks[2].title, tracks[2].artist.name, null, 5, 1L),
+            TopTrack("track-1", tracks[0].title, tracks[0].artist.name, null, 4, 1L),
+            TopTrack("track-4", tracks[3].title, tracks[3].artist.name, null, 3, 1L),
+        )
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onTopTrackSelected("track-1")
+        advanceUntilIdle()
+
+        assertEquals(tracks[0], playbackController.playedTrack)
+        assertEquals(listOf(tracks[2], tracks[0], tracks[3]), playbackController.playedQueue)
+        assertEquals(1, playbackController.startIndex)
+    }
+
+    @Test
     fun `uiState resolves recently played tracks and limits weekly top tracks to three`() = runTest {
         val tracks = (1..4).map { track("track-$it") }
         repository.setTracks(tracks)

@@ -148,6 +148,42 @@ class HomeScreenTest {
     }
 
     @Test
+    fun topTrackDispatchesPlaybackFromItsRow() {
+        var selectedTopTrackId: String? = null
+        composeRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    uiState = HomeUiState.Success(
+                        tracks = listOf(track),
+                        topTracks = listOf(
+                            TopTrack(
+                                trackId = track.id,
+                                title = track.title,
+                                artistName = track.artist.name,
+                                artworkUri = null,
+                                playCount = 3,
+                                totalListenedMillis = 180_000L,
+                            ),
+                        ),
+                    ),
+                    searchQuery = "",
+                    hasAudioPermission = true,
+                    onRequestPermission = {},
+                    onTrackSelected = { _, _ -> },
+                    onTopTrackSelected = { selectedTopTrackId = it },
+                    onTrackOptions = {},
+                )
+            }
+        }
+
+        composeRule
+            .onNodeWithContentDescription("Reproducir ${track.title} desde Top 3")
+            .performClick()
+
+        assertEquals(track.id, selectedTopTrackId)
+    }
+
+    @Test
     fun quickActionsAreShownIndividuallyAndDispatchTheirCallbacks() {
         var uiState: HomeUiState by mutableStateOf(
             HomeUiState.Success(

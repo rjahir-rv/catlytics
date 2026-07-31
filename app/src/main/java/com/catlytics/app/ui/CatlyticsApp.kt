@@ -283,8 +283,9 @@ fun CatlyticsApp(
     }
 
     fun canAddTrackToQueue(track: Track): Boolean =
-        playbackState.currentTrack != null &&
-            playbackState.queue.none { it.id == track.id }
+        playbackState.currentTrack?.id?.let { currentTrackId ->
+            track.id != currentTrackId
+        } ?: false
 
     fun toggleTrackLikedWithToast(trackId: String) {
         playbackViewModel.toggleTrackLiked(trackId) { result ->
@@ -305,7 +306,7 @@ fun CatlyticsApp(
         playbackViewModel.addQueueItem(track) {
             Toast.makeText(
                 context,
-                "${track.title} agregada a la cola",
+                "Se agrego a la fila de reproducción",
                 Toast.LENGTH_SHORT,
             ).show()
         }
@@ -535,9 +536,9 @@ fun CatlyticsApp(
                                 AsyncImage(
                                     model = track.artworkUri,
                                     contentDescription = "Carátula de ${track.title}",
-                                    placeholder = painterResource(id = R.drawable.placeholder_album),
-                                    error = painterResource(id = R.drawable.placeholder_album),
-                                    fallback = painterResource(id = R.drawable.placeholder_album),
+                                    placeholder = painterResource(id = R.drawable.placeholder_track),
+                                    error = painterResource(id = R.drawable.placeholder_track),
+                                    fallback = painterResource(id = R.drawable.placeholder_track),
                                     contentScale = ContentScale.Crop,
                                     modifier = artworkModifier,
                                 )

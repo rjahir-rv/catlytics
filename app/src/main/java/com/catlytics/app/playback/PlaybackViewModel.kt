@@ -138,7 +138,8 @@ class PlaybackViewModel @Inject constructor(
 
     fun addQueueItem(track: Track, onAdded: () -> Unit) {
         val state = playbackState.value
-        if (state.currentTrack == null || state.queue.any { it.id == track.id }) return
+        val currentTrackId = state.currentTrack?.id ?: return
+        if (currentTrackId == track.id) return
         viewModelScope.launch {
             addQueueItemUseCase(track)
             onAdded()

@@ -44,7 +44,7 @@ fun CatlyticsMiniPlayer(
     onClick: () -> Unit,
     artwork: @Composable (Modifier) -> Unit = { artworkModifier ->
         Image(
-            painter = painterResource(id = R.drawable.placeholder_album),
+            painter = painterResource(id = R.drawable.placeholder_track),
             contentDescription = null,
             modifier = artworkModifier,
             contentScale = ContentScale.Crop,

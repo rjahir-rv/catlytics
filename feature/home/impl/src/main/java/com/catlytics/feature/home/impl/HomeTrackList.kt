@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -40,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +71,7 @@ internal fun HomeTrackList(
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onTrackOptions: (Track) -> Unit,
     onRecentlyPlayedTrackSelected: (Track) -> Unit,
+    onTopTrackSelected: (String) -> Unit,
     onNavigateToStatistics: () -> Unit,
     showHighlights: Boolean,
     areFeaturedSectionsVisible: Boolean,
@@ -121,6 +124,7 @@ internal fun HomeTrackList(
                             recentlyPlayedTracks = recentlyPlayedTracks,
                             topTracks = topTracks,
                             onRecentlyPlayedTrackSelected = onRecentlyPlayedTrackSelected,
+                            onTopTrackSelected = onTopTrackSelected,
                             onNavigateToStatistics = onNavigateToStatistics,
                             modifier = Modifier.padding(bottom = 8.dp),
                         )
@@ -313,6 +317,7 @@ private fun HomeHighlights(
     recentlyPlayedTracks: List<Track>,
     topTracks: List<TopTrack>,
     onRecentlyPlayedTrackSelected: (Track) -> Unit,
+    onTopTrackSelected: (String) -> Unit,
     onNavigateToStatistics: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -357,7 +362,11 @@ private fun HomeHighlights(
                     }
                 }
                 topTracks.forEachIndexed { index, track ->
-                    TopTrackRow(rank = index + 1, track = track)
+                    TopTrackRow(
+                        rank = index + 1,
+                        track = track,
+                        onClick = { onTopTrackSelected(track.trackId) },
+                    )
                 }
             }
         }
@@ -397,9 +406,9 @@ private fun RecentlyPlayedTrackCard(
             AsyncImage(
                 model = track.artworkUri,
                 contentDescription = "Reproducir ${track.title}",
-                placeholder = painterResource(R.drawable.placeholder_album),
-                error = painterResource(R.drawable.placeholder_album),
-                fallback = painterResource(R.drawable.placeholder_album),
+                placeholder = painterResource(R.drawable.placeholder_track),
+                error = painterResource(R.drawable.placeholder_track),
+                fallback = painterResource(R.drawable.placeholder_track),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -428,12 +437,18 @@ private fun RecentlyPlayedTrackCard(
 private fun TopTrackRow(
     rank: Int,
     track: TopTrack,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics {
+                contentDescription = "Reproducir ${track.title} desde Top 3"
+            }
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -448,9 +463,9 @@ private fun TopTrackRow(
         AsyncImage(
             model = track.artworkUri,
             contentDescription = null,
-            placeholder = painterResource(R.drawable.placeholder_album),
-            error = painterResource(R.drawable.placeholder_album),
-            fallback = painterResource(R.drawable.placeholder_album),
+            placeholder = painterResource(R.drawable.placeholder_track),
+            error = painterResource(R.drawable.placeholder_track),
+            fallback = painterResource(R.drawable.placeholder_track),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(44.dp)

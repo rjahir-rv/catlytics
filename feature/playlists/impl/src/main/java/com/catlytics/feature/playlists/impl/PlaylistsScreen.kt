@@ -315,6 +315,13 @@ private fun PlaylistListRow(
     onChangeCover: () -> Unit,
     onClearCover: () -> Unit,
 ) {
+    val coverPlaceholder = painterResource(
+        if (playlist.id == LIKED_PLAYLIST_ID) {
+            R.drawable.placeholder_favorites
+        } else {
+            R.drawable.placeholder_playlist
+        },
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -328,9 +335,9 @@ private fun PlaylistListRow(
             modifier = Modifier
                 .size(56.dp)
                 .clip(RoundedCornerShape(16.dp)),
-            placeholder = painterResource(R.drawable.placeholder_playlist),
-            error = painterResource(R.drawable.placeholder_playlist),
-            fallback = painterResource(R.drawable.placeholder_playlist),
+            placeholder = coverPlaceholder,
+            error = coverPlaceholder,
+            fallback = coverPlaceholder,
             contentScale = ContentScale.Crop,
         )
 
@@ -416,6 +423,13 @@ private fun PlaylistMosaicCard(
     onChangeCover: () -> Unit,
     onClearCover: () -> Unit,
 ) {
+    val coverPlaceholder = painterResource(
+        if (playlist.id == LIKED_PLAYLIST_ID) {
+            R.drawable.placeholder_favorites
+        } else {
+            R.drawable.placeholder_playlist
+        },
+    )
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -429,9 +443,9 @@ private fun PlaylistMosaicCard(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(20.dp)),
-            placeholder = painterResource(R.drawable.placeholder_playlist),
-            error = painterResource(R.drawable.placeholder_playlist),
-            fallback = painterResource(R.drawable.placeholder_playlist),
+            placeholder = coverPlaceholder,
+            error = coverPlaceholder,
+            fallback = coverPlaceholder,
             contentScale = ContentScale.Crop,
         )
 

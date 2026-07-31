@@ -479,9 +479,9 @@ private fun ArtistTrackArtwork(
         AsyncImage(
             model = track.artworkUri,
             contentDescription = null,
-            placeholder = painterResource(R.drawable.placeholder_album),
-            error = painterResource(R.drawable.placeholder_album),
-            fallback = painterResource(R.drawable.placeholder_album),
+            placeholder = painterResource(R.drawable.placeholder_track),
+            error = painterResource(R.drawable.placeholder_track),
+            fallback = painterResource(R.drawable.placeholder_track),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(48.dp)

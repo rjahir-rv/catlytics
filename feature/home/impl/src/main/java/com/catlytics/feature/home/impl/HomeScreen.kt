@@ -45,6 +45,7 @@ internal fun HomeRoute(
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = onRequestPermission,
         onTrackSelected = viewModel::onTrackSelected,
+        onTopTrackSelected = viewModel::onTopTrackSelected,
         onPlayDailyPlaylist = {
             viewModel.onPlayDailyPlaylist()
             onNavigateToDailyPlaylist()
@@ -68,6 +69,7 @@ internal fun HomeScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
+    onTopTrackSelected: (String) -> Unit = {},
     onPlayDailyPlaylist: () -> Unit = {},
     onShuffleAll: () -> Unit = {},
     onOpenFavorites: () -> Unit = {},
@@ -141,6 +143,7 @@ internal fun HomeScreen(
                         onRecentlyPlayedTrackSelected = { track ->
                             onTrackSelected(track, uiState.tracks)
                         },
+                        onTopTrackSelected = onTopTrackSelected,
                         onNavigateToStatistics = onNavigateToStatistics,
                         showHighlights = searchQuery.isBlank(),
                         areFeaturedSectionsVisible = areFeaturedSectionsVisible,

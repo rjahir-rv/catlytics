@@ -20,7 +20,7 @@ class NowPlayingScreenTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun bufferingShowsLoadingFeedbackInPlaybackButton() {
+    fun bufferingKeepsPauseButtonVisible() {
         composeRule.setContent {
             MaterialTheme {
                 NowPlayingScreen(
@@ -54,9 +54,7 @@ class NowPlayingScreenTest {
             }
         }
 
-        composeRule
-            .onNodeWithContentDescription("Pausar reproducción; cargando")
-            .fetchSemanticsNode()
+        composeRule.onNodeWithContentDescription("Pausar").assertIsDisplayed()
     }
 
     @Test

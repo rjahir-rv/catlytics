@@ -196,7 +196,10 @@ internal fun PlaybackQueueBottomSheet(
                         },
                         modifier = placementModifier
                             .padding(horizontal = 8.dp)
-                            .zIndex(if (isDragging) 1f else 0f),
+                            .zIndex(if (isDragging) 1f else 0f)
+                            .graphicsLayer {
+                                translationY = if (isDragging) animatedDragOffset else 0f
+                            },
                     ) {
                         QueueTrackRow(
                             track = track,
@@ -206,9 +209,6 @@ internal fun PlaybackQueueBottomSheet(
                                 visibleQueue.indexOfFirst { it.id == track.id }
                                     .takeIf { it >= 0 }
                                     ?.let(onPlayQueueItem)
-                            },
-                            modifier = Modifier.graphicsLayer {
-                                translationY = if (isDragging) animatedDragOffset else 0f
                             },
                             dragModifier = Modifier.pointerInput(track.id, itemHeightPx) {
                                 detectVerticalDragGestures(
@@ -337,28 +337,10 @@ private fun QueueTrackRow(
     onTrackOptions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (isDragging) 1.02f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium,
-        ),
-        label = "queueItemScale",
-    )
-    val dragShape = RoundedCornerShape(20.dp)
-    val dragElevation = with(LocalDensity.current) { 12.dp.toPx() }
-
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(QueueItemHeight)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-                shadowElevation = if (isDragging) dragElevation else 0f
-                this.shape = dragShape
-                clip = isDragging
-            }
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -367,9 +349,9 @@ private fun QueueTrackRow(
         AsyncImage(
             model = track.artworkUri,
             contentDescription = null,
-            placeholder = painterResource(id = R.drawable.placeholder_album),
-            error = painterResource(id = R.drawable.placeholder_album),
-            fallback = painterResource(id = R.drawable.placeholder_album),
+            placeholder = painterResource(id = R.drawable.placeholder_track),
+            error = painterResource(id = R.drawable.placeholder_track),
+            fallback = painterResource(id = R.drawable.placeholder_track),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(48.dp)

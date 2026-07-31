@@ -49,6 +49,7 @@ import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.CreatePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
 import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUseCase
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.PlaylistSourcePreview
@@ -223,6 +224,7 @@ fun AddToPlaylistSheet(
                     },
                     leadingContent = {
                         PlaylistCoverImage(
+                            playlistId = playlist.id,
                             artworkUri = playlist.artworkUri,
                             name = playlist.name,
                         )
@@ -283,19 +285,27 @@ fun AddToPlaylistSheet(
 
 @Composable
 private fun PlaylistCoverImage(
+    playlistId: String,
     artworkUri: String?,
     name: String,
     modifier: Modifier = Modifier,
 ) {
+    val coverPlaceholder = painterResource(
+        if (playlistId == LIKED_PLAYLIST_ID) {
+            R.drawable.placeholder_favorites
+        } else {
+            R.drawable.placeholder_playlist
+        },
+    )
     AsyncImage(
         model = artworkUri,
         contentDescription = "Portada de $name",
         modifier = modifier
             .size(48.dp)
             .clip(RoundedCornerShape(12.dp)),
-        placeholder = painterResource(R.drawable.placeholder_playlist),
-        error = painterResource(R.drawable.placeholder_playlist),
-        fallback = painterResource(R.drawable.placeholder_playlist),
+        placeholder = coverPlaceholder,
+        error = coverPlaceholder,
+        fallback = coverPlaceholder,
         contentScale = ContentScale.Crop,
     )
 }

@@ -130,13 +130,24 @@ class Media3PlaybackController @Inject constructor(
     }
 
     override suspend fun addQueueItem(track: Track) {
-        if (_playbackState.value.currentTrack == null || queue.any { it.id == track.id }) return
+        val currentTrackId = _playbackState.value.currentTrack?.id ?: return
+        val existingIndex = queue.indexOfFirst { it.id == track.id }
+        val updatedQueue = queue.withTrackAfterCurrent(currentTrackId, track)
+        if (updatedQueue == queue) return
 
-        queue = queue + track
+        val nextIndex = updatedQueue.indexOfFirst { it.id == track.id }
+        queue = updatedQueue
+        queueSource = PlaybackQueueSource.Static
         withController { controller ->
-            controller.addMediaItem(track.toMediaItem())
+            controller.shuffleModeEnabled = false
+            if (existingIndex >= 0) {
+                controller.moveMediaItem(existingIndex, nextIndex)
+            } else {
+                controller.addMediaItem(nextIndex, track.toMediaItem())
+            }
             updatePlaybackState(controller, forcePersist = true)
         }
+        restartQueueSync()
     }
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) {
@@ -456,6 +467,20 @@ internal fun shouldSkipToPreviousMediaItem(
 ): Boolean = positionMillis < PREVIOUS_TRACK_THRESHOLD_MILLIS && hasPreviousMediaItem
 
 private const val PREVIOUS_TRACK_THRESHOLD_MILLIS = 5_000L
+
+internal fun List<Track>.withTrackAfterCurrent(
+    currentTrackId: String,
+    track: Track,
+): List<Track> {
+    if (track.id == currentTrackId) return this
+
+    val reorderedQueue = filterNot { it.id == track.id }.toMutableList()
+    val currentIndex = reorderedQueue.indexOfFirst { it.id == currentTrackId }
+    if (currentIndex < 0) return this
+
+    reorderedQueue.add(currentIndex + 1, track)
+    return reorderedQueue
+}
 
 private fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T> =
     toMutableList().apply {
