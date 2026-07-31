@@ -2,9 +2,14 @@ package com.catlytics.core.data.repository
 
 import android.content.Context
 import androidx.core.net.toUri
+import androidx.room.withTransaction
+import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.domain.repository.PlaybackEventRepository
+import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.StatisticsBackupRepository
 import com.catlytics.core.model.PlaybackEvent
+import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.StatisticsBackupPreview
 import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.StatisticsExportResult
@@ -20,6 +25,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.InternalSerializationApi
@@ -32,6 +38,8 @@ import kotlinx.serialization.json.encodeToStream
 class DefaultStatisticsBackupRepository @Inject constructor(
     @ApplicationContext private val context: Context,
     private val playbackEventRepository: PlaybackEventRepository,
+    private val artistIdentityRepository: ArtistIdentityRepository,
+    private val database: CatlyticsDatabase,
 ) : StatisticsBackupRepository {
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
@@ -41,8 +49,10 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         prettyPrint = true
     }
 
-    override fun observeLocalSummary(): Flow<StatisticsBackupSummary> =
-        playbackEventRepository.observeBackupSummary()
+    override fun observeLocalSummary(): Flow<StatisticsBackupSummary> = combine(
+        playbackEventRepository.observeBackupSummary(),
+        artistIdentityRepository.observeAliases(),
+    ) { summary, aliases -> summary.copy(artistAliasCount = aliases.size) }
 
     override suspend fun exportToUri(
         uri: String,
@@ -50,12 +60,14 @@ class DefaultStatisticsBackupRepository @Inject constructor(
     ): Result<StatisticsExportResult> = withContext(ioDispatcher) {
         runSuspendCatching {
             val events = playbackEventRepository.getAllEvents()
+            val aliases = artistIdentityRepository.getAliases()
             val document = StatisticsBackupDocument(
                 format = BACKUP_FORMAT,
                 schemaVersion = SUPPORTED_SCHEMA_VERSION,
                 exportedAtMillis = System.currentTimeMillis(),
                 appVersion = appVersion,
                 events = events.map { it.toDto() },
+                artistAliases = aliases.map { it.toDto() },
             )
             context.contentResolver.openOutputStream(uri.toUri())?.use { output ->
                 writeDocument(
@@ -64,7 +76,10 @@ class DefaultStatisticsBackupRepository @Inject constructor(
                 )
                 output.flush()
             } ?: error("No se pudo abrir el archivo de destino para exportar.")
-            StatisticsExportResult(eventCount = events.size)
+            StatisticsExportResult(
+                eventCount = events.size,
+                artistAliasCount = aliases.size,
+            )
         }
     }
 
@@ -79,6 +94,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
                     eventCount = document.events.size,
                     firstEventMillis = document.events.minOfOrNull { it.timestamp },
                     lastEventMillis = document.events.maxOfOrNull { it.timestamp },
+                    artistAliasCount = document.artistAliases.size,
                 )
             }
         }
@@ -91,23 +107,32 @@ class DefaultStatisticsBackupRepository @Inject constructor(
             val document = readDocument(uri)
             validateDocument(document)
             val parsedEvents = document.events.map { it.toDomain() }
+            val parsedAliases = document.artistAliases.map { it.toDomain() }
             val totalInFile = parsedEvents.size
 
             when (mode) {
                 StatisticsImportMode.Replace -> {
-                    playbackEventRepository.replaceEvents(parsedEvents)
+                    database.withTransaction {
+                        playbackEventRepository.replaceEvents(parsedEvents)
+                        if (document.schemaVersion >= ALIAS_SCHEMA_VERSION) {
+                            artistIdentityRepository.replaceAliases(parsedAliases)
+                        }
+                    }
                     StatisticsImportResult(
                         importedCount = totalInFile,
                         skippedDuplicateCount = 0,
                         totalInFile = totalInFile,
+                        importedArtistAliasCount = parsedAliases.size,
                     )
                 }
                 StatisticsImportMode.Merge -> {
                     val importedCount = playbackEventRepository.insertEventsIfAbsent(parsedEvents)
+                    val importedAliasCount = artistIdentityRepository.mergeAliases(parsedAliases)
                     StatisticsImportResult(
                         importedCount = importedCount,
                         skippedDuplicateCount = totalInFile - importedCount,
                         totalInFile = totalInFile,
+                        importedArtistAliasCount = importedAliasCount,
                     )
                 }
             }
@@ -124,7 +149,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         if (document.format != BACKUP_FORMAT) {
             error("Formato de archivo no reconocido.")
         }
-        if (document.schemaVersion != SUPPORTED_SCHEMA_VERSION) {
+        if (document.schemaVersion !in MIN_SUPPORTED_SCHEMA_VERSION..SUPPORTED_SCHEMA_VERSION) {
             error(
                 "Versión de respaldo no soportada (v${document.schemaVersion}). " +
                     "Esta app admite v$SUPPORTED_SCHEMA_VERSION.",
@@ -144,6 +169,24 @@ class DefaultStatisticsBackupRepository @Inject constructor(
                 "Evento $index: duración de canción inválida."
             }
         }
+        document.artistAliases.forEachIndexed { index, alias ->
+            require(alias.sourceArtistId.isNotBlank()) { "Fusión $index: ID de origen vacío." }
+            require(alias.sourceArtistName.isNotBlank()) { "Fusión $index: origen vacío." }
+            require(alias.targetArtistId.isNotBlank()) { "Fusión $index: ID principal vacío." }
+            require(alias.targetArtistName.isNotBlank()) { "Fusión $index: principal vacío." }
+            require(
+                com.catlytics.core.model.artistIdentityKey(alias.sourceArtistName) !=
+                    com.catlytics.core.model.artistIdentityKey(alias.targetArtistName),
+            ) {
+                "Fusión $index: origen y principal son iguales."
+            }
+        }
+        require(
+            document.artistAliases
+                .map { com.catlytics.core.model.artistIdentityKey(it.sourceArtistName) }
+                .distinct()
+                .size == document.artistAliases.size,
+        ) { "El respaldo contiene fusiones duplicadas." }
     }
 
     @OptIn(
@@ -171,7 +214,9 @@ class DefaultStatisticsBackupRepository @Inject constructor(
 
     companion object {
         const val BACKUP_FORMAT = "catlytics.statistics.backup"
-        const val SUPPORTED_SCHEMA_VERSION = 1
+        const val SUPPORTED_SCHEMA_VERSION = 2
+        const val MIN_SUPPORTED_SCHEMA_VERSION = 1
+        const val ALIAS_SCHEMA_VERSION = 2
         internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
     }
 }
@@ -248,6 +293,15 @@ internal data class StatisticsBackupDocument(
     val exportedAtMillis: Long,
     val appVersion: String = "",
     val events: List<PlaybackEventDto> = emptyList(),
+    val artistAliases: List<ArtistAliasDto> = emptyList(),
+)
+
+@Serializable
+internal data class ArtistAliasDto(
+    val sourceArtistId: String,
+    val sourceArtistName: String,
+    val targetArtistId: String,
+    val targetArtistName: String,
 )
 @OptIn(
     ExperimentalSerializationApi::class,
@@ -291,4 +345,16 @@ private fun PlaybackEventDto.toDomain() = PlaybackEvent(
     durationListenedMillis = durationListenedMillis,
     trackDurationMillis = trackDurationMillis,
     timestamp = timestamp,
+)
+
+private fun ArtistAlias.toDto() = ArtistAliasDto(
+    sourceArtistId = source.id,
+    sourceArtistName = source.name,
+    targetArtistId = target.id,
+    targetArtistName = target.name,
+)
+
+private fun ArtistAliasDto.toDomain() = ArtistAlias(
+    source = Artist(sourceArtistId, sourceArtistName),
+    target = Artist(targetArtistId, targetArtistName),
 )

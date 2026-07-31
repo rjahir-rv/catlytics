@@ -26,6 +26,8 @@ import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.domain.repository.StatisticsBackupRepository
 import com.catlytics.core.data.repository.DefaultStatisticsBackupRepository
 import com.catlytics.core.data.repository.RoomPlaybackEventRepository
+import com.catlytics.core.data.repository.RoomArtistIdentityRepository
+import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -35,6 +37,12 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 interface DataModule {
+    @Binds
+    @Singleton
+    fun bindArtistIdentityRepository(
+        repository: RoomArtistIdentityRepository,
+    ): ArtistIdentityRepository
+
     @Binds
     @Singleton
     fun bindAppPreferencesRepository(

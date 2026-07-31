@@ -1,9 +1,22 @@
 package com.catlytics.core.model
 
+import java.text.Normalizer
+import java.util.Locale
+
 data class Artist(
     val id: String,
     val name: String,
 )
+
+data class ArtistAlias(
+    val source: Artist,
+    val target: Artist,
+)
+
+fun artistIdentityKey(name: String): String = Normalizer
+    .normalize(name.trim(), Normalizer.Form.NFKC)
+    .lowercase(Locale.ROOT)
+    .replace(Regex("\\s+"), " ")
 
 data class ArtistSummary(
     val artist: Artist,
@@ -326,6 +339,7 @@ data class StatisticsBackupSummary(
     val eventCount: Long,
     val firstEventMillis: Long?,
     val lastEventMillis: Long?,
+    val artistAliasCount: Int = 0,
 )
 
 data class StatisticsBackupPreview(
@@ -334,16 +348,19 @@ data class StatisticsBackupPreview(
     val eventCount: Int,
     val firstEventMillis: Long?,
     val lastEventMillis: Long?,
+    val artistAliasCount: Int = 0,
 )
 
 data class StatisticsExportResult(
     val eventCount: Int,
+    val artistAliasCount: Int = 0,
 )
 
 data class StatisticsImportResult(
     val importedCount: Int,
     val skippedDuplicateCount: Int,
     val totalInFile: Int,
+    val importedArtistAliasCount: Int = 0,
 )
 
 enum class StatisticsImportMode {

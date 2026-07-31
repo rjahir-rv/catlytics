@@ -4,6 +4,9 @@ import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.domain.repository.ArtistIdentityRepository
+import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
@@ -17,10 +20,12 @@ import org.junit.Test
 class OfflineFirstLibraryRepositoryTest {
     private val localDataSource = InMemoryLocalDataSource()
     private val preferencesRepository = FakeLibraryPreferencesRepository()
+    private val artistIdentityRepository = FakeArtistIdentityRepository()
     private val repository = OfflineFirstLibraryRepository(
         localDataSource = localDataSource,
         mediator = NoOpDataMediator,
         preferencesRepository = preferencesRepository,
+        artistIdentityRepository = artistIdentityRepository,
     )
 
     @Test
@@ -36,6 +41,7 @@ class OfflineFirstLibraryRepositoryTest {
                 }
             },
             preferencesRepository = preferencesRepository,
+            artistIdentityRepository = artistIdentityRepository,
         )
 
         assertEquals(1, refreshingRepository.refreshTracks())
@@ -269,6 +275,27 @@ class OfflineFirstLibraryRepositoryTest {
     }
 
     @Test
+    fun `artist merge is reflected across summaries content and tracks`() = runTest {
+        val main = Artist("artist-main", "Artista")
+        val collaboration = Artist("artist-collab", "Artista feat. Invitado")
+        localDataSource.replaceTracks(
+            listOf(
+                track("main", artistId = main.id, artistName = main.name),
+                track("collab", artistId = collaboration.id, artistName = collaboration.name),
+            ),
+        )
+
+        artistIdentityRepository.merge(collaboration, main)
+
+        val summary = repository.observeArtists().first().single()
+        val content = requireNotNull(repository.observeArtistContent(collaboration.id).first())
+        assertEquals(main, summary.artist)
+        assertEquals(2, summary.trackCount)
+        assertEquals(setOf("main", "collab"), content.tracks.map { it.id }.toSet())
+        assertEquals(setOf(main), repository.observeTracks().first().map { it.artist }.toSet())
+    }
+
+    @Test
     fun `artist content includes ordered albums and tracks`() = runTest {
         localDataSource.replaceTracks(
             listOf(
@@ -361,6 +388,28 @@ class OfflineFirstLibraryRepositoryTest {
 
 private object NoOpDataMediator : DataMediator {
     override suspend fun syncLibrary() = Unit
+}
+
+private class FakeArtistIdentityRepository : ArtistIdentityRepository {
+    private val aliases = MutableStateFlow(emptyList<ArtistAlias>())
+
+    override fun observeAliases() = aliases
+    override suspend fun getAliases() = aliases.value
+    override suspend fun merge(source: Artist, target: Artist) {
+        aliases.value += ArtistAlias(source, target)
+    }
+    override suspend fun unmerge(source: Artist) {
+        aliases.value = aliases.value.filterNot { it.source == source }
+    }
+    override suspend fun replaceAliases(aliases: List<ArtistAlias>) {
+        this.aliases.value = aliases
+    }
+    override suspend fun mergeAliases(aliases: List<ArtistAlias>): Int {
+        val existing = this.aliases.value.map { it.source.name }.toSet()
+        val newAliases = aliases.filterNot { it.source.name in existing }
+        this.aliases.value += newAliases
+        return newAliases.size
+    }
 }
 
 private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {

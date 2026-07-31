@@ -211,7 +211,12 @@ internal class SettingsViewModel @Inject constructor(
             _statisticsBackupStatus.value = StatisticsBackupStatus.Exporting
             _statisticsBackupStatus.value = exportStatisticsBackupUseCase(uri, appVersion)
                 .fold(
-                    onSuccess = { StatisticsBackupStatus.ExportSuccess(it.eventCount) },
+                    onSuccess = {
+                        StatisticsBackupStatus.ExportSuccess(
+                            eventCount = it.eventCount,
+                            artistAliasCount = it.artistAliasCount,
+                        )
+                    },
                     onFailure = { error ->
                         StatisticsBackupStatus.Error(
                             error.message ?: "No se pudo exportar el respaldo.",
@@ -257,6 +262,7 @@ internal class SettingsViewModel @Inject constructor(
                             importedCount = result.importedCount,
                             skippedDuplicateCount = result.skippedDuplicateCount,
                             totalInFile = result.totalInFile,
+                            importedArtistAliasCount = result.importedArtistAliasCount,
                         )
                     },
                     onFailure = { error ->
@@ -297,11 +303,15 @@ internal sealed interface StatisticsBackupStatus {
     data object Exporting : StatisticsBackupStatus
     data object LoadingPreview : StatisticsBackupStatus
     data object Importing : StatisticsBackupStatus
-    data class ExportSuccess(val eventCount: Int) : StatisticsBackupStatus
+    data class ExportSuccess(
+        val eventCount: Int,
+        val artistAliasCount: Int = 0,
+    ) : StatisticsBackupStatus
     data class ImportSuccess(
         val importedCount: Int,
         val skippedDuplicateCount: Int,
         val totalInFile: Int,
+        val importedArtistAliasCount: Int = 0,
     ) : StatisticsBackupStatus
     data class Error(val message: String) : StatisticsBackupStatus
 }

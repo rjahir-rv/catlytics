@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.PlaybackEvent
+import com.catlytics.core.model.Artist
 import com.catlytics.core.model.StatisticsImportMode
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -27,6 +28,7 @@ class StatisticsBackupLogicTest {
     private lateinit var database: CatlyticsDatabase
     private lateinit var eventRepository: RoomPlaybackEventRepository
     private lateinit var backupRepository: DefaultStatisticsBackupRepository
+    private lateinit var artistIdentityRepository: RoomArtistIdentityRepository
     private val temporaryFiles = mutableListOf<File>()
 
     @Before
@@ -36,7 +38,13 @@ class StatisticsBackupLogicTest {
             .allowMainThreadQueries()
             .build()
         eventRepository = RoomPlaybackEventRepository(database.playbackEventDao())
-        backupRepository = DefaultStatisticsBackupRepository(context, eventRepository)
+        artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao())
+        backupRepository = DefaultStatisticsBackupRepository(
+            context,
+            eventRepository,
+            artistIdentityRepository,
+            database,
+        )
     }
 
     @After
@@ -101,6 +109,28 @@ class StatisticsBackupLogicTest {
         assertEquals(0, secondImport.importedCount)
         assertEquals(2, secondImport.skippedDuplicateCount)
         assertEquals(original, eventRepository.getAllEvents())
+    }
+
+    @Test
+    fun `version two backup restores artist aliases`() = runTest {
+        val source = Artist("collab", "Artista feat. Invitado")
+        val target = Artist("main", "Artista")
+        artistIdentityRepository.merge(source, target)
+        val backupUri = newBackupUri()
+
+        val export = backupRepository.exportToUri(backupUri, "0.0.5").getOrThrow()
+        assertEquals(1, export.artistAliasCount)
+        assertEquals(1, backupRepository.previewFromUri(backupUri).getOrThrow().artistAliasCount)
+
+        artistIdentityRepository.replaceAliases(emptyList())
+        val result = backupRepository.importFromUri(
+            backupUri,
+            StatisticsImportMode.Replace,
+        ).getOrThrow()
+
+        assertEquals(1, result.importedArtistAliasCount)
+        assertEquals(source, artistIdentityRepository.getAliases().single().source)
+        assertEquals(target, artistIdentityRepository.getAliases().single().target)
     }
 
     @Test
@@ -177,6 +207,8 @@ class StatisticsBackupLogicTest {
                     throw CancellationException("test cancellation")
                 }
             },
+            artistIdentityRepository,
+            database,
         )
 
         try {

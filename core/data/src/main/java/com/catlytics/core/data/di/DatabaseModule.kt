@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.data.local.room.PlaybackEventDao
+import com.catlytics.core.data.local.room.ArtistAliasDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,7 +25,10 @@ object DatabaseModule {
                 context,
                 CatlyticsDatabase::class.java,
                 "catlytics.db"
-            ).addMigrations(CatlyticsDatabase.MIGRATION_1_2)
+            ).addMigrations(
+                CatlyticsDatabase.MIGRATION_1_2,
+                CatlyticsDatabase.MIGRATION_2_3,
+            )
         .build()
     }
 
@@ -35,4 +39,9 @@ object DatabaseModule {
     ): PlaybackEventDao {
         return database.playbackEventDao()
     }
+
+    @Provides
+    @Singleton
+    fun provideArtistAliasDao(database: CatlyticsDatabase): ArtistAliasDao =
+        database.artistAliasDao()
 }

@@ -1,12 +1,18 @@
 package com.catlytics.feature.library.impl.artist
 
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
+import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
+import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
@@ -101,11 +107,42 @@ class LibraryArtistViewModelTest {
         assertEquals(LibraryArtistUiState.Success(expectedContentAlbum, "laurel"), viewModel.uiState.value)
     }
 
+    @Test
+    fun `confirming merge sends current artist to selected principal`() = runTest {
+        val repository = ArtistFakeLibraryRepository()
+        val current = artistContent()
+        val target = ArtistSummary(Artist("artist-main", "Artista principal"), albumCount = 1, trackCount = 1)
+        repository.content.value = current
+        repository.artists.value = listOf(current.summary, target)
+        val identityRepository = FakeArtistIdentityRepository()
+        val viewModel = viewModel(
+            repository,
+            ArtistFakePlaybackController(),
+            identityRepository,
+        )
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        viewModel.openArtist(ARTIST_ID)
+        advanceUntilIdle()
+
+        viewModel.showMergePicker()
+        viewModel.selectMergeTarget(target.artist)
+        viewModel.confirmMerge()
+        advanceUntilIdle()
+
+        assertEquals(current.summary.artist, identityRepository.getAliases().single().source)
+        assertEquals(target.artist, identityRepository.getAliases().single().target)
+    }
+
     private fun viewModel(
         repository: ArtistFakeLibraryRepository,
         playbackController: ArtistFakePlaybackController,
+        identityRepository: FakeArtistIdentityRepository = FakeArtistIdentityRepository(),
     ) = LibraryArtistViewModel(
         observeArtistContentUseCase = ObserveArtistContentUseCase(repository),
+        observeArtistsUseCase = ObserveArtistsUseCase(repository),
+        observeArtistAliasesUseCase = ObserveArtistAliasesUseCase(identityRepository),
+        mergeArtistsUseCase = MergeArtistsUseCase(identityRepository),
+        unmergeArtistUseCase = UnmergeArtistUseCase(identityRepository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
     )
 
@@ -131,12 +168,32 @@ class LibraryArtistViewModelTest {
     }
 }
 
+private class FakeArtistIdentityRepository : ArtistIdentityRepository {
+    private val aliases = MutableStateFlow(emptyList<ArtistAlias>())
+    override fun observeAliases() = aliases
+    override suspend fun getAliases() = aliases.value
+    override suspend fun merge(source: Artist, target: Artist) {
+        aliases.value += ArtistAlias(source, target)
+    }
+    override suspend fun unmerge(source: Artist) {
+        aliases.value = aliases.value.filterNot { it.source == source }
+    }
+    override suspend fun replaceAliases(aliases: List<ArtistAlias>) {
+        this.aliases.value = aliases
+    }
+    override suspend fun mergeAliases(aliases: List<ArtistAlias>): Int {
+        this.aliases.value += aliases
+        return aliases.size
+    }
+}
+
 private class ArtistFakeLibraryRepository : LibraryRepository {
     val content = MutableStateFlow<ArtistContent?>(null)
+    val artists = MutableStateFlow(emptyList<ArtistSummary>())
 
     override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
     override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
-    override fun observeArtists() = MutableStateFlow(emptyList<ArtistSummary>())
+    override fun observeArtists() = artists
     override fun observeArtistContent(artistId: String) = content
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
     override fun observeAllTracks() = MutableStateFlow(emptyList<Track>())

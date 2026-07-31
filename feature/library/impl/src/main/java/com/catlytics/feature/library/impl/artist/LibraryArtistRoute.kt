@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.Album
@@ -26,6 +28,7 @@ internal fun LibraryArtistRoute(
     viewModel: LibraryArtistViewModel = hiltViewModel(key = route.artistId),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(route.artistId) {
         viewModel.openArtist(route.artistId)
@@ -33,6 +36,12 @@ internal fun LibraryArtistRoute(
 
     LaunchedEffect(searchQuery) {
         viewModel.onSearchQueryChanged(searchQuery)
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.messages.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
     }
 
     LibraryArtistScreen(
@@ -43,5 +52,13 @@ internal fun LibraryArtistRoute(
         onTrackOptions = onTrackOptions,
         onTopBarColorChange = onTopBarColorChange,
         bottomPadding = bottomPadding,
+        onShowMergePicker = viewModel::showMergePicker,
+        onMergeQueryChange = viewModel::updateMergeQuery,
+        onMergeTargetSelected = viewModel::selectMergeTarget,
+        onShowAliasManager = viewModel::showAliasManager,
+        onUnmergeRequested = viewModel::requestUnmerge,
+        onDismissMergeDialog = viewModel::dismissMergeDialog,
+        onConfirmMerge = viewModel::confirmMerge,
+        onConfirmUnmerge = viewModel::confirmUnmerge,
     )
 }

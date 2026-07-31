@@ -128,7 +128,13 @@ internal fun StatisticsBackupContent(
             is StatisticsBackupStatus.ExportSuccess -> {
                 item {
                     StatusMessage(
-                        text = "Exportado: ${operationStatus.eventCount} eventos.",
+                        text = buildString {
+                            append("Exportado: ${operationStatus.eventCount} eventos")
+                            if (operationStatus.artistAliasCount > 0) {
+                                append(" · ${operationStatus.artistAliasCount} fusiones")
+                            }
+                            append('.')
+                        },
                         isError = false,
                         onDismiss = onDismissStatus,
                     )
@@ -143,6 +149,11 @@ internal fun StatisticsBackupContent(
                                 append(" · omitidos ${operationStatus.skippedDuplicateCount} duplicados")
                             }
                             append(" (archivo: ${operationStatus.totalInFile}).")
+                            if (operationStatus.importedArtistAliasCount > 0) {
+                                append(" Fusiones importadas: ")
+                                append(operationStatus.importedArtistAliasCount)
+                                append('.')
+                            }
                         },
                         isError = false,
                         onDismiss = onDismissStatus,
@@ -213,6 +224,9 @@ private fun ImportConfirmDialog(
                     text = "Se encontraron ${preview.eventCount} eventos " +
                         "(esquema v${preview.schemaVersion}).",
                 )
+                if (preview.artistAliasCount > 0) {
+                    Text("Incluye ${preview.artistAliasCount} fusiones de artistas.")
+                }
                 Text(
                     text = "Exportado: ${formatDateTime(preview.exportedAtMillis)}",
                     style = MaterialTheme.typography.bodySmall,
@@ -229,7 +243,8 @@ private fun ImportConfirmDialog(
                 }
                 Text(
                     text = "Fusionar añade solo eventos nuevos. " +
-                        "Reemplazar borra las estadísticas actuales.",
+                        "Reemplazar sustituye las estadísticas y, en respaldos v2, " +
+                        "las fusiones de artistas.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -262,7 +277,11 @@ private fun ImportConfirmDialog(
 
 private fun formatSummary(summary: StatisticsBackupSummary): String {
     if (summary.eventCount <= 0L) {
-        return "Sin datos todavía"
+        return if (summary.artistAliasCount > 0) {
+            "Sin eventos · ${summary.artistAliasCount} fusiones"
+        } else {
+            "Sin datos todavía"
+        }
     }
     val countLabel = if (summary.eventCount == 1L) {
         "1 evento"
@@ -271,10 +290,15 @@ private fun formatSummary(summary: StatisticsBackupSummary): String {
     }
     val first = summary.firstEventMillis?.let(::formatDate)
     val last = summary.lastEventMillis?.let(::formatDate)
-    return when {
+    val events = when {
         first != null && last != null && first != last -> "$countLabel · $first – $last"
         first != null -> "$countLabel · desde $first"
         else -> countLabel
+    }
+    return if (summary.artistAliasCount > 0) {
+        "$events · ${summary.artistAliasCount} fusiones"
+    } else {
+        events
     }
 }
 

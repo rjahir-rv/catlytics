@@ -12,6 +12,7 @@ import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.TopAlbum
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
+import com.catlytics.core.model.artistIdentityKey
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -122,6 +123,7 @@ private fun PlaybackEvent.toEntity(): PlaybackEventEntity {
         trackTitle = trackTitle,
         artistId = artistId,
         artistName = artistName,
+        artistKey = artistIdentityKey(artistName),
         albumId = albumId,
         albumTitle = albumTitle,
         artworkUri = artworkUri,

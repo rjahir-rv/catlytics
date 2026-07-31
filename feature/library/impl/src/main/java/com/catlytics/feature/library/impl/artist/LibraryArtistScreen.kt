@@ -26,14 +26,22 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,6 +78,7 @@ import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import java.util.Locale
@@ -86,6 +95,14 @@ internal fun LibraryArtistScreen(
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    onShowMergePicker: () -> Unit = {},
+    onMergeQueryChange: (String) -> Unit = {},
+    onMergeTargetSelected: (Artist) -> Unit = {},
+    onShowAliasManager: () -> Unit = {},
+    onUnmergeRequested: (ArtistAlias) -> Unit = {},
+    onDismissMergeDialog: () -> Unit = {},
+    onConfirmMerge: () -> Unit = {},
+    onConfirmUnmerge: () -> Unit = {},
 ) {
     when (uiState) {
         LibraryArtistUiState.Loading -> Box(
@@ -108,6 +125,20 @@ internal fun LibraryArtistScreen(
             onTopBarColorChange = onTopBarColorChange,
             bottomPadding = bottomPadding,
             modifier = modifier,
+            aliases = uiState.aliases,
+            onShowMergePicker = onShowMergePicker,
+            onShowAliasManager = onShowAliasManager,
+        )
+    }
+    if (uiState is LibraryArtistUiState.Success) {
+        ArtistMergeDialogs(
+            state = uiState,
+            onQueryChange = onMergeQueryChange,
+            onTargetSelected = onMergeTargetSelected,
+            onUnmergeRequested = onUnmergeRequested,
+            onDismiss = onDismissMergeDialog,
+            onConfirmMerge = onConfirmMerge,
+            onConfirmUnmerge = onConfirmUnmerge,
         )
     }
 }
@@ -122,6 +153,9 @@ private fun ArtistContent(
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp,
     modifier: Modifier = Modifier,
+    aliases: List<ArtistAlias>,
+    onShowMergePicker: () -> Unit,
+    onShowAliasManager: () -> Unit,
 ) {
     val selectedSectionIndex = rememberSaveable(content.summary.artist.id) { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(
@@ -179,6 +213,9 @@ private fun ArtistContent(
                 content = content,
                 artworkModel = artworkRequest,
                 onArtworkLoaded = { artworkBitmap = it },
+                aliasCount = aliases.size,
+                onShowMergePicker = onShowMergePicker,
+                onShowAliasManager = onShowAliasManager,
                 modifier = Modifier.padding(
                     start = 20.dp,
                     top = 20.dp,
@@ -227,6 +264,9 @@ private fun ArtistHeader(
     content: ArtistContent,
     artworkModel: Any?,
     onArtworkLoaded: (Bitmap) -> Unit,
+    aliasCount: Int,
+    onShowMergePicker: () -> Unit,
+    onShowAliasManager: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -259,6 +299,130 @@ private fun ArtistHeader(
             text = "${content.summary.albumCount} álbumes · ${content.summary.trackCount} canciones",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FilledTonalButton(onClick = onShowMergePicker) {
+            Text("Fusionar con…")
+        }
+        if (aliasCount > 0) {
+            TextButton(onClick = onShowAliasManager) {
+                Text("Administrar fusiones ($aliasCount)")
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ArtistMergeDialogs(
+    state: LibraryArtistUiState.Success,
+    onQueryChange: (String) -> Unit,
+    onTargetSelected: (Artist) -> Unit,
+    onUnmergeRequested: (ArtistAlias) -> Unit,
+    onDismiss: () -> Unit,
+    onConfirmMerge: () -> Unit,
+    onConfirmUnmerge: () -> Unit,
+) {
+    when (val dialog = state.mergeDialog) {
+        ArtistMergeDialog.Hidden -> Unit
+        is ArtistMergeDialog.SelectTarget -> {
+            val candidates = remember(state.mergeCandidates, dialog.query) {
+                val query = dialog.query.trim()
+                if (query.isEmpty()) state.mergeCandidates else state.mergeCandidates.filter {
+                    it.name.contains(query, ignoreCase = true)
+                }
+            }
+            ModalBottomSheet(onDismissRequest = onDismiss) {
+                Text(
+                    text = "Elegir artista principal",
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                )
+                Text(
+                    text = "El artista elegido conservará su nombre en toda la app.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+                OutlinedTextField(
+                    value = dialog.query,
+                    onValueChange = onQueryChange,
+                    label = { Text("Buscar artista") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
+                )
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(bottom = 32.dp),
+                ) {
+                    items(candidates, key = Artist::id) { artist ->
+                        ListItem(
+                            headlineContent = { Text(artist.name) },
+                            modifier = Modifier.clickable { onTargetSelected(artist) },
+                        )
+                    }
+                }
+            }
+        }
+        is ArtistMergeDialog.ConfirmMerge -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Fusionar artistas") },
+            text = {
+                Text(
+                    "${state.content.summary.artist.name} pasará a formar parte de " +
+                        "${dialog.target.name}. Biblioteca y estadísticas usarán ese nombre.",
+                )
+            },
+            confirmButton = {
+                Button(onClick = onConfirmMerge, enabled = !state.isMergeBusy) {
+                    Text(if (state.isMergeBusy) "Fusionando…" else "Fusionar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss, enabled = !state.isMergeBusy) {
+                    Text("Cancelar")
+                }
+            },
+        )
+        ArtistMergeDialog.ManageAliases -> ModalBottomSheet(onDismissRequest = onDismiss) {
+            Text(
+                text = "Artistas fusionados",
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+            )
+            state.aliases.forEachIndexed { index, alias ->
+                ListItem(
+                    headlineContent = { Text(alias.source.name) },
+                    supportingContent = { Text("Se muestra como ${alias.target.name}") },
+                    trailingContent = {
+                        TextButton(onClick = { onUnmergeRequested(alias) }) {
+                            Text("Separar")
+                        }
+                    },
+                )
+                if (index < state.aliases.lastIndex) HorizontalDivider()
+            }
+        }
+        is ArtistMergeDialog.ConfirmUnmerge -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Separar artista") },
+            text = {
+                Text(
+                    "${dialog.alias.source.name} volverá a aparecer como artista independiente " +
+                        "y sus estadísticas se separarán.",
+                )
+            },
+            confirmButton = {
+                Button(onClick = onConfirmUnmerge, enabled = !state.isMergeBusy) {
+                    Text(if (state.isMergeBusy) "Separando…" else "Separar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss, enabled = !state.isMergeBusy) {
+                    Text("Cancelar")
+                }
+            },
         )
     }
 }

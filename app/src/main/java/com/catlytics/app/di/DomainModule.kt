@@ -61,6 +61,10 @@ import com.catlytics.core.domain.usecase.playback.RestorePlaybackSessionUseCase
 import com.catlytics.core.domain.usecase.playback.SeekPlaybackUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
+import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
+import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.usecase.playback.SkipPlaybackUseCase
 import com.catlytics.core.domain.usecase.playback.ToggleShuffleUseCase
@@ -73,6 +77,18 @@ import dagger.hilt.components.SingletonComponent
 @Module
 @InstallIn(SingletonComponent::class)
 object DomainModule {
+    @Provides
+    fun provideObserveArtistAliasesUseCase(repository: ArtistIdentityRepository) =
+        ObserveArtistAliasesUseCase(repository)
+
+    @Provides
+    fun provideMergeArtistsUseCase(repository: ArtistIdentityRepository) =
+        MergeArtistsUseCase(repository)
+
+    @Provides
+    fun provideUnmergeArtistUseCase(repository: ArtistIdentityRepository) =
+        UnmergeArtistUseCase(repository)
+
     @Provides
     fun provideGenerateDailyPlaylistUseCase() = GenerateDailyPlaylistUseCase()
 
