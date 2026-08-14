@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.core.net.toUri
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
@@ -28,7 +29,6 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
-import androidx.core.net.toUri
 
 private val Context.playlistsDataStore: DataStore<Preferences> by preferencesDataStore("playlists")
 
@@ -92,10 +92,12 @@ class DataStorePlaylistRepository internal constructor(
 
     override suspend fun deletePlaylist(playlistId: String) {
         if (playlistId == LIKED_PLAYLIST_ID) return
+        var artworkUri: String? = null
         update { playlists ->
+            artworkUri = playlists.firstOrNull { it.id == playlistId }?.artworkUri
             playlists.filterNot { it.id == playlistId }
         }
-        context?.filesDir?.resolve("playlist_covers/$playlistId.cover")?.delete()
+        deleteManagedCover(playlistId, artworkUri)
     }
 
     override suspend fun addTracks(playlistId: String, trackIds: List<String>): Int =
@@ -142,12 +144,19 @@ class DataStorePlaylistRepository internal constructor(
         val persisted = if (artworkUri != null) {
             copyCoverToInternalIfPossible(artworkUri, playlistId)
         } else {
-            context?.filesDir?.resolve("playlist_covers/$playlistId.cover")?.delete()
             null
         }
+        var previousArtworkUri: String? = null
         update { playlists ->
             playlists.withLikedPlaylist()
-                .map { if (it.id == playlistId) it.copy(artworkUri = persisted) else it }
+                .map { playlist ->
+                    if (playlist.id != playlistId) return@map playlist
+                    previousArtworkUri = playlist.artworkUri
+                    playlist.copy(artworkUri = persisted)
+                }
+        }
+        if (previousArtworkUri != persisted) {
+            deleteManagedCover(playlistId, previousArtworkUri)
         }
     }
 
@@ -160,19 +169,38 @@ class DataStorePlaylistRepository internal constructor(
 
     private fun copyCoverToInternalIfPossible(sourceUri: String, playlistId: String): String {
         val ctx = context ?: return sourceUri
+        val coversDir = ctx.filesDir.resolve("playlist_covers").apply { mkdirs() }
+        val target = File(coversDir, "$playlistId-${UUID.randomUUID()}.cover")
         return try {
             val src = sourceUri.toUri()
-            val coversDir = ctx.filesDir.resolve("playlist_covers").apply { mkdirs() }
-            val target = File(coversDir, "$playlistId.cover")
-            ctx.contentResolver.openInputStream(src)?.use { input ->
+            val input = ctx.contentResolver.openInputStream(src) ?: return sourceUri
+            input.use {
                 target.outputStream().use { output ->
-                    input.copyTo(output)
+                    it.copyTo(output)
                 }
             }
             target.absolutePath
         } catch (_: Exception) {
+            target.delete()
             sourceUri
         }
+    }
+
+    private fun deleteManagedCover(playlistId: String, artworkUri: String?) {
+        val ctx = context ?: return
+        val value = artworkUri ?: return
+        val uri = value.toUri()
+        val cover = when (uri.scheme) {
+            null -> File(value)
+            "file" -> uri.path?.let(::File)
+            else -> null
+        } ?: return
+        val coversDir = ctx.filesDir.resolve("playlist_covers")
+        val isManagedCover = runCatching {
+            cover.parentFile?.canonicalFile == coversDir.canonicalFile &&
+                (cover.name == "$playlistId.cover" || cover.name.startsWith("$playlistId-"))
+        }.getOrDefault(false)
+        if (isManagedCover) cover.delete()
     }
 
     private companion object {

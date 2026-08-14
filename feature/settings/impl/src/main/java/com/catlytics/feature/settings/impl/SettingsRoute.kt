@@ -5,6 +5,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -20,6 +21,7 @@ internal fun SettingsRoute(
     bottomPadding: () -> Dp = { 0.dp },
     onTopBarTitleChange: (String) -> Unit = {},
     onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {},
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
@@ -92,5 +94,6 @@ internal fun SettingsRoute(
         bottomPadding = bottomPadding,
         onTopBarTitleChange = onTopBarTitleChange,
         onTopBarBackActionChange = onTopBarBackActionChange,
+        scaffoldContentPadding = scaffoldContentPadding,
     )
 }

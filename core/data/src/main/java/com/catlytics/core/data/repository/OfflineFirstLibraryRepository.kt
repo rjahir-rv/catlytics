@@ -21,7 +21,6 @@ import com.catlytics.core.model.artistIdentityKey
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.first
 
 class OfflineFirstLibraryRepository @Inject constructor(

@@ -1,8 +1,6 @@
 package com.catlytics.feature.settings.impl
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
@@ -16,18 +14,17 @@ fun EntryProviderScope<NavKey>.settingsEntry(
     bottomPadding: () -> Dp = { 0.dp },
     onTopBarTitleChange: (String) -> Unit = {},
     onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {},
-    contentPadding: () -> androidx.compose.foundation.layout.PaddingValues = { androidx.compose.foundation.layout.PaddingValues(0.dp) },
+    scaffoldContentPadding: () -> PaddingValues = { PaddingValues(0.dp) },
 ) {
     entry<SettingsRoute> {
-        Box(modifier = Modifier.padding(contentPadding())) {
-            SettingsRoute(
-                appVersion = appVersion,
-                hasAudioPermission = hasAudioPermission(),
-                onRequestAudioPermission = onRequestAudioPermission,
-                bottomPadding = bottomPadding,
-                onTopBarTitleChange = onTopBarTitleChange,
-                onTopBarBackActionChange = onTopBarBackActionChange,
-            )
-        }
+        SettingsRoute(
+            appVersion = appVersion,
+            hasAudioPermission = hasAudioPermission(),
+            onRequestAudioPermission = onRequestAudioPermission,
+            bottomPadding = bottomPadding,
+            onTopBarTitleChange = onTopBarTitleChange,
+            onTopBarBackActionChange = onTopBarBackActionChange,
+            scaffoldContentPadding = scaffoldContentPadding(),
+        )
     }
 }

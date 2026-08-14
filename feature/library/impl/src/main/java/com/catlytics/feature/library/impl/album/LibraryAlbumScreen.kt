@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -59,6 +60,7 @@ internal fun LibraryAlbumScreen(
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
         LibraryAlbumUiState.Loading -> Box(
@@ -83,7 +85,10 @@ internal fun LibraryAlbumScreen(
                     .build()
             }
             var artworkBitmap by remember(content.album.artworkUri) { mutableStateOf<Bitmap?>(null) }
-            var gradientColors by remember { mutableStateOf(fallbackGradient) }
+            var gradientColors by remember(content.album.artworkUri, fallbackGradient) {
+                mutableStateOf(fallbackGradient)
+            }
+            val listState = remember(content.album.id) { LazyListState() }
             val animatedGradientColors = animateArtworkGradientColors(
                 target = gradientColors,
                 labelPrefix = "LibraryAlbumGradient",
@@ -102,10 +107,11 @@ internal fun LibraryAlbumScreen(
                 modifier = modifier,
             ) {
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = 20.dp,
-                        top = 20.dp,
+                        top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
                         end = 20.dp,
                         bottom = bottomPadding() + 20.dp,
                     ),

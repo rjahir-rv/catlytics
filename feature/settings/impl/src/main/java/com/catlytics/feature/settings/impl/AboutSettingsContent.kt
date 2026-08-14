@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,15 +25,16 @@ private const val CATLYTICS_REPOSITORY_URL = "https://github.com/rjahir-rv/catly
 internal fun AboutSettingsContent(
     appVersion: String,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     val uriHandler = LocalUriHandler.current
 
     LazyColumn(
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 24.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
             end = 20.dp,
             bottom = bottomPadding() + 80.dp,
         ),

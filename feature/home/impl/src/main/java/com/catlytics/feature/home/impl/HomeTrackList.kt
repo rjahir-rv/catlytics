@@ -88,6 +88,7 @@ internal fun HomeTrackList(
                 FeaturedSectionsHeader(
                     areFeaturedSectionsVisible = areFeaturedSectionsVisible,
                     onToggleFeaturedSections = onToggleFeaturedSections,
+                    modifier = Modifier.padding(horizontal = 20.dp),
                 )
             }
             item(key = "featured-sections-content") {
@@ -103,7 +104,9 @@ internal fun HomeTrackList(
                     ) + fadeOut(animationSpec = tween(durationMillis = 160)),
                 ) {
                     Column(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         if (
@@ -135,7 +138,12 @@ internal fun HomeTrackList(
                 Text(
                     text = "Todas las canciones",
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
+                    modifier = Modifier.padding(
+                        start = 20.dp,
+                        top = 8.dp,
+                        end = 20.dp,
+                        bottom = 4.dp,
+                    ),
                 )
             }
         }
@@ -146,6 +154,7 @@ internal fun HomeTrackList(
                 isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
                 onTrackSelected = { onTrackSelected(track, tracks) },
                 onTrackOptions = { onTrackOptions(track) },
+                modifier = Modifier.padding(horizontal = 20.dp),
             )
         }
     }

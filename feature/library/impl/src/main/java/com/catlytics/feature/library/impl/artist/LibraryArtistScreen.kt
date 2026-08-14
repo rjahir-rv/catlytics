@@ -95,6 +95,7 @@ internal fun LibraryArtistScreen(
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     onShowMergePicker: () -> Unit = {},
     onMergeQueryChange: (String) -> Unit = {},
     onMergeTargetSelected: (Artist) -> Unit = {},
@@ -124,6 +125,7 @@ internal fun LibraryArtistScreen(
             onTrackOptions = onTrackOptions,
             onTopBarColorChange = onTopBarColorChange,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
             aliases = uiState.aliases,
             onShowMergePicker = onShowMergePicker,
@@ -152,6 +154,7 @@ private fun ArtistContent(
     onTrackOptions: (Track) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
     aliases: List<ArtistAlias>,
     onShowMergePicker: () -> Unit,
@@ -163,16 +166,10 @@ private fun ArtistContent(
         pageCount = { ArtistDetailSection.entries.size },
     )
     val coroutineScope = rememberCoroutineScope()
-    val songsListState = rememberSaveable(
-        content.summary.artist.id,
-        saver = LazyListState.Saver,
-    ) {
+    val songsListState = remember(content.summary.artist.id) {
         LazyListState()
     }
-    val albumsGridState = rememberSaveable(
-        content.summary.artist.id,
-        saver = LazyGridState.Saver,
-    ) {
+    val albumsGridState = remember(content.summary.artist.id) {
         LazyGridState()
     }
     val platformContext = LocalPlatformContext.current
@@ -184,7 +181,9 @@ private fun ArtistContent(
             .build()
     }
     var artworkBitmap by remember(content.summary.artworkUri) { mutableStateOf<Bitmap?>(null) }
-    var gradientColors by remember { mutableStateOf(fallbackGradient) }
+    var gradientColors by remember(content.summary.artworkUri, fallbackGradient) {
+        mutableStateOf(fallbackGradient)
+    }
     val animatedGradientColors = animateArtworkGradientColors(
         target = gradientColors,
         labelPrefix = "LibraryArtistGradient",
@@ -218,7 +217,7 @@ private fun ArtistContent(
                 onShowAliasManager = onShowAliasManager,
                 modifier = Modifier.padding(
                     start = 20.dp,
-                    top = 20.dp,
+                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
                     end = 20.dp,
                     bottom = 8.dp,
                 ),

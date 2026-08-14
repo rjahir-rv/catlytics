@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -85,7 +86,8 @@ internal fun SettingsScreen(
     onDismissStatisticsBackupStatus: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     onTopBarTitleChange: (String) -> Unit = {},
-    onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {}
+    onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {},
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.Main) }
     var showSleepTimerSheet by rememberSaveable { mutableStateOf(false) }
@@ -147,11 +149,13 @@ internal fun SettingsScreen(
             onStatisticsBackupClick = { destination = SettingsDestination.StatisticsBackup },
             onAboutClick = { destination = SettingsDestination.About },
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.About -> AboutSettingsContent(
             appVersion = appVersion,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.Equalizer -> EqualizerSettingsContent(
@@ -161,6 +165,7 @@ internal fun SettingsScreen(
             onEqualizerPresetSelected = onEqualizerPresetSelected,
             onCustomBandLevelChange = onCustomBandLevelChange,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.MusicScan -> MusicScanSettingsContent(
@@ -174,12 +179,14 @@ internal fun SettingsScreen(
             onSizeFilterChange = onMusicScanSizeFilterChange,
             onScanMusic = onScanMusic,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.ScanFolders -> ScanFoldersContent(
             folders = libraryFolders,
             onFolderVisibilityChange = onFolderVisibilityChange,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.StatisticsBackup -> StatisticsBackupContent(
@@ -192,6 +199,7 @@ internal fun SettingsScreen(
             onDismissImportPreview = onDismissImportPreview,
             onDismissStatus = onDismissStatisticsBackupStatus,
             bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
     }
@@ -227,13 +235,14 @@ private fun SettingsMainContent(
     onStatisticsBackupClick: () -> Unit,
     onAboutClick: () -> Unit,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
-        modifier = modifier,
+        modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = 24.dp,
+            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
             end = 20.dp,
             bottom = bottomPadding() + 80.dp,
         ),

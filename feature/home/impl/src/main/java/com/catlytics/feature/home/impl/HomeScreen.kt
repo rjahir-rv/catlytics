@@ -1,7 +1,5 @@
 package com.catlytics.feature.home.impl
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -34,6 +32,7 @@ internal fun HomeRoute(
     startupError: String? = null,
     onContentReady: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -56,6 +55,7 @@ internal fun HomeRoute(
         onNavigateToStatistics = onNavigateToStatistics,
         onContentReady = onContentReady,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
         modifier = modifier,
     )
 }
@@ -76,6 +76,7 @@ internal fun HomeScreen(
     onNavigateToStatistics: () -> Unit = {},
     onContentReady: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     LaunchedEffect(uiState, hasAudioPermission) {
         if (!hasAudioPermission || uiState != HomeUiState.Loading) {
@@ -88,37 +89,53 @@ internal fun HomeScreen(
     }
     var areFeaturedSectionsVisible by rememberSaveable { mutableStateOf(true) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        if (!hasAudioPermission) {
-            PermissionRequiredContent(
-                onRequestPermission = onRequestPermission,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(top = 20.dp, bottom = bottomPadding()),
-            )
-            return@Column
-        }
+    if (!hasAudioPermission) {
+        PermissionRequiredContent(
+            onRequestPermission = onRequestPermission,
+            modifier = modifier
+                .fillMaxSize()
+                .padding(
+                    start = 20.dp,
+                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                    end = 20.dp,
+                    bottom = bottomPadding(),
+                ),
+        )
+        return
+    }
 
-        when (uiState) {
+    when (uiState) {
             HomeUiState.Empty -> EmptyLibraryContent(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(top = 20.dp, bottom = bottomPadding()),
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(
+                        start = 20.dp,
+                        top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                        end = 20.dp,
+                        bottom = bottomPadding(),
+                    ),
             )
             is HomeUiState.Error -> ErrorContent(
                 message = uiState.message,
-                modifier = Modifier.padding(top = 20.dp),
+                modifier = modifier.padding(
+                    start = 20.dp,
+                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                    end = 20.dp,
+                ),
             )
-            HomeUiState.Loading -> LoadingContent(modifier = Modifier.padding(top = 20.dp))
+            HomeUiState.Loading -> LoadingContent(
+                modifier = modifier.padding(top = scaffoldContentPadding.calculateTopPadding()),
+            )
             is HomeUiState.Success -> {
                 val filteredTracks = uiState.tracks.filterByQuery(searchQuery)
                 if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
-                    NoSearchResultsContent(modifier = Modifier.padding(top = 20.dp))
+                    NoSearchResultsContent(
+                        modifier = modifier.padding(
+                            start = 20.dp,
+                            top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
+                            end = 20.dp,
+                        ),
+                    )
                 } else {
                     HomeTrackList(
                         tracks = filteredTracks,
@@ -133,10 +150,10 @@ internal fun HomeScreen(
                         onPlayDailyPlaylist = onPlayDailyPlaylist,
                         onShuffleAll = onShuffleAll,
                         onOpenFavorites = onOpenFavorites,
-                        modifier = Modifier.weight(1f),
+                        modifier = modifier.fillMaxSize(),
                         state = trackListState,
                         contentPadding = PaddingValues(
-                            top = 28.dp,
+                            top = scaffoldContentPadding.calculateTopPadding() + 28.dp,
                             bottom = bottomPadding() + 20.dp,
                         ),
                         onTrackOptions = onTrackOptions,
@@ -153,7 +170,6 @@ internal fun HomeScreen(
                     )
                 }
             }
-        }
     }
 }
 

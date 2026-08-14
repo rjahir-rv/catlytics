@@ -55,6 +55,7 @@ internal fun LibraryFolderList(
     onFolderSelected: (LibraryFolder) -> Unit,
     onAddToPlaylist: (LibraryFolder) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    topPadding: Dp = 0.dp,
 ) {
     // Sort inside the leaf so the passed list (search filtered) is stable when only sort changes.
     val sortedFolders: List<LibraryFolder> = remember(folders, sortDirection) {
@@ -79,7 +80,7 @@ internal fun LibraryFolderList(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 20.dp,
-                top = 56.dp,
+                top = topPadding + 56.dp,
                 end = 20.dp,
                 bottom = bottomPadding() + 16.dp,
             ),
@@ -119,7 +120,7 @@ internal fun LibraryFolderList(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp),
+                .padding(start = 12.dp, top = topPadding, end = 12.dp),
             horizontalArrangement = Arrangement.End,
         ) {
             var expanded by remember { mutableStateOf(false) }

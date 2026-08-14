@@ -3,6 +3,7 @@ package com.catlytics.feature.library.impl.folder
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.LibraryFolder
@@ -19,6 +20,7 @@ internal fun LibraryFolderRoute(
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: LibraryFolderViewModel = hiltViewModel(key = route.folderId),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -34,5 +36,6 @@ internal fun LibraryFolderRoute(
         onAddToPlaylist = onAddToPlaylist,
         onTrackOptions = onTrackOptions,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
     )
 }

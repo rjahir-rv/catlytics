@@ -54,6 +54,7 @@ internal fun LibraryAlbumGrid(
     onAlbumSelected: (Album) -> Unit,
     onAddToPlaylist: (Album) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    topPadding: Dp = 0.dp,
 ) {
     // Sort inside the leaf component so that the search-filtered input list stays stable.
     val sortedAlbums: List<Album> = remember(albums, sortDirection) {
@@ -79,7 +80,7 @@ internal fun LibraryAlbumGrid(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 20.dp,
-                top = 56.dp,
+                top = topPadding + 56.dp,
                 end = 20.dp,
                 bottom = bottomPadding() + 20.dp,
             ),
@@ -103,7 +104,7 @@ internal fun LibraryAlbumGrid(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp),
+                .padding(start = 12.dp, top = topPadding, end = 12.dp),
             horizontalArrangement = Arrangement.End,
         ) {
             var expanded by remember { mutableStateOf(false) }

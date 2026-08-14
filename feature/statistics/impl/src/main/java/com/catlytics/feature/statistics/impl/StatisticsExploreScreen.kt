@@ -35,6 +35,7 @@ internal fun StatisticsExploreScreen(
     modifier: Modifier = Modifier,
     viewModel: StatisticsExploreViewModel = hiltViewModel(),
     bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
@@ -70,6 +71,7 @@ internal fun StatisticsExploreScreen(
                     onGranularityChange = viewModel::setGranularity,
                     onShift = viewModel::shiftPeriod,
                     bottomPadding = bottomPadding,
+                    scaffoldContentPadding = scaffoldContentPadding,
                 )
             }
         }
@@ -82,6 +84,7 @@ private fun StatisticsExploreContent(
     onGranularityChange: (StatsGranularity) -> Unit,
     onShift: (Int) -> Unit,
     bottomPadding: () -> androidx.compose.ui.unit.Dp,
+    scaffoldContentPadding: PaddingValues,
 ) {
     val stats = data.stats
     val dayCount = remember(stats.range) {
@@ -112,7 +115,10 @@ private fun StatisticsExploreContent(
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(top = 8.dp, bottom = bottomPadding() + 24.dp),
+        contentPadding = PaddingValues(
+            top = scaffoldContentPadding.calculateTopPadding() + 8.dp,
+            bottom = bottomPadding() + 24.dp,
+        ),
     ) {
         item {
             PeriodSelectorHeader(

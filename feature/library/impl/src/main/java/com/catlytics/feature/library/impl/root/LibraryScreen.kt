@@ -3,6 +3,7 @@ package com.catlytics.feature.library.impl.root
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
@@ -56,6 +57,7 @@ internal fun LibraryScreen(
     sortDirection: SortDirection = SortDirection.Ascending,
     onSortDirectionChange: (SortDirection) -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     // Hoist scroll states (using Saver for better stability across recompositions and sort changes)
     val albumsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
@@ -113,6 +115,7 @@ internal fun LibraryScreen(
                     onFolderSelected = onFolderSelected,
                     onAddToPlaylist = onAddToPlaylist,
                     bottomPadding = bottomPadding,
+                    scaffoldContentPadding = scaffoldContentPadding,
                     modifier = modifier.fillMaxSize(),
                 )
             }
@@ -140,43 +143,18 @@ private fun LibraryContent(
     onFolderSelected: (LibraryFolder) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     bottomPadding: () -> Dp,
+    scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
     val pagerState = rememberPagerState(pageCount = { LibrarySection.entries.size })
     val coroutineScope = rememberCoroutineScope()
 
-    Column(modifier = modifier) {
-        SecondaryTabRow(
-            selectedTabIndex = pagerState.currentPage,
-            containerColor = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.primary,
-            divider = {},
-            indicator = {
-                TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier
-                        .tabIndicatorOffset(pagerState.currentPage)
-                        .padding(horizontal = 20.dp)
-                        .clip(MaterialTheme.shapes.extraLarge),
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            },
-        ) {
-            LibrarySection.entries.forEachIndexed { index, section ->
-                Tab(
-                    selected = index == pagerState.currentPage,
-                    onClick = {
-                        coroutineScope.launch {
-                            pagerState.animateScrollToPage(index)
-                        }
-                    },
-                    text = { Text(section.label) },
-                )
-            }
-        }
+    val pageTopPadding = scaffoldContentPadding.calculateTopPadding() + 48.dp
 
+    Box(modifier = modifier) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.fillMaxSize(),
         ) { page ->
             when (LibrarySection.entries[page]) {
                 LibrarySection.Albums -> LibraryAlbumGrid(
@@ -187,6 +165,7 @@ private fun LibraryContent(
                     onAlbumSelected = onAlbumSelected,
                     onAddToPlaylist = { onAddToPlaylist(PlaylistSource.AlbumSource(it.id)) },
                     bottomPadding = bottomPadding,
+                    topPadding = pageTopPadding,
                 )
                 LibrarySection.Artists -> LibraryArtistCollection(
                     artists = artists,
@@ -201,6 +180,7 @@ private fun LibraryContent(
                         onAddToPlaylist(PlaylistSource.ArtistSource(it.artist.id))
                     },
                     bottomPadding = bottomPadding,
+                    topPadding = pageTopPadding,
                 )
                 LibrarySection.Folders -> LibraryFolderList(
                     folders = folders,
@@ -211,9 +191,40 @@ private fun LibraryContent(
                     onFolderSelected = onFolderSelected,
                     onAddToPlaylist = { onAddToPlaylist(PlaylistSource.FolderSource(it.id)) },
                     bottomPadding = bottomPadding,
+                    topPadding = pageTopPadding,
                 )
             }
         }
+
+        SecondaryTabRow(
+            selectedTabIndex = pagerState.currentPage,
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.primary,
+            divider = {},
+            indicator = {
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier
+                        .tabIndicatorOffset(pagerState.currentPage)
+                        .padding(horizontal = 20.dp)
+                        .clip(MaterialTheme.shapes.extraLarge),
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            },
+            modifier = Modifier.padding(top = scaffoldContentPadding.calculateTopPadding()),
+        ) {
+            LibrarySection.entries.forEachIndexed { index, section ->
+                Tab(
+                    selected = index == pagerState.currentPage,
+                    onClick = {
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    },
+                    text = { Text(section.label) },
+                )
+            }
+        }
+
     }
 }
 

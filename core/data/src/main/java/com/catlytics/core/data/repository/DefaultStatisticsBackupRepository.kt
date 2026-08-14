@@ -295,7 +295,10 @@ internal data class StatisticsBackupDocument(
     val events: List<PlaybackEventDto> = emptyList(),
     val artistAliases: List<ArtistAliasDto> = emptyList(),
 )
-
+@OptIn(
+    ExperimentalSerializationApi::class,
+    InternalSerializationApi::class,
+)
 @Serializable
 internal data class ArtistAliasDto(
     val sourceArtistId: String,

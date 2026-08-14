@@ -8,7 +8,6 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.Column
@@ -17,13 +16,13 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -38,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -53,6 +51,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.metadata
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
 import coil3.compose.AsyncImage
 import com.catlytics.app.navigation.TopLevelDestination
@@ -67,6 +66,7 @@ import com.catlytics.app.playback.shareTrack
 import com.catlytics.app.ui.chrome.CatlyticsBottomBar
 import com.catlytics.app.ui.chrome.LibraryDetailTopAppBar
 import com.catlytics.app.ui.chrome.SettingsTopAppBar
+import com.catlytics.app.ui.chrome.StatusBarProtection
 import com.catlytics.app.ui.chrome.TopLevelTopAppBar
 import com.catlytics.app.ui.sheet.CatlyticsAppSheets
 import com.catlytics.app.ui.sheet.TrackOptionsRequest
@@ -153,7 +153,7 @@ fun CatlyticsApp(
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
-    var detailTopBarColor by remember { mutableStateOf<Color?>(null) }
+    var detailTopBarColors by remember { mutableStateOf<Map<NavKey, Color>>(emptyMap()) }
     var settingsTopBarTitle by remember { mutableStateOf("Ajustes") }
     var settingsTopBarBackAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val appVersion = remember(context) {
@@ -205,15 +205,23 @@ fun CatlyticsApp(
     val canTopBarScroll = rememberUpdatedState(
         !isNowPlayingVisible && !isCurrentSearchExpanded,
     )
+    val topBarState = remember(currentRoute) {
+        TopAppBarState(
+            initialHeightOffsetLimit = -Float.MAX_VALUE,
+            initialHeightOffset = 0f,
+            initialContentOffset = 0f,
+        )
+    }
     val topBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
+        state = topBarState,
         canScroll = remember { { canTopBarScroll.value } },
     )
     val detailChromeColor = when (currentRoute) {
-        is LibraryAlbumRoute, is LibraryArtistRoute, is PlaylistDetailRoute -> detailTopBarColor
+        is LibraryAlbumRoute, is LibraryArtistRoute, is PlaylistDetailRoute ->
+            detailTopBarColors[currentRoute]
         else -> null
     }
     LaunchedEffect(currentRoute) {
-        detailTopBarColor = null
         isArtistSearchExpanded = false
         artistSearchQuery = ""
         if (currentRoute != SettingsRoute) {
@@ -221,7 +229,7 @@ fun CatlyticsApp(
             settingsTopBarBackAction = null
         }
     }
-    LaunchedEffect(currentRoute, settingsTopBarTitle, isCurrentSearchExpanded) {
+    LaunchedEffect(settingsTopBarTitle, isCurrentSearchExpanded) {
         topBarScrollBehavior.state.heightOffset = 0f
         topBarScrollBehavior.state.contentOffset = 0f
     }
@@ -372,12 +380,24 @@ fun CatlyticsApp(
             containerColor = detailChromeColor ?: MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
-            when {
+            Box {
+                if (!isNowPlayingVisible) {
+                    StatusBarProtection(
+                        color = detailChromeColor ?: MaterialTheme.colorScheme.background,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .graphicsLayer {
+                                alpha = topBarScrollBehavior.state.collapsedFraction
+                            },
+                    )
+                }
+
+                when {
                 currentRoute is LibraryAlbumRoute -> {
                     LibraryDetailTopAppBar(
                         title = currentRoute.albumTitle,
                         onBack = ::closeCurrentDestination,
-                        containerColor = detailChromeColor,
+                        containerColor = Color.Transparent,
                         scrollBehavior = topBarScrollBehavior,
                     )
                 }
@@ -385,7 +405,7 @@ fun CatlyticsApp(
                     LibraryDetailTopAppBar(
                         title = "",
                         onBack = ::closeCurrentDestination,
-                        containerColor = detailChromeColor,
+                        containerColor = Color.Transparent,
                         supportsSearch = true,
                         isSearchExpanded = isArtistSearchExpanded,
                         searchQuery = artistSearchQuery,
@@ -414,10 +434,9 @@ fun CatlyticsApp(
                     LibraryDetailTopAppBar(
                         title = "",
                         onBack = ::closeCurrentDestination,
-                        containerColor = detailChromeColor,
+                        containerColor = Color.Transparent,
                         scrollBehavior = topBarScrollBehavior,
                     )
-                    //
                 }
                 currentRoute == DailyPlaylistRoute -> {
                     LibraryDetailTopAppBar(
@@ -502,6 +521,7 @@ fun CatlyticsApp(
                         scrollBehavior = topBarScrollBehavior,
                     )
                 }
+            }
             }
         },
         bottomBar = {
@@ -624,7 +644,7 @@ fun CatlyticsApp(
                         startupError = { startupError },
                         onContentReady = { isHomeContentReady = true },
                         bottomPadding = { bottomPaddingState.value },
-                        contentPadding = { regularPaddingState.value },
+                        scaffoldContentPadding = { regularPaddingState.value },
                     )
                     libraryEntry(
                         searchQuery = { librarySearchQuery },
@@ -633,15 +653,15 @@ fun CatlyticsApp(
                         onDestinationSelected = topLevelBackStack::add,
                         onAddToPlaylist = ::openAddToPlaylist,
                         onTrackOptions = { track -> openTrackOptions(track) },
-                        onLibraryDetailTopBarColorChange = { color ->
-                            detailTopBarColor = color
+                        onLibraryDetailTopBarColorChange = { route, color ->
+                            detailTopBarColors = detailTopBarColors + (route to color)
                         },
                         hasAudioPermission = { hasAudioPermission },
                         onRequestAudioPermission = {
                             audioPermissionLauncher.launch(audioPermission)
                         },
                         bottomPadding = { bottomPaddingState.value },
-                        contentPadding = { regularPaddingState.value },
+                        scaffoldContentPadding = { regularPaddingState.value },
                     )
                     playlistsEntry(
                         searchQuery = { playlistsSearchQuery },
@@ -651,10 +671,10 @@ fun CatlyticsApp(
                             openTrackOptions(track, onRemoveFromPlaylist)
                         },
                         bottomPadding = { bottomPaddingState.value },
-                        onPlaylistDetailTopBarColorChange = { color ->
-                            detailTopBarColor = color
+                        onPlaylistDetailTopBarColorChange = { route, color ->
+                            detailTopBarColors = detailTopBarColors + (route to color)
                         },
-                        contentPadding = { regularPaddingState.value },
+                        scaffoldContentPadding = { regularPaddingState.value },
                     )
                     settingsEntry(
                         appVersion = appVersion,
@@ -665,11 +685,11 @@ fun CatlyticsApp(
                         bottomPadding = { bottomPaddingState.value },
                         onTopBarTitleChange = { title -> settingsTopBarTitle = title },
                         onTopBarBackActionChange = { action -> settingsTopBarBackAction = action },
-                        contentPadding = { regularPaddingState.value },
+                        scaffoldContentPadding = { regularPaddingState.value },
                     )
                     statisticsEntry(
                         bottomPadding = { bottomPaddingState.value },
-                        contentPadding = { regularPaddingState.value },
+                        scaffoldContentPadding = { regularPaddingState.value },
                         onNavigateToExplore = {
                             if (topLevelBackStack.backStack.lastOrNull() != StatisticsExploreRoute) {
                                 topLevelBackStack.add(StatisticsExploreRoute)
@@ -747,27 +767,6 @@ fun CatlyticsApp(
                 },
             )
 
-            if (!isNowPlayingVisible && !isDetailTopBarVisible) {
-                val scrimColor = detailChromeColor ?: MaterialTheme.colorScheme.background
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .fillMaxWidth()
-                        .height(statusBarHeight + 24.dp)
-                        .graphicsLayer {
-                            alpha = topBarScrollBehavior.state.collapsedFraction
-                        }
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colorStops = arrayOf(
-                                    0f to scrimColor.copy(alpha = 0.96f),
-                                    0.55f to scrimColor.copy(alpha = 0.72f),
-                                    1f to scrimColor.copy(alpha = 0f),
-                                ),
-                            ),
-                        ),
-                )
-            }
         }
     }
         CatlyticsAppSheets(

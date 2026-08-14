@@ -1,5 +1,7 @@
 package com.catlytics.core.data.repository
 
+import android.content.Context
+import android.net.Uri
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
@@ -8,11 +10,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 
+@RunWith(RobolectricTestRunner::class)
 class DataStorePlaylistRepositoryTest {
     @get:Rule
     val temporaryFolder = TemporaryFolder()
@@ -78,6 +86,44 @@ class DataStorePlaylistRepositoryTest {
         repository.setPlaylistArtwork(playlist.id, null)
         val cleared = repository.observePlaylists().first().single { it.id == playlist.id }
         assertEquals(null, cleared.artworkUri)
+    }
+
+    @Test
+    fun `replacing copied artwork changes its uri and removes the stale cover`() = runTest {
+        val preferencesFile = temporaryFolder.newFile("playlists-copied-art.preferences_pb")
+        val context: Context = RuntimeEnvironment.getApplication()
+        val repository = DataStorePlaylistRepository(
+            dataStore = PreferenceDataStoreFactory.create(
+                scope = backgroundScope,
+                produceFile = { preferencesFile },
+            ),
+            context = context,
+        )
+        val playlist = repository.createPlaylist("Favoritas")
+        val firstSource = temporaryFolder.newFile("first-cover.jpg").apply {
+            writeText("first cover")
+        }
+        val secondSource = temporaryFolder.newFile("second-cover.jpg").apply {
+            writeText("second cover")
+        }
+
+        repository.setPlaylistArtwork(playlist.id, Uri.fromFile(firstSource).toString())
+        val firstArtwork = repository.observePlaylists().first()
+            .single { it.id == playlist.id }
+            .artworkUri
+        repository.setPlaylistArtwork(playlist.id, Uri.fromFile(secondSource).toString())
+        val secondArtwork = repository.observePlaylists().first()
+            .single { it.id == playlist.id }
+            .artworkUri
+        val firstArtworkPath = requireNotNull(firstArtwork)
+        val secondArtworkPath = requireNotNull(secondArtwork)
+
+        assertNotEquals(firstArtworkPath, secondArtworkPath)
+        assertEquals("second cover", File(secondArtworkPath).readText())
+        assertFalse(File(firstArtworkPath).exists())
+
+        repository.setPlaylistArtwork(playlist.id, null)
+        assertFalse(File(secondArtworkPath).exists())
     }
 
     @Test

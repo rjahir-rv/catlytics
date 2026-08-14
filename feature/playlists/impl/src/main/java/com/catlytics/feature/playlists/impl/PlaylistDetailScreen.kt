@@ -71,6 +71,7 @@ internal fun PlaylistDetailScreen(
     onDelete: () -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
         PlaylistDetailUiState.Loading -> {
@@ -172,28 +173,17 @@ internal fun PlaylistDetailScreen(
     }
 
     ArtworkGradientBackground(colors = animatedGradientColors) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            AnimatedVisibility(
-                visible = searchVisible && content.tracks.isNotEmpty() && !customOrdering,
-                enter = slideInVertically { -it } + fadeIn(),
-                exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
-            ) {
-                PlaylistTrackSearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onFocusChange = { searchFocused = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 20.dp, top = 8.dp, end = 20.dp, bottom = 8.dp),
-                )
-            }
-
+        Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(scrollConnection),
-                contentPadding = PaddingValues(bottom = bottomPadding() + 20.dp),
+                contentPadding = PaddingValues(
+                    top = scaffoldContentPadding.calculateTopPadding() +
+                        if (searchVisible && content.tracks.isNotEmpty() && !customOrdering) 72.dp else 0.dp,
+                    bottom = bottomPadding() + 20.dp,
+                ),
             ) {
                 item(key = "playlist-header") {
                     PlaylistHeader(
@@ -262,6 +252,27 @@ internal fun PlaylistDetailScreen(
                         )
                     }
                 }
+            }
+
+            AnimatedVisibility(
+                visible = searchVisible && content.tracks.isNotEmpty() && !customOrdering,
+                modifier = Modifier.align(Alignment.TopCenter),
+                enter = slideInVertically { -it } + fadeIn(),
+                exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+            ) {
+                PlaylistTrackSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it },
+                    onFocusChange = { searchFocused = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            start = 20.dp,
+                            top = scaffoldContentPadding.calculateTopPadding() + 8.dp,
+                            end = 20.dp,
+                            bottom = 8.dp,
+                        ),
+                )
             }
         }
     }

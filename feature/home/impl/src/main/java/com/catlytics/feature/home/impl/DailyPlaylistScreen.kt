@@ -2,7 +2,6 @@ package com.catlytics.feature.home.impl
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -86,6 +85,7 @@ internal fun DailyPlaylistRoute(
     onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: DailyPlaylistViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -94,6 +94,7 @@ internal fun DailyPlaylistRoute(
         onTrackSelected = viewModel::onTrackSelected,
         onTrackOptions = onTrackOptions,
         bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
         modifier = modifier,
     )
 }
@@ -105,6 +106,7 @@ internal fun DailyPlaylistScreen(
     onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
     bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
         DailyPlaylistUiState.Loading -> Box(
@@ -127,32 +129,32 @@ internal fun DailyPlaylistScreen(
             )
         }
 
-        is DailyPlaylistUiState.Success -> Column(
-            modifier = modifier.fillMaxSize(),
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp),
+        is DailyPlaylistUiState.Success -> LazyColumn(
+                modifier = modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    top = scaffoldContentPadding.calculateTopPadding(),
+                    bottom = bottomPadding() + 20.dp,
+                ),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text(
-                    text = "Tu selección para hoy",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
-                Text(
-                    text = "${uiState.tracks.size} canciones elegidas para ti",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 20.dp),
-                contentPadding = PaddingValues(bottom = bottomPadding() + 20.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
+                item(key = "daily-playlist-header") {
+                    androidx.compose.foundation.layout.Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "Tu selección para hoy",
+                            style = MaterialTheme.typography.headlineSmall,
+                        )
+                        Text(
+                            text = "${uiState.tracks.size} canciones elegidas para ti",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 items(items = uiState.tracks, key = Track::id) { track ->
                     TrackRow(
                         track = track,
@@ -161,9 +163,9 @@ internal fun DailyPlaylistScreen(
                             uiState.isCurrentTrackPlaying,
                         onTrackSelected = { onTrackSelected(track, uiState.tracks) },
                         onTrackOptions = { onTrackOptions(track) },
+                        modifier = Modifier.padding(horizontal = 20.dp),
                     )
                 }
             }
-        }
     }
 }
