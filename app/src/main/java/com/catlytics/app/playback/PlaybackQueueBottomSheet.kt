@@ -10,15 +10,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -56,6 +60,7 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
@@ -114,10 +119,10 @@ internal fun PlaybackQueueBottomSheet(
         }
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val density = LocalDensity.current
     val windowInfo = LocalWindowInfo.current
-    val maxQueueListHeight = remember(density, windowInfo) {
+    val maxSheetHeight = remember(density, windowInfo) {
         with(density) {
             (windowInfo.containerSize.height * QueueSheetMaxHeightFraction).toDp()
         }
@@ -143,33 +148,43 @@ internal fun PlaybackQueueBottomSheet(
         tonalElevation = 0.dp,
         dragHandle = null,
     ) {
-        Column(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(max = maxSheetHeight)
                 .clip(sheetShape)
-                .background(sheetGradient),
+                .background(sheetGradient)
+                .windowInsetsPadding(WindowInsets.navigationBars),
         ) {
-            Box(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                BottomSheetDefaults.DragHandle(
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
-                )
+            val constrainedSheetHeight = when {
+                maxHeight == Dp.Unspecified || maxHeight == Dp.Infinity -> maxSheetHeight
+                else -> minOf(maxHeight, maxSheetHeight)
             }
-            Text(
-                text = "Cola de reproducción",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-            )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = maxQueueListHeight),
-                state = listState,
-                contentPadding = PaddingValues(bottom = 24.dp),
-            ) {
+            val listMaxHeight = (constrainedSheetHeight - QueueSheetHeaderHeight)
+                .coerceAtLeast(QueueItemHeight)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BottomSheetDefaults.DragHandle(
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f),
+                    )
+                }
+                Text(
+                    text = "Cola de reproducción",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                )
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = listMaxHeight),
+                    state = listState,
+                    userScrollEnabled = draggedTrackId == null,
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                ) {
                 items(
                     items = visibleQueue,
                     key = Track::id,
@@ -220,6 +235,34 @@ internal fun PlaybackQueueBottomSheet(
                                     onVerticalDrag = { change, amount ->
                                         change.consume()
                                         dragOffset += amount
+
+                                        val layoutInfo = listState.layoutInfo
+                                        val draggedItem = layoutInfo.visibleItemsInfo
+                                            .firstOrNull { it.key == track.id }
+                                        if (draggedItem != null) {
+                                            val viewportStart = layoutInfo.viewportStartOffset.toFloat()
+                                            val viewportEnd = layoutInfo.viewportEndOffset.toFloat()
+                                            val itemTop = draggedItem.offset + dragOffset
+                                            val itemBottom = itemTop + itemHeightPx
+                                            val edge = itemHeightPx
+                                            val scrollDelta = when {
+                                                itemTop < viewportStart + edge &&
+                                                    listState.canScrollBackward -> {
+                                                    -(viewportStart + edge - itemTop)
+                                                        .coerceAtMost(itemHeightPx)
+                                                }
+                                                itemBottom > viewportEnd - edge &&
+                                                    listState.canScrollForward -> {
+                                                    (itemBottom - (viewportEnd - edge))
+                                                        .coerceAtMost(itemHeightPx)
+                                                }
+                                                else -> 0f
+                                            }
+                                            if (scrollDelta != 0f) {
+                                                dragOffset -= listState.dispatchRawDelta(scrollDelta)
+                                            }
+                                        }
+
                                         if (abs(dragOffset) < itemHeightPx) return@detectVerticalDragGestures
 
                                         val fromIndex = visibleQueue.indexOfFirst { it.id == track.id }
@@ -251,6 +294,7 @@ internal fun PlaybackQueueBottomSheet(
                         )
                     }
                 }
+            }
             }
         }
     }
@@ -433,9 +477,10 @@ private fun QueueTrackRow(
 }
 
 private val QueueItemHeight = 80.dp
+private val QueueSheetHeaderHeight = 88.dp
 private val QueueSheetCornerRadius = 28.dp
 private const val DeleteIconRevealProgress = 0.08f
-private const val QueueSheetMaxHeightFraction = 0.55f
+private const val QueueSheetMaxHeightFraction = 0.88f
 
 private fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T> =
     toMutableList().apply {

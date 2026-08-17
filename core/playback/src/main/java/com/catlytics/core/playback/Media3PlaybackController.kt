@@ -48,6 +48,7 @@ class Media3PlaybackController @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val playbackSessionRepository: PlaybackSessionRepository,
     private val playbackTracker: PlaybackTracker,
+    private val playbackShuffleOrder: PlaybackShuffleOrder,
 ) : PlaybackController {
     private val _playbackState = MutableStateFlow(PlaybackState())
     override val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -59,9 +60,11 @@ class Media3PlaybackController @Inject constructor(
     private var progressUpdatesJob: Job? = null
     private var queueSyncJob: Job? = null
     private var lastSessionSaveTimeMillis = 0L
+    private var suppressPlaybackStateUpdates = false
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
+            if (suppressPlaybackStateUpdates) return
             updatePlaybackState(player)
         }
 
@@ -71,6 +74,7 @@ class Media3PlaybackController @Inject constructor(
         }
 
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+            if (suppressPlaybackStateUpdates) return
             val newTrack = mediaItem?.mediaId?.let { id -> queue.find { it.id == id } }
             playbackTracker.onTrackTransition(newTrack)
         }
@@ -130,34 +134,55 @@ class Media3PlaybackController @Inject constructor(
     }
 
     override suspend fun addQueueItem(track: Track) {
-        val currentTrackId = _playbackState.value.currentTrack?.id ?: return
-        val existingIndex = queue.indexOfFirst { it.id == track.id }
-        val updatedQueue = queue.withTrackAfterCurrent(currentTrackId, track)
-        if (updatedQueue == queue) return
+        val state = _playbackState.value
+        val currentTrackId = state.currentTrack?.id ?: return
+        val playbackQueue = state.queue.ifEmpty { queue }
+        val updatedPlaybackQueue = playbackQueue.withTrackAfterCurrent(currentTrackId, track)
+        if (updatedPlaybackQueue.map(Track::id) == playbackQueue.map(Track::id)) return
 
-        val nextIndex = updatedQueue.indexOfFirst { it.id == track.id }
-        queue = updatedQueue
+        val existingIndex = queue.indexOfFirst { it.id == track.id }
         queueSource = PlaybackQueueSource.Static
-        withController { controller ->
-            controller.shuffleModeEnabled = false
-            if (existingIndex >= 0) {
-                controller.moveMediaItem(existingIndex, nextIndex)
-            } else {
-                controller.addMediaItem(nextIndex, track.toMediaItem())
+        withQueuePlayer { player ->
+            mutateQueue(player, expectedCurrentId = currentTrackId) {
+                if (player.shuffleModeEnabled) {
+                    if (existingIndex < 0) {
+                        player.addMediaItem(track.toMediaItem())
+                        queue = queue + track
+                    }
+                    shuffleIndicesFor(queue, updatedPlaybackQueue)
+                        ?.let(playbackShuffleOrder::setShuffledIndices)
+                } else {
+                    val nextIndex = updatedPlaybackQueue.indexOfFirst { it.id == track.id }
+                    if (existingIndex >= 0) {
+                        player.moveMediaItem(existingIndex, nextIndex)
+                    } else {
+                        player.addMediaItem(nextIndex, track.toMediaItem())
+                    }
+                    queue = updatedPlaybackQueue
+                }
             }
-            updatePlaybackState(controller, forcePersist = true)
         }
         restartQueueSync()
     }
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) {
-        if (fromIndex !in queue.indices || toIndex !in queue.indices || fromIndex == toIndex) return
+        val playbackQueue = _playbackState.value.queue.ifEmpty { queue }
+        if (fromIndex !in playbackQueue.indices || toIndex !in playbackQueue.indices || fromIndex == toIndex) {
+            return
+        }
 
-        queue = queue.moved(fromIndex, toIndex)
-        withController { controller ->
-            controller.shuffleModeEnabled = false
-            controller.moveMediaItem(fromIndex, toIndex)
-            updatePlaybackState(controller, forcePersist = true)
+        val updatedPlaybackQueue = playbackQueue.moved(fromIndex, toIndex)
+        val currentTrackId = _playbackState.value.currentTrack?.id
+        withQueuePlayer { player ->
+            mutateQueue(player, expectedCurrentId = currentTrackId) {
+                if (player.shuffleModeEnabled) {
+                    shuffleIndicesFor(queue, updatedPlaybackQueue)
+                        ?.let(playbackShuffleOrder::setShuffledIndices)
+                } else {
+                    queue = updatedPlaybackQueue
+                    player.moveMediaItem(fromIndex, toIndex)
+                }
+            }
         }
     }
 
@@ -292,14 +317,59 @@ class Media3PlaybackController @Inject constructor(
         playbackSessionRepository.clearSession()
     }
 
+    private suspend fun withQueuePlayer(block: (Player) -> Unit) {
+        withController { controller ->
+            block(playbackShuffleOrder.currentPlayer() ?: controller)
+        }
+    }
+
+    private fun mutateQueue(
+        player: Player,
+        expectedCurrentId: String?,
+        block: () -> Unit,
+    ) {
+        suppressPlaybackStateUpdates = true
+        try {
+            block()
+            restoreCurrentMediaItem(player, expectedCurrentId)
+        } finally {
+            suppressPlaybackStateUpdates = false
+            updatePlaybackState(player, forcePersist = true)
+        }
+    }
+
+    private fun restoreCurrentMediaItem(player: Player, expectedCurrentId: String?) {
+        if (expectedCurrentId == null) return
+        if (player.currentMediaItem?.mediaId == expectedCurrentId) return
+
+        val restoreIndex = (0 until player.mediaItemCount).firstOrNull { index ->
+            player.getMediaItemAt(index).mediaId == expectedCurrentId
+        } ?: return
+        player.seekTo(restoreIndex, _playbackState.value.positionMillis.coerceAtLeast(0L))
+    }
+
     private fun updatePlaybackState(
         player: Player,
         playbackQueue: List<Track> = queue,
         forcePersist: Boolean = false,
     ) {
+        if (suppressPlaybackStateUpdates) return
         val state = player.toPlaybackState(playbackQueue, queueSource)
-        _playbackState.value = state
-        persistPlaybackSession(state, forcePersist)
+        val previousTrack = _playbackState.value.currentTrack
+        val publishedState = if (
+            state.currentTrack == null && previousTrack != null && state.queue.isNotEmpty()
+        ) {
+            state.copy(
+                currentTrack = previousTrack,
+                currentIndex = state.queue.indexOfFirst { it.id == previousTrack.id }
+                    .takeUnless { it < 0 }
+                    ?: state.currentIndex,
+            )
+        } else {
+            state
+        }
+        _playbackState.value = publishedState
+        persistPlaybackSession(publishedState, forcePersist)
         if (player.isPlaying) {
             startProgressUpdates(player)
         } else {

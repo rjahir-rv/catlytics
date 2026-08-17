@@ -59,6 +59,36 @@ class PlaybackQueueOrderTest {
 
         assertEquals(queue, updatedQueue)
     }
+
+    @Test
+    fun `maps a shuffled playback order back to timeline indices`() {
+        val timeline = listOf(track("one"), track("two"), track("three"), track("four"))
+        val playbackOrder = listOf(timeline[2], timeline[0], timeline[3], timeline[1])
+
+        val indices = shuffleIndicesFor(timeline, playbackOrder)
+
+        assertEquals(listOf(2, 0, 3, 1), indices)
+    }
+
+    @Test
+    fun `inserts a new track after the current item in shuffled playback order`() {
+        val playbackQueue = listOf(track("three"), track("one"), track("four"), track("two"))
+
+        val updatedQueue = playbackQueue.withTrackAfterCurrent(
+            currentTrackId = "three",
+            track = track("five"),
+        )
+
+        assertEquals(listOf("three", "five", "one", "four", "two"), updatedQueue.map(Track::id))
+    }
+
+    @Test
+    fun `returns no shuffle indices when playback order does not match the timeline`() {
+        val timeline = listOf(track("one"), track("two"))
+        val playbackOrder = listOf(track("two"), track("missing"))
+
+        assertEquals(null, shuffleIndicesFor(timeline, playbackOrder))
+    }
 }
 
 private fun track(id: String) = Track(

@@ -57,7 +57,7 @@ private fun Player.shuffledMediaItemIndices(): List<Int>? {
     val previousIndices = mutableListOf<Int>()
     var index = currentIndex
     while (true) {
-        index = currentTimeline.getPreviousWindowIndex(index, effectiveRepeatMode(), true)
+        index = currentTimeline.getPreviousWindowIndex(index, Player.REPEAT_MODE_OFF, true)
         if (index == C.INDEX_UNSET || !visitedIndices.add(index)) break
         previousIndices += index
     }
@@ -65,7 +65,7 @@ private fun Player.shuffledMediaItemIndices(): List<Int>? {
     val nextIndices = mutableListOf<Int>()
     index = currentIndex
     while (true) {
-        index = currentTimeline.getNextWindowIndex(index, effectiveRepeatMode(), true)
+        index = currentTimeline.getNextWindowIndex(index, Player.REPEAT_MODE_OFF, true)
         if (index == C.INDEX_UNSET || !visitedIndices.add(index)) break
         nextIndices += index
     }
@@ -73,13 +73,20 @@ private fun Player.shuffledMediaItemIndices(): List<Int>? {
     return previousIndices.asReversed() + currentIndex + nextIndices
 }
 
-private fun Player.effectiveRepeatMode(): Int = when (repeatMode) {
-    Player.REPEAT_MODE_ONE -> Player.REPEAT_MODE_OFF
-    else -> repeatMode
-}
-
 internal fun List<Track>.inPlaybackOrder(shuffledIndices: List<Int>?): List<Track> =
     shuffledIndices?.mapNotNull(::getOrNull)?.takeIf { it.size == size } ?: this
+
+internal fun shuffleIndicesFor(
+    timeline: List<Track>,
+    playbackOrder: List<Track>,
+): List<Int>? {
+    if (timeline.size != playbackOrder.size || timeline.isEmpty()) return null
+
+    val indices = playbackOrder.map { track -> timeline.indexOfFirst { it.id == track.id } }
+    return indices.takeIf { mapped ->
+        mapped.all { it >= 0 } && mapped.toSet().size == mapped.size
+    }
+}
 
 private fun Player.toPlaybackStatus(): PlaybackStatus = when {
     playbackState == Player.STATE_BUFFERING -> PlaybackStatus.Buffering
