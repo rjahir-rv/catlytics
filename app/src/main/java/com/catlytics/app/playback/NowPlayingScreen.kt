@@ -73,6 +73,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Composable
 fun NowPlayingScreen(
     playbackState: PlaybackState,
+    modifier: Modifier = Modifier,
     onBack: () -> Unit,
     onTogglePlayback: () -> Unit,
     onSkipPrevious: () -> Unit,
@@ -96,7 +97,6 @@ fun NowPlayingScreen(
     onGoToCurrentTrackArtist: () -> Unit,
     isCurrentTrackLiked: Boolean,
     onAddCurrentTrackToLiked: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
     val track = playbackState.currentTrack
     val fallbackGradient = rememberFallbackArtworkGradientColors()
