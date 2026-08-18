@@ -1,11 +1,6 @@
 package com.catlytics.feature.playlists.impl
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,7 +15,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
@@ -28,16 +22,20 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.model.Track
 import java.text.Collator
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun PlaylistTrackRow(
     track: Track,
     customOrdering: Boolean,
+    isCurrent: Boolean,
+    isPlaying: Boolean,
     onClick: () -> Unit,
     onOptions: () -> Unit,
     onMove: (Int) -> Unit,
@@ -46,49 +44,48 @@ internal fun PlaylistTrackRow(
     val moveThresholdPx = with(density) { 48.dp.toPx() }
     var dragDistance by remember(track.id) { mutableFloatStateOf(0f) }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !customOrdering, onClick = onClick)
-            .padding(start = 20.dp, end = 12.dp, top = 14.dp, bottom = 14.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(track.title, style = MaterialTheme.typography.titleMedium)
-            Text(track.artist.name, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (customOrdering) {
-            Icon(
-                painter = painterResource(R.drawable.ic_item_selection),
-                contentDescription = "Arrastrar ${track.title}",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .size(48.dp)
-                    .padding(12.dp)
-                    .pointerInput(track.id) {
-                        detectDragGesturesAfterLongPress(
-                            onDragEnd = { dragDistance = 0f },
-                            onDragCancel = { dragDistance = 0f },
-                        ) { change, dragAmount ->
-                            change.consume()
-                            dragDistance += dragAmount.y
-                            if (abs(dragDistance) >= moveThresholdPx) {
-                                onMove(if (dragDistance > 0f) 1 else -1)
-                                dragDistance = 0f
-                            }
-                        }
-                    },
-            )
-        } else {
-            IconButton(onClick = onOptions) {
+    CatlyticsTrackRow(
+        title = track.title,
+        subtitle = "${track.artist.name} · ${track.durationMillis.formatDuration()}",
+        artworkUri = track.artworkUri,
+        isCurrent = isCurrent,
+        isPlaying = isPlaying,
+        onClick = onClick,
+        clickEnabled = !customOrdering,
+        trailing = {
+            if (customOrdering) {
                 Icon(
-                    painterResource(R.drawable.ic_options),
-                    contentDescription = "Opciones de ${track.title}",
+                    painter = painterResource(R.drawable.ic_item_selection),
+                    contentDescription = "Arrastrar ${track.title}",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(48.dp)
+                        .padding(12.dp)
+                        .pointerInput(track.id) {
+                            detectDragGesturesAfterLongPress(
+                                onDragEnd = { dragDistance = 0f },
+                                onDragCancel = { dragDistance = 0f },
+                            ) { change, dragAmount ->
+                                change.consume()
+                                dragDistance += dragAmount.y
+                                if (abs(dragDistance) >= moveThresholdPx) {
+                                    onMove(if (dragDistance > 0f) 1 else -1)
+                                    dragDistance = 0f
+                                }
+                            }
+                        },
                 )
+            } else {
+                IconButton(onClick = onOptions) {
+                    Icon(
+                        painterResource(R.drawable.ic_options),
+                        contentDescription = "Opciones de ${track.title}",
+                    )
+                }
             }
-        }
-    }
+        },
+        modifier = Modifier.padding(start = 20.dp, end = 12.dp),
+    )
 }
 
 @Composable
@@ -160,6 +157,18 @@ internal fun toggleTrackSelection(
 
 internal fun List<Track>.selectedTrackIdsInLibraryOrder(selectedIds: Set<String>): List<String> =
     filter { it.id in selectedIds }.map(Track::id)
+
+private fun Long.formatDuration(): String {
+    val totalSeconds = milliseconds.inWholeSeconds
+    val hours = totalSeconds / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+    return if (hours > 0) {
+        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(Locale.US, "%d:%02d", minutes, seconds)
+    }
+}
 
 internal fun List<Track>.filterPlaylistTracksByQuery(query: String): List<Track> {
     val normalizedQuery = query.trim()

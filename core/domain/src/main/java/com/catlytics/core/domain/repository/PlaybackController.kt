@@ -20,6 +20,8 @@ interface PlaybackController {
 
     suspend fun addQueueItem(track: Track)
 
+    suspend fun playNext(track: Track)
+
     suspend fun moveQueueItem(fromIndex: Int, toIndex: Int)
 
     suspend fun removeQueueItem(index: Int)

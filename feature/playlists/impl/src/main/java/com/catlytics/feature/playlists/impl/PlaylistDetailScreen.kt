@@ -51,6 +51,7 @@ import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 
@@ -243,6 +244,9 @@ internal fun PlaylistDetailScreen(
                         PlaylistTrackRow(
                             track = track,
                             customOrdering = customOrdering,
+                            isCurrent = track.id == playbackState.currentTrack?.id,
+                            isPlaying = track.id == playbackState.currentTrack?.id &&
+                                playbackState.status == PlaybackStatus.Playing,
                             onClick = { onPlay(track, content.tracks) },
                             onOptions = { onTrackOptions(track) },
                             onMove = { direction ->

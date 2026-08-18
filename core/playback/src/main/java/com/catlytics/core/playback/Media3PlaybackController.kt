@@ -56,6 +56,7 @@ class Media3PlaybackController @Inject constructor(
     private val playbackScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val controllerFuture: ListenableFuture<MediaController>
     private var queue: List<Track> = emptyList()
+    private var manualQueue: List<Track> = emptyList()
     private var queueSource: PlaybackQueueSource = PlaybackQueueSource.Static
     private var progressUpdatesJob: Job? = null
     private var queueSyncJob: Job? = null
@@ -111,6 +112,7 @@ class Media3PlaybackController @Inject constructor(
         val playbackQueue = queue.ifEmpty { listOf(track) }
         val selectedIndex = startIndex.coerceIn(0, max(playbackQueue.lastIndex, 0))
         this.queue = playbackQueue
+        this.manualQueue = emptyList()
         this.queueSource = queueSource
         withController { controller ->
             controller.setMediaItems(playbackQueue.map { it.toMediaItem() }, selectedIndex, 0L)
@@ -134,10 +136,29 @@ class Media3PlaybackController @Inject constructor(
     }
 
     override suspend fun addQueueItem(track: Track) {
+        insertQueueItem(track) { playbackQueue, currentTrackId ->
+            pruneManualQueue(playbackQueue, currentTrackId)
+            manualQueue = manualQueue.filterNot { it.id == track.id } + track
+            playbackQueue.withManualQueueAfterCurrent(currentTrackId, manualQueue)
+        }
+    }
+
+    override suspend fun playNext(track: Track) {
+        insertQueueItem(track) { playbackQueue, currentTrackId ->
+            pruneManualQueue(playbackQueue, currentTrackId)
+            manualQueue = listOf(track) + manualQueue.filterNot { it.id == track.id }
+            playbackQueue.withManualQueueAfterCurrent(currentTrackId, manualQueue)
+        }
+    }
+
+    private suspend fun insertQueueItem(
+        track: Track,
+        transform: (playbackQueue: List<Track>, currentTrackId: String) -> List<Track>,
+    ) {
         val state = _playbackState.value
         val currentTrackId = state.currentTrack?.id ?: return
         val playbackQueue = state.queue.ifEmpty { queue }
-        val updatedPlaybackQueue = playbackQueue.withTrackAfterCurrent(currentTrackId, track)
+        val updatedPlaybackQueue = transform(playbackQueue, currentTrackId)
         if (updatedPlaybackQueue.map(Track::id) == playbackQueue.map(Track::id)) return
 
         val existingIndex = queue.indexOfFirst { it.id == track.id }
@@ -152,17 +173,27 @@ class Media3PlaybackController @Inject constructor(
                     shuffleIndicesFor(queue, updatedPlaybackQueue)
                         ?.let(playbackShuffleOrder::setShuffledIndices)
                 } else {
-                    val nextIndex = updatedPlaybackQueue.indexOfFirst { it.id == track.id }
+                    val targetIndex = updatedPlaybackQueue.indexOfFirst { it.id == track.id }
                     if (existingIndex >= 0) {
-                        player.moveMediaItem(existingIndex, nextIndex)
+                        player.moveMediaItem(existingIndex, targetIndex)
                     } else {
-                        player.addMediaItem(nextIndex, track.toMediaItem())
+                        player.addMediaItem(targetIndex, track.toMediaItem())
                     }
                     queue = updatedPlaybackQueue
                 }
             }
         }
         restartQueueSync()
+    }
+
+    private fun pruneManualQueue(playbackQueue: List<Track>, currentTrackId: String) {
+        val currentIndex = playbackQueue.indexOfFirst { it.id == currentTrackId }
+        if (currentIndex < 0) {
+            manualQueue = emptyList()
+            return
+        }
+        val upcomingIds = playbackQueue.drop(currentIndex + 1).map(Track::id).toSet()
+        manualQueue = manualQueue.filter { it.id in upcomingIds }
     }
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) {
@@ -173,6 +204,9 @@ class Media3PlaybackController @Inject constructor(
 
         val updatedPlaybackQueue = playbackQueue.moved(fromIndex, toIndex)
         val currentTrackId = _playbackState.value.currentTrack?.id
+        if (currentTrackId != null) {
+            pruneManualQueue(updatedPlaybackQueue, currentTrackId)
+        }
         withQueuePlayer { player ->
             mutateQueue(player, expectedCurrentId = currentTrackId) {
                 if (player.shuffleModeEnabled) {
@@ -193,6 +227,7 @@ class Media3PlaybackController @Inject constructor(
 
         val updatedQueue = queue.toMutableList().apply { removeAt(queueIndex) }
         queue = updatedQueue
+        manualQueue = manualQueue.filterNot { it.id == trackId }
         withController { controller ->
             controller.removeMediaItem(queueIndex)
             if (updatedQueue.isEmpty()) {
@@ -288,6 +323,7 @@ class Media3PlaybackController @Inject constructor(
             .takeUnless { it < 0 }
             ?: snapshot.currentIndex.coerceIn(0, restoredQueue.lastIndex)
         queue = restoredQueue
+        manualQueue = emptyList()
         queueSource = snapshot.queueSource
 
         withController { controller ->
@@ -312,6 +348,7 @@ class Media3PlaybackController @Inject constructor(
         withController { controller ->
             controller.stop()
             queue = emptyList()
+            manualQueue = emptyList()
             updatePlaybackState(controller, forcePersist = true)
         }
         playbackSessionRepository.clearSession()
@@ -369,6 +406,10 @@ class Media3PlaybackController @Inject constructor(
             state
         }
         _playbackState.value = publishedState
+        val publishedCurrentId = publishedState.currentTrack?.id
+        if (publishedCurrentId != null && publishedCurrentId != previousTrack?.id) {
+            pruneManualQueue(publishedState.queue, publishedCurrentId)
+        }
         persistPlaybackSession(publishedState, forcePersist)
         if (player.isPlaying) {
             startProgressUpdates(player)
@@ -476,6 +517,7 @@ class Media3PlaybackController @Inject constructor(
         if (queue.isEmpty()) return
         val currentTrackId = _playbackState.value.currentTrack?.id
         val updatedQueue = queue.filter { it.id in availableTrackIds }
+        manualQueue = manualQueue.filter { it.id in availableTrackIds }
         if (updatedQueue.map(Track::id) == queue.map(Track::id)) return
         applyQueueReplacement(
             updatedQueue = updatedQueue,
@@ -492,6 +534,7 @@ class Media3PlaybackController @Inject constructor(
         withController { controller ->
             if (updatedQueue.isEmpty() || startTrackId == null) {
                 controller.stop()
+                manualQueue = emptyList()
                 updatePlaybackState(controller, emptyList(), forcePersist = true)
                 playbackScope.launch { playbackSessionRepository.clearSession() }
                 return@withController
@@ -550,6 +593,23 @@ internal fun List<Track>.withTrackAfterCurrent(
 
     reorderedQueue.add(currentIndex + 1, track)
     return reorderedQueue
+}
+
+internal fun List<Track>.withManualQueueAfterCurrent(
+    currentTrackId: String,
+    manualQueue: List<Track>,
+): List<Track> {
+    val currentIndex = indexOfFirst { it.id == currentTrackId }
+    if (currentIndex < 0) return this
+
+    val current = this[currentIndex]
+    val reservedIds = buildSet {
+        add(currentTrackId)
+        manualQueue.forEach { add(it.id) }
+    }
+    val prefix = take(currentIndex).filterNot { it.id in reservedIds }
+    val suffix = drop(currentIndex + 1).filterNot { it.id in reservedIds }
+    return prefix + current + manualQueue + suffix
 }
 
 private fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T> =

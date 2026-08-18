@@ -37,6 +37,7 @@ internal data class TrackOption(
 internal data class TrackOptionsCallbacks(
     val onAddToPlaylist: () -> Unit,
     val onToggleLiked: () -> Unit,
+    val onPlayNext: () -> Unit,
     val onAddToQueue: () -> Unit,
     val onGoToAlbum: () -> Unit,
     val onGoToArtist: () -> Unit,
@@ -62,6 +63,14 @@ internal fun buildTrackOptions(
             text = if (isLiked) "Quitar de Tus me gusta" else "Guardar en Tus me gusta",
             icon = if (isLiked) R.drawable.ic_favorite_fill else R.drawable.ic_favorite,
             onClick = callbacks.onToggleLiked,
+        ),
+    )
+    add(
+        TrackOption(
+            text = "Reproducir siguiente",
+            icon = R.drawable.ic_skip_next,
+            enabled = canAddToQueue,
+            onClick = callbacks.onPlayNext,
         ),
     )
     add(
@@ -108,6 +117,7 @@ internal fun TrackOptionsSheet(
     onDismiss: () -> Unit,
     onAddToPlaylist: () -> Unit,
     onToggleLiked: () -> Unit,
+    onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
     onGoToAlbum: () -> Unit,
     onGoToArtist: () -> Unit,
@@ -122,6 +132,7 @@ internal fun TrackOptionsSheet(
         callbacks = TrackOptionsCallbacks(
             onAddToPlaylist = onAddToPlaylist,
             onToggleLiked = onToggleLiked,
+            onPlayNext = onPlayNext,
             onAddToQueue = onAddToQueue,
             onGoToAlbum = onGoToAlbum,
             onGoToArtist = onGoToArtist,
@@ -159,6 +170,7 @@ internal fun TrackOptionsDropdownMenu(
     canAddToQueue: Boolean,
     onAddToPlaylist: () -> Unit,
     onToggleLiked: () -> Unit,
+    onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
     onGoToAlbum: () -> Unit,
     onGoToArtist: () -> Unit,
@@ -173,6 +185,7 @@ internal fun TrackOptionsDropdownMenu(
         callbacks = TrackOptionsCallbacks(
             onAddToPlaylist = onAddToPlaylist,
             onToggleLiked = onToggleLiked,
+            onPlayNext = onPlayNext,
             onAddToQueue = onAddToQueue,
             onGoToAlbum = onGoToAlbum,
             onGoToArtist = onGoToArtist,

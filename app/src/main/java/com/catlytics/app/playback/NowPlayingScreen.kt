@@ -51,17 +51,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
-import coil3.toBitmap
 import com.catlytics.app.ui.sheet.TrackOptionsDropdownMenu
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsTopAppBar
@@ -96,6 +90,7 @@ fun NowPlayingScreen(
     canAddCurrentTrackToQueue: Boolean,
     onAddCurrentTrackToPlaylist: () -> Unit,
     onToggleCurrentTrackLikedFromOptions: () -> Unit,
+    onPlayNextCurrentTrack: () -> Unit = {},
     onAddCurrentTrackToQueue: () -> Unit,
     onGoToCurrentTrackAlbum: () -> Unit,
     onGoToCurrentTrackArtist: () -> Unit,
@@ -105,7 +100,7 @@ fun NowPlayingScreen(
 ) {
     val track = playbackState.currentTrack
     val fallbackGradient = rememberFallbackArtworkGradientColors()
-    var artworkBitmap by remember(track?.artworkUri) { mutableStateOf<Bitmap?>(null) }
+    var artworkBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var gradientColors by remember { mutableStateOf(fallbackGradient) }
     var isQueueVisible by remember { mutableStateOf(false) }
     val onDismissQueue = remember { { isQueueVisible = false } }
@@ -114,7 +109,13 @@ fun NowPlayingScreen(
         labelPrefix = "NowPlayingGradient",
     )
 
-    LaunchedEffect(track?.artworkUri, artworkBitmap, fallbackGradient) {
+    LaunchedEffect(track?.id, track?.artworkUri) {
+        if (track?.artworkUri == null) {
+            artworkBitmap = null
+        }
+    }
+
+    LaunchedEffect(artworkBitmap, fallbackGradient) {
         gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
     }
 
@@ -172,6 +173,7 @@ fun NowPlayingScreen(
                                 canAddToQueue = canAddCurrentTrackToQueue,
                                 onAddToPlaylist = onAddCurrentTrackToPlaylist,
                                 onToggleLiked = onToggleCurrentTrackLikedFromOptions,
+                                onPlayNext = onPlayNextCurrentTrack,
                                 onAddToQueue = onAddCurrentTrackToQueue,
                                 onGoToAlbum = onGoToCurrentTrackAlbum,
                                 onGoToArtist = onGoToCurrentTrackArtist,
@@ -570,13 +572,6 @@ private fun NowPlayingArtwork(
     modifier: Modifier = Modifier,
 ) {
     val artworkShape = RoundedCornerShape(28.dp)
-    val platformContext = LocalPlatformContext.current
-    val artworkRequest = remember(platformContext, track?.artworkUri) {
-        ImageRequest.Builder(platformContext)
-            .data(track?.artworkUri)
-            .allowHardware(false)
-            .build()
-    }
 
     Box(
         modifier = modifier.aspectRatio(1f),
@@ -596,16 +591,10 @@ private fun NowPlayingArtwork(
                     ),
                 ),
         )
-        AsyncImage(
-            model = artworkRequest,
+        PlaybackArtwork(
+            artworkUri = track?.artworkUri,
             contentDescription = track?.let { "Carátula de ${it.title}" },
-            placeholder = painterResource(id = R.drawable.placeholder_track),
-            error = painterResource(id = R.drawable.placeholder_track),
-            fallback = painterResource(id = R.drawable.placeholder_track),
-            onSuccess = { state ->
-                onArtworkLoaded(state.result.image.toBitmap())
-            },
-            contentScale = ContentScale.Crop,
+            onSuccess = onArtworkLoaded,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(8.dp)

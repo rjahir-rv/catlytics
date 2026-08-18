@@ -139,6 +139,7 @@ internal fun HomeScreen(
                 } else {
                     HomeTrackList(
                         tracks = filteredTracks,
+                        playbackQueue = uiState.tracks,
                         dailyPlaylistTrackCount = uiState.dailyPlaylistTrackCount,
                         canShuffleAll = uiState.canShuffleAll,
                         favoriteTrackCount = uiState.favoriteTracks.size,

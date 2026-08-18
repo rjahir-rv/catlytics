@@ -6,6 +6,7 @@ import com.catlytics.core.domain.usecase.playback.AddQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.PlayNextUseCase
 import com.catlytics.core.domain.usecase.playback.PlayQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.RemoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.RestorePlaybackSessionUseCase
@@ -44,6 +45,7 @@ class PlaybackViewModel @Inject constructor(
     private val cycleRepeatModeUseCase: CycleRepeatModeUseCase,
     private val playQueueItemUseCase: PlayQueueItemUseCase,
     private val addQueueItemUseCase: AddQueueItemUseCase,
+    private val playNextUseCase: PlayNextUseCase,
     private val moveQueueItemUseCase: MoveQueueItemUseCase,
     private val removeQueueItemUseCase: RemoveQueueItemUseCase,
     private val restorePlaybackSessionUseCase: RestorePlaybackSessionUseCase,
@@ -137,12 +139,23 @@ class PlaybackViewModel @Inject constructor(
     }
 
     fun addQueueItem(track: Track, onAdded: () -> Unit) {
-        val state = playbackState.value
-        val currentTrackId = state.currentTrack?.id ?: return
+        enqueueTrack(track, onAdded) { addQueueItemUseCase(it) }
+    }
+
+    fun playNext(track: Track, onQueued: () -> Unit) {
+        enqueueTrack(track, onQueued) { playNextUseCase(it) }
+    }
+
+    private fun enqueueTrack(
+        track: Track,
+        onQueued: () -> Unit,
+        action: suspend (Track) -> Unit,
+    ) {
+        val currentTrackId = playbackState.value.currentTrack?.id ?: return
         if (currentTrackId == track.id) return
         viewModelScope.launch {
-            addQueueItemUseCase(track)
-            onAdded()
+            action(track)
+            onQueued()
         }
     }
 

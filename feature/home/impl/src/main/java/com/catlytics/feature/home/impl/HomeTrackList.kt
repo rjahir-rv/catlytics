@@ -55,6 +55,7 @@ import com.catlytics.core.model.Track
 @Composable
 internal fun HomeTrackList(
     tracks: List<Track>,
+    playbackQueue: List<Track>,
     dailyPlaylistTrackCount: Int,
     canShuffleAll: Boolean,
     favoriteTrackCount: Int,
@@ -152,7 +153,7 @@ internal fun HomeTrackList(
                 track = track,
                 isCurrent = track.id == currentTrackId,
                 isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
-                onTrackSelected = { onTrackSelected(track, tracks) },
+                onTrackSelected = { onTrackSelected(track, playbackQueue) },
                 onTrackOptions = { onTrackOptions(track) },
                 modifier = Modifier.padding(horizontal = 20.dp),
             )

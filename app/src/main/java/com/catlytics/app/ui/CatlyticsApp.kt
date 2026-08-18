@@ -39,12 +39,10 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -53,7 +51,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.metadata
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
-import coil3.compose.AsyncImage
 import com.catlytics.app.navigation.TopLevelDestination
 import com.catlytics.app.navigation.navigationBackTransition
 import com.catlytics.app.navigation.navigationForwardTransition
@@ -61,7 +58,9 @@ import com.catlytics.app.navigation.nowPlayingEnterTransition
 import com.catlytics.app.navigation.nowPlayingExitTransition
 import com.catlytics.app.playback.NowPlayingRoute
 import com.catlytics.app.playback.NowPlayingScreen
+import com.catlytics.app.playback.PlaybackArtwork
 import com.catlytics.app.playback.PlaybackViewModel
+import com.catlytics.app.playback.PrefetchAdjacentPlaybackArtwork
 import com.catlytics.app.playback.shareTrack
 import com.catlytics.app.ui.chrome.CatlyticsBottomBar
 import com.catlytics.app.ui.chrome.LibraryDetailTopAppBar
@@ -70,7 +69,6 @@ import com.catlytics.app.ui.chrome.StatusBarProtection
 import com.catlytics.app.ui.chrome.TopLevelTopAppBar
 import com.catlytics.app.ui.sheet.CatlyticsAppSheets
 import com.catlytics.app.ui.sheet.TrackOptionsRequest
-import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
@@ -314,7 +312,17 @@ fun CatlyticsApp(
         playbackViewModel.addQueueItem(track) {
             Toast.makeText(
                 context,
-                "Se agrego a la fila de reproducción",
+                "Se agregó a la cola de reproducción",
+                Toast.LENGTH_SHORT,
+            ).show()
+        }
+    }
+
+    fun playNextTrackWithToast(track: Track) {
+        playbackViewModel.playNext(track) {
+            Toast.makeText(
+                context,
+                "Se reproducirá a continuación",
                 Toast.LENGTH_SHORT,
             ).show()
         }
@@ -368,6 +376,10 @@ fun CatlyticsApp(
     }
 
     BackHandler(enabled = showStartupLoading) {}
+    PrefetchAdjacentPlaybackArtwork(
+        queue = playbackState.queue,
+        currentIndex = playbackState.currentIndex,
+    )
     StartupLoadingGate(
         isLoading = showStartupLoading,
         composeContent = !isLibraryRefreshRunning,
@@ -553,13 +565,9 @@ fun CatlyticsApp(
                                 }
                             },
                             artwork = { artworkModifier ->
-                                AsyncImage(
-                                    model = track.artworkUri,
+                                PlaybackArtwork(
+                                    artworkUri = track.artworkUri,
                                     contentDescription = "Carátula de ${track.title}",
-                                    placeholder = painterResource(id = R.drawable.placeholder_track),
-                                    error = painterResource(id = R.drawable.placeholder_track),
-                                    fallback = painterResource(id = R.drawable.placeholder_track),
-                                    contentScale = ContentScale.Crop,
                                     modifier = artworkModifier,
                                 )
                             },
@@ -738,6 +746,9 @@ fun CatlyticsApp(
                                     toggleTrackLikedWithToast(track.id)
                                 }
                             },
+                            onPlayNextCurrentTrack = {
+                                playbackState.currentTrack?.let(::playNextTrackWithToast)
+                            },
                             onAddCurrentTrackToQueue = {
                                 playbackState.currentTrack?.let(::addTrackToQueueWithToast)
                             },
@@ -781,6 +792,10 @@ fun CatlyticsApp(
             onToggleTrackLiked = { track ->
                 trackOptionsRequest = null
                 toggleTrackLikedWithToast(track.id)
+            },
+            onPlayNextTrack = { track ->
+                trackOptionsRequest = null
+                playNextTrackWithToast(track)
             },
             onAddTrackToQueue = { track ->
                 trackOptionsRequest = null

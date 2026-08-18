@@ -49,6 +49,54 @@ class PlaybackQueueOrderTest {
     }
 
     @Test
+    fun `add to queue inserts after current before remaining context`() {
+        val queue = listOf(track("one"), track("two"), track("three"))
+
+        val updatedQueue = queue.withManualQueueAfterCurrent(
+            currentTrackId = "one",
+            manualQueue = listOf(track("four")),
+        )
+
+        assertEquals(listOf("one", "four", "two", "three"), updatedQueue.map(Track::id))
+    }
+
+    @Test
+    fun `add to queue appends after previously queued tracks`() {
+        val queue = listOf(track("one"), track("four"), track("two"), track("three"))
+
+        val updatedQueue = queue.withManualQueueAfterCurrent(
+            currentTrackId = "one",
+            manualQueue = listOf(track("four"), track("five")),
+        )
+
+        assertEquals(listOf("one", "four", "five", "two", "three"), updatedQueue.map(Track::id))
+    }
+
+    @Test
+    fun `play next inserts in front of previously queued tracks`() {
+        val queue = listOf(track("one"), track("four"), track("five"), track("two"))
+
+        val updatedQueue = queue.withManualQueueAfterCurrent(
+            currentTrackId = "one",
+            manualQueue = listOf(track("six"), track("four"), track("five")),
+        )
+
+        assertEquals(listOf("one", "six", "four", "five", "two"), updatedQueue.map(Track::id))
+    }
+
+    @Test
+    fun `pulls an existing later track into the manual queue`() {
+        val queue = listOf(track("one"), track("two"), track("three"), track("four"))
+
+        val updatedQueue = queue.withManualQueueAfterCurrent(
+            currentTrackId = "one",
+            manualQueue = listOf(queue.last()),
+        )
+
+        assertEquals(listOf("one", "four", "two", "three"), updatedQueue.map(Track::id))
+    }
+
+    @Test
     fun `does not duplicate or move the current track`() {
         val queue = listOf(track("one"), track("two"), track("three"))
 

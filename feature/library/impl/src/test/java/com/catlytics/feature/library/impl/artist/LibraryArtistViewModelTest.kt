@@ -93,7 +93,14 @@ class LibraryArtistViewModelTest {
             albums = emptyList(),
             tracks = listOf(trackOne),
         )
-        assertEquals(LibraryArtistUiState.Success(expectedContent, "bug"), viewModel.uiState.value)
+        assertEquals(
+            LibraryArtistUiState.Success(
+                content = expectedContent,
+                searchQuery = "bug",
+                playbackQueue = listOf(trackOne, trackTwo),
+            ),
+            viewModel.uiState.value,
+        )
 
         // Search for album title fragment
         viewModel.onSearchQueryChanged("laurel")
@@ -104,7 +111,14 @@ class LibraryArtistViewModelTest {
             albums = listOf(albumOne),
             tracks = emptyList(),
         )
-        assertEquals(LibraryArtistUiState.Success(expectedContentAlbum, "laurel"), viewModel.uiState.value)
+        assertEquals(
+            LibraryArtistUiState.Success(
+                content = expectedContentAlbum,
+                searchQuery = "laurel",
+                playbackQueue = listOf(trackOne, trackTwo),
+            ),
+            viewModel.uiState.value,
+        )
     }
 
     @Test
@@ -225,6 +239,8 @@ private class ArtistFakePlaybackController : PlaybackController {
 
     override suspend fun playQueueItem(index: Int) = Unit
     override suspend fun addQueueItem(track: Track) = Unit
+
+    override suspend fun playNext(track: Track) = Unit
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
     override suspend fun removeQueueItem(index: Int) = Unit
     override suspend fun togglePlayPause() = Unit

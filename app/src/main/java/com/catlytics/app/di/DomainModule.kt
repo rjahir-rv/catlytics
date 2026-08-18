@@ -6,6 +6,7 @@ import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.playback.AddQueueItemUseCase
+import com.catlytics.core.domain.usecase.playback.PlayNextUseCase
 import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
@@ -324,6 +325,11 @@ object DomainModule {
     fun provideAddQueueItemUseCase(
         playbackController: PlaybackController,
     ) = AddQueueItemUseCase(playbackController)
+
+    @Provides
+    fun providePlayNextUseCase(
+        playbackController: PlaybackController,
+    ) = PlayNextUseCase(playbackController)
 
     @Provides
     fun provideMoveQueueItemUseCase(

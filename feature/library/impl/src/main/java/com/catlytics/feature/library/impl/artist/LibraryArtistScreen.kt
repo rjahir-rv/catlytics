@@ -119,6 +119,7 @@ internal fun LibraryArtistScreen(
         is LibraryArtistUiState.Error -> ArtistMessage(uiState.message, modifier)
         is LibraryArtistUiState.Success -> ArtistContent(
             content = uiState.content,
+            playbackQueue = uiState.playbackQueue,
             onAlbumSelected = onAlbumSelected,
             onTrackSelected = onTrackSelected,
             onAddToPlaylist = onAddToPlaylist,
@@ -148,6 +149,7 @@ internal fun LibraryArtistScreen(
 @Composable
 private fun ArtistContent(
     content: ArtistContent,
+    playbackQueue: List<Track>,
     onAlbumSelected: (Album) -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
@@ -239,7 +241,7 @@ private fun ArtistContent(
                     ArtistDetailSection.Songs -> ArtistSongsPage(
                         tracks = content.tracks,
                         state = songsListState,
-                        onTrackSelected = { track -> onTrackSelected(track, content.tracks) },
+                        onTrackSelected = { track -> onTrackSelected(track, playbackQueue) },
                         onTrackOptions = onTrackOptions,
                         bottomPadding = bottomPadding,
                     )

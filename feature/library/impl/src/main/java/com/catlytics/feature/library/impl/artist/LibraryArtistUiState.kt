@@ -3,6 +3,7 @@ package com.catlytics.feature.library.impl.artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
+import com.catlytics.core.model.Track
 
 internal sealed interface LibraryArtistUiState {
     data object Loading : LibraryArtistUiState
@@ -10,6 +11,7 @@ internal sealed interface LibraryArtistUiState {
     data class Success(
         val content: ArtistContent,
         val searchQuery: String = "",
+        val playbackQueue: List<Track> = content.tracks,
         val mergeCandidates: List<Artist> = emptyList(),
         val aliases: List<ArtistAlias> = emptyList(),
         val mergeDialog: ArtistMergeDialog = ArtistMergeDialog.Hidden,

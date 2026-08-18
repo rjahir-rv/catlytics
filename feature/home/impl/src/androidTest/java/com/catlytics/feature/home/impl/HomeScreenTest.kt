@@ -236,6 +236,36 @@ class HomeScreenTest {
     }
 
     @Test
+    fun playingASearchResultKeepsTheFullLibraryQueue() {
+        val matchingTrack = track.copy(id = "track-match", title = "Canción buscada")
+        val otherTrack = track.copy(id = "track-other", title = "Otra canción")
+        var selectedTrack: Track? = null
+        var selectedQueue: List<Track>? = null
+        composeRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    uiState = HomeUiState.Success(
+                        tracks = listOf(otherTrack, matchingTrack),
+                    ),
+                    searchQuery = "buscada",
+                    hasAudioPermission = true,
+                    onRequestPermission = {},
+                    onTrackSelected = { selected, queue ->
+                        selectedTrack = selected
+                        selectedQueue = queue
+                    },
+                    onTrackOptions = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText(matchingTrack.title).performClick()
+
+        assertEquals(matchingTrack, selectedTrack)
+        assertEquals(listOf(otherTrack, matchingTrack), selectedQueue)
+    }
+
+    @Test
     fun quickActionsAreHiddenDuringSearch() {
         composeRule.setContent {
             MaterialTheme {

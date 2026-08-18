@@ -3,19 +3,27 @@ package com.catlytics.feature.settings.impl
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
@@ -23,6 +31,7 @@ import com.catlytics.core.model.StatisticsBackupPreview
 import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.feature.settings.impl.components.SettingsDivider
+import com.catlytics.feature.settings.impl.components.SettingsRowText
 import com.catlytics.feature.settings.impl.components.SettingsSection
 import com.catlytics.feature.settings.impl.components.SettingsValueRow
 import java.time.Instant
@@ -178,8 +187,7 @@ internal fun StatisticsBackupContent(
     if (importPreview != null) {
         ImportConfirmDialog(
             preview = importPreview,
-            onMerge = { onConfirmImport(StatisticsImportMode.Merge) },
-            onReplace = { onConfirmImport(StatisticsImportMode.Replace) },
+            onConfirm = onConfirmImport,
             onDismiss = onDismissImportPreview,
         )
     }
@@ -213,15 +221,16 @@ private fun StatusMessage(
 @Composable
 private fun ImportConfirmDialog(
     preview: StatisticsBackupPreview,
-    onMerge: () -> Unit,
-    onReplace: () -> Unit,
+    onConfirm: (StatisticsImportMode) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    var selectedMode by rememberSaveable { mutableStateOf(StatisticsImportMode.Merge) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Importar respaldo") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
                     text = "Se encontraron ${preview.eventCount} eventos " +
                         "(esquema v${preview.schemaVersion}).",
@@ -243,13 +252,6 @@ private fun ImportConfirmDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text(
-                    text = "Fusionar añade solo eventos nuevos. " +
-                        "Reemplazar sustituye las estadísticas y, en respaldos v2, " +
-                        "las fusiones de artistas.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 if (preview.eventCount == 0) {
                     Text(
                         text = "Este respaldo está vacío. Reemplazar eliminará todo el historial local.",
@@ -257,24 +259,65 @@ private fun ImportConfirmDialog(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+                Column(modifier = Modifier.selectableGroup()) {
+                    ImportModeOption(
+                        title = "Fusionar",
+                        supportingText = "Añade solo los eventos que aún no están en el dispositivo",
+                        selected = selectedMode == StatisticsImportMode.Merge,
+                        onClick = { selectedMode = StatisticsImportMode.Merge },
+                    )
+                    ImportModeOption(
+                        title = "Reemplazar todo",
+                        supportingText = "Sustituye las estadísticas locales y, en respaldos v2, las fusiones",
+                        selected = selectedMode == StatisticsImportMode.Replace,
+                        onClick = { selectedMode = StatisticsImportMode.Replace },
+                    )
+                }
             }
         },
         confirmButton = {
-            Button(onClick = onMerge) {
-                Text("Fusionar")
+            TextButton(onClick = { onConfirm(selectedMode) }) {
+                Text("Importar")
             }
         },
         dismissButton = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                OutlinedButton(onClick = onReplace) {
-                    Text("Reemplazar todo")
-                }
-                TextButton(onClick = onDismiss) {
-                    Text("Cancelar")
-                }
+            TextButton(onClick = onDismiss) {
+                Text("Cancelar")
             }
         },
     )
+}
+
+@Composable
+private fun ImportModeOption(
+    title: String,
+    supportingText: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .selectable(
+                selected = selected,
+                onClick = onClick,
+                role = Role.RadioButton,
+            )
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        RadioButton(
+            selected = selected,
+            onClick = null,
+        )
+        SettingsRowText(
+            title = title,
+            supportingText = supportingText,
+            modifier = Modifier.weight(1f),
+        )
+    }
 }
 
 private fun formatSummary(summary: StatisticsBackupSummary): String {

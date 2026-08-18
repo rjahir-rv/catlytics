@@ -122,6 +122,8 @@ private class AlbumFakePlaybackController : PlaybackController {
 
     override suspend fun playQueueItem(index: Int) = Unit
     override suspend fun addQueueItem(track: Track) = Unit
+
+    override suspend fun playNext(track: Track) = Unit
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
     override suspend fun removeQueueItem(index: Int) = Unit
     override suspend fun togglePlayPause() = Unit

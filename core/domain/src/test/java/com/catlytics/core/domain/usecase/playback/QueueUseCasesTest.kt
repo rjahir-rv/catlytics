@@ -40,6 +40,24 @@ class QueueUseCasesTest {
     }
 
     @Test
+    fun `play next dispatches selected track`() = runTest {
+        val track = Track(
+            id = "track-2",
+            title = "Track 2",
+            artist = com.catlytics.core.model.Artist(
+                id = "artist-1",
+                name = "Artist 1",
+            ),
+            durationMillis = 180_000L,
+            mediaUri = "content://track-2",
+        )
+
+        PlayNextUseCase(playbackController)(track)
+
+        assertEquals(track, playbackController.playNextTrack)
+    }
+
+    @Test
     fun `move queue item dispatches source and destination indices`() = runTest {
         MoveQueueItemUseCase(playbackController)(fromIndex = 1, toIndex = 4)
 
@@ -60,6 +78,7 @@ private class QueueFakePlaybackController : PlaybackController {
     var movedIndices = -1 to -1
     var removedIndex = -1
     var addedTrack: Track? = null
+    var playNextTrack: Track? = null
 
     override suspend fun play(
         track: Track,
@@ -74,6 +93,10 @@ private class QueueFakePlaybackController : PlaybackController {
 
     override suspend fun addQueueItem(track: Track) {
         addedTrack = track
+    }
+
+    override suspend fun playNext(track: Track) {
+        playNextTrack = track
     }
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) {

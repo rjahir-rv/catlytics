@@ -68,6 +68,7 @@ internal class LibraryArtistViewModel @Inject constructor(
                     albums = filteredAlbums
                 ),
                 searchQuery = query,
+                playbackQueue = content.tracks,
                 mergeCandidates = artists
                     .map { it.artist }
                     .filter { candidate ->
