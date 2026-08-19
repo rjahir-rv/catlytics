@@ -185,6 +185,19 @@ class ObserveIsTrackLikedUseCase(private val repository: PlaylistRepository) {
 }
 
 class RemoveTrackFromPlaylistUseCase(private val repository: PlaylistRepository) {
-    suspend operator fun invoke(playlistId: String, trackId: String) =
-        repository.removeTrack(playlistId, trackId)
+    suspend operator fun invoke(playlistId: String, trackId: String): Int =
+        invoke(playlistId, listOf(trackId))
+
+    suspend operator fun invoke(playlistId: String, trackIds: Collection<String>): Int =
+        repository.removeTracks(playlistId, trackIds)
+}
+
+class AddTracksToLikedUseCase(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(trackIds: Collection<String>): Int =
+        repository.addTracks(LIKED_PLAYLIST_ID, trackIds.toList())
+}
+
+class RemoveTracksFromLikedUseCase(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(trackIds: Collection<String>): Int =
+        repository.removeTracks(LIKED_PLAYLIST_ID, trackIds)
 }

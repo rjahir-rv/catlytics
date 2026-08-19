@@ -14,8 +14,10 @@ import com.catlytics.core.domain.usecase.playback.SeekPlaybackUseCase
 import com.catlytics.core.domain.usecase.playback.SkipPlaybackUseCase
 import com.catlytics.core.domain.usecase.playback.ToggleShuffleUseCase
 import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
+import com.catlytics.core.domain.usecase.playlist.AddTracksToLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ObserveIsTrackLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
+import com.catlytics.core.domain.usecase.playlist.RemoveTracksFromLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
@@ -50,6 +52,8 @@ class PlaybackViewModel @Inject constructor(
     private val removeQueueItemUseCase: RemoveQueueItemUseCase,
     private val restorePlaybackSessionUseCase: RestorePlaybackSessionUseCase,
     private val toggleLikedTrackUseCase: ToggleLikedTrackUseCase,
+    private val addTracksToLikedUseCase: AddTracksToLikedUseCase,
+    private val removeTracksFromLikedUseCase: RemoveTracksFromLikedUseCase,
 ) : ViewModel() {
     val playbackState: StateFlow<PlaybackState> = observePlaybackStateUseCase()
         .stateIn(
@@ -144,6 +148,30 @@ class PlaybackViewModel @Inject constructor(
 
     fun playNext(track: Track, onQueued: () -> Unit) {
         enqueueTrack(track, onQueued) { playNextUseCase(it) }
+    }
+
+    fun addQueueItems(tracks: List<Track>, onAdded: (Int) -> Unit) {
+        viewModelScope.launch {
+            onAdded(addQueueItemUseCase.invokeAll(tracks, playbackState.value.currentTrack?.id))
+        }
+    }
+
+    fun playNextTracks(tracks: List<Track>, onQueued: (Int) -> Unit) {
+        viewModelScope.launch {
+            onQueued(playNextUseCase.invokeAll(tracks, playbackState.value.currentTrack?.id))
+        }
+    }
+
+    fun likeTracks(trackIds: Collection<String>, onResult: (Int) -> Unit) {
+        viewModelScope.launch {
+            onResult(addTracksToLikedUseCase(trackIds))
+        }
+    }
+
+    fun unlikeTracks(trackIds: Collection<String>, onResult: (Int) -> Unit) {
+        viewModelScope.launch {
+            onResult(removeTracksFromLikedUseCase(trackIds))
+        }
     }
 
     private fun enqueueTrack(

@@ -76,6 +76,7 @@ import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.api.DailyPlaylistRoute
@@ -325,6 +326,66 @@ fun CatlyticsApp(
                 "Se reproducirá a continuación",
                 Toast.LENGTH_SHORT,
             ).show()
+        }
+    }
+
+    fun handleTrackSelectionAction(action: TrackSelectionAction) {
+        when (action) {
+            is TrackSelectionAction.AddToPlaylist -> openAddToPlaylist(
+                PlaylistSource.TrackCollectionSource(
+                    title = if (action.tracks.size == 1) {
+                        action.tracks.first().title
+                    } else {
+                        "Canciones seleccionadas"
+                    },
+                    artworkUri = action.tracks.firstNotNullOfOrNull(Track::artworkUri),
+                    trackIds = action.tracks.map(Track::id),
+                ),
+            )
+            is TrackSelectionAction.Like -> playbackViewModel.likeTracks(action.tracks.map(Track::id)) { added ->
+                Toast.makeText(
+                    context,
+                    if (added == 1) {
+                        "1 canción agregada a $LIKED_PLAYLIST_NAME"
+                    } else {
+                        "$added canciones agregadas a $LIKED_PLAYLIST_NAME"
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            is TrackSelectionAction.Unlike -> playbackViewModel.unlikeTracks(action.tracks.map(Track::id)) { removed ->
+                Toast.makeText(
+                    context,
+                    if (removed == 1) {
+                        "1 canción eliminada de $LIKED_PLAYLIST_NAME"
+                    } else {
+                        "$removed canciones eliminadas de $LIKED_PLAYLIST_NAME"
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            is TrackSelectionAction.AddToQueue -> playbackViewModel.addQueueItems(action.tracks) { added ->
+                Toast.makeText(
+                    context,
+                    if (added == 1) {
+                        "1 canción agregada a la cola"
+                    } else {
+                        "$added canciones agregadas a la cola"
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
+            is TrackSelectionAction.PlayNext -> playbackViewModel.playNextTracks(action.tracks) { added ->
+                Toast.makeText(
+                    context,
+                    if (added == 1) {
+                        "1 canción se reproducirá a continuación"
+                    } else {
+                        "$added canciones se reproducirán a continuación"
+                    },
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
         }
     }
 
@@ -630,6 +691,8 @@ fun CatlyticsApp(
                     homeEntry(
                         searchQuery = { homeSearchQuery },
                         onTrackOptions = { track -> openTrackOptions(track) },
+                        likedTrackIds = { likedTrackIds },
+                        onTrackSelectionAction = ::handleTrackSelectionAction,
                         onNavigateToStatistics = {
                             topLevelBackStack.addTopLevel(StatisticsRoute)
                         },
@@ -661,6 +724,9 @@ fun CatlyticsApp(
                         onDestinationSelected = topLevelBackStack::add,
                         onAddToPlaylist = ::openAddToPlaylist,
                         onTrackOptions = { track -> openTrackOptions(track) },
+                        likedTrackIds = { likedTrackIds },
+                        currentTrackId = { playbackState.currentTrack?.id },
+                        onTrackSelectionAction = ::handleTrackSelectionAction,
                         onLibraryDetailTopBarColorChange = { route, color ->
                             detailTopBarColors = detailTopBarColors + (route to color)
                         },
@@ -678,6 +744,8 @@ fun CatlyticsApp(
                         onTrackOptions = { track, onRemoveFromPlaylist ->
                             openTrackOptions(track, onRemoveFromPlaylist)
                         },
+                        likedTrackIds = { likedTrackIds },
+                        onTrackSelectionAction = ::handleTrackSelectionAction,
                         bottomPadding = { bottomPaddingState.value },
                         onPlaylistDetailTopBarColorChange = { route, color ->
                             detailTopBarColors = detailTopBarColors + (route to color)

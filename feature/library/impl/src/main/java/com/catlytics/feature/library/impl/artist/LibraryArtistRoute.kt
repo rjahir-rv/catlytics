@@ -14,6 +14,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.api.LibraryArtistRoute
 
 @Composable
@@ -22,6 +23,9 @@ internal fun LibraryArtistRoute(
     onAlbumSelected: (Album) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    currentTrackId: String? = null,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
@@ -52,6 +56,9 @@ internal fun LibraryArtistRoute(
         onTrackSelected = viewModel::playTrack,
         onAddToPlaylist = onAddToPlaylist,
         onTrackOptions = onTrackOptions,
+        likedTrackIds = likedTrackIds,
+        currentTrackId = currentTrackId,
+        onTrackSelectionAction = onTrackSelectionAction,
         onTopBarColorChange = onTopBarColorChange,
         bottomPadding = bottomPadding,
         scaffoldContentPadding = scaffoldContentPadding,

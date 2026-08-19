@@ -71,6 +71,9 @@ internal fun HomeTrackList(
     state: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     onTrackOptions: (Track) -> Unit,
+    selectedTrackIds: Set<String> = emptySet(),
+    selectionActive: Boolean = false,
+    onTrackLongClick: (Track) -> Unit = {},
     onRecentlyPlayedTrackSelected: (Track) -> Unit,
     onTopTrackSelected: (String) -> Unit,
     onNavigateToStatistics: () -> Unit,
@@ -153,9 +156,18 @@ internal fun HomeTrackList(
                 track = track,
                 isCurrent = track.id == currentTrackId,
                 isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
-                onTrackSelected = { onTrackSelected(track, playbackQueue) },
+                onTrackSelected = {
+                    if (selectionActive) {
+                        onTrackLongClick(track)
+                    } else {
+                        onTrackSelected(track, playbackQueue)
+                    }
+                },
                 onTrackOptions = { onTrackOptions(track) },
                 modifier = Modifier.padding(horizontal = 20.dp),
+                selected = track.id in selectedTrackIds,
+                selectionActive = selectionActive,
+                onLongClick = { onTrackLongClick(track) },
             )
         }
     }

@@ -58,6 +58,48 @@ class QueueUseCasesTest {
     }
 
     @Test
+    fun `add queue items skips the current track and keeps visible order`() = runTest {
+        val first = track("one")
+        val current = track("current")
+        val second = track("two")
+
+        val added = AddQueueItemUseCase(playbackController).invokeAll(
+            tracks = listOf(first, current, second),
+            currentTrackId = current.id,
+        )
+
+        assertEquals(2, added)
+        assertEquals(listOf(first, second), playbackController.addedTracks)
+    }
+
+    @Test
+    fun `play next items insert in visible order by reversing controller calls`() = runTest {
+        val first = track("one")
+        val current = track("current")
+        val second = track("two")
+
+        val added = PlayNextUseCase(playbackController).invokeAll(
+            tracks = listOf(first, current, second),
+            currentTrackId = current.id,
+        )
+
+        assertEquals(2, added)
+        assertEquals(listOf(second, first), playbackController.playNextTracks)
+    }
+
+    @Test
+    fun `queue batch actions do nothing when nothing is playing`() = runTest {
+        assertEquals(
+            0,
+            AddQueueItemUseCase(playbackController).invokeAll(listOf(track("one")), null),
+        )
+        assertEquals(
+            0,
+            PlayNextUseCase(playbackController).invokeAll(listOf(track("one")), null),
+        )
+    }
+
+    @Test
     fun `move queue item dispatches source and destination indices`() = runTest {
         MoveQueueItemUseCase(playbackController)(fromIndex = 1, toIndex = 4)
 
@@ -79,6 +121,8 @@ private class QueueFakePlaybackController : PlaybackController {
     var removedIndex = -1
     var addedTrack: Track? = null
     var playNextTrack: Track? = null
+    val addedTracks = mutableListOf<Track>()
+    val playNextTracks = mutableListOf<Track>()
 
     override suspend fun play(
         track: Track,
@@ -93,10 +137,12 @@ private class QueueFakePlaybackController : PlaybackController {
 
     override suspend fun addQueueItem(track: Track) {
         addedTrack = track
+        addedTracks += track
     }
 
     override suspend fun playNext(track: Track) {
         playNextTrack = track
+        playNextTracks += track
     }
 
     override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) {
@@ -117,3 +163,11 @@ private class QueueFakePlaybackController : PlaybackController {
     override suspend fun restoreLastSession() = Unit
     override suspend fun stop() = Unit
 }
+
+private fun track(id: String) = Track(
+    id = id,
+    title = id,
+    artist = com.catlytics.core.model.Artist(id = "artist-1", name = "Artist 1"),
+    durationMillis = 180_000L,
+    mediaUri = "content://$id",
+)

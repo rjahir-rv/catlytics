@@ -8,6 +8,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.api.LibraryFolderRoute
 import com.catlytics.core.model.PlaylistSource
 import androidx.compose.ui.unit.Dp
@@ -19,6 +20,9 @@ internal fun LibraryFolderRoute(
     onFolderSelected: (LibraryFolder) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    currentTrackId: String? = null,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: LibraryFolderViewModel = hiltViewModel(key = route.folderId),
@@ -35,6 +39,9 @@ internal fun LibraryFolderRoute(
         onTrackSelected = viewModel::playTrack,
         onAddToPlaylist = onAddToPlaylist,
         onTrackOptions = onTrackOptions,
+        likedTrackIds = likedTrackIds,
+        currentTrackId = currentTrackId,
+        onTrackSelectionAction = onTrackSelectionAction,
         bottomPadding = bottomPadding,
         scaffoldContentPadding = scaffoldContentPadding,
     )

@@ -19,6 +19,9 @@ internal fun TrackRow(
     onTrackSelected: () -> Unit,
     onTrackOptions: () -> Unit,
     modifier: Modifier = Modifier,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     CatlyticsTrackRow(
         title = track.title,
@@ -36,6 +39,9 @@ internal fun TrackRow(
             }
         },
         modifier = modifier,
+        selected = selected,
+        selectionActive = selectionActive,
+        onLongClick = onLongClick,
     )
 }
 

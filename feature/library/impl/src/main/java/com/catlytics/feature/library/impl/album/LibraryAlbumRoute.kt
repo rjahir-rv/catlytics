@@ -10,12 +10,16 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.api.LibraryAlbumRoute
 
 @Composable
 internal fun LibraryAlbumRoute(
     route: LibraryAlbumRoute,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    currentTrackId: String? = null,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
@@ -31,6 +35,9 @@ internal fun LibraryAlbumRoute(
         uiState = uiState,
         onTrackSelected = viewModel::playTrack,
         onTrackOptions = onTrackOptions,
+        likedTrackIds = likedTrackIds,
+        currentTrackId = currentTrackId,
+        onTrackSelectionAction = onTrackSelectionAction,
         onTopBarColorChange = onTopBarColorChange,
         bottomPadding = bottomPadding,
         scaffoldContentPadding = scaffoldContentPadding,

@@ -6,15 +6,19 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -46,14 +50,17 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
+import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -64,6 +71,9 @@ internal fun PlaylistDetailScreen(
     onPlay: (Track, List<Track>) -> Unit,
     onPlayShuffled: (List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
+    onRemoveSelected: (List<String>) -> Unit = {},
     onTogglePlayback: () -> Unit,
     onSaveDetails: (String, String, String?, Boolean, () -> Unit) -> Unit,
     onSaveOrder: (List<String>, () -> Unit) -> Unit,
@@ -120,7 +130,9 @@ internal fun PlaylistDetailScreen(
         content.tracks.filterPlaylistTracksByQuery(searchQuery)
     }
     val displayedTracks = if (customOrdering) customTracks else filteredTracks
+    val hidePlaylistHeader = shouldHidePlaylistHeader(searchFocused, searchQuery)
     val listState = rememberLazyListState()
+    val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
     val scrollConnection = remember(searchQuery, searchFocused, customOrdering) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -171,8 +183,35 @@ internal fun PlaylistDetailScreen(
             artworkChanged = false
         }
     }
+    LaunchedEffect(hidePlaylistHeader) {
+        if (hidePlaylistHeader) {
+            listState.scrollToItem(0)
+        }
+    }
+
+    val selectionState = rememberTrackSelectionState()
+    val selection = selectionState.value
+    val isLikedPlaylist = playlist.id == LIKED_PLAYLIST_ID
 
     ArtworkGradientBackground(colors = animatedGradientColors) {
+        TrackSelectionHost(
+            selection = selection,
+            onSelectionChange = { selectionState.value = it },
+            visibleIds = displayedTracks.map(Track::id),
+            selectedTracks = selection.selectedTracks(content.tracks),
+            likedTrackIds = likedTrackIds,
+            currentTrackId = playbackState.currentTrack?.id,
+            topInset = scaffoldContentPadding.calculateTopPadding(),
+            bottomInset = bottomPadding(),
+            onAction = onTrackSelectionAction,
+            showRemove = !customOrdering,
+            removeUnlike = isLikedPlaylist,
+            onRemove = {
+                onRemoveSelected(selection.selectedTracks(content.tracks).map(Track::id))
+                selectionState.value = selection.clear()
+            },
+            modifier = Modifier.fillMaxSize(),
+        ) {
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = listState,
@@ -181,51 +220,64 @@ internal fun PlaylistDetailScreen(
                     .nestedScroll(scrollConnection),
                 contentPadding = PaddingValues(
                     top = scaffoldContentPadding.calculateTopPadding() +
-                        if (searchVisible && content.tracks.isNotEmpty() && !customOrdering) 72.dp else 0.dp,
-                    bottom = bottomPadding() + 20.dp,
+                        if (searchVisible && content.tracks.isNotEmpty() && !customOrdering && !selection.active) {
+                            72.dp
+                        } else if (selection.active) {
+                            72.dp
+                        } else {
+                            0.dp
+                        },
+                    bottom = maxOf(bottomPadding(), imeBottom) + 20.dp +
+                        if (selection.active) 72.dp else 0.dp,
                 ),
             ) {
                 item(key = "playlist-header") {
-                    PlaylistHeader(
-                        playlist = playlist,
-                        tracks = content.tracks,
-                        artworkRequest = artworkRequest,
-                        playbackState = playbackState,
-                        customOrdering = customOrdering,
-                        onArtworkLoaded = { artworkBitmap = it },
-                        onPlay = onPlay,
-                        onPlayShuffled = onPlayShuffled,
-                        onTogglePlayback = onTogglePlayback,
-                        onOptionsClick = { optionsExpanded = true },
-                        optionsMenu = {
-                            PlaylistOptionsMenu(
-                                expanded = optionsExpanded,
-                                canEdit = playlist.id != LIKED_PLAYLIST_ID,
-                                onDismiss = { optionsExpanded = false },
-                                onOrder = { showOrderSheet = true },
-                                onEdit = {
-                                    editName = playlist.name
-                                    editDescription = playlist.description
-                                    editArtworkUri = playlist.artworkUri
-                                    artworkChanged = false
-                                    showEditSheet = true
-                                },
-                                onAddTracks = { showAddTracksSheet = true },
-                                onAddToPlaylist = { showAddSheet = true },
-                                onDelete = { showDeleteDialog = true },
-                            )
-                        },
-                        onCancelOrdering = {
-                            customOrdering = false
-                            customTracks = emptyList()
-                        },
-                        onSaveOrdering = {
-                            onSaveOrder(customTracks.map(Track::id)) {
+                    AnimatedVisibility(
+                        visible = !hidePlaylistHeader,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut(),
+                    ) {
+                        PlaylistHeader(
+                            playlist = playlist,
+                            tracks = content.tracks,
+                            artworkRequest = artworkRequest,
+                            playbackState = playbackState,
+                            customOrdering = customOrdering,
+                            onArtworkLoaded = { artworkBitmap = it },
+                            onPlay = onPlay,
+                            onPlayShuffled = onPlayShuffled,
+                            onTogglePlayback = onTogglePlayback,
+                            onOptionsClick = { optionsExpanded = true },
+                            optionsMenu = {
+                                PlaylistOptionsMenu(
+                                    expanded = optionsExpanded,
+                                    canEdit = playlist.id != LIKED_PLAYLIST_ID,
+                                    onDismiss = { optionsExpanded = false },
+                                    onOrder = { showOrderSheet = true },
+                                    onEdit = {
+                                        editName = playlist.name
+                                        editDescription = playlist.description
+                                        editArtworkUri = playlist.artworkUri
+                                        artworkChanged = false
+                                        showEditSheet = true
+                                    },
+                                    onAddTracks = { showAddTracksSheet = true },
+                                    onAddToPlaylist = { showAddSheet = true },
+                                    onDelete = { showDeleteDialog = true },
+                                )
+                            },
+                            onCancelOrdering = {
                                 customOrdering = false
                                 customTracks = emptyList()
-                            }
-                        },
-                    )
+                            },
+                            onSaveOrdering = {
+                                onSaveOrder(customTracks.map(Track::id)) {
+                                    customOrdering = false
+                                    customTracks = emptyList()
+                                }
+                            },
+                        )
+                    }
                 }
 
                 if (content.tracks.isEmpty()) {
@@ -247,10 +299,23 @@ internal fun PlaylistDetailScreen(
                             isCurrent = track.id == playbackState.currentTrack?.id,
                             isPlaying = track.id == playbackState.currentTrack?.id &&
                                 playbackState.status == PlaybackStatus.Playing,
-                            onClick = { onPlay(track, content.tracks) },
+                            onClick = {
+                                if (selection.active && !customOrdering) {
+                                    selectionState.value = selection.onTrackLongClick(track.id)
+                                } else {
+                                    onPlay(track, content.tracks)
+                                }
+                            },
                             onOptions = { onTrackOptions(track) },
                             onMove = { direction ->
                                 customTracks = customTracks.moveTrack(track.id, direction)
+                            },
+                            selected = track.id in selection.selectedIds,
+                            selectionActive = selection.active,
+                            onLongClick = {
+                                if (!customOrdering) {
+                                    selectionState.value = selection.onTrackLongClick(track.id)
+                                }
                             },
                         )
                     }
@@ -258,7 +323,7 @@ internal fun PlaylistDetailScreen(
             }
 
             AnimatedVisibility(
-                visible = searchVisible && content.tracks.isNotEmpty() && !customOrdering,
+                visible = searchVisible && content.tracks.isNotEmpty() && !customOrdering && !selection.active,
                 modifier = Modifier.align(Alignment.TopCenter),
                 enter = slideInVertically { -it } + fadeIn(),
                 exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
@@ -278,6 +343,7 @@ internal fun PlaylistDetailScreen(
                 )
             }
         }
+        }
     }
 
     PlaylistDetailOverlays(
@@ -293,6 +359,7 @@ internal fun PlaylistDetailScreen(
             showOrderSheet = false
             searchQuery = ""
             searchVisible = false
+            selectionState.value = selection.clear()
             customTracks = content.tracks
             customOrdering = true
         },
@@ -437,5 +504,10 @@ private fun PlaylistDetailOverlays(
         )
     }
 }
+
+internal fun shouldHidePlaylistHeader(
+    searchFocused: Boolean,
+    searchQuery: String,
+): Boolean = searchFocused || searchQuery.isNotBlank()
 
 private const val PLAYLIST_ARTWORK_SURFACE_BLEND = 0.32f

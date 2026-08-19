@@ -10,6 +10,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.playlists.api.PlaylistsRoute
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
 
@@ -17,6 +18,8 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
     searchQuery: () -> String,
     onDestinationSelected: (NavKey) -> Unit,
     onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
+    likedTrackIds: () -> Set<String> = { emptySet() },
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onPlaylistDeleted: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     onPlaylistDetailTopBarColorChange: (NavKey, Color) -> Unit,
@@ -49,6 +52,8 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
         PlaylistDetailRoute(
             playlistId = route.playlistId,
             onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            onTrackSelectionAction = onTrackSelectionAction,
             onTopBarColorChange = { color ->
                 onPlaylistDetailTopBarColorChange(route, color)
             },

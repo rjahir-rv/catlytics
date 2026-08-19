@@ -5,19 +5,25 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CatlyticsTrackRow(
     title: String,
@@ -47,17 +54,39 @@ fun CatlyticsTrackRow(
     trailing: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     clickEnabled: Boolean = true,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .clickable(enabled = clickEnabled, onClick = onClick)
-            .padding(vertical = 8.dp),
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+                } else {
+                    Color.Transparent
+                },
+            )
+            .combinedClickable(
+                enabled = clickEnabled || onLongClick != null,
+                onClick = { if (clickEnabled) onClick() },
+                onLongClick = onLongClick,
+            )
+            .padding(vertical = 8.dp, horizontal = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TrackArtwork(title = title, artworkUri = artworkUri, isCurrent = isCurrent, isPlaying = isPlaying)
+        TrackArtwork(
+            title = title,
+            artworkUri = artworkUri,
+            isCurrent = isCurrent,
+            isPlaying = isPlaying && !selectionActive,
+            selected = selected,
+            selectionActive = selectionActive,
+        )
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -65,7 +94,7 @@ fun CatlyticsTrackRow(
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = if (isCurrent) {
+                color = if (isCurrent && !selectionActive) {
                     MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.onBackground
@@ -81,7 +110,9 @@ fun CatlyticsTrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        trailing()
+        if (!selectionActive) {
+            trailing()
+        }
     }
 }
 
@@ -91,6 +122,8 @@ private fun TrackArtwork(
     artworkUri: String?,
     isCurrent: Boolean,
     isPlaying: Boolean,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val artworkShape = RoundedCornerShape(10.dp)
@@ -134,6 +167,40 @@ private fun TrackArtwork(
                     modifier = Modifier.matchParentSize(),
                 )
             }
+            if (selectionActive) {
+                TrackSelectionMark(selected = selected)
+            }
+        }
+    }
+}
+
+@Composable
+fun TrackSelectionMark(
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+                } else {
+                    Color.Black.copy(alpha = 0.28f)
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            Icon(
+                imageVector = Icons.Filled.Check,
+                contentDescription = "Seleccionada",
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    .padding(3.dp),
+            )
         }
     }
 }

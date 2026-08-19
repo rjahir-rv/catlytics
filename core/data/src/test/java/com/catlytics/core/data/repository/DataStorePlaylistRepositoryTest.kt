@@ -142,6 +142,19 @@ class DataStorePlaylistRepositoryTest {
     }
 
     @Test
+    fun `removeTracks deletes several ids in one write`() = runTest {
+        val file = temporaryFolder.newFile("playlists-remove-batch.preferences_pb")
+        val repository = repository(backgroundScope, file)
+        val playlist = repository.createPlaylist("Focus", listOf("one", "two", "three"))
+
+        val removed = repository.removeTracks(playlist.id, listOf("one", "missing", "three"))
+
+        assertEquals(2, removed)
+        val restored = repository.observePlaylists().first().single { it.id == playlist.id }
+        assertEquals(listOf("two"), restored.trackIds)
+    }
+
+    @Test
     fun `liked playlist is available by default and first`() = runTest {
         val file = temporaryFolder.newFile("liked-default.preferences_pb")
         val repository = repository(backgroundScope, file)

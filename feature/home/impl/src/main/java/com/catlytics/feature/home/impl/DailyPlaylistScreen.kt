@@ -26,7 +26,10 @@ import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.PlaybackStatus
+import com.catlytics.core.designsystem.component.TrackSelectionHost
+import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -83,6 +86,8 @@ internal class DailyPlaylistViewModel @Inject constructor(
 @Composable
 internal fun DailyPlaylistRoute(
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     modifier: Modifier = Modifier,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
@@ -93,6 +98,8 @@ internal fun DailyPlaylistRoute(
         uiState = uiState,
         onTrackSelected = viewModel::onTrackSelected,
         onTrackOptions = onTrackOptions,
+        likedTrackIds = likedTrackIds,
+        onTrackSelectionAction = onTrackSelectionAction,
         bottomPadding = bottomPadding,
         scaffoldContentPadding = scaffoldContentPadding,
         modifier = modifier,
@@ -104,6 +111,8 @@ internal fun DailyPlaylistScreen(
     uiState: DailyPlaylistUiState,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     modifier: Modifier = Modifier,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
@@ -129,43 +138,73 @@ internal fun DailyPlaylistScreen(
             )
         }
 
-        is DailyPlaylistUiState.Success -> LazyColumn(
+        is DailyPlaylistUiState.Success -> {
+            val selectionState = rememberTrackSelectionState()
+            val selection = selectionState.value
+            TrackSelectionHost(
+                selection = selection,
+                onSelectionChange = { selectionState.value = it },
+                visibleIds = uiState.tracks.map(Track::id),
+                selectedTracks = selection.selectedTracks(uiState.tracks),
+                likedTrackIds = likedTrackIds,
+                currentTrackId = uiState.currentTrackId,
+                topInset = scaffoldContentPadding.calculateTopPadding(),
+                bottomInset = bottomPadding(),
+                onAction = onTrackSelectionAction,
                 modifier = modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    top = scaffoldContentPadding.calculateTopPadding(),
-                    bottom = bottomPadding() + 20.dp,
-                ),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                item(key = "daily-playlist-header") {
-                    androidx.compose.foundation.layout.Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(
-                            text = "Tu selección para hoy",
-                            style = MaterialTheme.typography.headlineSmall,
-                        )
-                        Text(
-                            text = "${uiState.tracks.size} canciones elegidas para ti",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        top = scaffoldContentPadding.calculateTopPadding() +
+                            if (selection.active) 64.dp else 0.dp,
+                        bottom = bottomPadding() + 20.dp +
+                            if (selection.active) 72.dp else 0.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    item(key = "daily-playlist-header") {
+                        androidx.compose.foundation.layout.Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                text = "Tu selección para hoy",
+                                style = MaterialTheme.typography.headlineSmall,
+                            )
+                            Text(
+                                text = "${uiState.tracks.size} canciones elegidas para ti",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    items(items = uiState.tracks, key = Track::id) { track ->
+                        TrackRow(
+                            track = track,
+                            isCurrent = track.id == uiState.currentTrackId,
+                            isPlaying = track.id == uiState.currentTrackId &&
+                                uiState.isCurrentTrackPlaying,
+                            onTrackSelected = {
+                                if (selection.active) {
+                                    selectionState.value = selection.onTrackLongClick(track.id)
+                                } else {
+                                    onTrackSelected(track, uiState.tracks)
+                                }
+                            },
+                            onTrackOptions = { onTrackOptions(track) },
+                            modifier = Modifier.padding(horizontal = 20.dp),
+                            selected = track.id in selection.selectedIds,
+                            selectionActive = selection.active,
+                            onLongClick = {
+                                selectionState.value = selection.onTrackLongClick(track.id)
+                            },
                         )
                     }
                 }
-                items(items = uiState.tracks, key = Track::id) { track ->
-                    TrackRow(
-                        track = track,
-                        isCurrent = track.id == uiState.currentTrackId,
-                        isPlaying = track.id == uiState.currentTrackId &&
-                            uiState.isCurrentTrackPlaying,
-                        onTrackSelected = { onTrackSelected(track, uiState.tracks) },
-                        onTrackOptions = { onTrackOptions(track) },
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                    )
-                }
             }
+        }
     }
 }

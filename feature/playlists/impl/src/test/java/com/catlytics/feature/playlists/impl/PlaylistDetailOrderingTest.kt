@@ -55,11 +55,45 @@ class PlaylistDetailOrderingTest {
         )
     }
 
-    private fun track(id: String, title: String, artistName: String = "Artista") = Track(
+    @Test
+    fun `playlist summary includes track count and total duration`() {
+        assertEquals("0 canciones", playlistSummaryLabel(emptyList()))
+        assertEquals(
+            "1 canción · 3 min",
+            playlistSummaryLabel(listOf(track("1", "A", durationMillis = 180_000L))),
+        )
+        assertEquals(
+            "2 canciones · 1 h 5 min",
+            playlistSummaryLabel(
+                listOf(
+                    track("1", "A", durationMillis = 3_600_000L),
+                    track("2", "B", durationMillis = 300_000L),
+                ),
+            ),
+        )
+        assertEquals("1 h", formatPlaylistTotalDuration(3_600_000L))
+        assertEquals("0:45", formatPlaylistTotalDuration(45_000L))
+    }
+
+    @Test
+    fun `playlist header hides while searching so results stay above the keyboard`() {
+        assertEquals(false, shouldHidePlaylistHeader(searchFocused = false, searchQuery = ""))
+        assertEquals(false, shouldHidePlaylistHeader(searchFocused = false, searchQuery = "  "))
+        assertEquals(true, shouldHidePlaylistHeader(searchFocused = true, searchQuery = ""))
+        assertEquals(true, shouldHidePlaylistHeader(searchFocused = false, searchQuery = "luna"))
+        assertEquals(true, shouldHidePlaylistHeader(searchFocused = true, searchQuery = "luna"))
+    }
+
+    private fun track(
+        id: String,
+        title: String,
+        artistName: String = "Artista",
+        durationMillis: Long = 180_000L,
+    ) = Track(
         id = id,
         title = title,
         artist = Artist(id = "artist-$artistName", name = artistName),
-        durationMillis = 180_000L,
+        durationMillis = durationMillis,
         mediaUri = "content://$id",
     )
 }

@@ -44,7 +44,9 @@ import com.catlytics.core.domain.usecase.playlist.DeletePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ObserveIsTrackLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistViewModeUseCase
+import com.catlytics.core.domain.usecase.playlist.AddTracksToLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.RemoveTracksFromLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ReorderPlaylistTracksUseCase
 import com.catlytics.core.domain.usecase.playlist.RenamePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUseCase
@@ -243,6 +245,14 @@ object DomainModule {
     @Provides
     fun provideRemoveTrackFromPlaylistUseCase(repository: PlaylistRepository) =
         RemoveTrackFromPlaylistUseCase(repository)
+
+    @Provides
+    fun provideAddTracksToLikedUseCase(repository: PlaylistRepository) =
+        AddTracksToLikedUseCase(repository)
+
+    @Provides
+    fun provideRemoveTracksFromLikedUseCase(repository: PlaylistRepository) =
+        RemoveTracksFromLikedUseCase(repository)
 
     @Provides
     fun provideSetPlaylistCoverUseCase(repository: PlaylistRepository) =

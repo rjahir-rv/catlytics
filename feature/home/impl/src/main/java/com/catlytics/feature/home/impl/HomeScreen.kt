@@ -15,15 +15,20 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.designsystem.component.TrackSelectionHost
+import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 
 @Composable
 internal fun HomeRoute(
     searchQuery: String,
     modifier: Modifier = Modifier,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onNavigateToStatistics: () -> Unit,
     onNavigateToDailyPlaylist: () -> Unit,
     onNavigateToFavorites: () -> Unit,
@@ -52,6 +57,8 @@ internal fun HomeRoute(
         onShuffleAll = viewModel::onShuffleAll,
         onOpenFavorites = onNavigateToFavorites,
         onTrackOptions = onTrackOptions,
+        likedTrackIds = likedTrackIds,
+        onTrackSelectionAction = onTrackSelectionAction,
         onNavigateToStatistics = onNavigateToStatistics,
         onContentReady = onContentReady,
         bottomPadding = bottomPadding,
@@ -68,6 +75,8 @@ internal fun HomeScreen(
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     modifier: Modifier = Modifier,
     onTopTrackSelected: (String) -> Unit = {},
     onPlayDailyPlaylist: () -> Unit = {},
@@ -137,38 +146,61 @@ internal fun HomeScreen(
                         ),
                     )
                 } else {
-                    HomeTrackList(
-                        tracks = filteredTracks,
-                        playbackQueue = uiState.tracks,
-                        dailyPlaylistTrackCount = uiState.dailyPlaylistTrackCount,
-                        canShuffleAll = uiState.canShuffleAll,
-                        favoriteTrackCount = uiState.favoriteTracks.size,
-                        recentlyPlayedTracks = uiState.recentlyPlayedTracks,
-                        topTracks = uiState.topTracks,
+                    val selectionState = rememberTrackSelectionState()
+                    val selection = selectionState.value
+                    val selectedTracks = selection.selectedTracks(uiState.tracks)
+                    TrackSelectionHost(
+                        selection = selection,
+                        onSelectionChange = { selectionState.value = it },
+                        visibleIds = filteredTracks.map(Track::id),
+                        selectedTracks = selectedTracks,
+                        likedTrackIds = likedTrackIds,
                         currentTrackId = uiState.currentTrackId,
-                        isCurrentTrackPlaying = uiState.isCurrentTrackPlaying,
-                        onTrackSelected = onTrackSelected,
-                        onPlayDailyPlaylist = onPlayDailyPlaylist,
-                        onShuffleAll = onShuffleAll,
-                        onOpenFavorites = onOpenFavorites,
+                        topInset = scaffoldContentPadding.calculateTopPadding(),
+                        bottomInset = bottomPadding(),
+                        onAction = onTrackSelectionAction,
                         modifier = modifier.fillMaxSize(),
-                        state = trackListState,
-                        contentPadding = PaddingValues(
-                            top = scaffoldContentPadding.calculateTopPadding() + 28.dp,
-                            bottom = bottomPadding() + 20.dp,
-                        ),
-                        onTrackOptions = onTrackOptions,
-                        onRecentlyPlayedTrackSelected = { track ->
-                            onTrackSelected(track, uiState.tracks)
-                        },
-                        onTopTrackSelected = onTopTrackSelected,
-                        onNavigateToStatistics = onNavigateToStatistics,
-                        showHighlights = searchQuery.isBlank(),
-                        areFeaturedSectionsVisible = areFeaturedSectionsVisible,
-                        onToggleFeaturedSections = {
-                            areFeaturedSectionsVisible = !areFeaturedSectionsVisible
-                        },
-                    )
+                    ) {
+                        HomeTrackList(
+                            tracks = filteredTracks,
+                            playbackQueue = uiState.tracks,
+                            dailyPlaylistTrackCount = uiState.dailyPlaylistTrackCount,
+                            canShuffleAll = uiState.canShuffleAll,
+                            favoriteTrackCount = uiState.favoriteTracks.size,
+                            recentlyPlayedTracks = uiState.recentlyPlayedTracks,
+                            topTracks = uiState.topTracks,
+                            currentTrackId = uiState.currentTrackId,
+                            isCurrentTrackPlaying = uiState.isCurrentTrackPlaying,
+                            onTrackSelected = onTrackSelected,
+                            onPlayDailyPlaylist = onPlayDailyPlaylist,
+                            onShuffleAll = onShuffleAll,
+                            onOpenFavorites = onOpenFavorites,
+                            modifier = Modifier.fillMaxSize(),
+                            state = trackListState,
+                            contentPadding = PaddingValues(
+                                top = scaffoldContentPadding.calculateTopPadding() + 28.dp +
+                                    if (selection.active) 64.dp else 0.dp,
+                                bottom = bottomPadding() + 20.dp +
+                                    if (selection.active) 72.dp else 0.dp,
+                            ),
+                            onTrackOptions = onTrackOptions,
+                            selectedTrackIds = selection.selectedIds,
+                            selectionActive = selection.active,
+                            onTrackLongClick = { track ->
+                                selectionState.value = selection.onTrackLongClick(track.id)
+                            },
+                            onRecentlyPlayedTrackSelected = { track ->
+                                onTrackSelected(track, uiState.tracks)
+                            },
+                            onTopTrackSelected = onTopTrackSelected,
+                            onNavigateToStatistics = onNavigateToStatistics,
+                            showHighlights = searchQuery.isBlank(),
+                            areFeaturedSectionsVisible = areFeaturedSectionsVisible,
+                            onToggleFeaturedSections = {
+                                areFeaturedSectionsVisible = !areFeaturedSectionsVisible
+                            },
+                        )
+                    }
                 }
             }
     }

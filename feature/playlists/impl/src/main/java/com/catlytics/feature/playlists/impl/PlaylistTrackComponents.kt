@@ -39,6 +39,9 @@ internal fun PlaylistTrackRow(
     onClick: () -> Unit,
     onOptions: () -> Unit,
     onMove: (Int) -> Unit,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     val density = LocalDensity.current
     val moveThresholdPx = with(density) { 48.dp.toPx() }
@@ -51,7 +54,10 @@ internal fun PlaylistTrackRow(
         isCurrent = isCurrent,
         isPlaying = isPlaying,
         onClick = onClick,
-        clickEnabled = !customOrdering,
+        clickEnabled = !customOrdering || selectionActive,
+        selected = selected,
+        selectionActive = selectionActive && !customOrdering,
+        onLongClick = onLongClick.takeUnless { customOrdering },
         trailing = {
             if (customOrdering) {
                 Icon(
@@ -157,6 +163,25 @@ internal fun toggleTrackSelection(
 
 internal fun List<Track>.selectedTrackIdsInLibraryOrder(selectedIds: Set<String>): List<String> =
     filter { it.id in selectedIds }.map(Track::id)
+
+internal fun playlistSummaryLabel(tracks: List<Track>): String {
+    val countLabel = if (tracks.size == 1) "1 canción" else "${tracks.size} canciones"
+    if (tracks.isEmpty()) return countLabel
+    return "$countLabel · ${formatPlaylistTotalDuration(tracks.sumOf(Track::durationMillis))}"
+}
+
+internal fun formatPlaylistTotalDuration(durationMillis: Long): String {
+    val totalSeconds = durationMillis.coerceAtLeast(0L).milliseconds.inWholeSeconds
+    val hours = totalSeconds / 3_600
+    val minutes = (totalSeconds % 3_600) / 60
+    val seconds = totalSeconds % 60
+    return when {
+        hours > 0 && minutes > 0 -> "$hours h $minutes min"
+        hours > 0 -> "$hours h"
+        minutes > 0 -> "$minutes min"
+        else -> String.format(Locale.US, "0:%02d", seconds)
+    }
+}
 
 private fun Long.formatDuration(): String {
     val totalSeconds = milliseconds.inWholeSeconds

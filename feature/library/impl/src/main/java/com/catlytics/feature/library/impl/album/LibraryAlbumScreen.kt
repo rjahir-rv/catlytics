@@ -1,7 +1,11 @@
 package com.catlytics.feature.library.impl.album
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -46,8 +50,11 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
+import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
+import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.model.Album
+import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.model.Track
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
@@ -58,6 +65,9 @@ internal fun LibraryAlbumScreen(
     modifier: Modifier = Modifier,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    currentTrackId: String? = null,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
@@ -102,38 +112,66 @@ internal fun LibraryAlbumScreen(
                 gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
             }
 
+            val selectionState = rememberTrackSelectionState()
+            val selection = selectionState.value
             ArtworkGradientBackground(
                 colors = animatedGradientColors,
                 modifier = modifier,
             ) {
-                LazyColumn(
-                    state = listState,
+                TrackSelectionHost(
+                    selection = selection,
+                    onSelectionChange = { selectionState.value = it },
+                    visibleIds = content.tracks.map(Track::id),
+                    selectedTracks = selection.selectedTracks(content.tracks),
+                    likedTrackIds = likedTrackIds,
+                    currentTrackId = currentTrackId,
+                    topInset = scaffoldContentPadding.calculateTopPadding(),
+                    bottomInset = bottomPadding(),
+                    onAction = onTrackSelectionAction,
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 20.dp,
-                        top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
-                        end = 20.dp,
-                        bottom = bottomPadding() + 20.dp,
-                    ),
                 ) {
-                    item(key = "header") {
-                        AlbumHeader(
-                            album = content.album,
-                            artworkModel = artworkRequest,
-                            onArtworkLoaded = { artworkBitmap = it },
-                        )
-                    }
-                    itemsIndexed(
-                        items = content.tracks,
-                        key = { _, track -> track.id },
-                    ) { index, track ->
-                        AlbumTrackRow(
-                            position = index + 1,
-                            track = track,
-                            onClick = { onTrackSelected(track, content.tracks) },
-                            onTrackOptions = { onTrackOptions(track) },
-                        )
-                        HorizontalDivider()
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = 20.dp,
+                            top = scaffoldContentPadding.calculateTopPadding() + 20.dp +
+                                if (selection.active) 64.dp else 0.dp,
+                            end = 20.dp,
+                            bottom = bottomPadding() + 20.dp +
+                                if (selection.active) 72.dp else 0.dp,
+                        ),
+                    ) {
+                        item(key = "header") {
+                            AlbumHeader(
+                                album = content.album,
+                                artworkModel = artworkRequest,
+                                onArtworkLoaded = { artworkBitmap = it },
+                            )
+                        }
+                        itemsIndexed(
+                            items = content.tracks,
+                            key = { _, track -> track.id },
+                        ) { index, track ->
+                            AlbumTrackRow(
+                                position = index + 1,
+                                track = track,
+                                selected = track.id in selection.selectedIds,
+                                selectionActive = selection.active,
+                                onClick = {
+                                    if (selection.active) {
+                                        selectionState.value = selection.onTrackLongClick(track.id)
+                                    } else {
+                                        onTrackSelected(track, content.tracks)
+                                    }
+                                },
+                                onLongClick = {
+                                    selectionState.value = selection.onTrackLongClick(track.id)
+                                },
+                                onTrackOptions = { onTrackOptions(track) },
+                            )
+                            HorizontalDivider()
+                        }
                     }
                 }
             }
@@ -190,17 +228,21 @@ private fun AlbumHeader(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AlbumTrackRow(
     position: Int,
     track: Track,
     onClick: () -> Unit,
     onTrackOptions: () -> Unit,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -209,11 +251,23 @@ private fun AlbumTrackRow(
             modifier = Modifier.size(28.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(
-                text = position.toString(),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            if (selectionActive && selected) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_check_list),
+                    contentDescription = "Seleccionada",
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier
+                        .size(22.dp)
+                        .background(MaterialTheme.colorScheme.primary, CircleShape)
+                        .padding(3.dp),
+                )
+            } else {
+                Text(
+                    text = position.toString(),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -235,8 +289,10 @@ private fun AlbumTrackRow(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        IconButton(onClick = onTrackOptions) {
-            Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
+        if (!selectionActive) {
+            IconButton(onClick = onTrackOptions) {
+                Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
+            }
         }
     }
 }

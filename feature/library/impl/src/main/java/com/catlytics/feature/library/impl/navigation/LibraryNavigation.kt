@@ -8,6 +8,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.api.LibraryAlbumRoute as LibraryAlbumDestination
 import com.catlytics.feature.library.api.LibraryArtistRoute as LibraryArtistDestination
 import com.catlytics.feature.library.api.LibraryFolderRoute as LibraryFolderDestination
@@ -24,6 +25,9 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     onDestinationSelected: (NavKey) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: () -> Set<String> = { emptySet() },
+    currentTrackId: () -> String? = { null },
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onLibraryDetailTopBarColorChange: (NavKey, Color) -> Unit,
     hasAudioPermission: () -> Boolean,
     onRequestAudioPermission: () -> Unit,
@@ -55,6 +59,9 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         LibraryAlbumRoute(
             route = route,
             onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            currentTrackId = currentTrackId(),
+            onTrackSelectionAction = onTrackSelectionAction,
             onTopBarColorChange = { color ->
                 onLibraryDetailTopBarColorChange(route, color)
             },
@@ -70,6 +77,9 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             },
             onAddToPlaylist = onAddToPlaylist,
             onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            currentTrackId = currentTrackId(),
+            onTrackSelectionAction = onTrackSelectionAction,
             onTopBarColorChange = { color ->
                 onLibraryDetailTopBarColorChange(route, color)
             },
@@ -87,6 +97,9 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             },
             onAddToPlaylist = onAddToPlaylist,
             onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            currentTrackId = currentTrackId(),
+            onTrackSelectionAction = onTrackSelectionAction,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding(),
         )

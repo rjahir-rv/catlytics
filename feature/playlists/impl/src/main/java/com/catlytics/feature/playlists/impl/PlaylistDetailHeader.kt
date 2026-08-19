@@ -22,6 +22,7 @@ import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -30,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -168,7 +170,7 @@ private fun PlaylistPlaybackActions(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            if (tracks.size == 1) "1 canción" else "${tracks.size} canciones",
+            playlistSummaryLabel(tracks),
             modifier = Modifier.weight(1f),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -179,7 +181,7 @@ private fun PlaylistPlaybackActions(
             modifier = Modifier.size(48.dp),
         ) {
             Icon(
-                painterResource(R.drawable.ic_shuffle_square),
+                painterResource(R.drawable.ic_shuffle),
                 contentDescription = "Reproducir aleatoriamente",
                 modifier = Modifier.size(24.dp),
             )
@@ -264,6 +266,7 @@ internal fun PlaylistOrderSheet(
     onAlphabetical: () -> Unit,
     onRandom: () -> Unit,
 ) {
+    val optionColors = ListItemDefaults.colors(containerColor = Color.Transparent)
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
             "Ordenar canciones",
@@ -273,16 +276,19 @@ internal fun PlaylistOrderSheet(
         ListItem(
             headlineContent = { Text("Personalizado") },
             supportingContent = { Text("Arrastra las canciones al orden que prefieras") },
+            colors = optionColors,
             modifier = Modifier.clickable(onClick = onCustom),
         )
         ListItem(
             headlineContent = { Text("Alfabético") },
             supportingContent = { Text("Ordenar por título y artista") },
+            colors = optionColors,
             modifier = Modifier.clickable(onClick = onAlphabetical),
         )
         ListItem(
             headlineContent = { Text("Random") },
             supportingContent = { Text("Mezclar y guardar un orden nuevo") },
+            colors = optionColors,
             modifier = Modifier.clickable(onClick = onRandom),
         )
         Spacer(Modifier.height(24.dp))

@@ -5,12 +5,15 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.home.api.DailyPlaylistRoute
 import com.catlytics.feature.home.api.HomeRoute
 
 fun EntryProviderScope<NavKey>.homeEntry(
     searchQuery: () -> String,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: () -> Set<String> = { emptySet() },
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onNavigateToStatistics: () -> Unit,
     onNavigateToDailyPlaylist: () -> Unit,
     onNavigateToFavorites: () -> Unit,
@@ -25,6 +28,8 @@ fun EntryProviderScope<NavKey>.homeEntry(
         HomeRoute(
             searchQuery = searchQuery(),
             onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            onTrackSelectionAction = onTrackSelectionAction,
             onNavigateToStatistics = onNavigateToStatistics,
             onNavigateToDailyPlaylist = onNavigateToDailyPlaylist,
             onNavigateToFavorites = onNavigateToFavorites,
@@ -39,6 +44,8 @@ fun EntryProviderScope<NavKey>.homeEntry(
     entry<DailyPlaylistRoute> {
         DailyPlaylistRoute(
             onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            onTrackSelectionAction = onTrackSelectionAction,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding(),
         )

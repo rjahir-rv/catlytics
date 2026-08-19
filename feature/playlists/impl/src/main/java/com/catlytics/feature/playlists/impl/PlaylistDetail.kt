@@ -12,11 +12,14 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
 
 @Composable
 internal fun PlaylistDetailRoute(
     playlistId: String,
     onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     onDeleted: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
@@ -49,15 +52,11 @@ internal fun PlaylistDetailRoute(
         onPlay = viewModel::play,
         onPlayShuffled = viewModel::playShuffled,
         onTrackOptions = { track ->
-            onTrackOptions(track) {
-                viewModel.remove(track.id)
-                Toast.makeText(
-                    context,
-                    "${track.title} eliminada de la playlist",
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
+            onTrackOptions(track) { viewModel.remove(track.id) }
         },
+        likedTrackIds = likedTrackIds,
+        onTrackSelectionAction = onTrackSelectionAction,
+        onRemoveSelected = viewModel::remove,
         onTogglePlayback = viewModel::togglePlayback,
         onSaveDetails = viewModel::saveDetails,
         onSaveOrder = viewModel::saveOrder,

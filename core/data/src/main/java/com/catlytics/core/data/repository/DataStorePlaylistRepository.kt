@@ -121,11 +121,23 @@ class DataStorePlaylistRepository internal constructor(
         return addedByPlaylist
     }
 
-    override suspend fun removeTrack(playlistId: String, trackId: String) = update { playlists ->
-        playlists.withLikedPlaylist().map { playlist ->
-            if (playlist.id == playlistId) playlist.copy(trackIds = playlist.trackIds - trackId)
-            else playlist
+    override suspend fun removeTrack(playlistId: String, trackId: String) {
+        removeTracks(playlistId, listOf(trackId))
+    }
+
+    override suspend fun removeTracks(playlistId: String, trackIds: Collection<String>): Int {
+        val toRemove = trackIds.toSet()
+        if (toRemove.isEmpty()) return 0
+        var removed = 0
+        update { playlists ->
+            playlists.withLikedPlaylist().map { playlist ->
+                if (playlist.id != playlistId) return@map playlist
+                val remaining = playlist.trackIds.filterNot(toRemove::contains)
+                removed = playlist.trackIds.size - remaining.size
+                playlist.copy(trackIds = remaining)
+            }
         }
+        return removed
     }
 
     override suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>) =

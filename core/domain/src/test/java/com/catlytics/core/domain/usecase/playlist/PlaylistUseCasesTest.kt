@@ -29,6 +29,51 @@ class PlaylistUseCasesTest {
     }
 
     @Test
+    fun `add tracks to liked skips ids already present`() = runTest {
+        val repository = FakePlaylistRepository()
+        repository.addTracks(LIKED_PLAYLIST_ID, listOf("track-1"))
+
+        val added = AddTracksToLikedUseCase(repository)(listOf("track-1", "track-2", "track-2"))
+
+        assertEquals(1, added)
+        assertEquals(
+            listOf("track-1", "track-2"),
+            repository.observePlaylists().first().first { it.id == LIKED_PLAYLIST_ID }.trackIds,
+        )
+    }
+
+    @Test
+    fun `remove tracks from playlist drops only requested ids`() = runTest {
+        val repository = FakePlaylistRepository()
+        val playlist = repository.createPlaylist("Focus", listOf("one", "two", "three"))
+
+        val removed = RemoveTrackFromPlaylistUseCase(repository)(
+            playlist.id,
+            listOf("two", "missing", "three"),
+        )
+
+        assertEquals(2, removed)
+        assertEquals(
+            listOf("one"),
+            repository.observePlaylists().first().first { it.id == playlist.id }.trackIds,
+        )
+    }
+
+    @Test
+    fun `remove tracks from liked uses the liked playlist`() = runTest {
+        val repository = FakePlaylistRepository()
+        repository.addTracks(LIKED_PLAYLIST_ID, listOf("track-1", "track-2"))
+
+        val removed = RemoveTracksFromLikedUseCase(repository)(listOf("track-1"))
+
+        assertEquals(1, removed)
+        assertEquals(
+            listOf("track-2"),
+            repository.observePlaylists().first().first { it.id == LIKED_PLAYLIST_ID }.trackIds,
+        )
+    }
+
+    @Test
     fun `observe is track liked follows liked playlist contents`() = runTest {
         val repository = FakePlaylistRepository()
         val useCase = ObserveIsTrackLikedUseCase(repository)
@@ -94,10 +139,19 @@ class PlaylistUseCasesTest {
         }
 
         override suspend fun removeTrack(playlistId: String, trackId: String) {
+            removeTracks(playlistId, listOf(trackId))
+        }
+
+        override suspend fun removeTracks(playlistId: String, trackIds: Collection<String>): Int {
+            val toRemove = trackIds.toSet()
+            var removed = 0
             playlists.value = playlists.value.map { playlist ->
-                if (playlist.id == playlistId) playlist.copy(trackIds = playlist.trackIds - trackId)
-                else playlist
+                if (playlist.id != playlistId) return@map playlist
+                val remaining = playlist.trackIds.filterNot(toRemove::contains)
+                removed = playlist.trackIds.size - remaining.size
+                playlist.copy(trackIds = remaining)
             }
+            return removed
         }
 
         override suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>) {

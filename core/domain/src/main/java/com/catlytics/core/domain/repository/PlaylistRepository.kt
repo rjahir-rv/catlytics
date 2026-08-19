@@ -23,6 +23,12 @@ interface PlaylistRepository {
 
     suspend fun removeTrack(playlistId: String, trackId: String)
 
+    suspend fun removeTracks(playlistId: String, trackIds: Collection<String>): Int {
+        val distinctIds = trackIds.distinct()
+        distinctIds.forEach { removeTrack(playlistId, it) }
+        return distinctIds.size
+    }
+
     suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>)
 
     suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?)

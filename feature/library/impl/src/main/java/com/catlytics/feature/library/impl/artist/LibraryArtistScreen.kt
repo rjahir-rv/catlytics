@@ -2,7 +2,9 @@ package com.catlytics.feature.library.impl.artist
 
 import android.graphics.Bitmap
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -70,9 +72,12 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.TrackSelectionHost
+import com.catlytics.core.designsystem.component.TrackSelectionMark
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
+import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
@@ -81,6 +86,8 @@ import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.core.model.TrackSelectionSnapshot
 import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
@@ -93,6 +100,9 @@ internal fun LibraryArtistScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    currentTrackId: String? = null,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
@@ -124,6 +134,9 @@ internal fun LibraryArtistScreen(
             onTrackSelected = onTrackSelected,
             onAddToPlaylist = onAddToPlaylist,
             onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds,
+            currentTrackId = currentTrackId,
+            onTrackSelectionAction = onTrackSelectionAction,
             onTopBarColorChange = onTopBarColorChange,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding,
@@ -154,6 +167,9 @@ private fun ArtistContent(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String>,
+    currentTrackId: String?,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp,
     scaffoldContentPadding: PaddingValues,
@@ -203,10 +219,24 @@ private fun ArtistContent(
         gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
     }
 
+    val selectionState = rememberTrackSelectionState()
+    val selection = selectionState.value
     ArtworkGradientBackground(
         colors = animatedGradientColors,
         modifier = modifier,
     ) {
+        TrackSelectionHost(
+            selection = selection,
+            onSelectionChange = { selectionState.value = it },
+            visibleIds = content.tracks.map(Track::id),
+            selectedTracks = selection.selectedTracks(content.tracks),
+            likedTrackIds = likedTrackIds,
+            currentTrackId = currentTrackId,
+            topInset = scaffoldContentPadding.calculateTopPadding(),
+            bottomInset = bottomPadding(),
+            onAction = onTrackSelectionAction,
+            modifier = Modifier.fillMaxSize(),
+        ) {
         Column(
             modifier = Modifier.fillMaxSize(),
         ) {
@@ -241,9 +271,19 @@ private fun ArtistContent(
                     ArtistDetailSection.Songs -> ArtistSongsPage(
                         tracks = content.tracks,
                         state = songsListState,
-                        onTrackSelected = { track -> onTrackSelected(track, playbackQueue) },
+                        onTrackSelected = { track ->
+                            if (selection.active) {
+                                selectionState.value = selection.onTrackLongClick(track.id)
+                            } else {
+                                onTrackSelected(track, playbackQueue)
+                            }
+                        },
                         onTrackOptions = onTrackOptions,
                         bottomPadding = bottomPadding,
+                        selection = selection,
+                        onTrackLongClick = { track ->
+                            selectionState.value = selection.onTrackLongClick(track.id)
+                        },
                     )
                     ArtistDetailSection.Albums -> ArtistAlbumsPage(
                         albums = content.albums,
@@ -256,6 +296,7 @@ private fun ArtistContent(
                     )
                 }
             }
+        }
         }
     }
 }
@@ -468,6 +509,8 @@ private fun ArtistSongsPage(
     onTrackSelected: (Track) -> Unit,
     onTrackOptions: (Track) -> Unit,
     bottomPadding: () -> Dp,
+    selection: TrackSelectionSnapshot = TrackSelectionSnapshot(),
+    onTrackLongClick: (Track) -> Unit = {},
 ) {
     LazyColumn(
         state = state,
@@ -476,7 +519,7 @@ private fun ArtistSongsPage(
             start = 20.dp,
             top = 8.dp,
             end = 20.dp,
-            bottom = bottomPadding() + 20.dp,
+            bottom = bottomPadding() + 20.dp + if (selection.active) 72.dp else 0.dp,
         ),
     ) {
         items(items = tracks, key = Track::id) { track ->
@@ -484,6 +527,9 @@ private fun ArtistSongsPage(
                 track = track,
                 onClick = { onTrackSelected(track) },
                 onTrackOptions = { onTrackOptions(track) },
+                selected = track.id in selection.selectedIds,
+                selectionActive = selection.active,
+                onLongClick = { onTrackLongClick(track) },
             )
         }
     }
@@ -574,22 +620,26 @@ private fun ArtistAlbumCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ArtistTrackRow(
     track: Track,
     onClick: () -> Unit,
     onTrackOptions: () -> Unit,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ArtistTrackArtwork(track = track)
+        ArtistTrackArtwork(track = track, selected = selected, selectionActive = selectionActive)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -609,11 +659,13 @@ private fun ArtistTrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        IconButton(onClick = onTrackOptions) {
-            Icon(
-                painter = painterResource(R.drawable.ic_options),
-                contentDescription = "Opciones de ${track.title}",
-            )
+        if (!selectionActive) {
+            IconButton(onClick = onTrackOptions) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_options),
+                    contentDescription = "Opciones de ${track.title}",
+                )
+            }
         }
     }
 }
@@ -621,6 +673,8 @@ private fun ArtistTrackRow(
 @Composable
 private fun ArtistTrackArtwork(
     track: Track,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val artworkShape = RoundedCornerShape(10.dp)
@@ -641,17 +695,24 @@ private fun ArtistTrackArtwork(
                     shape = artworkShape,
                 ),
         )
-        AsyncImage(
-            model = track.artworkUri,
-            contentDescription = null,
-            placeholder = painterResource(R.drawable.placeholder_track),
-            error = painterResource(R.drawable.placeholder_track),
-            fallback = painterResource(R.drawable.placeholder_track),
-            contentScale = ContentScale.Crop,
+        Box(
             modifier = Modifier
                 .size(48.dp)
                 .clip(artworkShape),
-        )
+        ) {
+            AsyncImage(
+                model = track.artworkUri,
+                contentDescription = null,
+                placeholder = painterResource(R.drawable.placeholder_track),
+                error = painterResource(R.drawable.placeholder_track),
+                fallback = painterResource(R.drawable.placeholder_track),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            if (selectionActive) {
+                TrackSelectionMark(selected = selected)
+            }
+        }
     }
 }
 

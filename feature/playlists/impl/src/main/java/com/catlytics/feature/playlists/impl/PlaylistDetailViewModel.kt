@@ -92,8 +92,16 @@ internal class PlaylistDetailViewModel @Inject constructor(
         playlistId.value = id
     }
 
-    fun remove(trackId: String) = viewModelScope.launch {
-        playlistId.value?.let { removeTrack(it, trackId) }
+    fun remove(trackId: String) = remove(listOf(trackId))
+
+    fun remove(trackIds: List<String>) = viewModelScope.launch {
+        val id = playlistId.value ?: return@launch
+        val removed = removeTrack(id, trackIds)
+        _effects.emit(
+            PlaylistDetailEffect.Message(
+                if (removed == 1) "1 canción quitada" else "$removed canciones quitadas",
+            ),
+        )
     }
 
     fun play(track: Track, queue: List<Track>) = viewModelScope.launch {
