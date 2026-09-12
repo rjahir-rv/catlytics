@@ -364,6 +364,29 @@ class HomeScreenTest {
         composeRule.runOnIdle { assertEquals(1, readyCalls) }
     }
 
+    @Test
+    fun letterFastScrollerStaysHiddenOverFeaturedSections() {
+        val tracks = List(30) { index ->
+            track.copy(id = "track-$index", title = "Canción $index")
+        }
+        composeRule.setContent {
+            MaterialTheme {
+                HomeScreen(
+                    uiState = HomeUiState.Success(tracks = tracks),
+                    searchQuery = "",
+                    hasAudioPermission = true,
+                    onRequestPermission = {},
+                    onTrackSelected = { _, _ -> },
+                    onTrackOptions = {},
+                )
+            }
+        }
+
+        composeRule
+            .onAllNodesWithContentDescription("Índice alfabético", substring = true)
+            .assertCountEquals(0)
+    }
+
     private val track = Track(
         id = "track-1",
         title = "Canción de prueba",

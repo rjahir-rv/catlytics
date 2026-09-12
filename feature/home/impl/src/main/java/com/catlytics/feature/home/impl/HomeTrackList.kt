@@ -9,6 +9,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -49,6 +50,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
+import com.catlytics.core.designsystem.component.sectionLetter
 import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.Track
 
@@ -81,97 +84,108 @@ internal fun HomeTrackList(
     areFeaturedSectionsVisible: Boolean,
     onToggleFeaturedSections: () -> Unit,
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        state = state,
-        contentPadding = contentPadding,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        if (showHighlights) {
-            item(key = "featured-sections-header") {
-                FeaturedSectionsHeader(
-                    areFeaturedSectionsVisible = areFeaturedSectionsVisible,
-                    onToggleFeaturedSections = onToggleFeaturedSections,
-                    modifier = Modifier.padding(horizontal = 20.dp),
-                )
-            }
-            item(key = "featured-sections-content") {
-                AnimatedVisibility(
-                    visible = areFeaturedSectionsVisible,
-                    enter = expandVertically(
-                        animationSpec = tween(durationMillis = 260),
-                        expandFrom = Alignment.Top,
-                    ) + fadeIn(animationSpec = tween(durationMillis = 180)),
-                    exit = shrinkVertically(
-                        animationSpec = tween(durationMillis = 240),
-                        shrinkTowards = Alignment.Top,
-                    ) + fadeOut(animationSpec = tween(durationMillis = 160)),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            state = state,
+            contentPadding = contentPadding,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            if (showHighlights) {
+                item(key = "featured-sections-header") {
+                    FeaturedSectionsHeader(
+                        areFeaturedSectionsVisible = areFeaturedSectionsVisible,
+                        onToggleFeaturedSections = onToggleFeaturedSections,
+                        modifier = Modifier.padding(horizontal = 20.dp),
+                    )
+                }
+                item(key = "featured-sections-content") {
+                    AnimatedVisibility(
+                        visible = areFeaturedSectionsVisible,
+                        enter = expandVertically(
+                            animationSpec = tween(durationMillis = 260),
+                            expandFrom = Alignment.Top,
+                        ) + fadeIn(animationSpec = tween(durationMillis = 180)),
+                        exit = shrinkVertically(
+                            animationSpec = tween(durationMillis = 240),
+                            shrinkTowards = Alignment.Top,
+                        ) + fadeOut(animationSpec = tween(durationMillis = 160)),
                     ) {
-                        if (
-                            dailyPlaylistTrackCount > 0 ||
-                            canShuffleAll ||
-                            favoriteTrackCount > 0
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
-                            HomeQuickActions(
-                                dailyPlaylistTrackCount = dailyPlaylistTrackCount,
-                                canShuffleAll = canShuffleAll,
-                                favoriteTrackCount = favoriteTrackCount,
-                                onPlayDailyPlaylist = onPlayDailyPlaylist,
-                                onShuffleAll = onShuffleAll,
-                                onOpenFavorites = onOpenFavorites,
+                            if (
+                                dailyPlaylistTrackCount > 0 ||
+                                canShuffleAll ||
+                                favoriteTrackCount > 0
+                            ) {
+                                HomeQuickActions(
+                                    dailyPlaylistTrackCount = dailyPlaylistTrackCount,
+                                    canShuffleAll = canShuffleAll,
+                                    favoriteTrackCount = favoriteTrackCount,
+                                    onPlayDailyPlaylist = onPlayDailyPlaylist,
+                                    onShuffleAll = onShuffleAll,
+                                    onOpenFavorites = onOpenFavorites,
+                                )
+                            }
+                            HomeHighlights(
+                                recentlyPlayedTracks = recentlyPlayedTracks,
+                                topTracks = topTracks,
+                                onRecentlyPlayedTrackSelected = onRecentlyPlayedTrackSelected,
+                                onTopTrackSelected = onTopTrackSelected,
+                                onNavigateToStatistics = onNavigateToStatistics,
+                                modifier = Modifier.padding(bottom = 8.dp),
                             )
                         }
-                        HomeHighlights(
-                            recentlyPlayedTracks = recentlyPlayedTracks,
-                            topTracks = topTracks,
-                            onRecentlyPlayedTrackSelected = onRecentlyPlayedTrackSelected,
-                            onTopTrackSelected = onTopTrackSelected,
-                            onNavigateToStatistics = onNavigateToStatistics,
-                            modifier = Modifier.padding(bottom = 8.dp),
-                        )
                     }
                 }
+                item {
+                    Text(
+                        text = "Todas las canciones",
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(
+                            start = 20.dp,
+                            top = 8.dp,
+                            end = 20.dp,
+                            bottom = 4.dp,
+                        ),
+                    )
+                }
             }
-            item {
-                Text(
-                    text = "Todas las canciones",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(
-                        start = 20.dp,
-                        top = 8.dp,
-                        end = 20.dp,
-                        bottom = 4.dp,
-                    ),
+            items(items = tracks, key = Track::id) { track ->
+                TrackRow(
+                    track = track,
+                    isCurrent = track.id == currentTrackId,
+                    isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
+                    onTrackSelected = {
+                        if (selectionActive) {
+                            onTrackLongClick(track)
+                        } else {
+                            onTrackSelected(track, playbackQueue)
+                        }
+                    },
+                    onTrackOptions = { onTrackOptions(track) },
+                    modifier = Modifier.padding(horizontal = 20.dp),
+                    selected = track.id in selectedTrackIds,
+                    selectionActive = selectionActive,
+                    onLongClick = { onTrackLongClick(track) },
                 )
             }
         }
-        items(items = tracks, key = Track::id) { track ->
-            TrackRow(
-                track = track,
-                isCurrent = track.id == currentTrackId,
-                isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
-                onTrackSelected = {
-                    if (selectionActive) {
-                        onTrackLongClick(track)
-                    } else {
-                        onTrackSelected(track, playbackQueue)
-                    }
-                },
-                onTrackOptions = { onTrackOptions(track) },
-                modifier = Modifier.padding(horizontal = 20.dp),
-                selected = track.id in selectedTrackIds,
-                selectionActive = selectionActive,
-                onLongClick = { onTrackLongClick(track) },
-            )
-        }
+        CatlyticsLetterFastScroller(
+            listState = state,
+            itemCount = tracks.size,
+            headerItemCount = if (showHighlights) HIGHLIGHT_HEADER_ITEM_COUNT else 0,
+            letterForVisibleTrackIndex = { index -> tracks[index].title.sectionLetter() },
+            contentPadding = contentPadding,
+        )
     }
 }
+
+private const val HIGHLIGHT_HEADER_ITEM_COUNT = 3
 
 @Composable
 private fun FeaturedSectionsHeader(

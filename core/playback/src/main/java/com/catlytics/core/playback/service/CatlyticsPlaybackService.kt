@@ -39,6 +39,7 @@ class CatlyticsPlaybackService : MediaSessionService() {
     private var crossfadePlayer: ExoPlayer? = null
     private var crossfadeCoordinator: CrossfadeCoordinator? = null
     private var audioFocusHandler: PlaybackAudioFocusHandler? = null
+    private var becomingNoisyHandler: PlaybackBecomingNoisyHandler? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val playerListener = object : Player.Listener {
@@ -97,6 +98,12 @@ class CatlyticsPlaybackService : MediaSessionService() {
             playerControl = coordinator,
         )
         audioFocusHandler = focusHandler
+        val noisyHandler = PlaybackBecomingNoisyHandler(
+            noisyGateway = AndroidAudioBecomingNoisyGateway(this),
+            playerControl = coordinator,
+        )
+        noisyHandler.start()
+        becomingNoisyHandler = noisyHandler
         exoPlayer.addListener(playerListener)
         equalizerRepository.attachAudioSessionId(exoPlayer.audioSessionId)
 
@@ -126,12 +133,14 @@ class CatlyticsPlaybackService : MediaSessionService() {
         equalizerRepository.release()
         crossfadeCoordinator?.release()
         audioFocusHandler?.release()
+        becomingNoisyHandler?.stop()
         player?.let(playbackShuffleOrder::detach)
         mediaSession?.run {
             player.release()
             release()
         }
         audioFocusHandler = null
+        becomingNoisyHandler = null
         crossfadeCoordinator = null
         crossfadePlayer?.release()
         crossfadePlayer = null
