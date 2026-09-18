@@ -217,6 +217,7 @@ internal fun PlaylistOptionsMenu(
     onEdit: () -> Unit,
     onAddTracks: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onExportM3u: () -> Unit = {},
     onDelete: () -> Unit,
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
@@ -241,6 +242,11 @@ internal fun PlaylistOptionsMenu(
             text = { Text("Agregar a otra playlist") },
             leadingIcon = { Icon(painterResource(R.drawable.ic_add_playlist), null) },
             onClick = { onDismiss(); onAddToPlaylist() },
+        )
+        DropdownMenuItem(
+            text = { Text("Exportar como M3U8") },
+            leadingIcon = { Icon(painterResource(R.drawable.ic_share), null) },
+            onClick = { onDismiss(); onExportM3u() },
         )
         if (canEdit) {
             DropdownMenuItem(

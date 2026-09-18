@@ -12,6 +12,7 @@ import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.Playlist
+import com.catlytics.core.model.StatisticsImportMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.IOException
@@ -169,6 +170,58 @@ class DataStorePlaylistRepository internal constructor(
         }
         if (previousArtworkUri != persisted) {
             deleteManagedCover(playlistId, previousArtworkUri)
+        }
+    }
+
+    override suspend fun restorePlaylists(playlists: List<Playlist>, mode: StatisticsImportMode) {
+        val incomingLiked = playlists.firstOrNull { it.id == LIKED_PLAYLIST_ID }
+        val incomingOther = playlists.filterNot { it.id == LIKED_PLAYLIST_ID }
+
+        update { currentPlaylists ->
+            when (mode) {
+                StatisticsImportMode.Replace -> {
+                    val currentNonLiked = currentPlaylists.filterNot { it.id == LIKED_PLAYLIST_ID }
+                    currentNonLiked.forEach { deleteManagedCover(it.id, it.artworkUri) }
+
+                    val newLiked = (incomingLiked ?: currentPlaylists.firstOrNull { it.id == LIKED_PLAYLIST_ID })
+                        ?.copy(name = LIKED_PLAYLIST_NAME)
+                        ?: Playlist(id = LIKED_PLAYLIST_ID, name = LIKED_PLAYLIST_NAME, trackIds = emptyList())
+
+                    listOf(newLiked) + incomingOther
+                }
+                StatisticsImportMode.Merge -> {
+                    val currentLiked = currentPlaylists.firstOrNull { it.id == LIKED_PLAYLIST_ID }
+                    val mergedLiked = if (incomingLiked != null && currentLiked != null) {
+                        currentLiked.copy(trackIds = (currentLiked.trackIds + incomingLiked.trackIds).distinct())
+                    } else {
+                        currentLiked ?: incomingLiked ?: Playlist(id = LIKED_PLAYLIST_ID, name = LIKED_PLAYLIST_NAME, trackIds = emptyList())
+                    }
+
+                    val resultList = mutableListOf<Playlist>()
+                    resultList.add(mergedLiked.copy(name = LIKED_PLAYLIST_NAME))
+
+                    val currentNonLiked = currentPlaylists.filterNot { it.id == LIKED_PLAYLIST_ID }.toMutableList()
+
+                    for (incoming in incomingOther) {
+                        val existingIndex = currentNonLiked.indexOfFirst {
+                            it.name.equals(incoming.name, ignoreCase = true)
+                        }
+                        if (existingIndex >= 0) {
+                            val existing = currentNonLiked[existingIndex]
+                            val merged = existing.copy(
+                                trackIds = (existing.trackIds + incoming.trackIds).distinct(),
+                                description = existing.description.ifBlank { incoming.description },
+                                artworkUri = existing.artworkUri ?: incoming.artworkUri,
+                            )
+                            currentNonLiked[existingIndex] = merged
+                        } else {
+                            currentNonLiked.add(incoming)
+                        }
+                    }
+                    resultList.addAll(currentNonLiked)
+                    resultList
+                }
+            }
         }
     }
 

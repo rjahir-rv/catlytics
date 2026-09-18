@@ -1,15 +1,21 @@
 package com.catlytics.feature.settings.impl
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.model.BackupOptions
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -31,28 +37,54 @@ internal fun SettingsRoute(
     val libraryFolders by viewModel.libraryFolders.collectAsStateWithLifecycle()
     val musicScanSettings by viewModel.musicScanSettings.collectAsStateWithLifecycle()
     val musicScanStatus by viewModel.musicScanStatus.collectAsStateWithLifecycle()
-    val statisticsBackupSummary by viewModel.statisticsBackupSummary.collectAsStateWithLifecycle()
-    val statisticsBackupStatus by viewModel.statisticsBackupStatus.collectAsStateWithLifecycle()
-    val importPreview by viewModel.importPreview.collectAsStateWithLifecycle()
+    val unifiedBackupSummary by viewModel.unifiedBackupSummary.collectAsStateWithLifecycle()
+    val unifiedBackupStatus by viewModel.unifiedBackupStatus.collectAsStateWithLifecycle()
+    val unifiedImportPreview by viewModel.unifiedImportPreview.collectAsStateWithLifecycle()
+
+    var pendingExportOptions by remember { mutableStateOf<BackupOptions?>(null) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
-        if (uri != null) {
-            viewModel.exportStatisticsBackup(uri.toString(), appVersion)
+        val options = pendingExportOptions
+        if (uri != null && options != null) {
+            viewModel.exportUnifiedBackup(uri.toString(), options, appVersion)
         }
+        pendingExportOptions = null
     }
 
     val importLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri != null) {
-            viewModel.loadImportPreview(uri.toString())
+            viewModel.loadUnifiedImportPreview(uri.toString())
         }
     }
 
+    val context = LocalContext.current
+
     LaunchedEffect(Unit) {
         viewModel.refreshEqualizer()
+    }
+
+    LaunchedEffect(unifiedBackupStatus) {
+        when (val status = unifiedBackupStatus) {
+            is UnifiedBackupStatus.ExportSuccess -> {
+                val stats = status.result.statistics
+                val playlists = status.result.playlists
+                val parts = mutableListOf<String>()
+                if (playlists != null) parts.add("${playlists.playlistCount} playlists")
+                if (stats != null) parts.add("${stats.eventCount} reproducciones")
+                val detail = if (parts.isNotEmpty()) " (${parts.joinToString(", ")})" else ""
+                Toast.makeText(
+                    context,
+                    "Copia de seguridad exportada con éxito$detail",
+                    Toast.LENGTH_SHORT,
+                ).show()
+                viewModel.dismissUnifiedBackupStatus()
+            }
+            else -> Unit
+        }
     }
 
     SettingsScreen(
@@ -65,9 +97,9 @@ internal fun SettingsRoute(
         musicScanSettings = musicScanSettings,
         musicScanStatus = musicScanStatus,
         hasAudioPermission = hasAudioPermission,
-        statisticsBackupSummary = statisticsBackupSummary,
-        statisticsBackupStatus = statisticsBackupStatus,
-        importPreview = importPreview,
+        unifiedBackupSummary = unifiedBackupSummary,
+        unifiedBackupStatus = unifiedBackupStatus,
+        unifiedImportPreview = unifiedImportPreview,
         onRequestAudioPermission = onRequestAudioPermission,
         onThemeModeChange = viewModel::setThemeMode,
         onCrossfadeDurationChange = viewModel::setCrossfadeDurationSeconds,
@@ -81,16 +113,17 @@ internal fun SettingsRoute(
         onEqualizerModeChange = viewModel::setEqualizerMode,
         onEqualizerPresetSelected = viewModel::selectEqualizerPreset,
         onCustomBandLevelChange = viewModel::setCustomBandLevel,
-        onExportStatisticsClick = {
+        onExportBackupClick = { options ->
+            pendingExportOptions = options
             val date = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-            exportLauncher.launch("catlytics-stats-$date.json")
+            exportLauncher.launch("catlytics-backup-$date.json")
         },
-        onImportStatisticsClick = {
+        onImportBackupClick = {
             importLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
         },
-        onConfirmImport = viewModel::confirmImport,
-        onDismissImportPreview = viewModel::dismissImportPreview,
-        onDismissStatisticsBackupStatus = viewModel::dismissStatisticsBackupStatus,
+        onConfirmImport = viewModel::confirmUnifiedImport,
+        onDismissImportPreview = viewModel::dismissUnifiedImportPreview,
+        onDismissBackupStatus = viewModel::dismissUnifiedBackupStatus,
         bottomPadding = bottomPadding,
         onTopBarTitleChange = onTopBarTitleChange,
         onTopBarBackActionChange = onTopBarBackActionChange,

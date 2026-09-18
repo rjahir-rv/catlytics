@@ -13,10 +13,11 @@ import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanDurationFilterUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanSizeFilterUseCase
-import com.catlytics.core.domain.usecase.statistics.ExportStatisticsBackupUseCase
-import com.catlytics.core.domain.usecase.statistics.ImportStatisticsBackupUseCase
-import com.catlytics.core.domain.usecase.statistics.ObserveStatisticsBackupSummaryUseCase
-import com.catlytics.core.domain.usecase.statistics.PreviewStatisticsBackupUseCase
+import com.catlytics.core.domain.usecase.backup.ExportUnifiedBackupUseCase
+import com.catlytics.core.domain.usecase.backup.ImportUnifiedBackupUseCase
+import com.catlytics.core.domain.usecase.backup.ObserveUnifiedBackupSummaryUseCase
+import com.catlytics.core.domain.usecase.backup.PreviewUnifiedBackupUseCase
+import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
@@ -24,10 +25,12 @@ import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
-import com.catlytics.core.model.StatisticsBackupPreview
-import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
+import com.catlytics.core.model.UnifiedBackupPreview
+import com.catlytics.core.model.UnifiedBackupSummary
+import com.catlytics.core.model.UnifiedExportResult
+import com.catlytics.core.model.UnifiedImportResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,10 +54,10 @@ internal class SettingsViewModel @Inject constructor(
     private val setFolderVisibilityUseCase: SetFolderVisibilityUseCase,
     private val setMusicScanDurationFilterUseCase: SetMusicScanDurationFilterUseCase,
     private val setMusicScanSizeFilterUseCase: SetMusicScanSizeFilterUseCase,
-    observeStatisticsBackupSummaryUseCase: ObserveStatisticsBackupSummaryUseCase,
-    private val exportStatisticsBackupUseCase: ExportStatisticsBackupUseCase,
-    private val previewStatisticsBackupUseCase: PreviewStatisticsBackupUseCase,
-    private val importStatisticsBackupUseCase: ImportStatisticsBackupUseCase,
+    observeUnifiedBackupSummaryUseCase: ObserveUnifiedBackupSummaryUseCase,
+    private val exportUnifiedBackupUseCase: ExportUnifiedBackupUseCase,
+    private val previewUnifiedBackupUseCase: PreviewUnifiedBackupUseCase,
+    private val importUnifiedBackupUseCase: ImportUnifiedBackupUseCase,
 ) : ViewModel() {
     val sleepTimerState = sleepTimerController.state
 
@@ -94,21 +97,21 @@ internal class SettingsViewModel @Inject constructor(
     val musicScanStatus: StateFlow<MusicScanStatus> = _musicScanStatus.asStateFlow()
     private var scanSettingsUpdateJob: Job? = null
 
-    val statisticsBackupSummary: StateFlow<StatisticsBackupSummary> =
-        observeStatisticsBackupSummaryUseCase()
+    val unifiedBackupSummary: StateFlow<UnifiedBackupSummary> =
+        observeUnifiedBackupSummaryUseCase()
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = StatisticsBackupSummary(0, null, null),
+                initialValue = UnifiedBackupSummary(),
             )
 
-    private val _statisticsBackupStatus =
-        MutableStateFlow<StatisticsBackupStatus>(StatisticsBackupStatus.Idle)
-    val statisticsBackupStatus: StateFlow<StatisticsBackupStatus> =
-        _statisticsBackupStatus.asStateFlow()
+    private val _unifiedBackupStatus =
+        MutableStateFlow<UnifiedBackupStatus>(UnifiedBackupStatus.Idle)
+    val unifiedBackupStatus: StateFlow<UnifiedBackupStatus> =
+        _unifiedBackupStatus.asStateFlow()
 
-    private val _importPreview = MutableStateFlow<StatisticsBackupPreview?>(null)
-    val importPreview: StateFlow<StatisticsBackupPreview?> = _importPreview.asStateFlow()
+    private val _unifiedImportPreview = MutableStateFlow<UnifiedBackupPreview?>(null)
+    val unifiedImportPreview: StateFlow<UnifiedBackupPreview?> = _unifiedImportPreview.asStateFlow()
 
     private var pendingImportUri: String? = null
     private var backupJob: Job? = null
@@ -205,42 +208,44 @@ internal class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun exportStatisticsBackup(uri: String, appVersion: String) {
+
+    fun exportUnifiedBackup(
+        uri: String,
+        options: BackupOptions,
+        appVersion: String,
+    ) {
         if (isBackupBusy()) return
         backupJob = viewModelScope.launch {
-            _statisticsBackupStatus.value = StatisticsBackupStatus.Exporting
-            _statisticsBackupStatus.value = exportStatisticsBackupUseCase(uri, appVersion)
+            _unifiedBackupStatus.value = UnifiedBackupStatus.Exporting
+            _unifiedBackupStatus.value = exportUnifiedBackupUseCase(uri, options, appVersion)
                 .fold(
-                    onSuccess = {
-                        StatisticsBackupStatus.ExportSuccess(
-                            eventCount = it.eventCount,
-                            artistAliasCount = it.artistAliasCount,
-                        )
+                    onSuccess = { result ->
+                        UnifiedBackupStatus.ExportSuccess(result)
                     },
                     onFailure = { error ->
-                        StatisticsBackupStatus.Error(
-                            error.message ?: "No se pudo exportar el respaldo.",
+                        UnifiedBackupStatus.Error(
+                            error.message ?: "No se pudo exportar la copia de seguridad.",
                         )
                     },
                 )
         }
     }
 
-    fun loadImportPreview(uri: String) {
+    fun loadUnifiedImportPreview(uri: String) {
         if (isBackupBusy()) return
         pendingImportUri = uri
         backupJob = viewModelScope.launch {
-            _statisticsBackupStatus.value = StatisticsBackupStatus.LoadingPreview
-            previewStatisticsBackupUseCase(uri)
+            _unifiedBackupStatus.value = UnifiedBackupStatus.LoadingPreview
+            previewUnifiedBackupUseCase(uri)
                 .fold(
                     onSuccess = { preview ->
-                        _importPreview.value = preview
-                        _statisticsBackupStatus.value = StatisticsBackupStatus.Idle
+                        _unifiedImportPreview.value = preview
+                        _unifiedBackupStatus.value = UnifiedBackupStatus.Idle
                     },
                     onFailure = { error ->
                         pendingImportUri = null
-                        _importPreview.value = null
-                        _statisticsBackupStatus.value = StatisticsBackupStatus.Error(
+                        _unifiedImportPreview.value = null
+                        _unifiedBackupStatus.value = UnifiedBackupStatus.Error(
                             error.message ?: "No se pudo leer el archivo de respaldo.",
                         )
                     },
@@ -248,46 +253,44 @@ internal class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun confirmImport(mode: StatisticsImportMode) {
+    fun confirmUnifiedImport(
+        options: BackupOptions,
+        mode: StatisticsImportMode,
+    ) {
         val uri = pendingImportUri ?: return
         if (isBackupBusy()) return
-        _importPreview.value = null
+        _unifiedImportPreview.value = null
         backupJob = viewModelScope.launch {
-            _statisticsBackupStatus.value = StatisticsBackupStatus.Importing
-            _statisticsBackupStatus.value = importStatisticsBackupUseCase(uri, mode)
+            _unifiedBackupStatus.value = UnifiedBackupStatus.Importing
+            _unifiedBackupStatus.value = importUnifiedBackupUseCase(uri, options, mode)
                 .fold(
                     onSuccess = { result ->
                         pendingImportUri = null
-                        StatisticsBackupStatus.ImportSuccess(
-                            importedCount = result.importedCount,
-                            skippedDuplicateCount = result.skippedDuplicateCount,
-                            totalInFile = result.totalInFile,
-                            importedArtistAliasCount = result.importedArtistAliasCount,
-                        )
+                        UnifiedBackupStatus.ImportSuccess(result)
                     },
                     onFailure = { error ->
-                        StatisticsBackupStatus.Error(
-                            error.message ?: "No se pudo importar el respaldo.",
+                        UnifiedBackupStatus.Error(
+                            error.message ?: "No se pudo importar la copia de seguridad.",
                         )
                     },
                 )
         }
     }
 
-    fun dismissImportPreview() {
+    fun dismissUnifiedImportPreview() {
         pendingImportUri = null
-        _importPreview.value = null
+        _unifiedImportPreview.value = null
     }
 
-    fun dismissStatisticsBackupStatus() {
-        _statisticsBackupStatus.value = StatisticsBackupStatus.Idle
+    fun dismissUnifiedBackupStatus() {
+        _unifiedBackupStatus.value = UnifiedBackupStatus.Idle
     }
 
     private fun isBackupBusy(): Boolean {
-        val status = _statisticsBackupStatus.value
-        return status is StatisticsBackupStatus.Exporting ||
-            status is StatisticsBackupStatus.Importing ||
-            status is StatisticsBackupStatus.LoadingPreview
+        val status = _unifiedBackupStatus.value
+        return status is UnifiedBackupStatus.Exporting ||
+            status is UnifiedBackupStatus.Importing ||
+            status is UnifiedBackupStatus.LoadingPreview
     }
 }
 
@@ -298,20 +301,13 @@ internal sealed interface MusicScanStatus {
     data class Error(val message: String) : MusicScanStatus
 }
 
-internal sealed interface StatisticsBackupStatus {
-    data object Idle : StatisticsBackupStatus
-    data object Exporting : StatisticsBackupStatus
-    data object LoadingPreview : StatisticsBackupStatus
-    data object Importing : StatisticsBackupStatus
-    data class ExportSuccess(
-        val eventCount: Int,
-        val artistAliasCount: Int = 0,
-    ) : StatisticsBackupStatus
-    data class ImportSuccess(
-        val importedCount: Int,
-        val skippedDuplicateCount: Int,
-        val totalInFile: Int,
-        val importedArtistAliasCount: Int = 0,
-    ) : StatisticsBackupStatus
-    data class Error(val message: String) : StatisticsBackupStatus
+internal sealed interface UnifiedBackupStatus {
+    data object Idle : UnifiedBackupStatus
+    data object Exporting : UnifiedBackupStatus
+    data object LoadingPreview : UnifiedBackupStatus
+    data object Importing : UnifiedBackupStatus
+    data class ExportSuccess(val result: UnifiedExportResult) : UnifiedBackupStatus
+    data class ImportSuccess(val result: UnifiedImportResult) : UnifiedBackupStatus
+    data class Error(val message: String) : UnifiedBackupStatus
 }
+

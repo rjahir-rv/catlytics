@@ -9,6 +9,7 @@ import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
 import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.DeletePlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.ExportPlaylistToM3uUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ReorderPlaylistTracksUseCase
@@ -59,6 +60,7 @@ internal class PlaylistDetailViewModel @Inject constructor(
     private val reorderPlaylistTracks: ReorderPlaylistTracksUseCase,
     observeLibrary: ObserveLibraryUseCase,
     private val addToPlaylist: AddToPlaylistUseCase,
+    private val exportPlaylistToM3u: ExportPlaylistToM3uUseCase,
 ) : ViewModel() {
     private val playlistId = MutableStateFlow<String?>(null)
     private val _effects = MutableSharedFlow<PlaylistDetailEffect>()
@@ -185,5 +187,21 @@ internal class PlaylistDetailViewModel @Inject constructor(
                 ),
             )
         }
+    }
+
+    fun exportM3u(uri: String) = viewModelScope.launch {
+        val id = playlistId.value ?: return@launch
+        exportPlaylistToM3u(id, uri).fold(
+            onSuccess = {
+                _effects.emit(PlaylistDetailEffect.Message("Playlist exportada como M3U8."))
+            },
+            onFailure = { error ->
+                _effects.emit(
+                    PlaylistDetailEffect.Message(
+                        error.message ?: "No se pudo exportar la playlist.",
+                    ),
+                )
+            },
+        )
     }
 }

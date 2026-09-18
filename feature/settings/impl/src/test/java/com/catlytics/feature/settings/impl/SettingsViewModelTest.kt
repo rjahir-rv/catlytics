@@ -6,21 +6,22 @@ import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.SleepTimerController
-import com.catlytics.core.domain.repository.StatisticsBackupRepository
+import com.catlytics.core.domain.repository.UnifiedBackupRepository
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveMusicScanSettingsUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanDurationFilterUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanSizeFilterUseCase
-import com.catlytics.core.domain.usecase.statistics.ExportStatisticsBackupUseCase
-import com.catlytics.core.domain.usecase.statistics.ImportStatisticsBackupUseCase
-import com.catlytics.core.domain.usecase.statistics.ObserveStatisticsBackupSummaryUseCase
-import com.catlytics.core.domain.usecase.statistics.PreviewStatisticsBackupUseCase
+import com.catlytics.core.domain.usecase.backup.ExportUnifiedBackupUseCase
+import com.catlytics.core.domain.usecase.backup.ImportUnifiedBackupUseCase
+import com.catlytics.core.domain.usecase.backup.ObserveUnifiedBackupSummaryUseCase
+import com.catlytics.core.domain.usecase.backup.PreviewUnifiedBackupUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerState
@@ -29,6 +30,10 @@ import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
+import com.catlytics.core.model.PlaylistBackupPreview
+import com.catlytics.core.model.PlaylistBackupSummary
+import com.catlytics.core.model.PlaylistExportResult
+import com.catlytics.core.model.PlaylistImportResult
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
@@ -39,6 +44,10 @@ import com.catlytics.core.model.StatisticsExportResult
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.StatisticsImportResult
 import com.catlytics.core.model.ThemeMode
+import com.catlytics.core.model.UnifiedBackupPreview
+import com.catlytics.core.model.UnifiedBackupSummary
+import com.catlytics.core.model.UnifiedExportResult
+import com.catlytics.core.model.UnifiedImportResult
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -183,6 +192,38 @@ class SettingsViewModelTest {
         assertEquals(MusicScanStatus.Error("Falló MediaStore"), viewModel.musicScanStatus.value)
     }
 
+    @Test
+    fun `exportUnifiedBackup updates status on success`() = runTest {
+        val viewModel = viewModel()
+        viewModel.exportUnifiedBackup("content://export", BackupOptions(), "0.0.5")
+        advanceUntilIdle()
+
+        val status = viewModel.unifiedBackupStatus.value
+        assertEquals(true, status is UnifiedBackupStatus.ExportSuccess)
+    }
+
+    @Test
+    fun `loadUnifiedImportPreview updates preview state`() = runTest {
+        val viewModel = viewModel()
+        viewModel.loadUnifiedImportPreview("content://import")
+        advanceUntilIdle()
+
+        assertEquals(0, viewModel.unifiedImportPreview.value?.playlists?.playlistCount)
+    }
+
+    @Test
+    fun `confirmUnifiedImport completes and updates status`() = runTest {
+        val viewModel = viewModel()
+        viewModel.loadUnifiedImportPreview("content://import")
+        advanceUntilIdle()
+
+        viewModel.confirmUnifiedImport(BackupOptions(), StatisticsImportMode.Merge)
+        advanceUntilIdle()
+
+        val status = viewModel.unifiedBackupStatus.value
+        assertEquals(true, status is UnifiedBackupStatus.ImportSuccess)
+    }
+
     private fun viewModel(
         appPreferencesRepository: AppPreferencesRepository = FakeAppPreferencesRepository(),
         equalizerRepository: EqualizerRepository = FakeEqualizerRepository(),
@@ -191,7 +232,7 @@ class SettingsViewModelTest {
         libraryRepository: FakeLibraryRepository = FakeLibraryRepository(),
         libraryPreferencesRepository: FakeLibraryPreferencesRepository =
             FakeLibraryPreferencesRepository(),
-        statisticsBackupRepository: StatisticsBackupRepository = FakeStatisticsBackupRepository(),
+        unifiedBackupRepository: UnifiedBackupRepository = FakeUnifiedBackupRepository(),
     ) = SettingsViewModel(
         appPreferencesRepository = appPreferencesRepository,
         equalizerRepository = equalizerRepository,
@@ -206,39 +247,63 @@ class SettingsViewModelTest {
             SetMusicScanDurationFilterUseCase(libraryPreferencesRepository),
         setMusicScanSizeFilterUseCase =
             SetMusicScanSizeFilterUseCase(libraryPreferencesRepository),
-        observeStatisticsBackupSummaryUseCase =
-            ObserveStatisticsBackupSummaryUseCase(statisticsBackupRepository),
-        exportStatisticsBackupUseCase = ExportStatisticsBackupUseCase(statisticsBackupRepository),
-        previewStatisticsBackupUseCase = PreviewStatisticsBackupUseCase(statisticsBackupRepository),
-        importStatisticsBackupUseCase = ImportStatisticsBackupUseCase(statisticsBackupRepository),
+        observeUnifiedBackupSummaryUseCase =
+            ObserveUnifiedBackupSummaryUseCase(unifiedBackupRepository),
+        exportUnifiedBackupUseCase = ExportUnifiedBackupUseCase(unifiedBackupRepository),
+        previewUnifiedBackupUseCase = PreviewUnifiedBackupUseCase(unifiedBackupRepository),
+        importUnifiedBackupUseCase = ImportUnifiedBackupUseCase(unifiedBackupRepository),
     )
 }
 
-private class FakeStatisticsBackupRepository : StatisticsBackupRepository {
-    override fun observeLocalSummary(): Flow<StatisticsBackupSummary> =
-        flowOf(StatisticsBackupSummary(0, null, null))
+private class FakeUnifiedBackupRepository : UnifiedBackupRepository {
+    override fun observeSummary(): Flow<UnifiedBackupSummary> =
+        flowOf(UnifiedBackupSummary())
 
     override suspend fun exportToUri(
         uri: String,
+        options: BackupOptions,
         appVersion: String,
-    ): Result<StatisticsExportResult> = Result.success(StatisticsExportResult(0))
+    ): Result<UnifiedExportResult> = Result.success(
+        UnifiedExportResult(
+            statistics = StatisticsExportResult(0),
+            playlists = PlaylistExportResult(0, 0),
+        ),
+    )
 
-    override suspend fun previewFromUri(uri: String): Result<StatisticsBackupPreview> =
+    override suspend fun previewFromUri(uri: String): Result<UnifiedBackupPreview> =
         Result.success(
-            StatisticsBackupPreview(
-                schemaVersion = 1,
+            UnifiedBackupPreview(
+                schemaVersion = 3,
                 exportedAtMillis = 0L,
-                eventCount = 0,
-                firstEventMillis = null,
-                lastEventMillis = null,
+                statistics = StatisticsBackupPreview(
+                    schemaVersion = 3,
+                    exportedAtMillis = 0L,
+                    eventCount = 0,
+                    firstEventMillis = null,
+                    lastEventMillis = null,
+                ),
+                playlists = PlaylistBackupPreview(
+                    schemaVersion = 3,
+                    exportedAtMillis = 0L,
+                    playlistCount = 0,
+                    totalTracksInBackup = 0,
+                    matchedTracksCount = 0,
+                    missingTracksCount = 0,
+                    likedTracksCount = 0,
+                ),
             ),
         )
 
     override suspend fun importFromUri(
         uri: String,
+        options: BackupOptions,
         mode: StatisticsImportMode,
-    ): Result<StatisticsImportResult> =
-        Result.success(StatisticsImportResult(0, 0, 0))
+    ): Result<UnifiedImportResult> = Result.success(
+        UnifiedImportResult(
+            statistics = StatisticsImportResult(0, 0, 0),
+            playlists = PlaylistImportResult(0, 0, 0),
+        ),
+    )
 }
 
 private class FakeLibraryRepository(

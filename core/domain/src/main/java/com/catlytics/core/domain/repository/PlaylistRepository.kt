@@ -1,6 +1,7 @@
 package com.catlytics.core.domain.repository
 
 import com.catlytics.core.model.Playlist
+import com.catlytics.core.model.StatisticsImportMode
 import kotlinx.coroutines.flow.Flow
 
 interface PlaylistRepository {
@@ -32,4 +33,6 @@ interface PlaylistRepository {
     suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>)
 
     suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?)
+
+    suspend fun restorePlaylists(playlists: List<Playlist>, mode: StatisticsImportMode) {}
 }

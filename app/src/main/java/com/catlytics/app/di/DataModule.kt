@@ -28,6 +28,8 @@ import com.catlytics.core.data.repository.DefaultStatisticsBackupRepository
 import com.catlytics.core.data.repository.RoomPlaybackEventRepository
 import com.catlytics.core.data.repository.RoomArtistIdentityRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
+import com.catlytics.core.domain.repository.PlaylistBackupRepository
+import com.catlytics.core.data.repository.DefaultPlaylistBackupRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -119,4 +121,17 @@ interface DataModule {
     fun bindStatisticsBackupRepository(
         repository: DefaultStatisticsBackupRepository,
     ): StatisticsBackupRepository
+
+    @Binds
+    @Singleton
+    fun bindPlaylistBackupRepository(
+        repository: DefaultPlaylistBackupRepository,
+    ): PlaylistBackupRepository
+
+    @Binds
+    @Singleton
+    fun bindUnifiedBackupRepository(
+        repository: com.catlytics.core.data.repository.DefaultUnifiedBackupRepository,
+    ): com.catlytics.core.domain.repository.UnifiedBackupRepository
 }
+

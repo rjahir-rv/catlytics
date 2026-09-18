@@ -369,3 +369,64 @@ enum class StatisticsImportMode {
     /** Delete all local events, then insert the file contents. */
     Replace,
 }
+
+/** Local summary of stored playlists for backup UI. */
+data class PlaylistBackupSummary(
+    val playlistCount: Int,
+    val totalTracks: Int,
+    val likedTracksCount: Int,
+)
+
+data class PlaylistBackupPreview(
+    val schemaVersion: Int,
+    val exportedAtMillis: Long,
+    val playlistCount: Int,
+    val totalTracksInBackup: Int,
+    val matchedTracksCount: Int,
+    val missingTracksCount: Int,
+    val likedTracksCount: Int,
+    val missingTrackNames: List<String> = emptyList(),
+)
+
+data class PlaylistExportResult(
+    val playlistCount: Int,
+    val trackCount: Int,
+)
+
+data class PlaylistImportResult(
+    val importedPlaylistsCount: Int,
+    val matchedTracksCount: Int,
+    val missingTracksCount: Int,
+    val missingTrackNames: List<String> = emptyList(),
+)
+
+data class BackupOptions(
+    val includeStatistics: Boolean = true,
+    val includePlaylists: Boolean = true,
+)
+
+data class UnifiedBackupSummary(
+    val statistics: StatisticsBackupSummary = StatisticsBackupSummary(0, null, null),
+    val playlists: PlaylistBackupSummary = PlaylistBackupSummary(0, 0, 0),
+)
+
+data class UnifiedBackupPreview(
+    val schemaVersion: Int,
+    val exportedAtMillis: Long,
+    val statistics: StatisticsBackupPreview? = null,
+    val playlists: PlaylistBackupPreview? = null,
+) {
+    val hasContent: Boolean get() = statistics != null || playlists != null
+}
+
+data class UnifiedExportResult(
+    val statistics: StatisticsExportResult? = null,
+    val playlists: PlaylistExportResult? = null,
+)
+
+data class UnifiedImportResult(
+    val statistics: StatisticsImportResult? = null,
+    val playlists: PlaylistImportResult? = null,
+)
+
+

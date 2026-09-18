@@ -54,20 +54,72 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         artistIdentityRepository.observeAliases(),
     ) { summary, aliases -> summary.copy(artistAliasCount = aliases.size) }
 
+    internal suspend fun exportEventsAndAliases(): Pair<List<PlaybackEventDto>, List<ArtistAliasDto>> {
+        val events = playbackEventRepository.getAllEvents().map { it.toDto() }
+        val aliases = artistIdentityRepository.getAliases().map { it.toDto() }
+        return events to aliases
+    }
+
+    internal fun previewFromDocument(document: StatisticsBackupDocument): StatisticsBackupPreview {
+        return StatisticsBackupPreview(
+            schemaVersion = document.schemaVersion,
+            exportedAtMillis = document.exportedAtMillis,
+            eventCount = document.events.size,
+            firstEventMillis = document.events.minOfOrNull { it.timestamp },
+            lastEventMillis = document.events.maxOfOrNull { it.timestamp },
+            artistAliasCount = document.artistAliases.size,
+        )
+    }
+
+    internal suspend fun restoreStatistics(
+        document: StatisticsBackupDocument,
+        mode: StatisticsImportMode,
+    ): StatisticsImportResult {
+        val parsedEvents = document.events.map { it.toDomain() }
+        val parsedAliases = document.artistAliases.map { it.toDomain() }
+        val totalInFile = parsedEvents.size
+
+        return when (mode) {
+            StatisticsImportMode.Replace -> {
+                database.withTransaction {
+                    playbackEventRepository.replaceEvents(parsedEvents)
+                    if (document.schemaVersion >= ALIAS_SCHEMA_VERSION) {
+                        artistIdentityRepository.replaceAliases(parsedAliases)
+                    }
+                }
+                StatisticsImportResult(
+                    importedCount = totalInFile,
+                    skippedDuplicateCount = 0,
+                    totalInFile = totalInFile,
+                    importedArtistAliasCount = parsedAliases.size,
+                )
+            }
+            StatisticsImportMode.Merge -> {
+                val importedCount = playbackEventRepository.insertEventsIfAbsent(parsedEvents)
+                val importedAliasCount = artistIdentityRepository.mergeAliases(parsedAliases)
+                StatisticsImportResult(
+                    importedCount = importedCount,
+                    skippedDuplicateCount = totalInFile - importedCount,
+                    totalInFile = totalInFile,
+                    importedArtistAliasCount = importedAliasCount,
+                )
+            }
+        }
+    }
+
     override suspend fun exportToUri(
         uri: String,
         appVersion: String,
     ): Result<StatisticsExportResult> = withContext(ioDispatcher) {
         runSuspendCatching {
-            val events = playbackEventRepository.getAllEvents()
-            val aliases = artistIdentityRepository.getAliases()
+            val (events, aliases) = exportEventsAndAliases()
             val document = StatisticsBackupDocument(
                 format = BACKUP_FORMAT,
                 schemaVersion = SUPPORTED_SCHEMA_VERSION,
                 exportedAtMillis = System.currentTimeMillis(),
                 appVersion = appVersion,
-                events = events.map { it.toDto() },
-                artistAliases = aliases.map { it.toDto() },
+                events = events,
+                artistAliases = aliases,
             )
             context.contentResolver.openOutputStream(uri.toUri())?.use { output ->
                 writeDocument(
@@ -88,14 +140,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
             runSuspendCatching {
                 val document = readDocument(uri)
                 validateDocument(document)
-                StatisticsBackupPreview(
-                    schemaVersion = document.schemaVersion,
-                    exportedAtMillis = document.exportedAtMillis,
-                    eventCount = document.events.size,
-                    firstEventMillis = document.events.minOfOrNull { it.timestamp },
-                    lastEventMillis = document.events.maxOfOrNull { it.timestamp },
-                    artistAliasCount = document.artistAliases.size,
-                )
+                previewFromDocument(document)
             }
         }
 
@@ -106,36 +151,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         runSuspendCatching {
             val document = readDocument(uri)
             validateDocument(document)
-            val parsedEvents = document.events.map { it.toDomain() }
-            val parsedAliases = document.artistAliases.map { it.toDomain() }
-            val totalInFile = parsedEvents.size
-
-            when (mode) {
-                StatisticsImportMode.Replace -> {
-                    database.withTransaction {
-                        playbackEventRepository.replaceEvents(parsedEvents)
-                        if (document.schemaVersion >= ALIAS_SCHEMA_VERSION) {
-                            artistIdentityRepository.replaceAliases(parsedAliases)
-                        }
-                    }
-                    StatisticsImportResult(
-                        importedCount = totalInFile,
-                        skippedDuplicateCount = 0,
-                        totalInFile = totalInFile,
-                        importedArtistAliasCount = parsedAliases.size,
-                    )
-                }
-                StatisticsImportMode.Merge -> {
-                    val importedCount = playbackEventRepository.insertEventsIfAbsent(parsedEvents)
-                    val importedAliasCount = artistIdentityRepository.mergeAliases(parsedAliases)
-                    StatisticsImportResult(
-                        importedCount = importedCount,
-                        skippedDuplicateCount = totalInFile - importedCount,
-                        totalInFile = totalInFile,
-                        importedArtistAliasCount = importedAliasCount,
-                    )
-                }
-            }
+            restoreStatistics(document, mode)
         }
     }
 
@@ -146,7 +162,10 @@ class DefaultStatisticsBackupRepository @Inject constructor(
     }
 
     private fun validateDocument(document: StatisticsBackupDocument) {
-        if (document.format != BACKUP_FORMAT) {
+        if (document.format != BACKUP_FORMAT &&
+            document.format != UNIFIED_BACKUP_FORMAT &&
+            document.format != PLAYLIST_BACKUP_FORMAT
+        ) {
             error("Formato de archivo no reconocido.")
         }
         if (document.schemaVersion !in MIN_SUPPORTED_SCHEMA_VERSION..SUPPORTED_SCHEMA_VERSION) {
@@ -214,74 +233,15 @@ class DefaultStatisticsBackupRepository @Inject constructor(
 
     companion object {
         const val BACKUP_FORMAT = "catlytics.statistics.backup"
-        const val SUPPORTED_SCHEMA_VERSION = 2
+        const val UNIFIED_BACKUP_FORMAT = "catlytics.backup"
+        const val PLAYLIST_BACKUP_FORMAT = "catlytics.playlists.backup"
+        const val SUPPORTED_SCHEMA_VERSION = 3
         const val MIN_SUPPORTED_SCHEMA_VERSION = 1
         const val ALIAS_SCHEMA_VERSION = 2
         internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
     }
 }
 
-private suspend inline fun <T> runSuspendCatching(
-    crossinline block: suspend () -> T,
-): Result<T> = try {
-    Result.success(block())
-} catch (cancellationException: CancellationException) {
-    throw cancellationException
-} catch (throwable: Throwable) {
-    Result.failure(throwable)
-}
-
-private class BackupTooLargeException : IllegalArgumentException(
-    "El respaldo supera el límite permitido de 64 MB.",
-)
-
-private class SizeLimitedInputStream(
-    input: InputStream,
-    private val maxBytes: Long,
-) : FilterInputStream(input) {
-    private var bytesRead = 0L
-
-    override fun read(): Int {
-        val value = super.read()
-        if (value >= 0) accountFor(1)
-        return value
-    }
-
-    override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
-        val count = super.read(buffer, offset, length)
-        if (count > 0) accountFor(count)
-        return count
-    }
-
-    private fun accountFor(count: Int) {
-        bytesRead += count
-        if (bytesRead > maxBytes) throw BackupTooLargeException()
-    }
-}
-
-private class SizeLimitedOutputStream(
-    private val output: OutputStream,
-    private val maxBytes: Long,
-) : OutputStream() {
-    private var bytesWritten = 0L
-
-    override fun write(value: Int) {
-        accountFor(1)
-        output.write(value)
-    }
-
-    override fun write(buffer: ByteArray, offset: Int, length: Int) {
-        accountFor(length)
-        output.write(buffer, offset, length)
-    }
-
-    override fun flush() = output.flush()
-
-    private fun accountFor(count: Int) {
-        bytesWritten += count
-        if (bytesWritten > maxBytes) throw BackupTooLargeException()
-    }
-}
 @OptIn(
     ExperimentalSerializationApi::class,
     InternalSerializationApi::class,
@@ -294,6 +254,7 @@ internal data class StatisticsBackupDocument(
     val appVersion: String = "",
     val events: List<PlaybackEventDto> = emptyList(),
     val artistAliases: List<ArtistAliasDto> = emptyList(),
+    val playlists: List<PlaylistBackupDto> = emptyList(),
 )
 @OptIn(
     ExperimentalSerializationApi::class,

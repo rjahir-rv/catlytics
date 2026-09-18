@@ -1,6 +1,8 @@
 package com.catlytics.feature.playlists.impl
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +47,14 @@ internal fun PlaylistDetailRoute(
         }
     }
 
+    val exportM3uLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("audio/x-mpegurl"),
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportM3u(uri.toString())
+        }
+    }
+
     PlaylistDetailScreen(
         uiState = uiState,
         playbackState = playbackState,
@@ -62,6 +72,10 @@ internal fun PlaylistDetailRoute(
         onSaveOrder = viewModel::saveOrder,
         onAddTracks = viewModel::addTracks,
         onDelete = viewModel::delete,
+        onExportM3u = {
+            val name = (uiState as? PlaylistDetailUiState.Success)?.content?.playlist?.name ?: "playlist"
+            exportM3uLauncher.launch("$name.m3u8")
+        },
         onTopBarColorChange = onTopBarColorChange,
         bottomPadding = bottomPadding,
         scaffoldContentPadding = scaffoldContentPadding,

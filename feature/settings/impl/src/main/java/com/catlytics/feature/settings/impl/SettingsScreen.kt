@@ -40,11 +40,12 @@ import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
+import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.SleepTimerState
-import com.catlytics.core.model.StatisticsBackupPreview
-import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
+import com.catlytics.core.model.UnifiedBackupPreview
+import com.catlytics.core.model.UnifiedBackupSummary
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsRowText
 import com.catlytics.feature.settings.impl.components.SettingsSection
@@ -63,9 +64,9 @@ internal fun SettingsScreen(
     musicScanSettings: MusicScanSettings,
     musicScanStatus: MusicScanStatus,
     hasAudioPermission: Boolean,
-    statisticsBackupSummary: StatisticsBackupSummary,
-    statisticsBackupStatus: StatisticsBackupStatus,
-    importPreview: StatisticsBackupPreview?,
+    unifiedBackupSummary: UnifiedBackupSummary = UnifiedBackupSummary(),
+    unifiedBackupStatus: UnifiedBackupStatus = UnifiedBackupStatus.Idle,
+    unifiedImportPreview: UnifiedBackupPreview? = null,
     onRequestAudioPermission: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
     onCrossfadeDurationChange: (Int) -> Unit,
@@ -79,11 +80,11 @@ internal fun SettingsScreen(
     onEqualizerModeChange: (EqualizerMode) -> Unit,
     onEqualizerPresetSelected: (EqualizerPreset) -> Unit,
     onCustomBandLevelChange: (Short, Int, Boolean) -> Unit,
-    onExportStatisticsClick: () -> Unit,
-    onImportStatisticsClick: () -> Unit,
-    onConfirmImport: (StatisticsImportMode) -> Unit,
-    onDismissImportPreview: () -> Unit,
-    onDismissStatisticsBackupStatus: () -> Unit,
+    onExportBackupClick: (BackupOptions) -> Unit = {},
+    onImportBackupClick: () -> Unit = {},
+    onConfirmImport: (BackupOptions, StatisticsImportMode) -> Unit = { _, _ -> },
+    onDismissImportPreview: () -> Unit = {},
+    onDismissBackupStatus: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     onTopBarTitleChange: (String) -> Unit = {},
     onTopBarBackActionChange: ((() -> Unit)?) -> Unit = {},
@@ -98,7 +99,7 @@ internal fun SettingsScreen(
             SettingsDestination.About,
             SettingsDestination.Equalizer,
             SettingsDestination.MusicScan,
-            SettingsDestination.StatisticsBackup -> SettingsDestination.Main
+            SettingsDestination.Backup -> SettingsDestination.Main
             SettingsDestination.Main -> SettingsDestination.Main
         }
     }
@@ -127,8 +128,8 @@ internal fun SettingsScreen(
                 onTopBarTitleChange("Carpetas")
                 onTopBarBackActionChange(::navigateBack)
             }
-            SettingsDestination.StatisticsBackup -> {
-                onTopBarTitleChange("Estadísticas")
+            SettingsDestination.Backup -> {
+                onTopBarTitleChange("Copia de seguridad")
                 onTopBarBackActionChange(::navigateBack)
             }
         }
@@ -146,7 +147,7 @@ internal fun SettingsScreen(
             onSleepTimerClick = { showSleepTimerSheet = true },
             onEqualizerClick = { destination = SettingsDestination.Equalizer },
             onMusicScanClick = { destination = SettingsDestination.MusicScan },
-            onStatisticsBackupClick = { destination = SettingsDestination.StatisticsBackup },
+            onBackupClick = { destination = SettingsDestination.Backup },
             onAboutClick = { destination = SettingsDestination.About },
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding,
@@ -189,15 +190,15 @@ internal fun SettingsScreen(
             scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
-        SettingsDestination.StatisticsBackup -> StatisticsBackupContent(
-            summary = statisticsBackupSummary,
-            operationStatus = statisticsBackupStatus,
-            importPreview = importPreview,
-            onExportClick = onExportStatisticsClick,
-            onImportClick = onImportStatisticsClick,
+        SettingsDestination.Backup -> UnifiedBackupContent(
+            summary = unifiedBackupSummary,
+            operationStatus = unifiedBackupStatus,
+            importPreview = unifiedImportPreview,
+            onExportClick = onExportBackupClick,
+            onImportClick = onImportBackupClick,
             onConfirmImport = onConfirmImport,
             onDismissImportPreview = onDismissImportPreview,
-            onDismissStatus = onDismissStatisticsBackupStatus,
+            onDismissStatus = onDismissBackupStatus,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
@@ -232,7 +233,7 @@ private fun SettingsMainContent(
     onSleepTimerClick: () -> Unit,
     onEqualizerClick: () -> Unit,
     onMusicScanClick: () -> Unit,
-    onStatisticsBackupClick: () -> Unit,
+    onBackupClick: () -> Unit,
     onAboutClick: () -> Unit,
     bottomPadding: () -> Dp,
     scaffoldContentPadding: PaddingValues,
@@ -301,9 +302,9 @@ private fun SettingsMainContent(
                 iconRes = R.drawable.ic_line_chart,
             ) {
                 SettingsValueRow(
-                    title = "Estadísticas",
-                    supportingText = "Exportar o recuperar tu historial de escucha",
-                    onClick = onStatisticsBackupClick,
+                    title = "Copia de seguridad",
+                    supportingText = "Exportar o restaurar playlists y estadísticas de escucha",
+                    onClick = onBackupClick,
                 )
             }
         }
@@ -393,64 +394,53 @@ private fun ThemeModeSelector(
             onClick = { expanded = !expanded },
         )
         if (expanded) {
-            SettingsDivider()
-            Column(modifier = Modifier.selectableGroup()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectableGroup()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 ThemeMode.entries.forEach { themeMode ->
-                    ThemeModeOption(
-                        title = themeMode.label,
-                        supportingText = themeMode.supportingText,
-                        selected = selectedThemeMode == themeMode,
-                        onClick = {
-                            onThemeModeSelected(themeMode)
-                            expanded = false
-                        },
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = themeMode == selectedThemeMode,
+                                onClick = {
+                                    onThemeModeSelected(themeMode)
+                                    expanded = false
+                                },
+                                role = Role.RadioButton,
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = themeMode == selectedThemeMode,
+                            onClick = null,
+                        )
+                        SettingsRowText(
+                            title = themeMode.label,
+                            supportingText = themeMode.description,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 16.dp),
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun ThemeModeOption(
-    title: String,
-    supportingText: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .selectable(
-                selected = selected,
-                onClick = onClick,
-                role = Role.RadioButton,
-            )
-            .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-        )
-        SettingsRowText(
-            title = title,
-            supportingText = supportingText,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
 private val ThemeMode.label: String
     get() = when (this) {
-        ThemeMode.System -> "Sistema"
+        ThemeMode.System -> "Predeterminado del sistema"
         ThemeMode.Light -> "Claro"
         ThemeMode.Dark -> "Oscuro"
     }
 
-private val ThemeMode.supportingText: String
+private val ThemeMode.description: String
     get() = when (this) {
         ThemeMode.System -> "Usar el tema configurado en el dispositivo"
         ThemeMode.Light -> "Usar siempre el tema claro"
@@ -470,5 +460,5 @@ private enum class SettingsDestination {
     Equalizer,
     MusicScan,
     ScanFolders,
-    StatisticsBackup,
+    Backup,
 }

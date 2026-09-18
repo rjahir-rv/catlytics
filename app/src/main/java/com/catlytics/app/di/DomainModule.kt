@@ -36,6 +36,12 @@ import com.catlytics.core.domain.usecase.statistics.ObserveStatisticsBackupSumma
 import com.catlytics.core.domain.usecase.statistics.PreviewStatisticsBackupUseCase
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.domain.repository.StatisticsBackupRepository
+import com.catlytics.core.domain.repository.PlaylistBackupRepository
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistBackupSummaryUseCase
+import com.catlytics.core.domain.usecase.playlist.ExportPlaylistsBackupUseCase
+import com.catlytics.core.domain.usecase.playlist.PreviewPlaylistsBackupUseCase
+import com.catlytics.core.domain.usecase.playlist.ImportPlaylistsBackupUseCase
+import com.catlytics.core.domain.usecase.playlist.ExportPlaylistToM3uUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
 import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
@@ -310,6 +316,52 @@ object DomainModule {
     fun provideImportStatisticsBackupUseCase(
         statisticsBackupRepository: StatisticsBackupRepository,
     ) = ImportStatisticsBackupUseCase(statisticsBackupRepository)
+
+    @Provides
+    fun provideObservePlaylistBackupSummaryUseCase(
+        playlistBackupRepository: PlaylistBackupRepository,
+    ) = ObservePlaylistBackupSummaryUseCase(playlistBackupRepository)
+
+    @Provides
+    fun provideExportPlaylistsBackupUseCase(
+        playlistBackupRepository: PlaylistBackupRepository,
+    ) = ExportPlaylistsBackupUseCase(playlistBackupRepository)
+
+    @Provides
+    fun providePreviewPlaylistsBackupUseCase(
+        playlistBackupRepository: PlaylistBackupRepository,
+    ) = PreviewPlaylistsBackupUseCase(playlistBackupRepository)
+
+    @Provides
+    fun provideImportPlaylistsBackupUseCase(
+        playlistBackupRepository: PlaylistBackupRepository,
+    ) = ImportPlaylistsBackupUseCase(playlistBackupRepository)
+
+    @Provides
+    fun provideExportPlaylistToM3uUseCase(
+        playlistBackupRepository: PlaylistBackupRepository,
+    ) = ExportPlaylistToM3uUseCase(playlistBackupRepository)
+
+    @Provides
+    fun provideObserveUnifiedBackupSummaryUseCase(
+        unifiedBackupRepository: com.catlytics.core.domain.repository.UnifiedBackupRepository,
+    ) = com.catlytics.core.domain.usecase.backup.ObserveUnifiedBackupSummaryUseCase(unifiedBackupRepository)
+
+    @Provides
+    fun provideExportUnifiedBackupUseCase(
+        unifiedBackupRepository: com.catlytics.core.domain.repository.UnifiedBackupRepository,
+    ) = com.catlytics.core.domain.usecase.backup.ExportUnifiedBackupUseCase(unifiedBackupRepository)
+
+    @Provides
+    fun providePreviewUnifiedBackupUseCase(
+        unifiedBackupRepository: com.catlytics.core.domain.repository.UnifiedBackupRepository,
+    ) = com.catlytics.core.domain.usecase.backup.PreviewUnifiedBackupUseCase(unifiedBackupRepository)
+
+    @Provides
+    fun provideImportUnifiedBackupUseCase(
+        unifiedBackupRepository: com.catlytics.core.domain.repository.UnifiedBackupRepository,
+    ) = com.catlytics.core.domain.usecase.backup.ImportUnifiedBackupUseCase(unifiedBackupRepository)
+
 
     @Provides
     fun provideObservePlaybackStateUseCase(

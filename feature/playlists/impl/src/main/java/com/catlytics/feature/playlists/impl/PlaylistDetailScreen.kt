@@ -79,6 +79,7 @@ internal fun PlaylistDetailScreen(
     onSaveOrder: (List<String>, () -> Unit) -> Unit,
     onAddTracks: (List<String>, () -> Unit) -> Unit,
     onDelete: () -> Unit,
+    onExportM3u: () -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
@@ -263,6 +264,7 @@ internal fun PlaylistDetailScreen(
                                     },
                                     onAddTracks = { showAddTracksSheet = true },
                                     onAddToPlaylist = { showAddSheet = true },
+                                    onExportM3u = onExportM3u,
                                     onDelete = { showDeleteDialog = true },
                                 )
                             },
