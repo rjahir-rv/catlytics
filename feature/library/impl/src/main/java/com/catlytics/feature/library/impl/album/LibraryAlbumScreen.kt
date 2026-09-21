@@ -21,6 +21,8 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +66,7 @@ internal fun LibraryAlbumScreen(
     uiState: LibraryAlbumUiState,
     modifier: Modifier = Modifier,
     onTrackSelected: (Track, List<Track>) -> Unit,
+    onPlayShuffled: (List<Track>) -> Unit = {},
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     currentTrackId: String? = null,
@@ -145,8 +148,13 @@ internal fun LibraryAlbumScreen(
                         item(key = "header") {
                             AlbumHeader(
                                 album = content.album,
+                                tracks = content.tracks,
                                 artworkModel = artworkRequest,
                                 onArtworkLoaded = { artworkBitmap = it },
+                                onPlayShuffled = onPlayShuffled,
+                                onPlayAll = { tracks ->
+                                    tracks.firstOrNull()?.let { onTrackSelected(it, tracks) }
+                                },
                             )
                         }
                         itemsIndexed(
@@ -182,8 +190,11 @@ internal fun LibraryAlbumScreen(
 @Composable
 private fun AlbumHeader(
     album: Album,
+    tracks: List<Track>,
     artworkModel: Any?,
     onArtworkLoaded: (Bitmap) -> Unit,
+    onPlayShuffled: (List<Track>) -> Unit,
+    onPlayAll: (List<Track>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -225,6 +236,34 @@ private fun AlbumHeader(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Row(
+            modifier = Modifier.padding(top = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FilledTonalIconButton(
+                onClick = { onPlayShuffled(tracks) },
+                enabled = tracks.isNotEmpty(),
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_shuffle),
+                    contentDescription = "Reproducir aleatoriamente",
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            FilledIconButton(
+                onClick = { onPlayAll(tracks) },
+                enabled = tracks.isNotEmpty(),
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_play),
+                    contentDescription = "Reproducir",
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
     }
 }
 

@@ -34,6 +34,7 @@ internal fun LibraryAlbumRoute(
     LibraryAlbumScreen(
         uiState = uiState,
         onTrackSelected = viewModel::playTrack,
+        onPlayShuffled = viewModel::playShuffled,
         onTrackOptions = onTrackOptions,
         likedTrackIds = likedTrackIds,
         currentTrackId = currentTrackId,

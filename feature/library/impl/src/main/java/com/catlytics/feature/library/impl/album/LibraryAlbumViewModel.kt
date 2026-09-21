@@ -3,6 +3,7 @@ package com.catlytics.feature.library.impl.album
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -22,6 +23,7 @@ import kotlinx.coroutines.launch
 internal class LibraryAlbumViewModel @Inject constructor(
     private val observeAlbumContentUseCase: ObserveAlbumContentUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
+    private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
 ) : ViewModel() {
     private val albumId = MutableStateFlow<String?>(null)
 
@@ -51,6 +53,12 @@ internal class LibraryAlbumViewModel @Inject constructor(
     fun playTrack(track: Track, queue: List<Track>) {
         viewModelScope.launch {
             playTrackUseCase(track, queue)
+        }
+    }
+
+    fun playShuffled(queue: List<Track>) {
+        viewModelScope.launch {
+            playShuffledQueueUseCase(queue)
         }
     }
 }

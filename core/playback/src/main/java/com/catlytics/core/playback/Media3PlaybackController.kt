@@ -17,6 +17,7 @@ import com.catlytics.core.model.PlaybackSessionSnapshot
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.reorderedForShuffle
 import com.catlytics.core.playback.service.CatlyticsPlaybackService
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -56,6 +57,8 @@ class Media3PlaybackController @Inject constructor(
     private val playbackScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val controllerFuture: ListenableFuture<MediaController>
     private var queue: List<Track> = emptyList()
+    private var originalQueue: List<Track> = emptyList()
+    private var isShuffleEnabled: Boolean = false
     private var manualQueue: List<Track> = emptyList()
     private var queueSource: PlaybackQueueSource = PlaybackQueueSource.Static
     private var progressUpdatesJob: Job? = null
@@ -109,12 +112,33 @@ class Media3PlaybackController @Inject constructor(
         startIndex: Int,
         queueSource: PlaybackQueueSource,
     ) {
-        val playbackQueue = queue.ifEmpty { listOf(track) }
-        val selectedIndex = startIndex.coerceIn(0, max(playbackQueue.lastIndex, 0))
-        this.queue = playbackQueue
+        val distinctQueue = queue.distinctBy(Track::id).ifEmpty { listOf(track) }
+        val shouldShuffle = this.isShuffleEnabled
+        val playbackQueue = if (shouldShuffle && distinctQueue.size > 1 && distinctQueue.first().id != track.id) {
+            distinctQueue.reorderedForShuffle(track)
+        } else {
+            distinctQueue
+        }
+        val selectedIndex = if (shouldShuffle && distinctQueue.size > 1 && distinctQueue.first().id != track.id) {
+            0
+        } else {
+            startIndex.coerceIn(0, max(playbackQueue.lastIndex, 0))
+        }
+        this.originalQueue = if (
+            shouldShuffle &&
+            distinctQueue.first().id == track.id &&
+            originalQueue.isNotEmpty() &&
+            originalQueue.map(Track::id).toSet() == distinctQueue.map(Track::id).toSet()
+        ) {
+            originalQueue
+        } else {
+            distinctQueue
+        }
         this.manualQueue = emptyList()
         this.queueSource = queueSource
+        this.queue = playbackQueue
         withController { controller ->
+            controller.shuffleModeEnabled = false
             controller.setMediaItems(playbackQueue.map { it.toMediaItem() }, selectedIndex, 0L)
             controller.prepare()
             controller.play()
@@ -162,25 +186,16 @@ class Media3PlaybackController @Inject constructor(
         if (updatedPlaybackQueue.map(Track::id) == playbackQueue.map(Track::id)) return
 
         val existingIndex = queue.indexOfFirst { it.id == track.id }
+        val targetIndex = updatedPlaybackQueue.indexOfFirst { it.id == track.id }
         queueSource = PlaybackQueueSource.Static
         withQueuePlayer { player ->
             mutateQueue(player, expectedCurrentId = currentTrackId) {
-                if (player.shuffleModeEnabled) {
-                    if (existingIndex < 0) {
-                        player.addMediaItem(track.toMediaItem())
-                        queue = queue + track
-                    }
-                    shuffleIndicesFor(queue, updatedPlaybackQueue)
-                        ?.let(playbackShuffleOrder::setShuffledIndices)
+                if (existingIndex >= 0) {
+                    player.moveMediaItem(existingIndex, targetIndex)
                 } else {
-                    val targetIndex = updatedPlaybackQueue.indexOfFirst { it.id == track.id }
-                    if (existingIndex >= 0) {
-                        player.moveMediaItem(existingIndex, targetIndex)
-                    } else {
-                        player.addMediaItem(targetIndex, track.toMediaItem())
-                    }
-                    queue = updatedPlaybackQueue
+                    player.addMediaItem(targetIndex, track.toMediaItem())
                 }
+                queue = updatedPlaybackQueue
             }
         }
         restartQueueSync()
@@ -209,13 +224,8 @@ class Media3PlaybackController @Inject constructor(
         }
         withQueuePlayer { player ->
             mutateQueue(player, expectedCurrentId = currentTrackId) {
-                if (player.shuffleModeEnabled) {
-                    shuffleIndicesFor(queue, updatedPlaybackQueue)
-                        ?.let(playbackShuffleOrder::setShuffledIndices)
-                } else {
-                    queue = updatedPlaybackQueue
-                    player.moveMediaItem(fromIndex, toIndex)
-                }
+                queue = updatedPlaybackQueue
+                player.moveMediaItem(fromIndex, toIndex)
             }
         }
     }
@@ -297,9 +307,52 @@ class Media3PlaybackController @Inject constructor(
     }
 
     override suspend fun setShuffleEnabled(enabled: Boolean) {
+        this.isShuffleEnabled = enabled
         withController { controller ->
-            controller.shuffleModeEnabled = enabled
-            updatePlaybackState(controller, forcePersist = true)
+            controller.shuffleModeEnabled = false
+            val currentTrack = _playbackState.value.currentTrack
+            if (currentTrack != null && queue.size > 1) {
+                val currentPos = controller.currentPosition.coerceAtLeast(0L)
+                val shouldPlay = controller.playWhenReady
+                if (enabled) {
+                    val base = (if (originalQueue.isNotEmpty() && originalQueue.map(Track::id).toSet() == queue.map(Track::id).toSet()) {
+                        originalQueue
+                    } else {
+                        queue
+                    }).distinctBy(Track::id)
+                    originalQueue = base
+                    val reordered = base.reorderedForShuffle(currentTrack)
+                    val updatedQueue = if (manualQueue.isNotEmpty()) {
+                        reordered.withManualQueueAfterCurrent(currentTrack.id, manualQueue)
+                    } else {
+                        reordered
+                    }
+                    queue = updatedQueue
+                    controller.setMediaItems(updatedQueue.map { it.toMediaItem() }, 0, currentPos)
+                    controller.prepare()
+                    controller.playWhenReady = shouldPlay
+                    updatePlaybackState(controller, updatedQueue, forcePersist = true)
+                } else {
+                    if (originalQueue.isNotEmpty() && originalQueue.map(Track::id).toSet() == queue.map(Track::id).toSet()) {
+                        val base = originalQueue
+                        val updatedQueue = if (manualQueue.isNotEmpty()) {
+                            base.withManualQueueAfterCurrent(currentTrack.id, manualQueue)
+                        } else {
+                            base
+                        }
+                        val queueStartIndex = updatedQueue.indexOfFirst { it.id == currentTrack.id }.coerceAtLeast(0)
+                        queue = updatedQueue
+                        controller.setMediaItems(updatedQueue.map { it.toMediaItem() }, queueStartIndex, currentPos)
+                        controller.prepare()
+                        controller.playWhenReady = shouldPlay
+                        updatePlaybackState(controller, updatedQueue, forcePersist = true)
+                    } else {
+                        updatePlaybackState(controller, forcePersist = true)
+                    }
+                }
+            } else {
+                updatePlaybackState(controller, forcePersist = true)
+            }
         }
     }
 
@@ -323,11 +376,13 @@ class Media3PlaybackController @Inject constructor(
             .takeUnless { it < 0 }
             ?: snapshot.currentIndex.coerceIn(0, restoredQueue.lastIndex)
         queue = restoredQueue
+        originalQueue = restoredQueue
         manualQueue = emptyList()
         queueSource = snapshot.queueSource
 
+        this.isShuffleEnabled = snapshot.isShuffleEnabled
         withController { controller ->
-            controller.shuffleModeEnabled = snapshot.isShuffleEnabled
+            controller.shuffleModeEnabled = false
             controller.repeatMode = snapshot.repeatMode.toMedia3RepeatMode()
             controller.setMediaItems(
                 restoredQueue.map { it.toMediaItem() },
@@ -348,6 +403,7 @@ class Media3PlaybackController @Inject constructor(
         withController { controller ->
             controller.stop()
             queue = emptyList()
+            originalQueue = emptyList()
             manualQueue = emptyList()
             updatePlaybackState(controller, forcePersist = true)
         }
@@ -391,7 +447,7 @@ class Media3PlaybackController @Inject constructor(
         forcePersist: Boolean = false,
     ) {
         if (suppressPlaybackStateUpdates) return
-        val state = player.toPlaybackState(playbackQueue, queueSource)
+        val state = player.toPlaybackState(playbackQueue, queueSource, isShuffleEnabled)
         val previousTrack = _playbackState.value.currentTrack
         val publishedState = if (
             state.currentTrack == null && previousTrack != null && state.queue.isNotEmpty()
@@ -401,9 +457,10 @@ class Media3PlaybackController @Inject constructor(
                 currentIndex = state.queue.indexOfFirst { it.id == previousTrack.id }
                     .takeUnless { it < 0 }
                     ?: state.currentIndex,
+                isShuffleEnabled = isShuffleEnabled,
             )
         } else {
-            state
+            state.copy(isShuffleEnabled = isShuffleEnabled)
         }
         _playbackState.value = publishedState
         val publishedCurrentId = publishedState.currentTrack?.id
@@ -530,17 +587,26 @@ class Media3PlaybackController @Inject constructor(
         updatedQueue: List<Track>,
         startTrackId: String?,
     ) {
-        queue = updatedQueue
+        originalQueue = updatedQueue
         withController { controller ->
             if (updatedQueue.isEmpty() || startTrackId == null) {
                 controller.stop()
+                queue = emptyList()
                 manualQueue = emptyList()
                 updatePlaybackState(controller, emptyList(), forcePersist = true)
                 playbackScope.launch { playbackSessionRepository.clearSession() }
                 return@withController
             }
 
-            val startIndex = updatedQueue.indexOfFirst { it.id == startTrackId }
+            val shouldShuffle = this.isShuffleEnabled
+            val startTrack = startTrackId.let { id -> updatedQueue.firstOrNull { it.id == id } }
+            val effectiveQueue = if (shouldShuffle && updatedQueue.size > 1 && startTrack != null) {
+                updatedQueue.reorderedForShuffle(startTrack)
+            } else {
+                updatedQueue
+            }
+            queue = effectiveQueue
+            val startIndex = effectiveQueue.indexOfFirst { it.id == startTrackId }
                 .takeUnless { it < 0 }
                 ?: 0
             val positionMillis = if (startTrackId == _playbackState.value.currentTrack?.id) {
@@ -549,10 +615,11 @@ class Media3PlaybackController @Inject constructor(
                 0L
             }
             val shouldPlay = controller.playWhenReady
-            controller.setMediaItems(updatedQueue.map { it.toMediaItem() }, startIndex, positionMillis)
+            controller.shuffleModeEnabled = false
+            controller.setMediaItems(effectiveQueue.map { it.toMediaItem() }, startIndex, positionMillis)
             controller.prepare()
             controller.playWhenReady = shouldPlay
-            updatePlaybackState(controller, updatedQueue, forcePersist = true)
+            updatePlaybackState(controller, effectiveQueue, forcePersist = true)
         }
     }
 

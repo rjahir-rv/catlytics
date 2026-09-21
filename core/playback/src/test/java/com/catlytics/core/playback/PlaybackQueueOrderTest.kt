@@ -2,6 +2,7 @@ package com.catlytics.core.playback
 
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.reorderedForShuffle
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -136,6 +137,25 @@ class PlaybackQueueOrderTest {
         val playbackOrder = listOf(track("two"), track("missing"))
 
         assertEquals(null, shuffleIndicesFor(timeline, playbackOrder))
+    }
+
+    @Test
+    fun `reorderedForShuffle places start track first and includes all distinct tracks`() {
+        val tracks = (1..9).map { track("track-$it") }
+        val startTrack = tracks[7] // track-8
+
+        val reordered = tracks.reorderedForShuffle(startTrack)
+
+        assertEquals("track-8", reordered.first().id)
+        assertEquals(9, reordered.size)
+        assertEquals(tracks.map(Track::id).toSet(), reordered.map(Track::id).toSet())
+    }
+
+    @Test
+    fun `reorderedForShuffle handles single track or empty lists`() {
+        val single = listOf(track("one"))
+        assertEquals(single, single.reorderedForShuffle(single.first()))
+        assertEquals(emptyList<Track>(), emptyList<Track>().reorderedForShuffle(track("one")))
     }
 }
 

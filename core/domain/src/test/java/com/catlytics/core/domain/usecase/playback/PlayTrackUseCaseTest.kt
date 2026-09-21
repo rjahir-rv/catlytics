@@ -61,6 +61,21 @@ class PlayTrackUseCaseTest {
         assertEquals(source, playbackController.queueSource)
     }
 
+    @Test
+    fun `invoke reorders queue starting from selected track when shuffle is enabled`() = runTest {
+        playbackController.playbackStateFlow.value = PlaybackState(isShuffleEnabled = true)
+        val queue = (1..9).map { track("track-$it") }
+        val selected = queue[7] // track-8
+
+        useCase(track = selected, queue = queue)
+
+        assertEquals(selected, playbackController.playedTrack)
+        assertEquals(0, playbackController.startIndex)
+        assertEquals(selected, playbackController.playedQueue.first())
+        assertEquals(9, playbackController.playedQueue.size)
+        assertEquals(queue.toSet(), playbackController.playedQueue.toSet())
+    }
+
     private fun track(id: String) = Track(
         id = id,
         title = "Track $id",
@@ -74,7 +89,8 @@ class PlayTrackUseCaseTest {
 }
 
 private class FakePlaybackController : PlaybackController {
-    override val playbackState: Flow<PlaybackState> = MutableStateFlow(PlaybackState())
+    val playbackStateFlow = MutableStateFlow(PlaybackState())
+    override val playbackState: Flow<PlaybackState> = playbackStateFlow
 
     lateinit var playedTrack: Track
     lateinit var playedQueue: List<Track>

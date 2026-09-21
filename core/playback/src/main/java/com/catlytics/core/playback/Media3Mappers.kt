@@ -27,6 +27,7 @@ fun Track.toMediaItem(): MediaItem = MediaItem.Builder()
 internal fun Player.toPlaybackState(
     queue: List<Track>,
     queueSource: PlaybackQueueSource,
+    isShuffleEnabled: Boolean = shuffleModeEnabled,
 ): PlaybackState {
     val playbackQueue = queue.inPlaybackOrder(shuffledMediaItemIndices())
     val currentTrack = currentMediaItem?.mediaId?.let { mediaId ->
@@ -42,7 +43,7 @@ internal fun Player.toPlaybackState(
         positionMillis = currentPosition.coerceAtLeast(0L),
         durationMillis = duration.takeIf { it > 0L } ?: currentTrack?.durationMillis ?: 0L,
         bufferedPositionMillis = bufferedPosition.coerceAtLeast(0L),
-        isShuffleEnabled = shuffleModeEnabled,
+        isShuffleEnabled = isShuffleEnabled,
         repeatMode = repeatMode.toPlaybackRepeatMode(),
     )
 }

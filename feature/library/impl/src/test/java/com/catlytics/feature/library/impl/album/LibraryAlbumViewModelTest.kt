@@ -3,6 +3,7 @@ package com.catlytics.feature.library.impl.album
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
@@ -59,12 +60,29 @@ class LibraryAlbumViewModelTest {
         assertEquals(1, playbackController.startIndex)
     }
 
+    @Test
+    fun `playShuffled starts playback with reordered queue and enables shuffle`() = runTest {
+        val playbackController = AlbumFakePlaybackController()
+        val viewModel = viewModel(AlbumFakeLibraryRepository(), playbackController)
+        val queue = listOf(track("one"), track("two"), track("three"))
+
+        viewModel.playShuffled(queue)
+        advanceUntilIdle()
+
+        assertEquals(0, playbackController.startIndex)
+        assertEquals(playbackController.playedTrack, playbackController.playedQueue.first())
+        assertEquals(3, playbackController.playedQueue.size)
+        assertEquals(queue.toSet(), playbackController.playedQueue.toSet())
+        assertEquals(true, playbackController.shuffleEnabled)
+    }
+
     private fun viewModel(
         repository: AlbumFakeLibraryRepository,
         playbackController: AlbumFakePlaybackController,
     ) = LibraryAlbumViewModel(
         observeAlbumContentUseCase = ObserveAlbumContentUseCase(repository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
+        playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),
     )
 
     private fun albumContent() = AlbumContent(
@@ -108,6 +126,7 @@ private class AlbumFakePlaybackController : PlaybackController {
     lateinit var playedTrack: Track
     lateinit var playedQueue: List<Track>
     var startIndex = -1
+    var shuffleEnabled: Boolean? = null
 
     override suspend fun play(
         track: Track,
@@ -131,7 +150,9 @@ private class AlbumFakePlaybackController : PlaybackController {
     override suspend fun skipNext() = Unit
     override suspend fun skipPrevious() = Unit
     override suspend fun seekTo(positionMillis: Long) = Unit
-    override suspend fun setShuffleEnabled(enabled: Boolean) = Unit
+    override suspend fun setShuffleEnabled(enabled: Boolean) {
+        shuffleEnabled = enabled
+    }
     override suspend fun setRepeatMode(mode: PlaybackRepeatMode) = Unit
     override suspend fun restoreLastSession() = Unit
     override suspend fun stop() = Unit
