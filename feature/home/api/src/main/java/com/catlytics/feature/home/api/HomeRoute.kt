@@ -8,3 +8,6 @@ data object HomeRoute : NavKey
 
 @Serializable
 data object DailyPlaylistRoute : NavKey
+
+@Serializable
+data object RecentlyAddedRoute : NavKey

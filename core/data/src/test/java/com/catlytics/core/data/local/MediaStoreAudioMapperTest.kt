@@ -24,6 +24,7 @@ class MediaStoreAudioMapperTest {
             trackNumber = 3,
             durationMillis = 180_000L,
             isMusic = 1,
+            dateAddedSeconds = 1_750_000_000L,
             mediaUri = "content://media/external/audio/media/42",
             folder = folder,
         )
@@ -34,6 +35,7 @@ class MediaStoreAudioMapperTest {
         assertEquals("mediastore-artist-7", track.artistId)
         assertEquals("Local Artist", track.artistName)
         assertEquals(180_000L, track.durationMillis)
+        assertEquals(1_750_000_000_000L, track.addedAtMillis)
         assertEquals("content://media/external/audio/media/42", track.mediaUri)
         assertEquals("content://media/external/audio/albumart/9", track.artworkUri)
         assertEquals("mediastore-album-9", track.albumId)
@@ -42,6 +44,35 @@ class MediaStoreAudioMapperTest {
         assertEquals("external_primary:Music/Favorites", track.folderId)
         assertEquals("Favorites", track.folderName)
         assertEquals("Music/Favorites", track.folderPath)
+    }
+
+    @Test
+    fun `toTrackEntity ignores missing date added`() {
+        val withoutDate = MediaStoreAudioMapper.toTrackEntity(
+            id = 42L,
+            title = "Local Song",
+            artist = "Local Artist",
+            artistId = 7L,
+            albumId = 9L,
+            durationMillis = 180_000L,
+            isMusic = 1,
+            dateAddedSeconds = 0L,
+            mediaUri = "content://media/external/audio/media/42",
+        )
+        val withNegativeDate = MediaStoreAudioMapper.toTrackEntity(
+            id = 43L,
+            title = "Local Song",
+            artist = "Local Artist",
+            artistId = 7L,
+            albumId = 9L,
+            durationMillis = 180_000L,
+            isMusic = 1,
+            dateAddedSeconds = -5L,
+            mediaUri = "content://media/external/audio/media/43",
+        )
+
+        assertNull(requireNotNull(withoutDate).addedAtMillis)
+        assertNull(requireNotNull(withNegativeDate).addedAtMillis)
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.catlytics.app.ui
 
+import com.catlytics.core.domain.repository.LibraryChangeObserver
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.usecase.library.ObserveLibraryChangesUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
@@ -13,6 +15,8 @@ import com.catlytics.core.model.Track
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -37,7 +41,7 @@ class AppStartupViewModelTest {
         val repository = FakeStartupLibraryRepository {
             refreshGate.await()
         }
-        val viewModel = AppStartupViewModel(RefreshLibraryUseCase(repository))
+        val viewModel = startupViewModel(repository)
 
         assertEquals(AppStartupUiState.WaitingForPermission, viewModel.uiState.value)
 
@@ -56,7 +60,7 @@ class AppStartupViewModelTest {
         val repository = FakeStartupLibraryRepository {
             error("MediaStore failed")
         }
-        val viewModel = AppStartupViewModel(RefreshLibraryUseCase(repository))
+        val viewModel = startupViewModel(repository)
 
         viewModel.onAudioPermissionState(hasAudioPermission = true)
         advanceUntilIdle()
@@ -70,7 +74,7 @@ class AppStartupViewModelTest {
     @Test
     fun `refresh runs only once for repeated permission updates`() = runTest {
         val repository = FakeStartupLibraryRepository()
-        val viewModel = AppStartupViewModel(RefreshLibraryUseCase(repository))
+        val viewModel = startupViewModel(repository)
 
         viewModel.onAudioPermissionState(hasAudioPermission = false)
         viewModel.onAudioPermissionState(hasAudioPermission = true)
@@ -82,6 +86,48 @@ class AppStartupViewModelTest {
         assertEquals(AppStartupUiState.Ready, viewModel.uiState.value)
         assertEquals(1, repository.refreshCalls)
     }
+
+    @Test
+    fun `library changes trigger an automatic refresh`() = runTest {
+        val repository = FakeStartupLibraryRepository()
+        val changeObserver = FakeLibraryChangeObserver()
+        val viewModel = startupViewModel(repository, changeObserver)
+
+        viewModel.onAudioPermissionState(hasAudioPermission = true)
+        advanceUntilIdle()
+        assertEquals(1, repository.refreshCalls)
+
+        changeObserver.changes.tryEmit(Unit)
+        changeObserver.changes.tryEmit(Unit)
+        advanceUntilIdle()
+        assertEquals(2, repository.refreshCalls)
+    }
+
+    @Test
+    fun `automatic refresh failures are ignored`() = runTest {
+        var shouldFail = false
+        val repository = FakeStartupLibraryRepository { if (shouldFail) error("MediaStore failed") }
+        val changeObserver = FakeLibraryChangeObserver()
+        val viewModel = startupViewModel(repository, changeObserver)
+
+        viewModel.onAudioPermissionState(hasAudioPermission = true)
+        advanceUntilIdle()
+
+        shouldFail = true
+        changeObserver.changes.tryEmit(Unit)
+        advanceUntilIdle()
+
+        assertEquals(AppStartupUiState.Ready, viewModel.uiState.value)
+        assertEquals(2, repository.refreshCalls)
+    }
+
+    private fun startupViewModel(
+        repository: LibraryRepository,
+        changeObserver: LibraryChangeObserver = FakeLibraryChangeObserver(),
+    ) = AppStartupViewModel(
+        refreshLibraryUseCase = RefreshLibraryUseCase(repository),
+        observeLibraryChangesUseCase = ObserveLibraryChangesUseCase(changeObserver),
+    )
 }
 
 private class FakeStartupLibraryRepository(
@@ -107,6 +153,12 @@ private class FakeStartupLibraryRepository(
     }
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
+}
+
+private class FakeLibraryChangeObserver : LibraryChangeObserver {
+    val changes = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
+
+    override fun observeChanges(): Flow<Unit> = changes
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

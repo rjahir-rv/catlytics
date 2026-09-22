@@ -12,9 +12,11 @@ internal sealed interface HomeUiState {
         val canShuffleAll: Boolean = false,
         val favoriteTracks: List<Track> = emptyList(),
         val recentlyPlayedTracks: List<Track> = emptyList(),
+        val recentlyAddedTracks: List<Track> = emptyList(),
         val topTracks: List<TopTrack> = emptyList(),
         val currentTrackId: String? = null,
         val isCurrentTrackPlaying: Boolean = false,
+        val newTrackIds: Set<String> = recentlyAddedTracks.mapTo(mutableSetOf(), Track::id),
     ) : HomeUiState
     data class Error(val message: String) : HomeUiState
 }

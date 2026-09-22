@@ -14,6 +14,7 @@ class CatlyticsMappersTest {
             artistId = "artist-7",
             artistName = "Local Artist",
             durationMillis = 180_000L,
+            addedAtMillis = 1_750_000_000_000L,
             mediaUri = "content://media/external/audio/media/42",
             artworkUri = "content://media/external/audio/albumart/9",
             albumId = "album-9",
@@ -22,6 +23,7 @@ class CatlyticsMappersTest {
 
         val track = entity.toDomain()
 
+        assertEquals(1_750_000_000_000L, track.addedAtMillis)
         assertEquals("content://media/external/audio/albumart/9", track.artworkUri)
         assertEquals("album-9", track.albumId)
         assertEquals("Local Album", track.albumTitle)
@@ -37,6 +39,7 @@ class CatlyticsMappersTest {
                 name = "Local Artist",
             ),
             durationMillis = 180_000L,
+            addedAtMillis = 1_750_000_000_000L,
             mediaUri = "content://media/external/audio/media/42",
             artworkUri = "content://media/external/audio/albumart/9",
             albumId = "album-9",
@@ -45,6 +48,7 @@ class CatlyticsMappersTest {
 
         val entity = track.toEntity()
 
+        assertEquals(1_750_000_000_000L, entity.addedAtMillis)
         assertEquals("content://media/external/audio/albumart/9", entity.artworkUri)
         assertEquals("album-9", entity.albumId)
         assertEquals("Local Album", entity.albumTitle)

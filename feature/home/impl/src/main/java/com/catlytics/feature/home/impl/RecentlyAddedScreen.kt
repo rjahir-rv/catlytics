@@ -2,7 +2,6 @@ package com.catlytics.feature.home.impl
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,8 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.R
-import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
-import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
@@ -48,34 +46,32 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-internal sealed interface DailyPlaylistUiState {
-    data object Loading : DailyPlaylistUiState
-    data object Empty : DailyPlaylistUiState
+internal sealed interface RecentlyAddedUiState {
+    data object Loading : RecentlyAddedUiState
+    data object Empty : RecentlyAddedUiState
     data class Success(
         val tracks: List<Track>,
         val currentTrackId: String? = null,
         val isCurrentTrackPlaying: Boolean = false,
-    ) : DailyPlaylistUiState
+    ) : RecentlyAddedUiState
 }
 
 @HiltViewModel
-internal class DailyPlaylistViewModel @Inject constructor(
-    observeLibraryUseCase: ObserveLibraryUseCase,
+internal class RecentlyAddedViewModel @Inject constructor(
+    observeRecentlyAddedTracksUseCase: ObserveRecentlyAddedTracksUseCase,
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
-    generateDailyPlaylistUseCase: GenerateDailyPlaylistUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
     private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
 ) : ViewModel() {
-    val uiState: StateFlow<DailyPlaylistUiState> = combine(
-        observeLibraryUseCase().catch { emit(emptyList()) },
+    val uiState: StateFlow<RecentlyAddedUiState> = combine(
+        observeRecentlyAddedTracksUseCase().catch { emit(emptyList()) },
         observePlaybackStateUseCase(),
-    ) { library, playbackState ->
-        val dailyTracks = generateDailyPlaylistUseCase(library)
-        if (dailyTracks.isEmpty()) {
-            DailyPlaylistUiState.Empty
+    ) { recentlyAddedTracks, playbackState ->
+        if (recentlyAddedTracks.isEmpty()) {
+            RecentlyAddedUiState.Empty
         } else {
-            DailyPlaylistUiState.Success(
-                tracks = dailyTracks,
+            RecentlyAddedUiState.Success(
+                tracks = recentlyAddedTracks,
                 currentTrackId = playbackState.currentTrack?.id,
                 isCurrentTrackPlaying = playbackState.status == PlaybackStatus.Playing,
             )
@@ -83,7 +79,7 @@ internal class DailyPlaylistViewModel @Inject constructor(
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = DailyPlaylistUiState.Loading,
+        initialValue = RecentlyAddedUiState.Loading,
     )
 
     fun onTrackSelected(track: Track, queue: List<Track>) {
@@ -93,7 +89,7 @@ internal class DailyPlaylistViewModel @Inject constructor(
     }
 
     fun onPlayAll() {
-        val tracks = (uiState.value as? DailyPlaylistUiState.Success)?.tracks.orEmpty()
+        val tracks = (uiState.value as? RecentlyAddedUiState.Success)?.tracks.orEmpty()
         val firstTrack = tracks.firstOrNull() ?: return
         viewModelScope.launch {
             playTrackUseCase(firstTrack, tracks)
@@ -101,7 +97,7 @@ internal class DailyPlaylistViewModel @Inject constructor(
     }
 
     fun onShuffle() {
-        val tracks = (uiState.value as? DailyPlaylistUiState.Success)?.tracks.orEmpty()
+        val tracks = (uiState.value as? RecentlyAddedUiState.Success)?.tracks.orEmpty()
         if (tracks.size < MIN_SHUFFLE_TRACK_COUNT) return
         viewModelScope.launch {
             playShuffledQueueUseCase(tracks)
@@ -109,18 +105,20 @@ internal class DailyPlaylistViewModel @Inject constructor(
     }
 }
 
+internal const val MIN_SHUFFLE_TRACK_COUNT = 2
+
 @Composable
-internal fun DailyPlaylistRoute(
+internal fun RecentlyAddedRoute(
+    modifier: Modifier = Modifier,
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
-    modifier: Modifier = Modifier,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
-    viewModel: DailyPlaylistViewModel = hiltViewModel(),
+    viewModel: RecentlyAddedViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    DailyPlaylistScreen(
+    RecentlyAddedScreen(
         uiState = uiState,
         onTrackSelected = viewModel::onTrackSelected,
         onPlayAll = viewModel::onPlayAll,
@@ -135,40 +133,40 @@ internal fun DailyPlaylistRoute(
 }
 
 @Composable
-internal fun DailyPlaylistScreen(
-    uiState: DailyPlaylistUiState,
+internal fun RecentlyAddedScreen(
+    modifier: Modifier = Modifier,
+    uiState: RecentlyAddedUiState,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
-    modifier: Modifier = Modifier,
     onPlayAll: () -> Unit = {},
     onShuffle: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
-        DailyPlaylistUiState.Loading -> Box(
+        RecentlyAddedUiState.Loading -> Box(
             modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
             CircularProgressIndicator()
         }
 
-        DailyPlaylistUiState.Empty -> Box(
+        RecentlyAddedUiState.Empty -> Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(20.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Necesitas al menos 5 canciones para crear tu Playlist diaria.",
+                text = "No hay canciones agregadas en los últimos 21 días.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
-        is DailyPlaylistUiState.Success -> {
+        is RecentlyAddedUiState.Success -> {
             val selectionState = rememberTrackSelectionState()
             val selection = selectionState.value
             TrackSelectionHost(
@@ -193,49 +191,44 @@ internal fun DailyPlaylistScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    item(key = "daily-playlist-header") {
-                        Column(
+                    item(key = "recently-added-header") {
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = "Tu selección para hoy",
-                                style = MaterialTheme.typography.headlineSmall,
+                                text = if (uiState.tracks.size == 1) {
+                                    "1 canción agregada en los últimos 21 días"
+                                } else {
+                                    "${uiState.tracks.size} canciones agregadas en los últimos 21 días"
+                                },
+                                modifier = Modifier.weight(1f),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                            FilledTonalIconButton(
+                                onClick = onShuffle,
+                                enabled = uiState.tracks.size >= MIN_SHUFFLE_TRACK_COUNT,
+                                modifier = Modifier.size(48.dp),
                             ) {
-                                Text(
-                                    text = "${uiState.tracks.size} canciones elegidas para ti",
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_shuffle),
+                                    contentDescription = "Reproducir aleatoriamente",
+                                    modifier = Modifier.size(24.dp),
                                 )
-                                FilledTonalIconButton(
-                                    onClick = onShuffle,
-                                    enabled = uiState.tracks.size >= MIN_SHUFFLE_TRACK_COUNT,
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_shuffle),
-                                        contentDescription = "Reproducir aleatoriamente",
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
-                                FilledIconButton(
-                                    onClick = onPlayAll,
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_play),
-                                        contentDescription = "Reproducir canciones",
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
+                            }
+                            FilledIconButton(
+                                onClick = onPlayAll,
+                                modifier = Modifier.size(48.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_play),
+                                    contentDescription = "Reproducir canciones",
+                                    modifier = Modifier.size(24.dp),
+                                )
                             }
                         }
                     }
@@ -245,6 +238,7 @@ internal fun DailyPlaylistScreen(
                             isCurrent = track.id == uiState.currentTrackId,
                             isPlaying = track.id == uiState.currentTrackId &&
                                 uiState.isCurrentTrackPlaying,
+                            isNew = true,
                             onTrackSelected = {
                                 if (selection.active) {
                                     selectionState.value = selection.onTrackLongClick(track.id)

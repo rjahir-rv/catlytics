@@ -52,6 +52,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val isMusicColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC)
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
             val relativePathColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH)
             } else {
@@ -86,6 +87,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
                     durationMillis = cursor.getLong(durationColumn),
                     fileSizeBytes = cursor.getLong(sizeColumn),
                     isMusic = cursor.getInt(isMusicColumn),
+                    dateAddedSeconds = cursor.getLong(dateAddedColumn),
                     mediaUri = mediaUri,
                     scanSettings = settings,
                     folder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -117,6 +119,7 @@ internal object MediaStoreAudioMapper {
         add(MediaStore.Audio.Media.DURATION)
         add(MediaStore.Audio.Media.IS_MUSIC)
         add(MediaStore.Audio.Media.SIZE)
+        add(MediaStore.Audio.Media.DATE_ADDED)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             add(MediaStore.Audio.Media.RELATIVE_PATH)
             add(MediaStore.Audio.Media.VOLUME_NAME)
@@ -137,6 +140,7 @@ internal object MediaStoreAudioMapper {
         durationMillis: Long,
         fileSizeBytes: Long = 0L,
         isMusic: Int,
+        dateAddedSeconds: Long = 0L,
         mediaUri: String,
         folder: MediaFolderMetadata? = null,
         scanSettings: MusicScanSettings = MusicScanSettings(),
@@ -167,6 +171,7 @@ internal object MediaStoreAudioMapper {
             artistId = "mediastore-artist-$artistId",
             artistName = normalizedArtist,
             durationMillis = durationMillis,
+            addedAtMillis = dateAddedSeconds.toAddedAtMillis(),
             mediaUri = mediaUri,
             artworkUri = albumId.toArtworkUri(),
             albumId = normalizedAlbumId,
@@ -214,6 +219,11 @@ internal object MediaStoreAudioMapper {
 
     private fun Long.toArtworkUri(): String? = takeIf { it > 0L }
         ?.let { "$ARTWORK_BASE_URI/$it" }
+
+    private const val MILLIS_PER_SECOND = 1_000L
+
+    private fun Long.toAddedAtMillis(): Long? = takeIf { it > 0L }
+        ?.times(MILLIS_PER_SECOND)
 
     private fun String.normalizedIdPart(): String = lowercase()
         .replace(Regex("[^a-z0-9]+"), "-")

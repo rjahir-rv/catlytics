@@ -64,6 +64,7 @@ data class Track(
     val title: String,
     val artist: Artist,
     val durationMillis: Long,
+    val addedAtMillis: Long? = null,
     val mediaUri: String,
     val artworkUri: String? = null,
     val albumId: String? = null,

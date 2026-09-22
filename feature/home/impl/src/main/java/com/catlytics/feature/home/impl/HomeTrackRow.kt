@@ -19,6 +19,7 @@ internal fun TrackRow(
     onTrackSelected: () -> Unit,
     onTrackOptions: () -> Unit,
     modifier: Modifier = Modifier,
+    isNew: Boolean = false,
     selected: Boolean = false,
     selectionActive: Boolean = false,
     onLongClick: (() -> Unit)? = null,
@@ -39,6 +40,7 @@ internal fun TrackRow(
             }
         },
         modifier = modifier,
+        badgeLabel = if (isNew) "Nuevo" else null,
         selected = selected,
         selectionActive = selectionActive,
         onLongClick = onLongClick,

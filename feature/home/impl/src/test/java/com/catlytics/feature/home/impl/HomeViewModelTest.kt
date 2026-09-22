@@ -8,6 +8,7 @@ import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
@@ -261,17 +262,13 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `quick actions play daily and shuffled queues`() = runTest {
+    fun `quick action plays shuffled queue`() = runTest {
         val tracks = (1..6).map { track("track-$it") }
         repository.setTracks(tracks)
         playlistRepository.setLikedTracks(listOf("track-2", "track-5"))
         val viewModel = homeViewModel()
         backgroundScope.startCollecting(viewModel)
         advanceUntilIdle()
-
-        viewModel.onPlayDailyPlaylist()
-        advanceUntilIdle()
-        assertEquals(6, playbackController.playedQueue.size)
 
         viewModel.onShuffleAll()
         advanceUntilIdle()
@@ -283,6 +280,33 @@ class HomeViewModelTest {
 
     }
 
+    @Test
+    fun `uiState exposes recently added tracks and new track ids`() = runTest {
+        val recent = track(id = "track-1").copy(addedAtMillis = NOW_MILLIS - DAY_MILLIS)
+        val older = track(id = "track-2").copy(addedAtMillis = NOW_MILLIS - 30 * DAY_MILLIS)
+        repository.setTracks(listOf(recent, older))
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(listOf("track-1"), state.recentlyAddedTracks.map(Track::id))
+        assertEquals(setOf("track-1"), state.newTrackIds)
+    }
+
+    @Test
+    fun `recently added section disappears when no new tracks are added for twenty one days`() = runTest {
+        val expired = track(id = "track-1").copy(addedAtMillis = NOW_MILLIS - 25 * DAY_MILLIS)
+        repository.setTracks(listOf(expired))
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(emptyList<Track>(), state.recentlyAddedTracks)
+        assertEquals(emptySet<String>(), state.newTrackIds)
+    }
+
     private fun homeViewModel() = HomeViewModel(
         observeLibraryUseCase = ObserveLibraryUseCase(repository),
         observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
@@ -291,6 +315,10 @@ class HomeViewModelTest {
         observePlaylistContentUseCase = ObservePlaylistContentUseCase(
             playlistRepository,
             repository,
+        ),
+        observeRecentlyAddedTracksUseCase = ObserveRecentlyAddedTracksUseCase(
+            repository,
+            nowMillis = { NOW_MILLIS },
         ),
         generateDailyPlaylistUseCase = GenerateDailyPlaylistUseCase(),
         playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),
@@ -313,6 +341,11 @@ class HomeViewModelTest {
         durationMillis = 180_000L,
         mediaUri = "content://media/external/audio/media/$id",
     )
+
+    private companion object {
+        const val DAY_MILLIS = 24L * 60L * 60L * 1_000L
+        const val NOW_MILLIS = 100 * DAY_MILLIS
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)

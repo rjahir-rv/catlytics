@@ -1,6 +1,7 @@
 package com.catlytics.app.di
 
 import com.catlytics.core.domain.repository.PlaybackController
+import com.catlytics.core.domain.repository.LibraryChangeObserver
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
@@ -9,6 +10,8 @@ import com.catlytics.core.domain.usecase.playback.AddQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.PlayNextUseCase
 import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryChangesUseCase
+import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
@@ -185,6 +188,16 @@ object DomainModule {
     fun provideRefreshLibraryUseCase(
         libraryRepository: LibraryRepository,
     ) = RefreshLibraryUseCase(libraryRepository)
+
+    @Provides
+    fun provideObserveRecentlyAddedTracksUseCase(
+        libraryRepository: LibraryRepository,
+    ) = ObserveRecentlyAddedTracksUseCase(libraryRepository)
+
+    @Provides
+    fun provideObserveLibraryChangesUseCase(
+        libraryChangeObserver: LibraryChangeObserver,
+    ) = ObserveLibraryChangesUseCase(libraryChangeObserver)
 
     @Provides
     fun provideSetFolderVisibilityUseCase(

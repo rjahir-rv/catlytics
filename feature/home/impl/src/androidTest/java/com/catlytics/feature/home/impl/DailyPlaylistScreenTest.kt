@@ -77,6 +77,30 @@ class DailyPlaylistScreenTest {
         assertEquals(track, optionsTrack)
     }
 
+    @Test
+    fun playbackControlsPlayTheDailySelectionAndShuffleIt() {
+        val tracks = (1..6).map(::track)
+        var playAllCalls = 0
+        var shuffleCalls = 0
+        composeRule.setContent {
+            MaterialTheme {
+                DailyPlaylistScreen(
+                    uiState = DailyPlaylistUiState.Success(tracks),
+                    onTrackSelected = { _, _ -> },
+                    onTrackOptions = {},
+                    onPlayAll = { playAllCalls++ },
+                    onShuffle = { shuffleCalls++ },
+                )
+            }
+        }
+
+        composeRule.onNodeWithContentDescription("Reproducir canciones").performClick()
+        composeRule.onNodeWithContentDescription("Reproducir aleatoriamente").performClick()
+
+        assertEquals(1, playAllCalls)
+        assertEquals(1, shuffleCalls)
+    }
+
     private fun track(index: Int) = Track(
         id = "track-$index",
         title = "Track $index",

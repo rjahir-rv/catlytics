@@ -3,6 +3,7 @@ package com.catlytics.app.di
 import com.catlytics.core.data.local.AndroidMediaStoreLibraryDataSource
 import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.local.LocalDataSource
+import com.catlytics.core.data.local.MediaStoreLibraryChangeObserver
 import com.catlytics.core.data.local.MediaStoreLibraryDataSource
 import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.mediator.OfflineFirstDataMediator
@@ -16,6 +17,7 @@ import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
 import com.catlytics.core.data.repository.DataStorePlaylistRepository
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
+import com.catlytics.core.domain.repository.LibraryChangeObserver
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
@@ -79,6 +81,12 @@ interface DataModule {
     fun bindMediaStoreLibraryDataSource(
         dataSource: AndroidMediaStoreLibraryDataSource,
     ): MediaStoreLibraryDataSource
+
+    @Binds
+    @Singleton
+    fun bindLibraryChangeObserver(
+        observer: MediaStoreLibraryChangeObserver,
+    ): LibraryChangeObserver
 
     @Binds
     fun bindRemoteDataSource(

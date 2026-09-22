@@ -203,7 +203,7 @@ class HomeScreenTest {
                     onRequestPermission = {},
                     onTrackSelected = { _, _ -> },
                     onTrackOptions = {},
-                    onPlayDailyPlaylist = { dailyClicks++ },
+                    onOpenDailyPlaylist = { dailyClicks++ },
                     onShuffleAll = { shuffleClicks++ },
                     onOpenFavorites = { favoriteClicks++ },
                 )
@@ -211,7 +211,7 @@ class HomeScreenTest {
         }
 
         composeRule
-            .onNodeWithContentDescription("Reproducir y abrir Playlist diaria")
+            .onNodeWithContentDescription("Abrir Playlist diaria")
             .performClick()
         composeRule.runOnIdle {
             uiState = HomeUiState.Success(

@@ -62,14 +62,17 @@ internal fun HomeTrackList(
     dailyPlaylistTrackCount: Int,
     canShuffleAll: Boolean,
     favoriteTrackCount: Int,
+    recentlyAddedTrackCount: Int,
+    newTrackIds: Set<String>,
     recentlyPlayedTracks: List<Track>,
     topTracks: List<TopTrack>,
     currentTrackId: String?,
     isCurrentTrackPlaying: Boolean,
     onTrackSelected: (Track, List<Track>) -> Unit,
-    onPlayDailyPlaylist: () -> Unit,
+    onOpenDailyPlaylist: () -> Unit,
     onShuffleAll: () -> Unit,
     onOpenFavorites: () -> Unit,
+    onOpenRecentlyAdded: () -> Unit,
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
@@ -118,6 +121,7 @@ internal fun HomeTrackList(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             if (
+                                recentlyAddedTrackCount > 0 ||
                                 dailyPlaylistTrackCount > 0 ||
                                 canShuffleAll ||
                                 favoriteTrackCount > 0
@@ -126,9 +130,11 @@ internal fun HomeTrackList(
                                     dailyPlaylistTrackCount = dailyPlaylistTrackCount,
                                     canShuffleAll = canShuffleAll,
                                     favoriteTrackCount = favoriteTrackCount,
-                                    onPlayDailyPlaylist = onPlayDailyPlaylist,
+                                    recentlyAddedTrackCount = recentlyAddedTrackCount,
+                                    onOpenDailyPlaylist = onOpenDailyPlaylist,
                                     onShuffleAll = onShuffleAll,
                                     onOpenFavorites = onOpenFavorites,
+                                    onOpenRecentlyAdded = onOpenRecentlyAdded,
                                 )
                             }
                             HomeHighlights(
@@ -160,6 +166,7 @@ internal fun HomeTrackList(
                     track = track,
                     isCurrent = track.id == currentTrackId,
                     isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
+                    isNew = track.id in newTrackIds,
                     onTrackSelected = {
                         if (selectionActive) {
                             onTrackLongClick(track)
@@ -226,9 +233,11 @@ private fun HomeQuickActions(
     dailyPlaylistTrackCount: Int,
     canShuffleAll: Boolean,
     favoriteTrackCount: Int,
-    onPlayDailyPlaylist: () -> Unit,
+    recentlyAddedTrackCount: Int,
+    onOpenDailyPlaylist: () -> Unit,
     onShuffleAll: () -> Unit,
     onOpenFavorites: () -> Unit,
+    onOpenRecentlyAdded: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -238,6 +247,24 @@ private fun HomeQuickActions(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             contentPadding = PaddingValues(end = 4.dp),
         ) {
+            if (recentlyAddedTrackCount > 0) {
+                item(key = "recently-added") {
+                    HomeQuickActionCard(
+                        title = "Agregados recientemente",
+                        subtitle = if (recentlyAddedTrackCount == 1) {
+                            "1 canción nueva"
+                        } else {
+                            "$recentlyAddedTrackCount canciones nuevas"
+                        },
+                        icon = R.drawable.ic_recently_added,
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        gradientTarget = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                        contentDescription = "Abrir Agregados recientemente",
+                        onClick = onOpenRecentlyAdded,
+                    )
+                }
+            }
             if (dailyPlaylistTrackCount > 0) {
                 item(key = "daily-playlist") {
                     HomeQuickActionCard(
@@ -247,8 +274,8 @@ private fun HomeQuickActions(
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         gradientTarget = MaterialTheme.colorScheme.tertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        contentDescription = "Reproducir y abrir Playlist diaria",
-                        onClick = onPlayDailyPlaylist,
+                        contentDescription = "Abrir Playlist diaria",
+                        onClick = onOpenDailyPlaylist,
                     )
                 }
             }

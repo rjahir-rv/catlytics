@@ -80,6 +80,7 @@ import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.navigation.TopLevelBackStack
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.api.DailyPlaylistRoute
+import com.catlytics.feature.home.api.RecentlyAddedRoute
 import com.catlytics.feature.home.impl.homeEntry
 import com.catlytics.feature.library.api.LibraryRoute
 import com.catlytics.feature.library.api.LibraryAlbumRoute
@@ -179,7 +180,7 @@ fun CatlyticsApp(
         is LibraryAlbumRoute, is LibraryArtistRoute, is LibraryFolderRoute ->
             TopLevelDestination.Library
         is PlaylistDetailRoute -> TopLevelDestination.Playlists
-        DailyPlaylistRoute -> TopLevelDestination.Home
+        DailyPlaylistRoute, RecentlyAddedRoute -> TopLevelDestination.Home
         StatisticsExploreRoute -> TopLevelDestination.Statistics
         else -> currentTopLevelDestination
     }
@@ -191,6 +192,7 @@ fun CatlyticsApp(
         is LibraryFolderRoute,
         is PlaylistDetailRoute,
         DailyPlaylistRoute,
+        RecentlyAddedRoute,
         StatisticsExploreRoute -> true
         else -> false
     }
@@ -518,6 +520,13 @@ fun CatlyticsApp(
                         scrollBehavior = topBarScrollBehavior,
                     )
                 }
+                currentRoute == RecentlyAddedRoute -> {
+                    LibraryDetailTopAppBar(
+                        title = "Agregados recientemente",
+                        onBack = ::closeCurrentDestination,
+                        scrollBehavior = topBarScrollBehavior,
+                    )
+                }
                 currentRoute == StatisticsExploreRoute -> {
                     LibraryDetailTopAppBar(
                         title = "Explorar estadísticas",
@@ -698,6 +707,9 @@ fun CatlyticsApp(
                         },
                         onNavigateToDailyPlaylist = {
                             topLevelBackStack.add(DailyPlaylistRoute)
+                        },
+                        onNavigateToRecentlyAdded = {
+                            topLevelBackStack.add(RecentlyAddedRoute)
                         },
                         onNavigateToFavorites = {
                             topLevelBackStack.addTopLevel(PlaylistsRoute)

@@ -8,6 +8,7 @@ import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.home.api.DailyPlaylistRoute
 import com.catlytics.feature.home.api.HomeRoute
+import com.catlytics.feature.home.api.RecentlyAddedRoute
 
 fun EntryProviderScope<NavKey>.homeEntry(
     searchQuery: () -> String,
@@ -17,6 +18,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
     onNavigateToStatistics: () -> Unit,
     onNavigateToDailyPlaylist: () -> Unit,
     onNavigateToFavorites: () -> Unit,
+    onNavigateToRecentlyAdded: () -> Unit,
     hasAudioPermission: () -> Boolean,
     onRequestAudioPermission: () -> Unit,
     startupError: () -> String?,
@@ -33,6 +35,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
             onNavigateToStatistics = onNavigateToStatistics,
             onNavigateToDailyPlaylist = onNavigateToDailyPlaylist,
             onNavigateToFavorites = onNavigateToFavorites,
+            onNavigateToRecentlyAdded = onNavigateToRecentlyAdded,
             hasAudioPermission = hasAudioPermission(),
             onRequestPermission = onRequestAudioPermission,
             startupError = startupError(),
@@ -43,6 +46,15 @@ fun EntryProviderScope<NavKey>.homeEntry(
     }
     entry<DailyPlaylistRoute> {
         DailyPlaylistRoute(
+            onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            onTrackSelectionAction = onTrackSelectionAction,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding(),
+        )
+    }
+    entry<RecentlyAddedRoute> {
+        RecentlyAddedRoute(
             onTrackOptions = onTrackOptions,
             likedTrackIds = likedTrackIds(),
             onTrackSelectionAction = onTrackSelectionAction,
