@@ -286,7 +286,7 @@ private fun SettingsMainContent(
         item {
             SettingsSection(
                 title = "Inicio y recomendaciones",
-                iconRes = R.drawable.ic_home,
+                iconRes = R.drawable.ic_playlist,
             ) {
                 SettingsToggleRow(
                     title = "Playlists recomendadas",
