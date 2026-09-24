@@ -5,6 +5,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
+import com.catlytics.core.model.HomeRecommendationsSettings
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.ThemeMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
@@ -77,6 +79,48 @@ class DataStoreAppPreferencesRepositoryTest {
         }
 
         assertEquals(0, repository.observeCrossfadeDurationSeconds().first())
+    }
+
+    @Test
+    fun `home recommendations settings default to enabled and twenty one days`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(
+            HomeRecommendationsSettings(),
+            repository.observeHomeRecommendationsSettings().first(),
+        )
+    }
+
+    @Test
+    fun `home recommendations settings are persisted`() = runTest {
+        val repository = repository(backgroundScope)
+
+        repository.setShowRecommendedPlaylists(false)
+        repository.setRecentAddedWindow(RecentAddedWindow.Days10)
+        repository.setShowNewTrackBadge(false)
+
+        assertEquals(
+            HomeRecommendationsSettings(
+                showRecommendedPlaylists = false,
+                recentAddedWindow = RecentAddedWindow.Days10,
+                showNewTrackBadge = false,
+            ),
+            repository.observeHomeRecommendationsSettings().first(),
+        )
+    }
+
+    @Test
+    fun `invalid recent added window falls back to twenty one days`() = runTest {
+        val dataStore = dataStore(backgroundScope)
+        val repository = DataStoreAppPreferencesRepository(dataStore)
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("recent_added_window")] = "Invalid"
+        }
+
+        assertEquals(
+            RecentAddedWindow.Days21,
+            repository.observeHomeRecommendationsSettings().first().recentAddedWindow,
+        )
     }
 
     private fun repository(scope: CoroutineScope): DataStoreAppPreferencesRepository =

@@ -111,10 +111,10 @@ internal class DailyPlaylistViewModel @Inject constructor(
 
 @Composable
 internal fun DailyPlaylistRoute(
+    modifier: Modifier = Modifier,
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
-    modifier: Modifier = Modifier,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: DailyPlaylistViewModel = hiltViewModel(),
@@ -136,12 +136,12 @@ internal fun DailyPlaylistRoute(
 
 @Composable
 internal fun DailyPlaylistScreen(
+    modifier: Modifier = Modifier,
     uiState: DailyPlaylistUiState,
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
-    modifier: Modifier = Modifier,
     onPlayAll: () -> Unit = {},
     onShuffle: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },

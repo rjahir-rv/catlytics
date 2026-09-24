@@ -31,6 +31,8 @@ internal fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val homeRecommendationsSettings by
+        viewModel.homeRecommendationsSettings.collectAsStateWithLifecycle()
     val equalizerState by viewModel.equalizerState.collectAsStateWithLifecycle()
     val crossfadeDurationSeconds by viewModel.crossfadeDurationSeconds.collectAsStateWithLifecycle()
     val sleepTimerState by viewModel.sleepTimerState.collectAsStateWithLifecycle()
@@ -90,6 +92,7 @@ internal fun SettingsRoute(
     SettingsScreen(
         appVersion = appVersion,
         themeMode = themeMode,
+        homeRecommendationsSettings = homeRecommendationsSettings,
         equalizerState = equalizerState,
         crossfadeDurationSeconds = crossfadeDurationSeconds,
         sleepTimerState = sleepTimerState,
@@ -102,6 +105,9 @@ internal fun SettingsRoute(
         unifiedImportPreview = unifiedImportPreview,
         onRequestAudioPermission = onRequestAudioPermission,
         onThemeModeChange = viewModel::setThemeMode,
+        onShowRecommendedPlaylistsChange = viewModel::setShowRecommendedPlaylists,
+        onRecentAddedWindowChange = viewModel::setRecentAddedWindow,
+        onShowNewTrackBadgeChange = viewModel::setShowNewTrackBadge,
         onCrossfadeDurationChange = viewModel::setCrossfadeDurationSeconds,
         onSleepTimerStart = viewModel::startSleepTimer,
         onSleepTimerCancel = viewModel::cancelSleepTimer,

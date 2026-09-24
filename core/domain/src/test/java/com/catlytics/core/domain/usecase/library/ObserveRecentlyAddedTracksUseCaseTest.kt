@@ -1,19 +1,23 @@
 package com.catlytics.core.domain.usecase.library
 
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -68,9 +72,54 @@ class ObserveRecentlyAddedTracksUseCaseTest {
         assertEquals(emptyList<Track>(), result)
     }
 
-    private fun useCase(repository: LibraryRepository): Flow<List<Track>> =
+    @Test
+    fun `recent window follows the configured day count`() = runTest {
+        RecentAddedWindow.entries.forEach { window ->
+            val inside = track(
+                id = "track-1",
+                addedAtMillis = nowMillis - (window.days - 1) * DAY_MILLIS,
+            )
+            val outside = track(
+                id = "track-2",
+                addedAtMillis = nowMillis - (window.days + 1) * DAY_MILLIS,
+            )
+            val repository = FakeRecentlyAddedLibraryRepository(listOf(inside, outside))
+            val homePreferencesRepository = FakeHomePreferencesRepository(
+                HomeRecommendationsSettings(recentAddedWindow = window),
+            )
+
+            val result = useCase(repository, homePreferencesRepository).first()
+
+            assertEquals(
+                "Ventana de ${window.days} días",
+                listOf("track-1"),
+                result.map(Track::id),
+            )
+        }
+    }
+
+    @Test
+    fun `window changes are applied reactively`() = runTest {
+        val inside = track(id = "track-1", addedAtMillis = nowMillis - 12 * DAY_MILLIS)
+        val repository = FakeRecentlyAddedLibraryRepository(listOf(inside))
+        val homePreferencesRepository = FakeHomePreferencesRepository()
+        val tracks = useCase(repository, homePreferencesRepository)
+
+        val before = tracks.first()
+        homePreferencesRepository.setRecentAddedWindow(RecentAddedWindow.Days10)
+        val after = tracks.first()
+
+        assertEquals(listOf("track-1"), before.map(Track::id))
+        assertEquals(emptyList<Track>(), after)
+    }
+
+    private fun useCase(
+        repository: LibraryRepository,
+        homePreferencesRepository: HomePreferencesRepository = FakeHomePreferencesRepository(),
+    ): Flow<List<Track>> =
         ObserveRecentlyAddedTracksUseCase(
             libraryRepository = repository,
+            homePreferencesRepository = homePreferencesRepository,
             nowMillis = { nowMillis },
         )()
 
@@ -104,4 +153,24 @@ private class FakeRecentlyAddedLibraryRepository(
     override suspend fun resolvePlaylistSource(source: PlaylistSource): List<Track> = emptyList()
     override suspend fun refreshTracks(): Int = 0
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
+}
+
+private class FakeHomePreferencesRepository(
+    initialSettings: HomeRecommendationsSettings = HomeRecommendationsSettings(),
+) : HomePreferencesRepository {
+    val settings = MutableStateFlow(initialSettings)
+
+    override fun observeHomeRecommendationsSettings(): Flow<HomeRecommendationsSettings> = settings
+
+    override suspend fun setShowRecommendedPlaylists(show: Boolean) {
+        settings.update { it.copy(showRecommendedPlaylists = show) }
+    }
+
+    override suspend fun setRecentAddedWindow(window: RecentAddedWindow) {
+        settings.update { it.copy(recentAddedWindow = window) }
+    }
+
+    override suspend fun setShowNewTrackBadge(show: Boolean) {
+        settings.update { it.copy(showNewTrackBadge = show) }
+    }
 }

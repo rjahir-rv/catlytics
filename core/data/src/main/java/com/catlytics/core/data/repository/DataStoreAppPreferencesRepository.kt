@@ -12,11 +12,14 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.DEFAULT_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MAX_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MIN_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.model.EqualizerMode
+import com.catlytics.core.model.HomeRecommendationsSettings
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
@@ -33,7 +36,10 @@ private val Context.appPreferencesDataStore: DataStore<Preferences> by preferenc
 @Singleton
 class DataStoreAppPreferencesRepository internal constructor(
     private val dataStore: DataStore<Preferences>,
-) : AppPreferencesRepository, EqualizerPreferencesRepository, PlaybackPreferencesRepository {
+) : AppPreferencesRepository,
+    EqualizerPreferencesRepository,
+    PlaybackPreferencesRepository,
+    HomePreferencesRepository {
     @Inject
     constructor(
         @ApplicationContext context: Context,
@@ -130,6 +136,42 @@ class DataStoreAppPreferencesRepository internal constructor(
             } ?: emptyMap()
         }
 
+    override fun observeHomeRecommendationsSettings(): Flow<HomeRecommendationsSettings> =
+        dataStore.data
+            .catch { error ->
+                if (error is IOException) {
+                    emit(emptyPreferences())
+                } else {
+                    throw error
+                }
+            }
+            .map { preferences ->
+                HomeRecommendationsSettings(
+                    showRecommendedPlaylists = preferences[SHOW_RECOMMENDED_PLAYLISTS] ?: true,
+                    recentAddedWindow = preferences[RECENT_ADDED_WINDOW]?.toRecentAddedWindow()
+                        ?: RecentAddedWindow.Days21,
+                    showNewTrackBadge = preferences[SHOW_NEW_TRACK_BADGE] ?: true,
+                )
+            }
+
+    override suspend fun setShowRecommendedPlaylists(show: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[SHOW_RECOMMENDED_PLAYLISTS] = show
+        }
+    }
+
+    override suspend fun setRecentAddedWindow(window: RecentAddedWindow) {
+        dataStore.edit { preferences ->
+            preferences[RECENT_ADDED_WINDOW] = window.name
+        }
+    }
+
+    override suspend fun setShowNewTrackBadge(show: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[SHOW_NEW_TRACK_BADGE] = show
+        }
+    }
+
     override suspend fun setEqualizerEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[EQUALIZER_ENABLED] = enabled
@@ -167,6 +209,9 @@ class DataStoreAppPreferencesRepository internal constructor(
     private fun String.toThemeMode(): ThemeMode =
         runCatching { ThemeMode.valueOf(this) }.getOrDefault(ThemeMode.System)
 
+    private fun String.toRecentAddedWindow(): RecentAddedWindow =
+        runCatching { RecentAddedWindow.valueOf(this) }.getOrDefault(RecentAddedWindow.Days21)
+
     private companion object {
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val CROSSFADE_DURATION_SECONDS = intPreferencesKey("crossfade_duration_seconds")
@@ -174,5 +219,8 @@ class DataStoreAppPreferencesRepository internal constructor(
         val EQUALIZER_PRESET_NAME = stringPreferencesKey("equalizer_preset_name")
         val EQUALIZER_MODE = stringPreferencesKey("equalizer_mode")
         val EQUALIZER_CUSTOM_BANDS = stringSetPreferencesKey("equalizer_custom_bands")
+        val SHOW_RECOMMENDED_PLAYLISTS = booleanPreferencesKey("show_recommended_playlists")
+        val RECENT_ADDED_WINDOW = stringPreferencesKey("recent_added_window")
+        val SHOW_NEW_TRACK_BADGE = booleanPreferencesKey("show_new_track_badge")
     }
 }

@@ -149,13 +149,13 @@ fun TrackBadge(
 
 @Composable
 private fun TrackArtwork(
+    modifier: Modifier = Modifier,
     title: String,
     artworkUri: String?,
     isCurrent: Boolean,
     isPlaying: Boolean,
     selected: Boolean = false,
     selectionActive: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val artworkShape = RoundedCornerShape(10.dp)
     Box(

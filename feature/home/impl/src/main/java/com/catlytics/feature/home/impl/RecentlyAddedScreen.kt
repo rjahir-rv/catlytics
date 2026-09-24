@@ -28,6 +28,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
@@ -35,6 +36,7 @@ import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -48,11 +50,13 @@ import kotlinx.coroutines.launch
 
 internal sealed interface RecentlyAddedUiState {
     data object Loading : RecentlyAddedUiState
-    data object Empty : RecentlyAddedUiState
+    data class Empty(val windowDays: Int) : RecentlyAddedUiState
     data class Success(
         val tracks: List<Track>,
         val currentTrackId: String? = null,
         val isCurrentTrackPlaying: Boolean = false,
+        val windowDays: Int = RecentAddedWindow.Days21.days,
+        val showNewTrackBadge: Boolean = true,
     ) : RecentlyAddedUiState
 }
 
@@ -60,20 +64,24 @@ internal sealed interface RecentlyAddedUiState {
 internal class RecentlyAddedViewModel @Inject constructor(
     observeRecentlyAddedTracksUseCase: ObserveRecentlyAddedTracksUseCase,
     observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    homePreferencesRepository: HomePreferencesRepository,
     private val playTrackUseCase: PlayTrackUseCase,
     private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
 ) : ViewModel() {
     val uiState: StateFlow<RecentlyAddedUiState> = combine(
         observeRecentlyAddedTracksUseCase().catch { emit(emptyList()) },
         observePlaybackStateUseCase(),
-    ) { recentlyAddedTracks, playbackState ->
+        homePreferencesRepository.observeHomeRecommendationsSettings(),
+    ) { recentlyAddedTracks, playbackState, homeRecommendationsSettings ->
         if (recentlyAddedTracks.isEmpty()) {
-            RecentlyAddedUiState.Empty
+            RecentlyAddedUiState.Empty(homeRecommendationsSettings.recentAddedWindow.days)
         } else {
             RecentlyAddedUiState.Success(
                 tracks = recentlyAddedTracks,
                 currentTrackId = playbackState.currentTrack?.id,
                 isCurrentTrackPlaying = playbackState.status == PlaybackStatus.Playing,
+                windowDays = homeRecommendationsSettings.recentAddedWindow.days,
+                showNewTrackBadge = homeRecommendationsSettings.showNewTrackBadge,
             )
         }
     }.stateIn(
@@ -153,14 +161,14 @@ internal fun RecentlyAddedScreen(
             CircularProgressIndicator()
         }
 
-        RecentlyAddedUiState.Empty -> Box(
+        is RecentlyAddedUiState.Empty -> Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(20.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "No hay canciones agregadas en los últimos 21 días.",
+                text = "No hay canciones agregadas en los últimos ${uiState.windowDays} días.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -201,9 +209,10 @@ internal fun RecentlyAddedScreen(
                         ) {
                             Text(
                                 text = if (uiState.tracks.size == 1) {
-                                    "1 canción agregada en los últimos 21 días"
+                                    "1 canción agregada en los últimos ${uiState.windowDays} días"
                                 } else {
-                                    "${uiState.tracks.size} canciones agregadas en los últimos 21 días"
+                                    "${uiState.tracks.size} canciones agregadas en los últimos " +
+                                        "${uiState.windowDays} días"
                                 },
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.labelLarge,
@@ -238,7 +247,7 @@ internal fun RecentlyAddedScreen(
                             isCurrent = track.id == uiState.currentTrackId,
                             isPlaying = track.id == uiState.currentTrackId &&
                                 uiState.isCurrentTrackPlaying,
-                            isNew = true,
+                            isNew = uiState.showNewTrackBadge,
                             onTrackSelected = {
                                 if (selection.active) {
                                     selectionState.value = selection.onTrackLongClick(track.id)

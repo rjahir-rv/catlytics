@@ -16,7 +16,13 @@ internal sealed interface HomeUiState {
         val topTracks: List<TopTrack> = emptyList(),
         val currentTrackId: String? = null,
         val isCurrentTrackPlaying: Boolean = false,
-        val newTrackIds: Set<String> = recentlyAddedTracks.mapTo(mutableSetOf(), Track::id),
+        val showRecommendedPlaylists: Boolean = true,
+        val showNewTrackBadge: Boolean = true,
+        val newTrackIds: Set<String> = if (showNewTrackBadge) {
+            recentlyAddedTracks.mapTo(mutableSetOf(), Track::id)
+        } else {
+            emptySet()
+        },
     ) : HomeUiState
     data class Error(val message: String) : HomeUiState
 }

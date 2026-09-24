@@ -1,5 +1,6 @@
 package com.catlytics.feature.home.impl
 
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
@@ -11,20 +12,21 @@ import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
-import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -62,7 +64,7 @@ class RecentlyAddedViewModelTest {
         backgroundScope.startCollecting(viewModel)
         advanceUntilIdle()
 
-        assertEquals(RecentlyAddedUiState.Empty, viewModel.uiState.value)
+        assertEquals(RecentlyAddedUiState.Empty(21), viewModel.uiState.value)
     }
 
     @Test
@@ -125,12 +127,52 @@ class RecentlyAddedViewModelTest {
         assertTrue(viewModel.uiState.value is RecentlyAddedUiState.Loading)
     }
 
-    private fun recentlyAddedViewModel() = RecentlyAddedViewModel(
+    @Test
+    fun `empty state exposes the configured window`() = runTest {
+        val homePreferencesRepository = FakeRecentlyAddedHomePreferencesRepository(
+            HomeRecommendationsSettings(recentAddedWindow = RecentAddedWindow.Days10),
+        )
+        val viewModel = recentlyAddedViewModel(homePreferencesRepository)
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(RecentlyAddedUiState.Empty(10), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `success state follows the window and new badge settings`() = runTest {
+        val recent = track(id = "track-1", addedAtMillis = NOW_MILLIS - DAY_MILLIS)
+        repository.setTracks(listOf(recent))
+        val homePreferencesRepository = FakeRecentlyAddedHomePreferencesRepository(
+            HomeRecommendationsSettings(
+                recentAddedWindow = RecentAddedWindow.Days14,
+                showNewTrackBadge = false,
+            ),
+        )
+        val viewModel = recentlyAddedViewModel(homePreferencesRepository)
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(
+            RecentlyAddedUiState.Success(
+                tracks = listOf(recent),
+                windowDays = 14,
+                showNewTrackBadge = false,
+            ),
+            viewModel.uiState.value,
+        )
+    }
+
+    private fun recentlyAddedViewModel(
+        homePreferencesRepository: HomePreferencesRepository = FakeRecentlyAddedHomePreferencesRepository(),
+    ) = RecentlyAddedViewModel(
         observeRecentlyAddedTracksUseCase = ObserveRecentlyAddedTracksUseCase(
-            repository,
+            libraryRepository = repository,
+            homePreferencesRepository = homePreferencesRepository,
             nowMillis = { NOW_MILLIS },
         ),
         observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
+        homePreferencesRepository = homePreferencesRepository,
         playTrackUseCase = PlayTrackUseCase(playbackController),
         playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),
     )
@@ -229,4 +271,24 @@ private class FakeRecentlyAddedPlaybackController : PlaybackController {
     override suspend fun setRepeatMode(mode: PlaybackRepeatMode) = Unit
     override suspend fun restoreLastSession() = Unit
     override suspend fun stop() = Unit
+}
+
+private class FakeRecentlyAddedHomePreferencesRepository(
+    initialSettings: HomeRecommendationsSettings = HomeRecommendationsSettings(),
+) : HomePreferencesRepository {
+    val settings = MutableStateFlow(initialSettings)
+
+    override fun observeHomeRecommendationsSettings(): Flow<HomeRecommendationsSettings> = settings
+
+    override suspend fun setShowRecommendedPlaylists(show: Boolean) {
+        settings.update { it.copy(showRecommendedPlaylists = show) }
+    }
+
+    override suspend fun setRecentAddedWindow(window: RecentAddedWindow) {
+        settings.update { it.copy(recentAddedWindow = window) }
+    }
+
+    override suspend fun setShowNewTrackBadge(show: Boolean) {
+        settings.update { it.copy(showNewTrackBadge = show) }
+    }
 }

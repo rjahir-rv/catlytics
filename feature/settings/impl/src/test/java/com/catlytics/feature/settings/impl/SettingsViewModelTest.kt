@@ -2,6 +2,7 @@ package com.catlytics.feature.settings.impl
 
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
@@ -25,6 +26,7 @@ import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.MusicScanDurationFilter
@@ -35,6 +37,7 @@ import com.catlytics.core.model.PlaylistExportResult
 import com.catlytics.core.model.PlaylistImportResult
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.PlaylistViewMode
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.SortDirection
 import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.StatisticsBackupPreview
@@ -135,6 +138,25 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `home recommendation settings are persisted`() = runTest {
+        val homePreferencesRepository = FakeSettingsHomePreferencesRepository()
+        val viewModel = viewModel(homePreferencesRepository = homePreferencesRepository)
+
+        viewModel.setShowRecommendedPlaylists(false)
+        viewModel.setRecentAddedWindow(RecentAddedWindow.Days14)
+        viewModel.setShowNewTrackBadge(false)
+        advanceUntilIdle()
+
+        val expected = HomeRecommendationsSettings(
+            showRecommendedPlaylists = false,
+            recentAddedWindow = RecentAddedWindow.Days14,
+            showNewTrackBadge = false,
+        )
+        assertEquals(expected, homePreferencesRepository.settings.value)
+        assertEquals(expected, viewModel.homeRecommendationsSettings.value)
+    }
+
+    @Test
     fun `sleep timer can be started and cancelled`() = runTest {
         val sleepTimerController = FakeSleepTimerController()
         val viewModel = viewModel(sleepTimerController = sleepTimerController)
@@ -226,6 +248,7 @@ class SettingsViewModelTest {
         appPreferencesRepository: AppPreferencesRepository = FakeAppPreferencesRepository(),
         equalizerRepository: EqualizerRepository = FakeEqualizerRepository(),
         playbackPreferencesRepository: PlaybackPreferencesRepository = FakePlaybackPreferencesRepository(),
+        homePreferencesRepository: HomePreferencesRepository = FakeSettingsHomePreferencesRepository(),
         sleepTimerController: SleepTimerController = FakeSleepTimerController(),
         libraryRepository: FakeLibraryRepository = FakeLibraryRepository(),
         libraryPreferencesRepository: FakeLibraryPreferencesRepository =
@@ -235,6 +258,7 @@ class SettingsViewModelTest {
         appPreferencesRepository = appPreferencesRepository,
         equalizerRepository = equalizerRepository,
         playbackPreferencesRepository = playbackPreferencesRepository,
+        homePreferencesRepository = homePreferencesRepository,
         sleepTimerController = sleepTimerController,
         observeLibraryFoldersUseCase = ObserveLibraryFoldersUseCase(libraryRepository),
         observeMusicScanSettingsUseCase =
@@ -403,6 +427,24 @@ private class FakePlaybackPreferencesRepository : PlaybackPreferencesRepository 
 
     override suspend fun setCrossfadeDurationSeconds(seconds: Int) {
         durationSeconds.value = seconds
+    }
+}
+
+private class FakeSettingsHomePreferencesRepository : HomePreferencesRepository {
+    val settings = MutableStateFlow(HomeRecommendationsSettings())
+
+    override fun observeHomeRecommendationsSettings(): Flow<HomeRecommendationsSettings> = settings
+
+    override suspend fun setShowRecommendedPlaylists(show: Boolean) {
+        settings.value = settings.value.copy(showRecommendedPlaylists = show)
+    }
+
+    override suspend fun setRecentAddedWindow(window: RecentAddedWindow) {
+        settings.value = settings.value.copy(recentAddedWindow = window)
+    }
+
+    override suspend fun setShowNewTrackBadge(show: Boolean) {
+        settings.value = settings.value.copy(showNewTrackBadge = show)
     }
 }
 

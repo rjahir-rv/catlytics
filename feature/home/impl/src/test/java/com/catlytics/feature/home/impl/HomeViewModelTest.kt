@@ -1,5 +1,6 @@
 package com.catlytics.feature.home.impl
 
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
@@ -18,6 +19,7 @@ import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
@@ -30,6 +32,7 @@ import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopArtist
@@ -307,7 +310,55 @@ class HomeViewModelTest {
         assertEquals(emptySet<String>(), state.newTrackIds)
     }
 
-    private fun homeViewModel() = HomeViewModel(
+    @Test
+    fun `quick action cards hide when recommended playlists are disabled`() = runTest {
+        repository.setTracks(listOf(track(id = "track-1")))
+        val homePreferencesRepository = FakeHomePreferencesRepository(
+            HomeRecommendationsSettings(showRecommendedPlaylists = false),
+        )
+        val viewModel = homeViewModel(homePreferencesRepository = homePreferencesRepository)
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(false, state.showRecommendedPlaylists)
+    }
+
+    @Test
+    fun `new track ids are empty when the new badge is disabled`() = runTest {
+        val recent = track(id = "track-1").copy(addedAtMillis = NOW_MILLIS - DAY_MILLIS)
+        repository.setTracks(listOf(recent))
+        val homePreferencesRepository = FakeHomePreferencesRepository(
+            HomeRecommendationsSettings(showNewTrackBadge = false),
+        )
+        val viewModel = homeViewModel(homePreferencesRepository = homePreferencesRepository)
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(listOf("track-1"), state.recentlyAddedTracks.map(Track::id))
+        assertEquals(emptySet<String>(), state.newTrackIds)
+    }
+
+    @Test
+    fun `recently added window follows the configured day count`() = runTest {
+        val recent = track(id = "track-1").copy(addedAtMillis = NOW_MILLIS - 12 * DAY_MILLIS)
+        repository.setTracks(listOf(recent))
+        val homePreferencesRepository = FakeHomePreferencesRepository(
+            HomeRecommendationsSettings(recentAddedWindow = RecentAddedWindow.Days10),
+        )
+        val viewModel = homeViewModel(homePreferencesRepository = homePreferencesRepository)
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(emptyList<Track>(), state.recentlyAddedTracks)
+        assertEquals(emptySet<String>(), state.newTrackIds)
+    }
+
+    private fun homeViewModel(
+        homePreferencesRepository: HomePreferencesRepository = FakeHomePreferencesRepository(),
+    ) = HomeViewModel(
         observeLibraryUseCase = ObserveLibraryUseCase(repository),
         observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
         observeRecentlyPlayedTracksUseCase = ObserveRecentlyPlayedTracksUseCase(playbackEventRepository),
@@ -317,9 +368,11 @@ class HomeViewModelTest {
             repository,
         ),
         observeRecentlyAddedTracksUseCase = ObserveRecentlyAddedTracksUseCase(
-            repository,
+            libraryRepository = repository,
+            homePreferencesRepository = homePreferencesRepository,
             nowMillis = { NOW_MILLIS },
         ),
+        homePreferencesRepository = homePreferencesRepository,
         generateDailyPlaylistUseCase = GenerateDailyPlaylistUseCase(),
         playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),
         playTrackUseCase = PlayTrackUseCase(playbackController),
@@ -542,4 +595,24 @@ private class FakeHomePlaybackEventRepository : PlaybackEventRepository {
     override fun observeBackupSummary(): Flow<com.catlytics.core.model.StatisticsBackupSummary> =
         flowOf(com.catlytics.core.model.StatisticsBackupSummary(0, null, null))
 
+}
+
+private class FakeHomePreferencesRepository(
+    initialSettings: HomeRecommendationsSettings = HomeRecommendationsSettings(),
+) : HomePreferencesRepository {
+    val settings = MutableStateFlow(initialSettings)
+
+    override fun observeHomeRecommendationsSettings(): Flow<HomeRecommendationsSettings> = settings
+
+    override suspend fun setShowRecommendedPlaylists(show: Boolean) {
+        settings.update { it.copy(showRecommendedPlaylists = show) }
+    }
+
+    override suspend fun setRecentAddedWindow(window: RecentAddedWindow) {
+        settings.update { it.copy(recentAddedWindow = window) }
+    }
+
+    override suspend fun setShowNewTrackBadge(show: Boolean) {
+        settings.update { it.copy(showNewTrackBadge = show) }
+    }
 }

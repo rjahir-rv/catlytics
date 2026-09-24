@@ -64,6 +64,7 @@ internal fun HomeTrackList(
     favoriteTrackCount: Int,
     recentlyAddedTrackCount: Int,
     newTrackIds: Set<String>,
+    showRecommendedPlaylists: Boolean,
     recentlyPlayedTracks: List<Track>,
     topTracks: List<TopTrack>,
     currentTrackId: String?,
@@ -121,10 +122,13 @@ internal fun HomeTrackList(
                             verticalArrangement = Arrangement.spacedBy(16.dp),
                         ) {
                             if (
-                                recentlyAddedTrackCount > 0 ||
-                                dailyPlaylistTrackCount > 0 ||
-                                canShuffleAll ||
-                                favoriteTrackCount > 0
+                                showRecommendedPlaylists &&
+                                (
+                                    recentlyAddedTrackCount > 0 ||
+                                        dailyPlaylistTrackCount > 0 ||
+                                        canShuffleAll ||
+                                        favoriteTrackCount > 0
+                                    )
                             ) {
                                 HomeQuickActions(
                                     dailyPlaylistTrackCount = dailyPlaylistTrackCount,

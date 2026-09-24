@@ -36,11 +36,13 @@ import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Compan
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.BackupOptions
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
@@ -49,6 +51,7 @@ import com.catlytics.core.model.UnifiedBackupSummary
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsRowText
 import com.catlytics.feature.settings.impl.components.SettingsSection
+import com.catlytics.feature.settings.impl.components.SettingsToggleRow
 import com.catlytics.feature.settings.impl.components.SettingsValueRow
 import com.catlytics.feature.settings.impl.equalizer.EqualizerSettingsContent
 
@@ -57,6 +60,7 @@ internal fun SettingsScreen(
     appVersion: String,
     modifier: Modifier = Modifier,
     themeMode: ThemeMode,
+    homeRecommendationsSettings: HomeRecommendationsSettings,
     equalizerState: EqualizerState,
     crossfadeDurationSeconds: Int,
     sleepTimerState: SleepTimerState,
@@ -69,6 +73,9 @@ internal fun SettingsScreen(
     unifiedImportPreview: UnifiedBackupPreview? = null,
     onRequestAudioPermission: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onShowRecommendedPlaylistsChange: (Boolean) -> Unit,
+    onRecentAddedWindowChange: (RecentAddedWindow) -> Unit,
+    onShowNewTrackBadgeChange: (Boolean) -> Unit,
     onCrossfadeDurationChange: (Int) -> Unit,
     onSleepTimerStart: (Int) -> Unit,
     onSleepTimerCancel: () -> Unit,
@@ -139,10 +146,14 @@ internal fun SettingsScreen(
         SettingsDestination.Main -> SettingsMainContent(
             appVersion = appVersion,
             themeMode = themeMode,
+            homeRecommendationsSettings = homeRecommendationsSettings,
             equalizerState = equalizerState,
             crossfadeDurationSeconds = crossfadeDurationSeconds,
             sleepTimerState = sleepTimerState,
             onThemeModeChange = onThemeModeChange,
+            onShowRecommendedPlaylistsChange = onShowRecommendedPlaylistsChange,
+            onRecentAddedWindowChange = onRecentAddedWindowChange,
+            onShowNewTrackBadgeChange = onShowNewTrackBadgeChange,
             onCrossfadeDurationChange = onCrossfadeDurationChange,
             onSleepTimerClick = { showSleepTimerSheet = true },
             onEqualizerClick = { destination = SettingsDestination.Equalizer },
@@ -225,10 +236,14 @@ internal fun SettingsScreen(
 private fun SettingsMainContent(
     appVersion: String,
     themeMode: ThemeMode,
+    homeRecommendationsSettings: HomeRecommendationsSettings,
     equalizerState: EqualizerState,
     crossfadeDurationSeconds: Int,
     sleepTimerState: SleepTimerState,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onShowRecommendedPlaylistsChange: (Boolean) -> Unit,
+    onRecentAddedWindowChange: (RecentAddedWindow) -> Unit,
+    onShowNewTrackBadgeChange: (Boolean) -> Unit,
     onCrossfadeDurationChange: (Int) -> Unit,
     onSleepTimerClick: () -> Unit,
     onEqualizerClick: () -> Unit,
@@ -265,6 +280,31 @@ private fun SettingsMainContent(
                     title = "Escanear música",
                     supportingText = "Carpetas y filtros para encontrar música local",
                     onClick = onMusicScanClick,
+                )
+            }
+        }
+        item {
+            SettingsSection(
+                title = "Inicio y recomendaciones",
+                iconRes = R.drawable.ic_home,
+            ) {
+                SettingsToggleRow(
+                    title = "Playlists recomendadas",
+                    supportingText = "Tarjetas de Accesos rápidos en el inicio",
+                    checked = homeRecommendationsSettings.showRecommendedPlaylists,
+                    onCheckedChange = onShowRecommendedPlaylistsChange,
+                )
+                SettingsDivider()
+                RecentAddedWindowSelector(
+                    selected = homeRecommendationsSettings.recentAddedWindow,
+                    onSelected = onRecentAddedWindowChange,
+                )
+                SettingsDivider()
+                SettingsToggleRow(
+                    title = "Distintivo «Nuevo»",
+                    supportingText = "Marca las canciones agregadas recientemente",
+                    checked = homeRecommendationsSettings.showNewTrackBadge,
+                    onCheckedChange = onShowNewTrackBadgeChange,
                 )
             }
         }
@@ -432,6 +472,64 @@ private fun ThemeModeSelector(
         }
     }
 }
+
+@Composable
+private fun RecentAddedWindowSelector(
+    selected: RecentAddedWindow,
+    onSelected: (RecentAddedWindow) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        SettingsValueRow(
+            title = "Canciones recientes",
+            supportingText = "Ventana para Agregados recientemente y el distintivo Nuevo",
+            value = selected.label,
+            onClick = { expanded = !expanded },
+        )
+        if (expanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .selectableGroup()
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                RecentAddedWindow.entries.forEach { window ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = window == selected,
+                                onClick = {
+                                    onSelected(window)
+                                    expanded = false
+                                },
+                                role = Role.RadioButton,
+                            ),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(
+                            selected = window == selected,
+                            onClick = null,
+                        )
+                        SettingsRowText(
+                            title = window.label,
+                            supportingText = null,
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 16.dp),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private val RecentAddedWindow.label: String
+    get() = "$days días"
 
 private val ThemeMode.label: String
     get() = when (this) {

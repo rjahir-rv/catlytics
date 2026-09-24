@@ -1,6 +1,7 @@
 package com.catlytics.app.di
 
 import com.catlytics.core.domain.repository.PlaybackController
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryChangeObserver
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
@@ -192,7 +193,8 @@ object DomainModule {
     @Provides
     fun provideObserveRecentlyAddedTracksUseCase(
         libraryRepository: LibraryRepository,
-    ) = ObserveRecentlyAddedTracksUseCase(libraryRepository)
+        homePreferencesRepository: HomePreferencesRepository,
+    ) = ObserveRecentlyAddedTracksUseCase(libraryRepository, homePreferencesRepository)
 
     @Provides
     fun provideObserveLibraryChangesUseCase(

@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 internal sealed interface AppStartupUiState {
     data object WaitingForPermission : AppStartupUiState
@@ -61,7 +62,7 @@ class AppStartupViewModel @Inject constructor(
         hasStartedLibraryObservation = true
         viewModelScope.launch {
             observeLibraryChangesUseCase()
-                .debounce(LIBRARY_CHANGE_DEBOUNCE_MILLIS)
+                .debounce(LIBRARY_CHANGE_DEBOUNCE_MILLIS.milliseconds)
                 .collect {
                     runCatching { refreshLibraryUseCase() }
                 }

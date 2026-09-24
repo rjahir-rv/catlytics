@@ -68,6 +68,8 @@ internal fun HomeRoute(
 
 @Composable
 internal fun HomeScreen(
+    modifier: Modifier = Modifier,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     uiState: HomeUiState,
     searchQuery: String,
     hasAudioPermission: Boolean,
@@ -75,8 +77,6 @@ internal fun HomeScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
-    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
-    modifier: Modifier = Modifier,
     onTopTrackSelected: (String) -> Unit = {},
     onOpenDailyPlaylist: () -> Unit = {},
     onShuffleAll: () -> Unit = {},
@@ -169,6 +169,7 @@ internal fun HomeScreen(
                             favoriteTrackCount = uiState.favoriteTracks.size,
                             recentlyAddedTrackCount = uiState.recentlyAddedTracks.size,
                             newTrackIds = uiState.newTrackIds,
+                            showRecommendedPlaylists = uiState.showRecommendedPlaylists,
                             recentlyPlayedTracks = uiState.recentlyPlayedTracks,
                             topTracks = uiState.topTracks,
                             currentTrackId = uiState.currentTrackId,

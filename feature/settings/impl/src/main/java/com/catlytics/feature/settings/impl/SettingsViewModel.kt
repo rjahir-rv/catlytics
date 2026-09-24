@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.SleepTimerController
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.DEFAULT_CROSSFADE_DURATION_SECONDS
@@ -21,10 +22,12 @@ import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
+import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.core.model.UnifiedBackupPreview
@@ -47,6 +50,7 @@ internal class SettingsViewModel @Inject constructor(
     private val appPreferencesRepository: AppPreferencesRepository,
     private val equalizerRepository: EqualizerRepository,
     private val playbackPreferencesRepository: PlaybackPreferencesRepository,
+    private val homePreferencesRepository: HomePreferencesRepository,
     private val sleepTimerController: SleepTimerController,
     observeLibraryFoldersUseCase: ObserveLibraryFoldersUseCase,
     observeMusicScanSettingsUseCase: ObserveMusicScanSettingsUseCase,
@@ -79,6 +83,13 @@ internal class SettingsViewModel @Inject constructor(
                 scope = viewModelScope,
                 started = SharingStarted.Eagerly,
                 initialValue = DEFAULT_CROSSFADE_DURATION_SECONDS,
+            )
+    val homeRecommendationsSettings: StateFlow<HomeRecommendationsSettings> =
+        homePreferencesRepository.observeHomeRecommendationsSettings()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.Eagerly,
+                initialValue = HomeRecommendationsSettings(),
             )
     val libraryFolders: StateFlow<List<LibraryFolder>> = observeLibraryFoldersUseCase()
         .stateIn(
@@ -125,6 +136,24 @@ internal class SettingsViewModel @Inject constructor(
     fun setCrossfadeDurationSeconds(seconds: Int) {
         viewModelScope.launch {
             playbackPreferencesRepository.setCrossfadeDurationSeconds(seconds)
+        }
+    }
+
+    fun setShowRecommendedPlaylists(show: Boolean) {
+        viewModelScope.launch {
+            homePreferencesRepository.setShowRecommendedPlaylists(show)
+        }
+    }
+
+    fun setRecentAddedWindow(window: RecentAddedWindow) {
+        viewModelScope.launch {
+            homePreferencesRepository.setRecentAddedWindow(window)
+        }
+    }
+
+    fun setShowNewTrackBadge(show: Boolean) {
+        viewModelScope.launch {
+            homePreferencesRepository.setShowNewTrackBadge(show)
         }
     }
 

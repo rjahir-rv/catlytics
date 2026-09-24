@@ -17,6 +17,7 @@ import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
 import com.catlytics.core.data.repository.DataStorePlaylistRepository
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryChangeObserver
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
@@ -64,6 +65,12 @@ interface DataModule {
     fun bindPlaybackPreferencesRepository(
         repository: DataStoreAppPreferencesRepository,
     ): PlaybackPreferencesRepository
+
+    @Binds
+    @Singleton
+    fun bindHomePreferencesRepository(
+        repository: DataStoreAppPreferencesRepository,
+    ): HomePreferencesRepository
 
     @Binds
     @Singleton

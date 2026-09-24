@@ -2,6 +2,7 @@ package com.catlytics.feature.home.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
@@ -32,6 +33,7 @@ internal class HomeViewModel @Inject constructor(
     observeWeeklyStatsUseCase: ObserveWeeklyStatsUseCase,
     observePlaylistContentUseCase: ObservePlaylistContentUseCase,
     observeRecentlyAddedTracksUseCase: ObserveRecentlyAddedTracksUseCase,
+    homePreferencesRepository: HomePreferencesRepository,
     private val generateDailyPlaylistUseCase: GenerateDailyPlaylistUseCase,
     private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
@@ -61,7 +63,8 @@ internal class HomeViewModel @Inject constructor(
         libraryAndListening,
         observePlaybackStateUseCase(),
         observePlaylistContentUseCase(LIKED_PLAYLIST_ID).catch { emit(null) },
-    ) { libraryAndListening, playbackState, likedPlaylist ->
+        homePreferencesRepository.observeHomeRecommendationsSettings(),
+    ) { libraryAndListening, playbackState, likedPlaylist, homeRecommendationsSettings ->
         when {
             libraryAndListening.tracks.isEmpty() -> HomeUiState.Empty
             else -> HomeUiState.Success(
@@ -76,6 +79,8 @@ internal class HomeViewModel @Inject constructor(
                 topTracks = libraryAndListening.topTracks,
                 currentTrackId = playbackState.currentTrack?.id,
                 isCurrentTrackPlaying = playbackState.status == PlaybackStatus.Playing,
+                showRecommendedPlaylists = homeRecommendationsSettings.showRecommendedPlaylists,
+                showNewTrackBadge = homeRecommendationsSettings.showNewTrackBadge,
             )
         }
     }.stateIn(
