@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Biblioteca: pantalla principal -->
+    <string name="library_tab_albums">Álbumes</string>
+    <string name="library_tab_artists">Artistas</string>
+    <string name="library_tab_folders">Carpetas</string>
+    <string name="library_sort_content_description">Ordenar alfabéticamente</string>
+    <string name="library_sort_ascending">A-Z</string>
+    <string name="library_sort_descending">Z-A</string>
+    <string name="library_show_artists_grid_content_description">Mostrar artistas en mosaico</string>
+    <string name="library_show_artists_list_content_description">Mostrar artistas en lista</string>
+    <string name="library_permission_message">Catlytics necesita permiso para encontrar tu biblioteca musical.</string>
+    <string name="library_permission_request">Permitir acceso a música</string>
+    <string name="library_empty_message">No encontramos música en este dispositivo.</string>
+    <string name="library_no_search_results">No encontramos álbumes ni artistas que coincidan con tu búsqueda.</string>
+
+    <!-- Biblioteca: carpetas -->
+    <string name="library_folders_title">Carpetas musicales</string>
+    <string name="library_folders_subtitle">Elige qué carpetas forman parte de tu biblioteca.</string>
+    <string name="library_folder_options_content_description">Opciones de %1$s</string>
+    <string name="library_action_add_to_playlist">Agregar a playlist</string>
+    <string name="library_action_show_folder">Mostrar carpeta</string>
+    <string name="library_action_hide_folder">Ocultar carpeta</string>
+
+    <!-- Biblioteca: contenido compartido -->
+    <plurals name="library_track_count">
+        <item quantity="one">1 canción</item>
+        <item quantity="other">%1$d canciones</item>
+    </plurals>
+    <plurals name="library_album_count">
+        <item quantity="one">1 álbum</item>
+        <item quantity="other">%1$d álbumes</item>
+    </plurals>
+    <string name="library_album_cover_content_description">Portada de %1$s</string>
+    <string name="library_album_options_content_description">Opciones de %1$s</string>
+    <string name="library_track_metadata">%1$s · %2$s</string>
+    <string name="library_track_options_content_description">Opciones de %1$s</string>
+    <string name="library_track_selected_content_description">Seleccionada</string>
+
+    <!-- Biblioteca: artistas -->
+    <string name="library_artist_options_content_description">Opciones de %1$s</string>
+    <string name="library_artist_image_content_description">Imagen de %1$s</string>
+    <string name="library_artist_metadata">%1$s · %2$s</string>
+    <string name="library_artist_tab_songs">Canciones</string>
+    <string name="library_artist_tab_albums">Álbumes</string>
+    <string name="library_artist_not_found_message">Este artista ya no está disponible.</string>
+
+    <!-- Biblioteca: fusión de artistas -->
+    <string name="library_artist_merge_open">Fusionar con…</string>
+    <string name="library_artist_merge_manage">Administrar fusiones (%1$d)</string>
+    <string name="library_artist_merge_picker_title">Elegir artista principal</string>
+    <string name="library_artist_merge_picker_description">El artista elegido conservará su nombre en toda la app.</string>
+    <string name="library_artist_merge_search_hint">Buscar artista</string>
+    <string name="library_artist_merge_dialog_title">Fusionar artistas</string>
+    <string name="library_artist_merge_confirm_message">%1$s pasará a formar parte de %2$s. Biblioteca y estadísticas usarán ese nombre.</string>
+    <string name="library_artist_aliases_title">Artistas fusionados</string>
+    <string name="library_artist_alias_target">Se muestra como %1$s</string>
+    <string name="library_artist_unmerge_dialog_title">Separar artista</string>
+    <string name="library_artist_unmerge_confirm_message">%1$s volverá a aparecer como artista independiente y sus estadísticas se separarán.</string>
+    <string name="library_artist_merge_success">Artistas fusionados</string>
+    <string name="library_artist_unmerge_success">Artista separado</string>
+    <string name="library_artist_load_error">No se pudo cargar el contenido del artista.</string>
+    <string name="library_artist_update_error">No se pudo actualizar el artista.</string>
+    <string name="library_action_merge">Fusionar</string>
+    <string name="library_action_merging">Fusionando…</string>
+    <string name="library_action_unmerge">Separar</string>
+    <string name="library_action_unmerging">Separando…</string>
+    <string name="library_action_cancel">Cancelar</string>
+
+    <!-- Biblioteca: álbum -->
+    <string name="library_album_not_found_message">Este álbum ya no está disponible.</string>
+    <string name="library_album_play_shuffled_content_description">Reproducir aleatoriamente</string>
+    <string name="library_album_play_content_description">Reproducir</string>
+    <string name="library_album_load_error">No se pudo cargar el contenido del álbum.</string>
+
+    <!-- Biblioteca: carpeta -->
+    <string name="library_folder_not_found_message">Esta carpeta ya no está disponible.</string>
+    <string name="library_folder_empty_message">Esta carpeta no contiene música.</string>
+    <string name="library_folder_load_error">No se pudo cargar el contenido de la carpeta.</string>
+</resources>

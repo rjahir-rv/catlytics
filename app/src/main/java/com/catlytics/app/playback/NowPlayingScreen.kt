@@ -52,22 +52,23 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.catlytics.app.R as AppR
 import com.catlytics.app.ui.sheet.TrackOptionsDropdownMenu
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsTopAppBar
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
+import com.catlytics.core.designsystem.format.TrackDurationFormat
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
-import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,7 +153,7 @@ fun NowPlayingScreen(
                 CatlyticsTopAppBar(
                     title = {
                         Text(
-                            text = "Reproduciendo ahora",
+                            text = stringResource(AppR.string.app_now_playing_title),
                             style = MaterialTheme.typography.titleMedium,
                         )
                     },
@@ -161,7 +162,7 @@ fun NowPlayingScreen(
                         IconButton(onClick = onBack) {
                             Icon(
                                 painter = painterResource(id = R.drawable.ic_arrow_down),
-                                contentDescription = "Volver",
+                                contentDescription = stringResource(AppR.string.app_action_back),
                             )
                         }
                     },
@@ -300,14 +301,15 @@ private fun NowPlayingDetails(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = track?.title ?: "Sin canción en reproducción",
+                    text = track?.title ?: stringResource(AppR.string.app_now_playing_empty_track),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = track?.artist?.name ?: "Selecciona una canción para iniciar",
+                    text = track?.artist?.name
+                        ?: stringResource(AppR.string.app_now_playing_empty_artist),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -329,9 +331,9 @@ private fun NowPlayingDetails(
                         },
                     ),
                     contentDescription = if (isCurrentTrackLiked) {
-                        "Quitar de Tus me gusta"
+                        stringResource(AppR.string.app_action_remove_from_liked)
                     } else {
-                        "Agregar a Tus me gusta"
+                        stringResource(AppR.string.app_action_add_to_liked)
                     },
                     modifier = Modifier.size(26.dp),
                     tint = if (isCurrentTrackLiked) {
@@ -408,7 +410,7 @@ private fun PlaybackControls(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_skip_back),
-                contentDescription = "Anterior",
+                contentDescription = stringResource(AppR.string.app_action_previous),
                 modifier = Modifier.size(30.dp),
             )
         }
@@ -419,7 +421,7 @@ private fun PlaybackControls(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_replay_10),
-                contentDescription = "Retroceder 10 segundos",
+                contentDescription = stringResource(AppR.string.app_action_seek_back_10),
                 modifier = Modifier.size(28.dp),
             )
         }
@@ -440,9 +442,9 @@ private fun PlaybackControls(
                         painterResource(id = R.drawable.ic_play)
                     },
                     contentDescription = if (showPauseIcon) {
-                        "Pausar"
+                        stringResource(AppR.string.app_action_pause)
                     } else {
-                        "Reproducir"
+                        stringResource(AppR.string.app_action_play)
                     },
                     modifier = Modifier.size(36.dp),
                 )
@@ -455,7 +457,7 @@ private fun PlaybackControls(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_forward_10),
-                contentDescription = "Adelantar 10 segundos",
+                contentDescription = stringResource(AppR.string.app_action_seek_forward_10),
                 modifier = Modifier.size(28.dp),
             )
         }
@@ -466,7 +468,7 @@ private fun PlaybackControls(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_skip_next),
-                contentDescription = "Siguiente",
+                contentDescription = stringResource(AppR.string.app_action_next),
                 modifier = Modifier.size(30.dp),
             )
         }
@@ -484,6 +486,16 @@ private fun PlaybackSecondaryActions(
     onCycleRepeatMode: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val repeatStateDescription = when (playbackState.repeatMode) {
+        PlaybackRepeatMode.Off -> stringResource(AppR.string.app_repeat_state_off)
+        PlaybackRepeatMode.One -> stringResource(AppR.string.app_repeat_state_one)
+        PlaybackRepeatMode.All -> stringResource(AppR.string.app_repeat_state_all)
+    }
+    val repeatActionDescription = when (playbackState.repeatMode) {
+        PlaybackRepeatMode.Off -> stringResource(AppR.string.app_action_enable_repeat_one)
+        PlaybackRepeatMode.One -> stringResource(AppR.string.app_action_enable_repeat_all)
+        PlaybackRepeatMode.All -> stringResource(AppR.string.app_action_disable_repeat)
+    }
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -498,9 +510,9 @@ private fun PlaybackSecondaryActions(
             Icon(
                 painter = painterResource(id = R.drawable.ic_shuffle),
                 contentDescription = if (playbackState.isShuffleEnabled) {
-                    "Desactivar mezcla"
+                    stringResource(AppR.string.app_action_disable_shuffle)
                 } else {
-                    "Activar mezcla"
+                    stringResource(AppR.string.app_action_enable_shuffle)
                 },
                 tint = if (playbackState.isShuffleEnabled) {
                     MaterialTheme.colorScheme.primary
@@ -516,7 +528,7 @@ private fun PlaybackSecondaryActions(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_share),
-                contentDescription = "Compartir canción",
+                contentDescription = stringResource(AppR.string.app_action_share_track),
             )
         }
         IconButton(
@@ -526,7 +538,7 @@ private fun PlaybackSecondaryActions(
         ) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_list),
-                contentDescription = "Abrir cola de reproducción",
+                contentDescription = stringResource(AppR.string.app_action_open_queue),
             )
         }
         IconButton(
@@ -535,11 +547,7 @@ private fun PlaybackSecondaryActions(
             modifier = Modifier
                 .size(48.dp)
                 .semantics {
-                    stateDescription = when (playbackState.repeatMode) {
-                        PlaybackRepeatMode.Off -> "Repetición desactivada"
-                        PlaybackRepeatMode.One -> "Repitiendo canción"
-                        PlaybackRepeatMode.All -> "Repitiendo cola"
-                    }
+                    stateDescription = repeatStateDescription
                 },
         ) {
             Icon(
@@ -550,11 +558,7 @@ private fun PlaybackSecondaryActions(
                         R.drawable.ic_repeat_round
                     },
                 ),
-                contentDescription = when (playbackState.repeatMode) {
-                    PlaybackRepeatMode.Off -> "Activar repetir canción"
-                    PlaybackRepeatMode.One -> "Activar repetir todo"
-                    PlaybackRepeatMode.All -> "Desactivar repetición"
-                },
+                contentDescription = repeatActionDescription,
                 tint = if (playbackState.repeatMode != PlaybackRepeatMode.Off) {
                     MaterialTheme.colorScheme.primary
                 } else {
@@ -593,7 +597,9 @@ private fun NowPlayingArtwork(
         )
         PlaybackArtwork(
             artworkUri = track?.artworkUri,
-            contentDescription = track?.let { "Carátula de ${it.title}" },
+            contentDescription = track?.let {
+                stringResource(AppR.string.app_content_description_artwork, it.title)
+            },
             onSuccess = onArtworkLoaded,
             modifier = Modifier
                 .fillMaxSize()
@@ -637,9 +643,9 @@ private fun PlaybackProgress(
         positionMillis = positionMillis,
         durationMillis = durationMillis,
     )
-    val positionText = displayedPositionMillis.formatDuration()
+    val positionText = TrackDurationFormat.format(displayedPositionMillis)
     val durationText = remember(durationMillis) {
-        durationMillis.formatDuration()
+        TrackDurationFormat.format(durationMillis)
     }
     val bufferedProgress = bufferedPositionMillis.progressFor(durationMillis)
 
@@ -774,19 +780,6 @@ private fun Long.progressFor(durationMillis: Long): Float =
     } else {
         0f
     }
-
-private fun Long.formatDuration(): String {
-    val duration = milliseconds
-    val totalSeconds = duration.inWholeSeconds
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.US, "%d:%02d", minutes, seconds)
-    }
-}
 
 private val TWO_COLUMN_MIN_WIDTH = 640.dp
 private val NOW_PLAYING_MAX_WIDTH = 1_040.dp

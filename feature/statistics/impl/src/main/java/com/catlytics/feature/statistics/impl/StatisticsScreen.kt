@@ -14,6 +14,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.catlytics.feature.statistics.impl.components.DashboardHeroCard
@@ -54,7 +55,7 @@ internal fun StatisticsScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Ocurrió un error al cargar las estadísticas.",
+                        text = stringResource(R.string.stats_error_loading),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -93,8 +94,8 @@ private fun StatisticsDashboardContent(
         if (!data.hasAnyHistory) {
             item {
                 StatsEmptyState(
-                    title = "Aún no hay estadísticas",
-                    subtitle = "Escucha música por más de 30 segundos para empezar a registrar tu actividad.",
+                    title = stringResource(R.string.stats_empty_history_title),
+                    subtitle = stringResource(R.string.stats_empty_history_subtitle),
                 )
             }
             return@LazyColumn
@@ -116,7 +117,7 @@ private fun StatisticsDashboardContent(
             item {
                 NarrativeSummaryCard(
                     narrative = data.narrative,
-                    title = "Resumen de la semana",
+                    title = stringResource(R.string.stats_summary_week_title),
                 )
             }
         } else {
@@ -135,8 +136,8 @@ private fun StatisticsDashboardContent(
         if (data.thisWeek.isEmpty) {
             item {
                 StatsEmptyState(
-                    title = "Sin actividad esta semana",
-                    subtitle = "Escucha algo esta semana o explora periodos anteriores.",
+                    title = stringResource(R.string.stats_empty_week_title),
+                    subtitle = stringResource(R.string.stats_empty_week_subtitle),
                     compact = true,
                 )
             }
@@ -144,8 +145,8 @@ private fun StatisticsDashboardContent(
             val tracks = data.thisWeek.topTracks.take(5)
             item {
                 TopListCard(
-                    title = "Top canciones",
-                    actionLabel = "Ver todo",
+                    title = stringResource(R.string.stats_top_tracks_title),
+                    actionLabel = stringResource(R.string.stats_top_see_all),
                     onAction = onExploreClick,
                 ) {
                     tracks.forEachIndexed { index, track ->

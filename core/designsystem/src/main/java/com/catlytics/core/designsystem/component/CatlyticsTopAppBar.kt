@@ -127,7 +127,7 @@ private fun CatlyticsTopAppBarPreview() {
         CatlyticsTopAppBar(
             title = {
                 Text(
-                    text = "Inicio",
+                    text = "Inicio", // no-translate: dato de muestra del @Preview
                     style = MaterialTheme.typography.titleLarge,
                 )
             },

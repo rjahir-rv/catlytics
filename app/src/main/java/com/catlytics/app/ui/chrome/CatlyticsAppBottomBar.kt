@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
+import com.catlytics.app.R
 import com.catlytics.app.navigation.TopLevelDestination
 
 @Composable
@@ -64,12 +66,12 @@ internal fun CatlyticsBottomBar(
                     icon = {
                         Icon(
                             painter = painterResource(destination.iconRes),
-                            contentDescription = destination.label,
+                            contentDescription = stringResource(destination.labelRes),
                         )
                     },
                     label = {
                         Text(
-                            text = destination.label,
+                            text = stringResource(destination.labelRes),
                             style = MaterialTheme.typography.labelSmall,
                         )
                     },

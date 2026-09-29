@@ -35,20 +35,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.UnifiedBackupPreview
 import com.catlytics.core.model.UnifiedBackupSummary
+import com.catlytics.feature.settings.impl.R as SettingsR
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsSection
 import com.catlytics.feature.settings.impl.components.SettingsValueRow
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.util.Locale
 
 @Composable
@@ -83,7 +87,7 @@ internal fun UnifiedBackupContent(
     ) {
         item {
             SettingsSection(
-                title = "Copia de seguridad",
+                title = stringResource(SettingsR.string.settings_backup_title),
                 iconRes = R.drawable.ic_line_chart,
             ) {
                 Column(
@@ -93,26 +97,41 @@ internal fun UnifiedBackupContent(
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Text(
-                        text = "Exporta un archivo de respaldo para proteger tus listas de reproducción y tu historial de escucha en caso de desinstalar la app o migrar de teléfono.",
+                        text = stringResource(SettingsR.string.settings_backup_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
-                        text = "🎵 Playlists: ${summary.playlists.playlistCount} listas (${summary.playlists.totalTracks} canciones, ${summary.playlists.likedTracksCount} favoritas)",
+                        text = stringResource(
+                            SettingsR.string.settings_backup_playlists_summary,
+                            summary.playlists.playlistCount,
+                            summary.playlists.totalTracks,
+                            summary.playlists.likedTracksCount,
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     Text(
-                        text = "📊 Estadísticas: ${summary.statistics.eventCount} reproducciones registradas" +
-                            if (summary.statistics.artistAliasCount > 0) ", ${summary.statistics.artistAliasCount} artistas unificados" else "",
+                        text = if (summary.statistics.artistAliasCount > 0) {
+                            stringResource(
+                                SettingsR.string.settings_backup_statistics_summary_artists,
+                                summary.statistics.eventCount,
+                                summary.statistics.artistAliasCount,
+                            )
+                        } else {
+                            stringResource(
+                                SettingsR.string.settings_backup_statistics_summary,
+                                summary.statistics.eventCount,
+                            )
+                        },
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 }
                 SettingsDivider()
                 SettingsValueRow(
-                    title = "Exportar copia de seguridad",
-                    supportingText = "Elige si deseas exportar playlists, estadísticas o ambos en un archivo JSON",
+                    title = stringResource(SettingsR.string.settings_backup_export_title),
+                    supportingText = stringResource(SettingsR.string.settings_backup_export_supporting),
                     showChevron = !isBusy,
                     onClick = {
                         if (!isBusy) showExportSelectionDialog = true
@@ -120,8 +139,8 @@ internal fun UnifiedBackupContent(
                 )
                 SettingsDivider()
                 SettingsValueRow(
-                    title = "Restaurar copia de seguridad",
-                    supportingText = "Carga tus datos desde un archivo JSON previamente exportado",
+                    title = stringResource(SettingsR.string.settings_backup_restore_title),
+                    supportingText = stringResource(SettingsR.string.settings_backup_restore_supporting),
                     showChevron = !isBusy,
                     onClick = {
                         if (!isBusy) onImportClick()
@@ -145,9 +164,12 @@ internal fun UnifiedBackupContent(
                         CircularProgressIndicator()
                         Text(
                             text = when (operationStatus) {
-                                UnifiedBackupStatus.Exporting -> "Generando copia de seguridad…"
-                                UnifiedBackupStatus.Importing -> "Restaurando datos…"
-                                UnifiedBackupStatus.LoadingPreview -> "Leyendo archivo…"
+                                UnifiedBackupStatus.Exporting ->
+                                    stringResource(SettingsR.string.settings_backup_exporting)
+                                UnifiedBackupStatus.Importing ->
+                                    stringResource(SettingsR.string.settings_backup_importing)
+                                UnifiedBackupStatus.LoadingPreview ->
+                                    stringResource(SettingsR.string.settings_backup_reading_file)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -159,15 +181,33 @@ internal fun UnifiedBackupContent(
                 // Notificado mediante Toast
             }
             is UnifiedBackupStatus.ImportSuccess -> {
-                val stats = operationStatus.result.statistics
                 val playlists = operationStatus.result.playlists
-                val parts = mutableListOf<String>()
-                if (playlists != null) parts.add("${playlists.importedPlaylistsCount} playlists")
-                if (stats != null) parts.add("${stats.importedCount} reproducciones")
-
                 item {
+                    val stats = operationStatus.result.statistics
+                    val parts = buildList {
+                        if (playlists != null) {
+                            add(
+                                stringResource(
+                                    SettingsR.string.settings_backup_import_part_playlists,
+                                    playlists.importedPlaylistsCount,
+                                ),
+                            )
+                        }
+                        if (stats != null) {
+                            add(
+                                stringResource(
+                                    SettingsR.string.settings_backup_import_part_listens,
+                                    stats.importedCount,
+                                ),
+                            )
+                        }
+                    }
+
                     StatusMessage(
-                        text = "Restauración completada con éxito: ${parts.joinToString(", ")}.",
+                        text = stringResource(
+                            SettingsR.string.settings_backup_import_success,
+                            parts.joinToString(", "),
+                        ),
                         isError = false,
                         onDismiss = onDismissStatus,
                     )
@@ -186,7 +226,7 @@ internal fun UnifiedBackupContent(
             is UnifiedBackupStatus.Error -> {
                 item {
                     StatusMessage(
-                        text = operationStatus.message,
+                        text = operationStatus.message.asString(),
                         isError = true,
                         onDismiss = onDismissStatus,
                     )
@@ -228,7 +268,10 @@ private fun ExportSelectionDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Exportar copia de seguridad", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = stringResource(SettingsR.string.settings_backup_export_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
         },
         text = {
             Column(
@@ -236,7 +279,7 @@ private fun ExportSelectionDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    text = "Selecciona qué datos deseas incluir en el archivo de respaldo:",
+                    text = stringResource(SettingsR.string.settings_backup_export_dialog_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -256,11 +299,15 @@ private fun ExportSelectionDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "Listas de reproducción (Playlists)",
+                            text = stringResource(SettingsR.string.settings_backup_export_playlists_option),
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Text(
-                            text = "${summary.playlists.playlistCount} listas (${summary.playlists.totalTracks} canciones)",
+                            text = stringResource(
+                                SettingsR.string.settings_backup_export_playlists_count,
+                                summary.playlists.playlistCount,
+                                summary.playlists.totalTracks,
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -282,11 +329,14 @@ private fun ExportSelectionDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Column {
                         Text(
-                            text = "Estadísticas de escucha",
+                            text = stringResource(SettingsR.string.settings_backup_export_statistics_option),
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Text(
-                            text = "${summary.statistics.eventCount} reproducciones registradas",
+                            text = stringResource(
+                                SettingsR.string.settings_backup_export_statistics_count,
+                                summary.statistics.eventCount,
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -306,12 +356,12 @@ private fun ExportSelectionDialog(
                     )
                 },
             ) {
-                Text("Exportar")
+                Text(stringResource(SettingsR.string.settings_action_export))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(SettingsR.string.settings_action_cancel))
             }
         },
     )
@@ -332,7 +382,10 @@ private fun ImportConfirmDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Restaurar copia de seguridad", style = MaterialTheme.typography.titleLarge)
+            Text(
+                text = stringResource(SettingsR.string.settings_backup_restore_title),
+                style = MaterialTheme.typography.titleLarge,
+            )
         },
         text = {
             Column(
@@ -342,14 +395,17 @@ private fun ImportConfirmDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Text(
-                    text = "Archivo exportado el ${formatDate(preview.exportedAtMillis)}",
+                    text = stringResource(
+                        SettingsR.string.settings_backup_exported_at,
+                        formatDate(preview.exportedAtMillis),
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
                 if (hasPlaylists || hasStats) {
                     Text(
-                        text = "Contenido a restaurar:",
+                        text = stringResource(SettingsR.string.settings_backup_restore_content_title),
                         style = MaterialTheme.typography.labelLarge,
                     )
                 }
@@ -372,18 +428,25 @@ private fun ImportConfirmDialog(
                         }
                         Column {
                             Text(
-                                text = "Listas de reproducción",
+                                text = stringResource(SettingsR.string.settings_backup_restore_playlists_option),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                             val p = preview.playlists!!
                             Text(
-                                text = "${p.playlistCount} playlists (${p.totalTracksInBackup} pistas)",
+                                text = stringResource(
+                                    SettingsR.string.settings_backup_restore_playlists_count,
+                                    p.playlistCount,
+                                    p.totalTracksInBackup,
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             if (p.missingTracksCount > 0) {
                                 Text(
-                                    text = "Aviso: ${p.missingTracksCount} canciones no están en este dispositivo.",
+                                    text = stringResource(
+                                        SettingsR.string.settings_backup_restore_missing_warning,
+                                        p.missingTracksCount,
+                                    ),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.error,
                                 )
@@ -410,12 +473,15 @@ private fun ImportConfirmDialog(
                         }
                         Column {
                             Text(
-                                text = "Estadísticas de escucha",
+                                text = stringResource(SettingsR.string.settings_backup_export_statistics_option),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
                             val s = preview.statistics!!
                             Text(
-                                text = "${s.eventCount} eventos de escucha",
+                                text = stringResource(
+                                    SettingsR.string.settings_backup_restore_statistics_count,
+                                    s.eventCount,
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -424,7 +490,7 @@ private fun ImportConfirmDialog(
                 }
 
                 Text(
-                    text = "Modo de restauración:",
+                    text = stringResource(SettingsR.string.settings_backup_restore_mode_title),
                     style = MaterialTheme.typography.labelLarge,
                 )
 
@@ -451,11 +517,11 @@ private fun ImportConfirmDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Combinar con los datos actuales",
+                                text = stringResource(SettingsR.string.settings_backup_restore_mode_merge_title),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = "Conserva lo que tienes en la app y añade o actualiza los datos del archivo.",
+                                text = stringResource(SettingsR.string.settings_backup_restore_mode_merge_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -479,11 +545,11 @@ private fun ImportConfirmDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "Reemplazar datos actuales",
+                                text = stringResource(SettingsR.string.settings_backup_restore_mode_replace_title),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = "Elimina los datos actuales en la app y los sustituye por los del archivo.",
+                                text = stringResource(SettingsR.string.settings_backup_restore_mode_replace_description),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
@@ -505,12 +571,12 @@ private fun ImportConfirmDialog(
                     )
                 },
             ) {
-                Text("Restaurar")
+                Text(stringResource(SettingsR.string.settings_action_restore))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(SettingsR.string.settings_action_cancel))
             }
         },
     )
@@ -533,12 +599,15 @@ private fun MissingTracksWarningCard(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
-                text = "⚠️ Canciones no encontradas en el dispositivo ($missingCount)",
+                text = stringResource(
+                    SettingsR.string.settings_backup_missing_tracks_title,
+                    missingCount,
+                ),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.error,
             )
             Text(
-                text = "Las playlists se importaron omitiendo las pistas que no se encontraron en tu almacenamiento local:",
+                text = stringResource(SettingsR.string.settings_backup_missing_tracks_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )
@@ -554,7 +623,10 @@ private fun MissingTracksWarningCard(
                 ) {
                     items(missingTrackNames) { name ->
                         Text(
-                            text = "• $name",
+                            text = stringResource(
+                                SettingsR.string.settings_backup_missing_track_name,
+                                name,
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -566,7 +638,7 @@ private fun MissingTracksWarningCard(
 }
 
 private fun formatDate(timestamp: Long): String {
-    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm", Locale.getDefault())
+    val formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
     return Instant.ofEpochMilli(timestamp)
         .atZone(ZoneId.systemDefault())
         .format(formatter)
@@ -607,7 +679,7 @@ private fun StatusMessage(
             Spacer(modifier = Modifier.width(8.dp))
             TextButton(onClick = onDismiss) {
                 Text(
-                    text = "Cerrar",
+                    text = stringResource(SettingsR.string.settings_action_close),
                     color = if (isError) {
                         MaterialTheme.colorScheme.onErrorContainer
                     } else {

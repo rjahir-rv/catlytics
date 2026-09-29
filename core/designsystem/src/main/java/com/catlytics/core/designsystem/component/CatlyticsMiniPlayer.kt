@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,6 +67,9 @@ fun CatlyticsMiniPlayer(
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
     ) {
+        val progressContentDescription = stringResource(
+            R.string.ds_mini_player_progress_content_description,
+        )
         Column {
             Row(
                 modifier = Modifier
@@ -112,7 +116,7 @@ fun CatlyticsMiniPlayer(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_skip_back),
-                            contentDescription = "Anterior",
+                            contentDescription = stringResource(R.string.ds_action_previous),
                             modifier = Modifier.size(22.dp),
                         )
                     }
@@ -129,7 +133,11 @@ fun CatlyticsMiniPlayer(
                             } else {
                                 painterResource(id = R.drawable.ic_play)
                             },
-                            contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                            contentDescription = if (isPlaying) {
+                                stringResource(R.string.ds_action_pause)
+                            } else {
+                                stringResource(R.string.ds_action_play)
+                            },
                             modifier = Modifier.size(22.dp),
                         )
                     }
@@ -142,7 +150,7 @@ fun CatlyticsMiniPlayer(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_skip_next),
-                            contentDescription = "Siguiente",
+                            contentDescription = stringResource(R.string.ds_action_next),
                             modifier = Modifier.size(22.dp),
                         )
                     }
@@ -154,7 +162,7 @@ fun CatlyticsMiniPlayer(
                     .fillMaxWidth()
                     .height(3.dp)
                     .semantics {
-                        contentDescription = "Progreso de reproducción"
+                        contentDescription = progressContentDescription
                     },
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f),

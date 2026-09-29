@@ -2,9 +2,11 @@ package com.catlytics.feature.library.impl.folder
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveFolderContentUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Track
+import com.catlytics.feature.library.impl.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +36,7 @@ internal class LibraryFolderViewModel @Inject constructor(
         .catch { error ->
             emit(
                 LibraryFolderUiState.Error(
-                    error.message ?: "No se pudo cargar el contenido de la carpeta.",
+                    UiText.Resource(R.string.library_folder_load_error),
                 ),
             )
         }

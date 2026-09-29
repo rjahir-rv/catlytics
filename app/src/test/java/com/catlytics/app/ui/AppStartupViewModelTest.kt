@@ -1,5 +1,7 @@
 package com.catlytics.app.ui
 
+import com.catlytics.app.R
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.repository.LibraryChangeObserver
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.usecase.library.ObserveLibraryChangesUseCase
@@ -56,7 +58,7 @@ class AppStartupViewModelTest {
     }
 
     @Test
-    fun `refresh failure exposes its message`() = runTest {
+    fun `refresh failure exposes localized error`() = runTest {
         val repository = FakeStartupLibraryRepository {
             error("MediaStore failed")
         }
@@ -66,7 +68,7 @@ class AppStartupViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            AppStartupUiState.Error("MediaStore failed"),
+            AppStartupUiState.Error(UiText.Resource(R.string.app_error_library_load)),
             viewModel.uiState.value,
         )
     }

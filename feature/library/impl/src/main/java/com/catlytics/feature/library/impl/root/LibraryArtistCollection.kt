@@ -32,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -40,6 +42,7 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.sortedArtistsByDirection
 
 @Composable
@@ -124,7 +127,13 @@ private fun ArtistList(
                     modifier = Modifier.weight(1f),
                 )
                 IconButton(onClick = { onAddToPlaylist(artist) }) {
-                    Icon(painterResource(R.drawable.ic_options), "Opciones de ${artist.artist.name}")
+                    Icon(
+                        painterResource(R.drawable.ic_options),
+                        stringResource(
+                            LibraryR.string.library_artist_options_content_description,
+                            artist.artist.name,
+                        ),
+                    )
                 }
             }
         }
@@ -179,7 +188,13 @@ private fun ArtistGrid(
                         modifier = Modifier.weight(1f),
                     )
                     IconButton(onClick = { onAddToPlaylist(artist) }) {
-                        Icon(painterResource(R.drawable.ic_options), "Opciones de ${artist.artist.name}")
+                        Icon(
+                            painterResource(R.drawable.ic_options),
+                            stringResource(
+                                LibraryR.string.library_artist_options_content_description,
+                                artist.artist.name,
+                            ),
+                        )
                     }
                 }
             }
@@ -194,7 +209,10 @@ private fun ArtistImage(
 ) {
     AsyncImage(
         model = artist.artworkUri,
-        contentDescription = "Imagen de ${artist.artist.name}",
+        contentDescription = stringResource(
+            LibraryR.string.library_artist_image_content_description,
+            artist.artist.name,
+        ),
         modifier = modifier.clip(CircleShape),
         placeholder = painterResource(R.drawable.placeholder_artist),
         error = painterResource(R.drawable.placeholder_artist),
@@ -230,9 +248,18 @@ private fun ArtistText(
     }
 }
 
+@Composable
 private fun ArtistSummary.metadataLabel(): String =
-    "${albumCount.countLabel("álbum", "álbumes")} · " +
-        trackCount.countLabel("canción", "canciones")
-
-private fun Int.countLabel(singular: String, plural: String) =
-    if (this == 1) "1 $singular" else "$this $plural"
+    stringResource(
+        LibraryR.string.library_artist_metadata,
+        pluralStringResource(
+            LibraryR.plurals.library_album_count,
+            albumCount,
+            albumCount,
+        ),
+        pluralStringResource(
+            LibraryR.plurals.library_track_count,
+            trackCount,
+            trackCount,
+        ),
+    )

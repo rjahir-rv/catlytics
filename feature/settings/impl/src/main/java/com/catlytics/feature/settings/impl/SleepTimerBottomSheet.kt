@@ -33,6 +33,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.setProgress
@@ -80,11 +82,11 @@ internal fun SleepTimerBottomSheet(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Temporizador de sueño",
+                    text = stringResource(R.string.settings_sleep_timer_title),
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
-                    text = "La música se pausará sin perder tu cola ni tu posición.",
+                    text = stringResource(R.string.settings_sleep_timer_sheet_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -103,7 +105,7 @@ internal fun SleepTimerBottomSheet(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            text = "Temporizador activo",
+                            text = stringResource(R.string.settings_sleep_timer_sheet_active),
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
@@ -123,7 +125,13 @@ internal fun SleepTimerBottomSheet(
                 onClick = { onStart(selectedMinutes) },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (activeState == null) "Iniciar temporizador" else "Reiniciar temporizador")
+                Text(
+                    text = if (activeState == null) {
+                        stringResource(R.string.settings_sleep_timer_start)
+                    } else {
+                        stringResource(R.string.settings_sleep_timer_restart)
+                    },
+                )
             }
 
             if (activeState != null) {
@@ -131,7 +139,7 @@ internal fun SleepTimerBottomSheet(
                     onClick = onCancel,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Cancelar temporizador")
+                    Text(stringResource(R.string.settings_sleep_timer_cancel))
                 }
             }
         }
@@ -151,13 +159,18 @@ private fun SleepTimerDial(
     val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
     val progressColor = MaterialTheme.colorScheme.primary
     val knobColor = MaterialTheme.colorScheme.primary
+    val dialStateDescription = pluralStringResource(
+        R.plurals.settings_sleep_timer_dial_state_description,
+        selectedMinutes,
+        selectedMinutes,
+    )
 
     Box(
         modifier = modifier
             .size(264.dp)
             .testTag(SLEEP_TIMER_DIAL_TEST_TAG)
             .semantics {
-                stateDescription = "$selectedMinutes minutos"
+                stateDescription = dialStateDescription
                 progressBarRangeInfo = ProgressBarRangeInfo(
                     current = selectedMinutes.toFloat(),
                     range = MIN_SLEEP_TIMER_MINUTES.toFloat()..MAX_SLEEP_TIMER_MINUTES.toFloat(),
@@ -233,14 +246,14 @@ private fun SleepTimerDial(
                 )
                 Spacer(Modifier.width(4.dp))
                 Text(
-                    text = "min",
+                    text = stringResource(R.string.settings_sleep_timer_minutes_unit),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
             Text(
-                text = "Desliza para ajustar",
+                text = stringResource(R.string.settings_sleep_timer_dial_hint),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

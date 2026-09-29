@@ -56,23 +56,27 @@ class PlaylistDetailOrderingTest {
     }
 
     @Test
-    fun `playlist summary includes track count and total duration`() {
-        assertEquals("0 canciones", playlistSummaryLabel(emptyList()))
+    fun `playlist total duration is split into hours minutes and seconds`() {
         assertEquals(
-            "1 canción · 3 min",
-            playlistSummaryLabel(listOf(track("1", "A", durationMillis = 180_000L))),
+            PlaylistDurationParts(hours = 0, minutes = 0, seconds = 45),
+            playlistDurationParts(45_000L),
         )
         assertEquals(
-            "2 canciones · 1 h 5 min",
-            playlistSummaryLabel(
-                listOf(
-                    track("1", "A", durationMillis = 3_600_000L),
-                    track("2", "B", durationMillis = 300_000L),
-                ),
-            ),
+            PlaylistDurationParts(hours = 0, minutes = 3, seconds = 0),
+            playlistDurationParts(180_000L),
         )
-        assertEquals("1 h", formatPlaylistTotalDuration(3_600_000L))
-        assertEquals("0:45", formatPlaylistTotalDuration(45_000L))
+        assertEquals(
+            PlaylistDurationParts(hours = 1, minutes = 0, seconds = 0),
+            playlistDurationParts(3_600_000L),
+        )
+        assertEquals(
+            PlaylistDurationParts(hours = 1, minutes = 5, seconds = 0),
+            playlistDurationParts(3_900_000L),
+        )
+        assertEquals(
+            PlaylistDurationParts(hours = 0, minutes = 0, seconds = 0),
+            playlistDurationParts(-1_000L),
+        )
     }
 
     @Test

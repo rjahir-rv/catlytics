@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ScrollAxisRange
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -44,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.verticalScrollAxisRange
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
@@ -88,6 +90,10 @@ fun CatlyticsLetterFastScroller(
         }
     }
     val letter = letterForVisibleTrackIndex(visibleIndex)
+    val letterContentDescription = stringResource(
+        R.string.ds_letter_fast_scroller_content_description,
+        letter,
+    )
     val thumbFraction = scrollFractionForTrackIndex(visibleIndex, itemCount)
     val showRail = revealed || isDragging
 
@@ -159,7 +165,7 @@ fun CatlyticsLetterFastScroller(
                         }
                     }
                     .semantics {
-                        contentDescription = "Índice alfabético, letra $letter"
+                        contentDescription = letterContentDescription
                         verticalScrollAxisRange = ScrollAxisRange(
                             value = { thumbFraction },
                             maxValue = { 1f },

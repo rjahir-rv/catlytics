@@ -14,6 +14,8 @@ import com.catlytics.core.model.PlaylistBackupSummary
 import com.catlytics.core.model.PlaylistExportResult
 import com.catlytics.core.model.PlaylistImportResult
 import com.catlytics.core.model.StatisticsImportMode
+import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
+import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 import com.catlytics.core.model.artistIdentityKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -73,8 +75,8 @@ class DefaultPlaylistBackupRepository @Inject constructor(
                 val track = tracksById[trackId]
                 PlaylistTrackBackupDto(
                     trackId = trackId,
-                    title = track?.title ?: "Canción sin título",
-                    artistName = track?.artistName ?: "Artista desconocido",
+                    title = track?.title ?: UNTITLED_TRACK_TITLE,
+                    artistName = track?.artistName ?: UNKNOWN_ARTIST_NAME,
                     albumTitle = track?.albumTitle,
                     durationMillis = track?.durationMillis ?: 0L,
                     relativePath = track?.folderPath,

@@ -20,10 +20,16 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
+import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 import java.text.Collator
 import java.util.Locale
 import kotlin.math.abs
@@ -49,7 +55,11 @@ internal fun PlaylistTrackRow(
 
     CatlyticsTrackRow(
         title = track.title,
-        subtitle = "${track.artist.name} · ${track.durationMillis.formatDuration()}",
+        subtitle = stringResource(
+            PlaylistsR.string.playlist_detail_track_metadata,
+            track.artist.name,
+            TrackDurationFormat.format(track.durationMillis),
+        ),
         artworkUri = track.artworkUri,
         isCurrent = isCurrent,
         isPlaying = isPlaying,
@@ -62,7 +72,10 @@ internal fun PlaylistTrackRow(
             if (customOrdering) {
                 Icon(
                     painter = painterResource(R.drawable.ic_item_selection),
-                    contentDescription = "Arrastrar ${track.title}",
+                    contentDescription = stringResource(
+                        PlaylistsR.string.playlist_detail_drag_content_description,
+                        track.title,
+                    ),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(48.dp)
@@ -85,7 +98,10 @@ internal fun PlaylistTrackRow(
                 IconButton(onClick = onOptions) {
                     Icon(
                         painterResource(R.drawable.ic_options),
-                        contentDescription = "Opciones de ${track.title}",
+                        contentDescription = stringResource(
+                            PlaylistsR.string.playlist_detail_track_options_content_description,
+                            track.title,
+                        ),
                     )
                 }
             }
@@ -107,14 +123,17 @@ internal fun PlaylistTrackSearchBar(
         modifier = modifier
             .height(56.dp)
             .onFocusChanged { onFocusChange(it.isFocused) },
-        placeholder = { Text("Buscar canciones") },
+        placeholder = { Text(stringResource(PlaylistsR.string.playlist_detail_search_placeholder)) },
         leadingIcon = {
             Icon(painterResource(R.drawable.ic_search), contentDescription = null)
         },
         trailingIcon = {
             if (query.isNotBlank()) {
                 IconButton(onClick = { onQueryChange("") }) {
-                    Icon(painterResource(R.drawable.ic_close), "Limpiar búsqueda")
+                    Icon(
+                        painterResource(R.drawable.ic_close),
+                        stringResource(PlaylistsR.string.playlists_clear_search_content_description),
+                    )
                 }
             }
         },
@@ -164,34 +183,74 @@ internal fun toggleTrackSelection(
 internal fun List<Track>.selectedTrackIdsInLibraryOrder(selectedIds: Set<String>): List<String> =
     filter { it.id in selectedIds }.map(Track::id)
 
-internal fun playlistSummaryLabel(tracks: List<Track>): String {
-    val countLabel = if (tracks.size == 1) "1 canción" else "${tracks.size} canciones"
-    if (tracks.isEmpty()) return countLabel
-    return "$countLabel · ${formatPlaylistTotalDuration(tracks.sumOf(Track::durationMillis))}"
-}
-
-internal fun formatPlaylistTotalDuration(durationMillis: Long): String {
-    val totalSeconds = durationMillis.coerceAtLeast(0L).milliseconds.inWholeSeconds
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return when {
-        hours > 0 && minutes > 0 -> "$hours h $minutes min"
-        hours > 0 -> "$hours h"
-        minutes > 0 -> "$minutes min"
-        else -> String.format(Locale.US, "0:%02d", seconds)
-    }
-}
-
-private fun Long.formatDuration(): String {
-    val totalSeconds = milliseconds.inWholeSeconds
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
+/** Nombre visible de la playlist; la playlist del sistema usa su recurso localizado. */
+@Composable
+internal fun Playlist.displayName(): String =
+    if (id == LIKED_PLAYLIST_ID) {
+        stringResource(PlaylistsR.string.playlist_liked_name)
     } else {
-        String.format(Locale.US, "%d:%02d", minutes, seconds)
+        name
+    }
+
+@Composable
+internal fun playlistSummaryLabel(tracks: List<Track>): String {
+    val countLabel = pluralStringResource(
+        PlaylistsR.plurals.playlists_track_count,
+        tracks.size,
+        tracks.size,
+    )
+    if (tracks.isEmpty()) return countLabel
+    return stringResource(
+        PlaylistsR.string.playlist_detail_summary,
+        countLabel,
+        formatPlaylistTotalDuration(tracks.sumOf(Track::durationMillis)),
+    )
+}
+
+/** Desglose puro de la duración total, para poder probarlo sin Compose. */
+internal data class PlaylistDurationParts(
+    val hours: Long,
+    val minutes: Long,
+    val seconds: Long,
+)
+
+internal fun playlistDurationParts(durationMillis: Long): PlaylistDurationParts {
+    val totalSeconds = durationMillis.coerceAtLeast(0L).milliseconds.inWholeSeconds
+    return PlaylistDurationParts(
+        hours = totalSeconds / 3_600,
+        minutes = (totalSeconds % 3_600) / 60,
+        seconds = totalSeconds % 60,
+    )
+}
+
+@Composable
+internal fun formatPlaylistTotalDuration(durationMillis: Long): String {
+    val parts = playlistDurationParts(durationMillis)
+    return when {
+        parts.hours > 0 && parts.minutes > 0 -> stringResource(
+            PlaylistsR.string.playlist_detail_duration_hours_minutes,
+            pluralStringResource(
+                PlaylistsR.plurals.playlist_detail_duration_hours,
+                parts.hours.toInt(),
+                parts.hours,
+            ),
+            pluralStringResource(
+                PlaylistsR.plurals.playlist_detail_duration_minutes,
+                parts.minutes.toInt(),
+                parts.minutes,
+            ),
+        )
+        parts.hours > 0 -> pluralStringResource(
+            PlaylistsR.plurals.playlist_detail_duration_hours,
+            parts.hours.toInt(),
+            parts.hours,
+        )
+        parts.minutes > 0 -> pluralStringResource(
+            PlaylistsR.plurals.playlist_detail_duration_minutes,
+            parts.minutes.toInt(),
+            parts.minutes,
+        )
+        else -> TrackDurationFormat.format(durationMillis.coerceAtLeast(0L))
     }
 }
 

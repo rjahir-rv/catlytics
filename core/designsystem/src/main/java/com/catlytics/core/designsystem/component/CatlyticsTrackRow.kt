@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -225,7 +226,7 @@ fun TrackSelectionMark(
         if (selected) {
             Icon(
                 imageVector = Icons.Filled.Check,
-                contentDescription = "Seleccionada",
+                contentDescription = stringResource(R.string.ds_track_row_selected_content_description),
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier
                     .size(22.dp)
@@ -242,6 +243,10 @@ private fun PlayingBarsOverlay(
     modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "playing bars")
+    val playingContentDescription = stringResource(
+        R.string.ds_track_row_playing_content_description,
+        trackTitle,
+    )
     val barHeights = listOf(0, 150, 300).mapIndexed { index, delayMillis ->
         transition.animateFloat(
             initialValue = if (index == 1) 0.35f else 0.75f,
@@ -256,7 +261,7 @@ private fun PlayingBarsOverlay(
     Box(
         modifier = modifier
             .background(Color.Black.copy(alpha = 0.38f))
-            .semantics { contentDescription = "Reproduciendo $trackTitle" },
+            .semantics { contentDescription = playingContentDescription },
         contentAlignment = Alignment.Center,
     ) {
         Row(

@@ -15,6 +15,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.catlytics.core.domain.usecase.statistics.StatsPeriodCalculator
@@ -58,7 +60,7 @@ internal fun StatisticsExploreScreen(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "Ocurrió un error al cargar las estadísticas.",
+                        text = stringResource(R.string.stats_error_loading),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.error,
                     )
@@ -90,24 +92,20 @@ private fun StatisticsExploreContent(
     val dayCount = remember(stats.range) {
         StatsPeriodCalculator.dayCount(stats.range, Clock.systemDefaultZone())
     }
-    val weekLabels = remember { listOf("L", "M", "X", "J", "V", "S", "D") }
+    val weekLabels = stringArrayResource(R.array.stats_weekday_short_labels).toList()
     val dayLabels = when (stats.range.granularity) {
         StatsGranularity.WEEK -> weekLabels
         StatsGranularity.MONTH -> null
     }
-    val periodTitle = remember(data.selection, stats.range.label) {
-        friendlyPeriodTitle(
-            granularity = data.selection.granularity,
-            offset = data.selection.offset,
-            fallbackLabel = stats.range.label,
-        )
-    }
-    val periodSubtitle = remember(data.selection.offset, stats.range.label, periodTitle) {
-        if (data.selection.offset == 0 || data.selection.offset == -1) {
-            stats.range.label.takeIf { it != periodTitle }
-        } else {
-            null
-        }
+    val periodTitle = friendlyPeriodTitle(
+        granularity = data.selection.granularity,
+        offset = data.selection.offset,
+        fallbackLabel = stats.range.label,
+    )
+    val periodSubtitle = if (data.selection.offset == 0 || data.selection.offset == -1) {
+        stats.range.label.takeIf { it != periodTitle }
+    } else {
+        null
     }
 
     LazyColumn(
@@ -147,10 +145,10 @@ private fun StatisticsExploreContent(
                 dailyListening = stats.dailyListening,
                 dayCount = dayCount,
                 title = when (stats.range.granularity) {
-                    StatsGranularity.WEEK -> "Actividad semanal"
-                    StatsGranularity.MONTH -> "Actividad del mes"
+                    StatsGranularity.WEEK -> stringResource(R.string.stats_chart_weekly_title)
+                    StatsGranularity.MONTH -> stringResource(R.string.stats_chart_monthly_title)
                 },
-                subtitle = "Minutos escuchados por día",
+                subtitle = stringResource(R.string.stats_chart_subtitle),
                 dayLabels = dayLabels,
             )
         }
@@ -158,8 +156,8 @@ private fun StatisticsExploreContent(
         if (stats.isEmpty) {
             item {
                 StatsEmptyState(
-                    title = "Sin reproducciones en este periodo",
-                    subtitle = "Prueba otra semana o mes, o vuelve a escuchar música.",
+                    title = stringResource(R.string.stats_empty_period_title),
+                    subtitle = stringResource(R.string.stats_empty_period_subtitle),
                     compact = true,
                 )
             }
@@ -168,14 +166,14 @@ private fun StatisticsExploreContent(
                 item {
                     NarrativeSummaryCard(
                         narrative = data.narrative,
-                        title = "Tu resumen",
+                        title = stringResource(R.string.stats_summary_title),
                     )
                 }
             }
 
             if (stats.topTracks.isNotEmpty()) {
                 item {
-                    TopListCard(title = "Top canciones") {
+                    TopListCard(title = stringResource(R.string.stats_top_tracks_title)) {
                         stats.topTracks.forEachIndexed { index, track ->
                             TopTrackItem(
                                 rank = index + 1,
@@ -189,7 +187,7 @@ private fun StatisticsExploreContent(
 
             if (stats.topArtists.isNotEmpty()) {
                 item {
-                    TopListCard(title = "Top artistas") {
+                    TopListCard(title = stringResource(R.string.stats_top_artists_title)) {
                         stats.topArtists.forEachIndexed { index, artist ->
                             TopArtistItem(
                                 rank = index + 1,
@@ -203,7 +201,7 @@ private fun StatisticsExploreContent(
 
             if (stats.topAlbums.isNotEmpty()) {
                 item {
-                    TopListCard(title = "Top álbumes") {
+                    TopListCard(title = stringResource(R.string.stats_top_albums_title)) {
                         stats.topAlbums.forEachIndexed { index, album ->
                             TopAlbumItem(
                                 rank = index + 1,
@@ -218,6 +216,7 @@ private fun StatisticsExploreContent(
     }
 }
 
+@Composable
 private fun friendlyPeriodTitle(
     granularity: StatsGranularity,
     offset: Int,
@@ -225,13 +224,13 @@ private fun friendlyPeriodTitle(
 ): String {
     return when (granularity) {
         StatsGranularity.WEEK -> when (offset) {
-            0 -> "Esta semana"
-            -1 -> "Semana pasada"
+            0 -> stringResource(R.string.stats_period_this_week)
+            -1 -> stringResource(R.string.stats_period_last_week)
             else -> fallbackLabel
         }
         StatsGranularity.MONTH -> when (offset) {
-            0 -> "Este mes"
-            -1 -> "Mes pasado"
+            0 -> stringResource(R.string.stats_period_this_month)
+            -1 -> stringResource(R.string.stats_period_last_month)
             else -> fallbackLabel
         }
     }

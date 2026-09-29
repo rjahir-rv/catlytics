@@ -2,6 +2,7 @@ package com.catlytics.feature.library.impl.artist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
@@ -12,6 +13,7 @@ import com.catlytics.core.model.Album
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.artistIdentityKey
+import com.catlytics.feature.library.impl.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,8 +44,8 @@ internal class LibraryArtistViewModel @Inject constructor(
     private val searchQuery = MutableStateFlow("")
     private val mergeDialog = MutableStateFlow<ArtistMergeDialog>(ArtistMergeDialog.Hidden)
     private val isMergeBusy = MutableStateFlow(false)
-    private val _messages = MutableSharedFlow<String>(extraBufferCapacity = 1)
-    val messages: SharedFlow<String> = _messages.asSharedFlow()
+    private val _messages = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
+    val messages: SharedFlow<UiText> = _messages.asSharedFlow()
 
     private val artistData = combine(
         artistId
@@ -94,7 +96,7 @@ internal class LibraryArtistViewModel @Inject constructor(
         .catch { error ->
             emit(
                 LibraryArtistUiState.Error(
-                    error.message ?: "No se pudo cargar el contenido del artista.",
+                    UiText.Resource(R.string.library_artist_load_error),
                 ),
             )
         }
@@ -139,19 +141,19 @@ internal class LibraryArtistViewModel @Inject constructor(
     fun confirmMerge() {
         val state = uiState.value as? LibraryArtistUiState.Success ?: return
         val target = (mergeDialog.value as? ArtistMergeDialog.ConfirmMerge)?.target ?: return
-        runMergeAction("Artistas fusionados") {
+        runMergeAction(UiText.Resource(R.string.library_artist_merge_success)) {
             mergeArtistsUseCase(state.content.summary.artist, target)
         }
     }
 
     fun confirmUnmerge() {
         val alias = (mergeDialog.value as? ArtistMergeDialog.ConfirmUnmerge)?.alias ?: return
-        runMergeAction("Artista separado") {
+        runMergeAction(UiText.Resource(R.string.library_artist_unmerge_success)) {
             unmergeArtistUseCase(alias.source)
         }
     }
 
-    private fun runMergeAction(successMessage: String, action: suspend () -> Unit) {
+    private fun runMergeAction(successMessage: UiText, action: suspend () -> Unit) {
         if (isMergeBusy.value) return
         viewModelScope.launch {
             isMergeBusy.value = true
@@ -162,7 +164,7 @@ internal class LibraryArtistViewModel @Inject constructor(
             } catch (cancellationException: CancellationException) {
                 throw cancellationException
             } catch (error: Exception) {
-                _messages.emit(error.message ?: "No se pudo actualizar el artista.")
+                _messages.emit(UiText.Resource(R.string.library_artist_update_error))
             } finally {
                 isMergeBusy.value = false
             }

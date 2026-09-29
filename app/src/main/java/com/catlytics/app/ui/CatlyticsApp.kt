@@ -42,7 +42,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -51,6 +53,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.metadata
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
+import com.catlytics.app.R
 import com.catlytics.app.navigation.TopLevelDestination
 import com.catlytics.app.navigation.navigationBackTransition
 import com.catlytics.app.navigation.navigationForwardTransition
@@ -106,6 +109,7 @@ fun CatlyticsApp(
     onDeepLinkHandled: () -> Unit = {},
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val audioPermission = remember { requiredAudioPermission() }
     var hasAudioPermission by remember(audioPermission) {
         mutableStateOf(
@@ -154,7 +158,7 @@ fun CatlyticsApp(
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
     var detailTopBarColors by remember { mutableStateOf<Map<NavKey, Color>>(emptyMap()) }
-    var settingsTopBarTitle by remember { mutableStateOf("Ajustes") }
+    var settingsTopBarTitle by remember { mutableStateOf<String?>(null) }
     var settingsTopBarBackAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val appVersion = remember(context) {
         context.packageManager
@@ -226,7 +230,7 @@ fun CatlyticsApp(
         isArtistSearchExpanded = false
         artistSearchQuery = ""
         if (currentRoute != SettingsRoute) {
-            settingsTopBarTitle = "Ajustes"
+            settingsTopBarTitle = null
             settingsTopBarBackAction = null
         }
     }
@@ -298,13 +302,14 @@ fun CatlyticsApp(
 
     fun toggleTrackLikedWithToast(trackId: String) {
         playbackViewModel.toggleTrackLiked(trackId) { result ->
+            val likedPlaylistName = resources.getString(R.string.app_playlist_liked_name)
             Toast.makeText(
                 context,
                 when (result) {
                     ToggleLikedTrackResult.Added ->
-                        "Canción agregada a $LIKED_PLAYLIST_NAME"
+                        resources.getString(R.string.app_toast_track_added_to_liked, likedPlaylistName)
                     ToggleLikedTrackResult.Removed ->
-                        "Canción eliminada de $LIKED_PLAYLIST_NAME"
+                        resources.getString(R.string.app_toast_track_removed_from_liked, likedPlaylistName)
                 },
                 Toast.LENGTH_SHORT,
             ).show()
@@ -315,7 +320,7 @@ fun CatlyticsApp(
         playbackViewModel.addQueueItem(track) {
             Toast.makeText(
                 context,
-                "Se agregó a la cola de reproducción",
+                resources.getString(R.string.app_toast_added_to_queue),
                 Toast.LENGTH_SHORT,
             ).show()
         }
@@ -325,7 +330,7 @@ fun CatlyticsApp(
         playbackViewModel.playNext(track) {
             Toast.makeText(
                 context,
-                "Se reproducirá a continuación",
+                resources.getString(R.string.app_toast_will_play_next),
                 Toast.LENGTH_SHORT,
             ).show()
         }
@@ -338,53 +343,57 @@ fun CatlyticsApp(
                     title = if (action.tracks.size == 1) {
                         action.tracks.first().title
                     } else {
-                        "Canciones seleccionadas"
+                        resources.getString(R.string.app_track_collection_selected_title)
                     },
                     artworkUri = action.tracks.firstNotNullOfOrNull(Track::artworkUri),
                     trackIds = action.tracks.map(Track::id),
                 ),
             )
             is TrackSelectionAction.Like -> playbackViewModel.likeTracks(action.tracks.map(Track::id)) { added ->
+                val likedPlaylistName = resources.getString(R.string.app_playlist_liked_name)
                 Toast.makeText(
                     context,
-                    if (added == 1) {
-                        "1 canción agregada a $LIKED_PLAYLIST_NAME"
-                    } else {
-                        "$added canciones agregadas a $LIKED_PLAYLIST_NAME"
-                    },
+                    resources.getQuantityString(
+                        R.plurals.app_toast_tracks_added_to_liked,
+                        added,
+                        added,
+                        likedPlaylistName,
+                    ),
                     Toast.LENGTH_SHORT,
                 ).show()
             }
             is TrackSelectionAction.Unlike -> playbackViewModel.unlikeTracks(action.tracks.map(Track::id)) { removed ->
+                val likedPlaylistName = resources.getString(R.string.app_playlist_liked_name)
                 Toast.makeText(
                     context,
-                    if (removed == 1) {
-                        "1 canción eliminada de $LIKED_PLAYLIST_NAME"
-                    } else {
-                        "$removed canciones eliminadas de $LIKED_PLAYLIST_NAME"
-                    },
+                    resources.getQuantityString(
+                        R.plurals.app_toast_tracks_removed_from_liked,
+                        removed,
+                        removed,
+                        likedPlaylistName,
+                    ),
                     Toast.LENGTH_SHORT,
                 ).show()
             }
             is TrackSelectionAction.AddToQueue -> playbackViewModel.addQueueItems(action.tracks) { added ->
                 Toast.makeText(
                     context,
-                    if (added == 1) {
-                        "1 canción agregada a la cola"
-                    } else {
-                        "$added canciones agregadas a la cola"
-                    },
+                    resources.getQuantityString(
+                        R.plurals.app_toast_tracks_added_to_queue,
+                        added,
+                        added,
+                    ),
                     Toast.LENGTH_SHORT,
                 ).show()
             }
             is TrackSelectionAction.PlayNext -> playbackViewModel.playNextTracks(action.tracks) { added ->
                 Toast.makeText(
                     context,
-                    if (added == 1) {
-                        "1 canción se reproducirá a continuación"
-                    } else {
-                        "$added canciones se reproducirán a continuación"
-                    },
+                    resources.getQuantityString(
+                        R.plurals.app_toast_tracks_will_play_next,
+                        added,
+                        added,
+                    ),
                     Toast.LENGTH_SHORT,
                 ).show()
             }
@@ -493,7 +502,7 @@ fun CatlyticsApp(
                                 isArtistSearchExpanded = true
                             }
                         },
-                        searchPlaceholder = "Buscar canciones o álbumes",
+                        searchPlaceholderRes = R.string.app_search_placeholder_artist,
                         searchFocusRequester = searchFocusRequester,
                         scrollBehavior = topBarScrollBehavior,
                     )
@@ -515,21 +524,21 @@ fun CatlyticsApp(
                 }
                 currentRoute == DailyPlaylistRoute -> {
                     LibraryDetailTopAppBar(
-                        title = "Playlist diaria",
+                        title = stringResource(R.string.app_top_bar_title_daily_playlist),
                         onBack = ::closeCurrentDestination,
                         scrollBehavior = topBarScrollBehavior,
                     )
                 }
                 currentRoute == RecentlyAddedRoute -> {
                     LibraryDetailTopAppBar(
-                        title = "Agregados recientemente",
+                        title = stringResource(R.string.app_top_bar_title_recently_added),
                         onBack = ::closeCurrentDestination,
                         scrollBehavior = topBarScrollBehavior,
                     )
                 }
                 currentRoute == StatisticsExploreRoute -> {
                     LibraryDetailTopAppBar(
-                        title = "Explorar estadísticas",
+                        title = stringResource(R.string.app_top_bar_title_statistics_explore),
                         onBack = ::closeCurrentDestination,
                         scrollBehavior = topBarScrollBehavior,
                     )
@@ -548,15 +557,15 @@ fun CatlyticsApp(
                         isOnPlaylistsRoot -> playlistsSearchQuery
                         else -> ""
                     }
-                    val searchPlaceholder = when {
-                        isOnHomeRoot -> "Buscar canciones"
-                        isOnLibraryRoot -> "Buscar álbumes o artistas"
-                        isOnPlaylistsRoot -> "Buscar playlists"
-                        else -> "Buscar"
+                    val searchPlaceholderRes = when {
+                        isOnHomeRoot -> R.string.app_search_placeholder_home
+                        isOnLibraryRoot -> R.string.app_search_placeholder_library
+                        isOnPlaylistsRoot -> R.string.app_search_placeholder_playlists
+                        else -> R.string.app_search_placeholder_default
                     }
 
                     TopLevelTopAppBar(
-                        title = currentTopLevelDestination.label,
+                        title = stringResource(currentTopLevelDestination.labelRes),
                         supportsSearch = supportsSearch,
                         isSearchExpanded = isSearchExpanded,
                         searchQuery = currentSearchQuery,
@@ -591,14 +600,14 @@ fun CatlyticsApp(
                                 }
                             }
                         },
-                        searchPlaceholder = searchPlaceholder,
+                        searchPlaceholderRes = searchPlaceholderRes,
                         onSettingsClick = ::openSettings,
                         scrollBehavior = topBarScrollBehavior,
                     )
                 }
                 isSettingsVisible -> {
                     SettingsTopAppBar(
-                        title = settingsTopBarTitle,
+                        title = settingsTopBarTitle ?: stringResource(R.string.app_top_bar_title_settings),
                         onBack = settingsTopBarBackAction ?: ::closeCurrentDestination,
                         scrollBehavior = topBarScrollBehavior,
                     )
@@ -637,7 +646,10 @@ fun CatlyticsApp(
                             artwork = { artworkModifier ->
                                 PlaybackArtwork(
                                     artworkUri = track.artworkUri,
-                                    contentDescription = "Carátula de ${track.title}",
+                                    contentDescription = stringResource(
+                                        R.string.app_content_description_artwork,
+                                        track.title,
+                                    ),
                                     modifier = artworkModifier,
                                 )
                             },
@@ -843,13 +855,19 @@ fun CatlyticsApp(
                             isCurrentTrackLiked = isCurrentTrackLiked,
                             onAddCurrentTrackToLiked = {
                                 playbackViewModel.toggleCurrentTrackLiked { result ->
+                                    val likedPlaylistName =
+                                        resources.getString(R.string.app_playlist_liked_name)
                                     Toast.makeText(
                                         context,
                                         when (result) {
-                                            ToggleLikedTrackResult.Added ->
-                                                "Canción agregada a $LIKED_PLAYLIST_NAME"
-                                            ToggleLikedTrackResult.Removed ->
-                                                "Canción eliminada de $LIKED_PLAYLIST_NAME"
+                                            ToggleLikedTrackResult.Added -> resources.getString(
+                                                R.string.app_toast_track_added_to_liked,
+                                                likedPlaylistName,
+                                            )
+                                            ToggleLikedTrackResult.Removed -> resources.getString(
+                                                R.string.app_toast_track_removed_from_liked,
+                                                likedPlaylistName,
+                                            )
                                         },
                                         Toast.LENGTH_SHORT,
                                     ).show()

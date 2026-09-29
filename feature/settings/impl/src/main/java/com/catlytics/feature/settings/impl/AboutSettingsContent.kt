@@ -16,6 +16,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -42,25 +43,23 @@ internal fun AboutSettingsContent(
     ) {
         item {
             AboutCard(
-                title = "Catlytics",
-                description = "Versión $appVersion",
+                title = stringResource(R.string.settings_about_app_title),
+                description = stringResource(R.string.settings_about_version, appVersion),
             )
         }
         item {
             AboutCard(
-                title = "Música local y estadísticas",
-                description = "Catlytics es un reproductor para la música almacenada en tu dispositivo. " +
-                    "También registra estadísticas de escucha para consultar tu actividad de reproducción.",
+                title = stringResource(R.string.settings_about_local_music_title),
+                description = stringResource(R.string.settings_about_local_music_description),
             )
         }
         item {
             AboutCard(
-                title = "Código abierto y sin anuncios",
-                description = "La aplicación es un proyecto de código abierto y no incluye anuncios. " +
-                    "El código fuente está disponible públicamente en GitHub.",
+                title = stringResource(R.string.settings_about_open_source_title),
+                description = stringResource(R.string.settings_about_open_source_description),
             ) {
                 TextButton(onClick = { uriHandler.openUri(CATLYTICS_REPOSITORY_URL) }) {
-                    Text("Ver repositorio en GitHub")
+                    Text(stringResource(R.string.settings_about_repository_action))
                 }
             }
         }

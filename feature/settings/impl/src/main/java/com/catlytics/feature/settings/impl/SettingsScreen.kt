@@ -1,6 +1,7 @@
 package com.catlytics.feature.settings.impl
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
@@ -48,6 +50,7 @@ import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.core.model.UnifiedBackupPreview
 import com.catlytics.core.model.UnifiedBackupSummary
+import com.catlytics.feature.settings.impl.R as SettingsR
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsRowText
 import com.catlytics.feature.settings.impl.components.SettingsSection
@@ -113,30 +116,37 @@ internal fun SettingsScreen(
 
     BackHandler(enabled = destination != SettingsDestination.Main, onBack = ::navigateBack)
 
+    val mainTitle = stringResource(SettingsR.string.settings_title)
+    val equalizerTitle = stringResource(SettingsR.string.settings_equalizer_title)
+    val aboutTitle = stringResource(SettingsR.string.settings_about_title)
+    val musicScanTitle = stringResource(SettingsR.string.settings_music_scan_title)
+    val foldersTitle = stringResource(SettingsR.string.settings_folders_title)
+    val backupTitle = stringResource(SettingsR.string.settings_backup_title)
+
     LaunchedEffect(destination) {
         when (destination) {
             SettingsDestination.Main -> {
-                onTopBarTitleChange("Ajustes")
+                onTopBarTitleChange(mainTitle)
                 onTopBarBackActionChange(null)
             }
             SettingsDestination.Equalizer -> {
-                onTopBarTitleChange("Ecualizador")
+                onTopBarTitleChange(equalizerTitle)
                 onTopBarBackActionChange(::navigateBack)
             }
             SettingsDestination.About -> {
-                onTopBarTitleChange("Acerca de Catlytics")
+                onTopBarTitleChange(aboutTitle)
                 onTopBarBackActionChange(::navigateBack)
             }
             SettingsDestination.MusicScan -> {
-                onTopBarTitleChange("Escanear música")
+                onTopBarTitleChange(musicScanTitle)
                 onTopBarBackActionChange(::navigateBack)
             }
             SettingsDestination.ScanFolders -> {
-                onTopBarTitleChange("Carpetas")
+                onTopBarTitleChange(foldersTitle)
                 onTopBarBackActionChange(::navigateBack)
             }
             SettingsDestination.Backup -> {
-                onTopBarTitleChange("Copia de seguridad")
+                onTopBarTitleChange(backupTitle)
                 onTopBarBackActionChange(::navigateBack)
             }
         }
@@ -266,7 +276,7 @@ private fun SettingsMainContent(
     ) {
         item {
             SettingsSection(
-                title = "Configuración de la app",
+                title = stringResource(SettingsR.string.settings_section_app_config),
                 iconRes = R.drawable.ic_theme,
             ) {
                 ThemeModeSelector(
@@ -274,23 +284,23 @@ private fun SettingsMainContent(
                     onThemeModeSelected = onThemeModeChange,
                 )
                 SettingsDivider()
-                SettingsValueRow(title = "Notificaciones")
+                SettingsValueRow(title = stringResource(SettingsR.string.settings_notifications_title))
                 SettingsDivider()
                 SettingsValueRow(
-                    title = "Escanear música",
-                    supportingText = "Carpetas y filtros para encontrar música local",
+                    title = stringResource(SettingsR.string.settings_music_scan_title),
+                    supportingText = stringResource(SettingsR.string.settings_music_scan_supporting),
                     onClick = onMusicScanClick,
                 )
             }
         }
         item {
             SettingsSection(
-                title = "Inicio y recomendaciones",
+                title = stringResource(SettingsR.string.settings_section_home_recommendations),
                 iconRes = R.drawable.ic_playlist,
             ) {
                 SettingsToggleRow(
-                    title = "Playlists recomendadas",
-                    supportingText = "Tarjetas de Accesos rápidos en el inicio",
+                    title = stringResource(SettingsR.string.settings_recommended_playlists_title),
+                    supportingText = stringResource(SettingsR.string.settings_recommended_playlists_supporting),
                     checked = homeRecommendationsSettings.showRecommendedPlaylists,
                     onCheckedChange = onShowRecommendedPlaylistsChange,
                 )
@@ -301,8 +311,8 @@ private fun SettingsMainContent(
                 )
                 SettingsDivider()
                 SettingsToggleRow(
-                    title = "Distintivo «Nuevo»",
-                    supportingText = "Marca las canciones agregadas recientemente",
+                    title = stringResource(SettingsR.string.settings_new_track_badge_title),
+                    supportingText = stringResource(SettingsR.string.settings_new_track_badge_supporting),
                     checked = homeRecommendationsSettings.showNewTrackBadge,
                     onCheckedChange = onShowNewTrackBadgeChange,
                 )
@@ -310,16 +320,24 @@ private fun SettingsMainContent(
         }
         item {
             SettingsSection(
-                title = "Audio",
+                title = stringResource(SettingsR.string.settings_section_audio),
                 iconRes = R.drawable.ic_audio,
             ) {
                 SettingsValueRow(
-                    title = "Temporizador de sueño",
+                    title = stringResource(SettingsR.string.settings_sleep_timer_title),
                     supportingText = when (sleepTimerState) {
-                        SleepTimerState.Inactive -> "Pausa la música después de un tiempo"
-                        is SleepTimerState.Active -> "Quedan ${formatSleepTimerRemaining(sleepTimerState.remainingMillis)}"
+                        SleepTimerState.Inactive ->
+                            stringResource(SettingsR.string.settings_sleep_timer_supporting)
+                        is SleepTimerState.Active -> stringResource(
+                            SettingsR.string.settings_sleep_timer_remaining,
+                            formatSleepTimerRemaining(sleepTimerState.remainingMillis),
+                        )
                     },
-                    value = if (sleepTimerState is SleepTimerState.Active) "Activo" else null,
+                    value = if (sleepTimerState is SleepTimerState.Active) {
+                        stringResource(SettingsR.string.settings_sleep_timer_active)
+                    } else {
+                        null
+                    },
                     onClick = onSleepTimerClick,
                 )
                 SettingsDivider()
@@ -329,38 +347,38 @@ private fun SettingsMainContent(
                 )
                 SettingsDivider()
                 SettingsValueRow(
-                    title = "Ecualizador",
-                    supportingText = "Presets del dispositivo",
-                    value = equalizerState.statusLabel,
+                    title = stringResource(SettingsR.string.settings_equalizer_title),
+                    supportingText = stringResource(SettingsR.string.settings_equalizer_supporting),
+                    value = equalizerState.statusLabel(),
                     onClick = onEqualizerClick,
                 )
             }
         }
         item {
             SettingsSection(
-                title = "Datos y recuperación",
+                title = stringResource(SettingsR.string.settings_section_data_recovery),
                 iconRes = R.drawable.ic_line_chart,
             ) {
                 SettingsValueRow(
-                    title = "Copia de seguridad",
-                    supportingText = "Exportar o restaurar playlists y estadísticas de escucha",
+                    title = stringResource(SettingsR.string.settings_backup_title),
+                    supportingText = stringResource(SettingsR.string.settings_backup_supporting),
                     onClick = onBackupClick,
                 )
             }
         }
         item {
             SettingsSection(
-                title = "Acerca de",
+                title = stringResource(SettingsR.string.settings_section_about),
                 iconRes = R.drawable.ic_info,
             ) {
                 SettingsValueRow(
-                    title = "Acerca de Catlytics",
-                    supportingText = "Información de la app y código fuente",
+                    title = stringResource(SettingsR.string.settings_about_title),
+                    supportingText = stringResource(SettingsR.string.settings_about_supporting),
                     value = appVersion,
                     onClick = onAboutClick,
                 )
                 SettingsDivider()
-                SettingsValueRow(title = "Política de privacidad")
+                SettingsValueRow(title = stringResource(SettingsR.string.settings_privacy_policy_title))
             }
         }
     }
@@ -377,7 +395,11 @@ private fun CrossfadeDurationSlider(
         MIN_CROSSFADE_DURATION_SECONDS,
         MAX_CROSSFADE_DURATION_SECONDS,
     )
-    val valueLabel = if (selectedSeconds == 0) "Desactivado" else "$selectedSeconds s"
+    val valueLabel = if (selectedSeconds == 0) {
+        stringResource(SettingsR.string.settings_crossfade_value_off)
+    } else {
+        stringResource(SettingsR.string.settings_crossfade_value_seconds, selectedSeconds)
+    }
 
     Column(
         modifier = modifier
@@ -391,11 +413,11 @@ private fun CrossfadeDurationSlider(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             SettingsRowText(
-                title = "Crossfade",
+                title = stringResource(SettingsR.string.settings_crossfade_title),
                 supportingText = if (selectedSeconds == 0) {
-                    "Se usará reproducción sin pausas automática"
+                    stringResource(SettingsR.string.settings_crossfade_supporting_inactive)
                 } else {
-                    "Mezcla al terminar una canción"
+                    stringResource(SettingsR.string.settings_crossfade_supporting_active)
                 },
                 modifier = Modifier.weight(1f),
             )
@@ -429,8 +451,8 @@ private fun ThemeModeSelector(
 
     Column(modifier = modifier) {
         SettingsValueRow(
-            title = "Tema",
-            value = selectedThemeMode.label,
+            title = stringResource(SettingsR.string.settings_theme_title),
+            value = stringResource(selectedThemeMode.labelRes),
             onClick = { expanded = !expanded },
         )
         if (expanded) {
@@ -460,8 +482,8 @@ private fun ThemeModeSelector(
                             onClick = null,
                         )
                         SettingsRowText(
-                            title = themeMode.label,
-                            supportingText = themeMode.description,
+                            title = stringResource(themeMode.labelRes),
+                            supportingText = stringResource(themeMode.descriptionRes),
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(start = 16.dp),
@@ -483,9 +505,9 @@ private fun RecentAddedWindowSelector(
 
     Column(modifier = modifier) {
         SettingsValueRow(
-            title = "Canciones recientes",
-            supportingText = "Ventana para Agregados recientemente y el distintivo Nuevo",
-            value = selected.label,
+            title = stringResource(SettingsR.string.settings_recent_added_title),
+            supportingText = stringResource(SettingsR.string.settings_recent_added_supporting),
+            value = stringResource(selected.labelRes, selected.days),
             onClick = { expanded = !expanded },
         )
         if (expanded) {
@@ -515,7 +537,7 @@ private fun RecentAddedWindowSelector(
                             onClick = null,
                         )
                         SettingsRowText(
-                            title = window.label,
+                            title = stringResource(window.labelRes),
                             supportingText = null,
                             modifier = Modifier
                                 .weight(1f)
@@ -528,29 +550,32 @@ private fun RecentAddedWindowSelector(
     }
 }
 
-private val RecentAddedWindow.label: String
-    get() = "$days días"
+@get:StringRes
+private val RecentAddedWindow.labelRes: Int
+    get() = SettingsR.string.settings_recent_added_window_days
 
-private val ThemeMode.label: String
+@get:StringRes
+private val ThemeMode.labelRes: Int
     get() = when (this) {
-        ThemeMode.System -> "Predeterminado del sistema"
-        ThemeMode.Light -> "Claro"
-        ThemeMode.Dark -> "Oscuro"
+        ThemeMode.System -> SettingsR.string.settings_theme_system
+        ThemeMode.Light -> SettingsR.string.settings_theme_light
+        ThemeMode.Dark -> SettingsR.string.settings_theme_dark
     }
 
-private val ThemeMode.description: String
+@get:StringRes
+private val ThemeMode.descriptionRes: Int
     get() = when (this) {
-        ThemeMode.System -> "Usar el tema configurado en el dispositivo"
-        ThemeMode.Light -> "Usar siempre el tema claro"
-        ThemeMode.Dark -> "Usar siempre el tema oscuro"
+        ThemeMode.System -> SettingsR.string.settings_theme_system_description
+        ThemeMode.Light -> SettingsR.string.settings_theme_light_description
+        ThemeMode.Dark -> SettingsR.string.settings_theme_dark_description
     }
 
-private val EqualizerState.statusLabel: String
-    get() = when {
-        !isAvailable -> "No disponible"
-        enabled -> selectedPresetName ?: "Activo"
-        else -> "Desactivado"
-    }
+@Composable
+private fun EqualizerState.statusLabel(): String = when {
+    !isAvailable -> stringResource(SettingsR.string.settings_equalizer_status_unavailable)
+    enabled -> selectedPresetName ?: stringResource(SettingsR.string.settings_equalizer_status_active)
+    else -> stringResource(SettingsR.string.settings_equalizer_status_disabled)
+}
 
 private enum class SettingsDestination {
     Main,

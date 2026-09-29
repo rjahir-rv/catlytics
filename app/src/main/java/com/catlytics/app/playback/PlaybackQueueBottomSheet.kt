@@ -60,11 +60,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import coil3.compose.AsyncImage
+import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.model.Track
@@ -182,7 +185,7 @@ internal fun PlaybackQueueBottomSheet(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        text = "Cola de reproducción",
+                        text = stringResource(AppR.string.app_queue_title),
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
@@ -412,7 +415,10 @@ private fun QueueSwipeableItem(
                 if (deleteIconProgress > 0f) {
                     Icon(
                         painter = painterResource(id = R.drawable.ic_delete),
-                        contentDescription = "Quitar ${track.title} de la cola",
+                        contentDescription = stringResource(
+                            AppR.string.app_queue_remove_track,
+                            track.title,
+                        ),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
                         modifier = Modifier.graphicsLayer {
                             scaleX = iconScale
@@ -499,7 +505,7 @@ private fun QueueTrackRow(
             }
             Text(
                 text = if (isCurrent) {
-                    "Reproduciendo · ${track.artist.name}"
+                    stringResource(AppR.string.app_queue_now_playing_track, track.artist.name)
                 } else {
                     track.artist.name
                 },
@@ -526,7 +532,10 @@ private fun QueueTrackRow(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_options),
-                    contentDescription = "Opciones de ${track.title}",
+                    contentDescription = stringResource(
+                        AppR.string.app_content_description_track_options,
+                        track.title,
+                    ),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(QueueActionIconSize),
                 )
@@ -539,7 +548,10 @@ private fun QueueTrackRow(
             ) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_item_selection),
-                    contentDescription = "Reordenar ${track.title}",
+                    contentDescription = stringResource(
+                        AppR.string.app_content_description_reorder_track,
+                        track.title,
+                    ),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                         alpha = if (isDragging) 1f else 0.72f,
                     ),
@@ -564,8 +576,9 @@ private const val QueueSheetMaxHeightFraction = 0.92f
 private const val QueueSwapThresholdFraction = 0.55f
 private const val QueueDragLiftScale = 0.02f
 
+@Composable
 internal fun queueTracksLabel(count: Int): String =
-    if (count == 1) "1 canción" else "$count canciones"
+    pluralStringResource(AppR.plurals.app_queue_tracks_count, count, count)
 
 internal fun queueVisibleBottomPx(
     containerHeightPx: Int,

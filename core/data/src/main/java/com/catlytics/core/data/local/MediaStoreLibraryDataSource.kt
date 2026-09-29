@@ -8,6 +8,9 @@ import android.os.Build
 import android.provider.MediaStore
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.UNKNOWN_ALBUM_TITLE
+import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
+import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
@@ -155,10 +158,10 @@ internal object MediaStoreAudioMapper {
 
         val normalizedArtist = artist
             ?.takeUnless { it.isBlank() || it == UNKNOWN_ARTIST }
-            ?: "Artista desconocido"
+            ?: UNKNOWN_ARTIST_NAME
         val normalizedAlbum = album
             ?.takeUnless { it.isBlank() || it == UNKNOWN_ALBUM }
-            ?: "Álbum desconocido"
+            ?: UNKNOWN_ALBUM_TITLE
         val normalizedAlbumId = if (albumId > 0L) {
             "mediastore-album-$albumId"
         } else {
@@ -167,7 +170,7 @@ internal object MediaStoreAudioMapper {
 
         return TrackEntity(
             id = "mediastore-$id",
-            title = title?.takeUnless { it.isBlank() } ?: "Cancion sin titulo",
+            title = title?.takeUnless { it.isBlank() } ?: UNTITLED_TRACK_TITLE,
             artistId = "mediastore-artist-$artistId",
             artistName = normalizedArtist,
             durationMillis = durationMillis,

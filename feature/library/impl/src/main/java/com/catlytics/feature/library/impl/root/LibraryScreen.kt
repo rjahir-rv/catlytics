@@ -1,5 +1,6 @@
 package com.catlytics.feature.library.impl.root
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,10 +42,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
@@ -53,6 +56,7 @@ import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.filterAlbumsByQuery
 import com.catlytics.feature.library.impl.filterArtistsByQuery
 import com.catlytics.feature.library.impl.filterFoldersByQuery
@@ -93,7 +97,7 @@ internal fun LibraryScreen(
     when (uiState) {
         LibraryUiState.Loading -> LoadingContent(modifier)
         LibraryUiState.Empty -> EmptyContent(modifier)
-        is LibraryUiState.Error -> MessageContent(uiState.message, modifier)
+        is LibraryUiState.Error -> MessageContent(uiState.message.asString(), modifier)
         is LibraryUiState.Success -> {
             val filteredAlbums = remember(uiState.albums, searchQuery) {
                 uiState.albums.filterAlbumsByQuery(searchQuery)
@@ -302,7 +306,7 @@ private fun LibraryContent(
                                     pagerState.animateScrollToPage(index)
                                 }
                             },
-                            text = { Text(section.label) },
+                            text = { Text(stringResource(section.labelRes)) },
                         )
                     }
                 }
@@ -366,9 +370,9 @@ private fun LibraryArtistHeaderControls(
                     if (isList) R.drawable.ic_grid else R.drawable.ic_list_shadow,
                 ),
                 contentDescription = if (isList) {
-                    "Mostrar artistas en mosaico"
+                    stringResource(LibraryR.string.library_show_artists_grid_content_description)
                 } else {
-                    "Mostrar artistas en lista"
+                    stringResource(LibraryR.string.library_show_artists_list_content_description)
                 },
             )
         }
@@ -384,7 +388,9 @@ private fun LibrarySortMenuButton(
         IconButton(onClick = { expanded = true }) {
             Icon(
                 painter = painterResource(R.drawable.ic_filter),
-                contentDescription = "Ordenar alfabéticamente",
+                contentDescription = stringResource(
+                    LibraryR.string.library_sort_content_description,
+                ),
             )
         }
         DropdownMenu(
@@ -392,7 +398,7 @@ private fun LibrarySortMenuButton(
             onDismissRequest = { expanded = false }
         ) {
             DropdownMenuItem(
-                text = { Text("A-Z") },
+                text = { Text(stringResource(LibraryR.string.library_sort_ascending)) },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(R.drawable.ic_arrow_down),
@@ -406,7 +412,7 @@ private fun LibrarySortMenuButton(
                 }
             )
             DropdownMenuItem(
-                text = { Text("Z-A") },
+                text = { Text(stringResource(LibraryR.string.library_sort_descending)) },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(R.drawable.ic_arrow_down),
@@ -422,10 +428,10 @@ private fun LibrarySortMenuButton(
     }
 }
 
-private enum class LibrarySection(val label: String) {
-    Albums("Álbumes"),
-    Artists("Artistas"),
-    Folders("Carpetas"),
+private enum class LibrarySection(@param:StringRes val labelRes: Int) {
+    Albums(LibraryR.string.library_tab_albums),
+    Artists(LibraryR.string.library_tab_artists),
+    Folders(LibraryR.string.library_tab_folders),
 }
 
 @Composable
@@ -438,11 +444,11 @@ private fun PermissionRequiredContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(
-            text = "Catlytics necesita permiso para encontrar tu biblioteca musical.",
+            text = stringResource(LibraryR.string.library_permission_message),
             style = MaterialTheme.typography.bodyLarge,
         )
         Button(onClick = onRequestPermission) {
-            Text("Permitir acceso a música")
+            Text(stringResource(LibraryR.string.library_permission_request))
         }
     }
 }
@@ -460,7 +466,7 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
 @Composable
 private fun EmptyContent(modifier: Modifier = Modifier) {
     MessageContent(
-        message = "No encontramos música en este dispositivo.",
+        message = stringResource(LibraryR.string.library_empty_message),
         modifier = modifier,
     )
 }
@@ -495,7 +501,7 @@ private fun NoSearchResultsContent(
         contentAlignment = Alignment.Center,
     ) {
         Text(
-            text = "No encontramos álbumes ni artistas que coincidan con tu búsqueda.",
+            text = stringResource(LibraryR.string.library_no_search_results),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

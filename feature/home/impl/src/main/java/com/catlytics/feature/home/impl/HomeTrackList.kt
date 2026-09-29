@@ -42,6 +42,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -54,6 +56,7 @@ import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.sectionLetter
 import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.Track
+import com.catlytics.feature.home.impl.R as HomeR
 
 @Composable
 internal fun HomeTrackList(
@@ -154,7 +157,7 @@ internal fun HomeTrackList(
                 }
                 item {
                     Text(
-                        text = "Todas las canciones",
+                        text = stringResource(HomeR.string.home_all_tracks_title),
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.padding(
                             start = 20.dp,
@@ -210,7 +213,7 @@ private fun FeaturedSectionsHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "Accesos rápidos",
+            text = stringResource(HomeR.string.home_quick_actions_title),
             style = MaterialTheme.typography.titleMedium,
         )
         IconButton(onClick = onToggleFeaturedSections) {
@@ -223,9 +226,9 @@ private fun FeaturedSectionsHeader(
                     },
                 ),
                 contentDescription = if (areFeaturedSectionsVisible) {
-                    "Ocultar secciones destacadas"
+                    stringResource(HomeR.string.home_toggle_featured_sections_hide_content_description)
                 } else {
-                    "Mostrar secciones destacadas"
+                    stringResource(HomeR.string.home_toggle_featured_sections_show_content_description)
                 },
             )
         }
@@ -254,17 +257,19 @@ private fun HomeQuickActions(
             if (recentlyAddedTrackCount > 0) {
                 item(key = "recently-added") {
                     HomeQuickActionCard(
-                        title = "Agregados recientemente",
-                        subtitle = if (recentlyAddedTrackCount == 1) {
-                            "1 canción nueva"
-                        } else {
-                            "$recentlyAddedTrackCount canciones nuevas"
-                        },
+                        title = stringResource(HomeR.string.home_quick_action_recently_added_title),
+                        subtitle = pluralStringResource(
+                            HomeR.plurals.home_quick_action_recently_added_subtitle,
+                            recentlyAddedTrackCount,
+                            recentlyAddedTrackCount,
+                        ),
                         icon = R.drawable.ic_recently_added,
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         gradientTarget = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        contentDescription = "Abrir Agregados recientemente",
+                        contentDescription = stringResource(
+                            HomeR.string.home_quick_action_recently_added_content_description,
+                        ),
                         onClick = onOpenRecentlyAdded,
                     )
                 }
@@ -272,13 +277,19 @@ private fun HomeQuickActions(
             if (dailyPlaylistTrackCount > 0) {
                 item(key = "daily-playlist") {
                     HomeQuickActionCard(
-                        title = "Playlist diaria",
-                        subtitle = "$dailyPlaylistTrackCount canciones para hoy",
+                        title = stringResource(HomeR.string.home_quick_action_daily_playlist_title),
+                        subtitle = pluralStringResource(
+                            HomeR.plurals.home_quick_action_daily_playlist_subtitle,
+                            dailyPlaylistTrackCount,
+                            dailyPlaylistTrackCount,
+                        ),
                         icon = R.drawable.ic_playlist,
                         containerColor = MaterialTheme.colorScheme.primaryContainer,
                         gradientTarget = MaterialTheme.colorScheme.tertiaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        contentDescription = "Abrir Playlist diaria",
+                        contentDescription = stringResource(
+                            HomeR.string.home_quick_action_daily_playlist_content_description,
+                        ),
                         onClick = onOpenDailyPlaylist,
                     )
                 }
@@ -286,13 +297,15 @@ private fun HomeQuickActions(
             if (canShuffleAll) {
                 item(key = "shuffle-all") {
                     HomeQuickActionCard(
-                        title = "Aleatorio",
-                        subtitle = "Reproducir todas",
+                        title = stringResource(HomeR.string.home_quick_action_shuffle_title),
+                        subtitle = stringResource(HomeR.string.home_quick_action_shuffle_subtitle),
                         icon = R.drawable.ic_shuffle_square,
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                         gradientTarget = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                        contentDescription = "Reproducir todas las canciones aleatoriamente",
+                        contentDescription = stringResource(
+                            HomeR.string.home_quick_action_shuffle_content_description,
+                        ),
                         onClick = onShuffleAll,
                     )
                 }
@@ -300,17 +313,19 @@ private fun HomeQuickActions(
             if (favoriteTrackCount > 0) {
                 item(key = "favorites") {
                     HomeQuickActionCard(
-                        title = "Favoritos",
-                        subtitle = if (favoriteTrackCount == 1) {
-                            "1 canción"
-                        } else {
-                            "$favoriteTrackCount canciones"
-                        },
+                        title = stringResource(HomeR.string.home_quick_action_favorites_title),
+                        subtitle = pluralStringResource(
+                            HomeR.plurals.home_quick_action_favorites_subtitle,
+                            favoriteTrackCount,
+                            favoriteTrackCount,
+                        ),
                         icon = R.drawable.ic_favorite_fill,
                         containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         gradientTarget = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                        contentDescription = "Abrir Favoritos",
+                        contentDescription = stringResource(
+                            HomeR.string.home_quick_action_favorites_content_description,
+                        ),
                         onClick = onOpenFavorites,
                     )
                 }
@@ -394,7 +409,10 @@ private fun HomeHighlights(
     ) {
         if (recentlyPlayedTracks.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(text = "Últimas escuchadas", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(HomeR.string.home_recently_played_title),
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 LazyRow(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(end = 4.dp),
@@ -417,15 +435,18 @@ private fun HomeHighlights(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
-                        Text(text = "Top 3 de esta semana", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            text = "Tus canciones más escuchadas",
+                            text = stringResource(HomeR.string.home_top_tracks_title),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            text = stringResource(HomeR.string.home_top_tracks_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     TextButton(onClick = onNavigateToStatistics) {
-                        Text(text = "Ver estadísticas")
+                        Text(text = stringResource(HomeR.string.home_open_statistics))
                     }
                 }
                 topTracks.forEachIndexed { index, track ->
@@ -440,7 +461,7 @@ private fun HomeHighlights(
 
         if (recentlyPlayedTracks.isEmpty() && topTracks.isEmpty()) {
             Text(
-                text = "Tu actividad aparecerá aquí después de escuchar música.",
+                text = stringResource(HomeR.string.home_activity_empty),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -451,7 +472,7 @@ private fun HomeHighlights(
                 onClick = onNavigateToStatistics,
                 modifier = Modifier.align(Alignment.End),
             ) {
-                Text(text = "Ver estadísticas")
+                Text(text = stringResource(HomeR.string.home_open_statistics))
             }
         }
     }
@@ -472,7 +493,10 @@ private fun RecentlyPlayedTrackCard(
         Column(modifier = Modifier.padding(8.dp)) {
             AsyncImage(
                 model = track.artworkUri,
-                contentDescription = "Reproducir ${track.title}",
+                contentDescription = stringResource(
+                    HomeR.string.home_play_recently_played_content_description,
+                    track.title,
+                ),
                 placeholder = painterResource(R.drawable.placeholder_track),
                 error = painterResource(R.drawable.placeholder_track),
                 fallback = painterResource(R.drawable.placeholder_track),
@@ -507,6 +531,10 @@ private fun TopTrackRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val topTrackContentDescription = stringResource(
+        HomeR.string.home_play_top_track_content_description,
+        track.title,
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -514,7 +542,7 @@ private fun TopTrackRow(
             .clip(RoundedCornerShape(12.dp))
             .clickable(role = Role.Button, onClick = onClick)
             .semantics {
-                contentDescription = "Reproducir ${track.title} desde Top 3"
+                contentDescription = topTrackContentDescription
             }
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),

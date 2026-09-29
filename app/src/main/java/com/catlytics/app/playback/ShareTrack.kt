@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import com.catlytics.app.R
 import com.catlytics.core.model.Track
 
 internal fun Context.shareTrack(track: Track) {
@@ -16,6 +17,6 @@ internal fun Context.shareTrack(track: Track) {
     }
 
     runCatching {
-        startActivity(Intent.createChooser(shareIntent, "Compartir canción"))
+        startActivity(Intent.createChooser(shareIntent, getString(R.string.app_action_share_track)))
     }
 }

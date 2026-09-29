@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Textos compartidos por los componentes de :core:designsystem -->
+
+    <!-- Reproductor compacto -->
+    <string name="ds_action_previous">Anterior</string>
+    <string name="ds_action_next">Siguiente</string>
+    <string name="ds_action_play">Reproducir</string>
+    <string name="ds_action_pause">Pausar</string>
+    <string name="ds_mini_player_progress_content_description">Progreso de reproducción</string>
+
+    <!-- Índice alfabético -->
+    <string name="ds_letter_fast_scroller_content_description">Índice alfabético, letra %1$s</string>
+
+    <!-- Filas de pista -->
+    <string name="ds_track_row_selected_content_description">Seleccionada</string>
+    <string name="ds_track_row_playing_content_description">Reproduciendo %1$s</string>
+
+    <!-- Barra de selección -->
+    <string name="ds_selection_exit_content_description">Salir de la selección</string>
+    <plurals name="ds_selection_count">
+        <item quantity="one">1 seleccionada</item>
+        <item quantity="other">%1$d seleccionadas</item>
+    </plurals>
+    <string name="ds_selection_select_all">Seleccionar todo</string>
+    <string name="ds_selection_add_to_playlist">Agregar a playlist</string>
+    <string name="ds_selection_remove_from_liked">Quitar de Tus me gusta</string>
+    <string name="ds_selection_save_to_liked">Guardar en Tus me gusta</string>
+    <string name="ds_selection_play_next">Reproducir siguiente</string>
+    <string name="ds_selection_add_to_queue">Agregar a la cola</string>
+    <string name="ds_selection_remove_from_playlist">Quitar de playlist</string>
+</resources>

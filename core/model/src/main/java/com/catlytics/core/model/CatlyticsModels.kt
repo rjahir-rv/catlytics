@@ -157,9 +157,17 @@ sealed interface PlaylistSource {
     ) : PlaylistSource
 }
 
+enum class PlaylistSourceKind { Track, Album, Artist, Folder, Collection }
+
+/**
+ * [title] es null cuando el origen no se pudo resolver; la UI usa entonces un texto por [kind].
+ * [albumCount] (solo artistas) lo formatea la UI como plural; [subtitle] es texto ya resuelto (datos).
+ */
 data class PlaylistSourcePreview(
-    val title: String,
+    val title: String?,
+    val kind: PlaylistSourceKind,
     val subtitle: String? = null,
+    val albumCount: Int? = null,
     val artworkUri: String? = null,
     val itemCount: Int = 0,
     val trackIds: List<String> = emptyList(),
@@ -198,12 +206,20 @@ data class EqualizerState(
     val bands: List<EqualizerBand> = emptyList(),
     val levelRange: EqualizerLevelRange? = null,
     val isAvailable: Boolean = false,
-    val errorMessage: String? = null,
+    val error: EqualizerError? = null,
 )
 
 enum class EqualizerMode {
     Preset,
     Custom,
+}
+
+/** Motivos por los que el ecualizador no puede ofrecer datos o aplicarse. */
+enum class EqualizerError {
+    AudioSessionUnavailable,
+    EqualizerUnavailable,
+    PlaybackRequired,
+    PresetsUnreadable,
 }
 
 data class EqualizerPreset(
@@ -290,17 +306,24 @@ data class ListeningStreak(
     val lastActiveDayEpochDay: Long?,
 )
 
+/** Tipo de narrativa de un periodo de escucha; determina el copy que compone la UI. */
+enum class ListeningNarrativeKind {
+    TimeWithArtist,
+    FavoriteTrack,
+    Summary,
+}
+
 /**
  * Spotify-style narrative summary for a listening period.
  * [eligible] is true when the period has at least one hour of listening.
+ * [kind] indica qué narrativa mostrar; la UI compone el texto con recursos.
  */
 data class ListeningNarrative(
     val eligible: Boolean,
     val totalListenedMillis: Long,
     val topArtist: TopArtist?,
     val topTrack: TopTrack?,
-    val headline: String,
-    val supportingLines: List<String>,
+    val kind: ListeningNarrativeKind,
 )
 
 data class WeeklyStats(

@@ -19,8 +19,10 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.feature.settings.impl.R
 
 @Composable
 internal fun EqualizerGraph(
@@ -138,7 +140,7 @@ internal fun EqualizerFrequencyScale(
     equalizerState: EqualizerState,
     modifier: Modifier = Modifier,
 ) {
-    val labels = equalizerState.frequencyLabels
+    val labels = equalizerState.frequencyLabels()
     Row(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -154,15 +156,15 @@ internal fun EqualizerFrequencyScale(
 }
 
 // UI formatting extensions local to equalizer UI
-private val EqualizerState.frequencyLabels: List<String>
-    get() {
-        val frequencies = bands.map { it.centerFrequencyHz }.takeIf { it.isNotEmpty() }
-            ?: listOf(60, 230, 910, 3_600, 14_000)
-        return frequencies.map { frequency ->
-            if (frequency >= 1_000) {
-                "${frequency / 1_000}K"
-            } else {
-                frequency.toString()
-            }
+@Composable
+private fun EqualizerState.frequencyLabels(): List<String> {
+    val frequencies = bands.map { it.centerFrequencyHz }.takeIf { it.isNotEmpty() }
+        ?: listOf(60, 230, 910, 3_600, 14_000)
+    return frequencies.map { frequency ->
+        if (frequency >= 1_000) {
+            stringResource(R.string.settings_equalizer_frequency_kilohertz, frequency / 1_000)
+        } else {
+            frequency.toString()
         }
     }
+}

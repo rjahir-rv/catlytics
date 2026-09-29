@@ -2,6 +2,8 @@ package com.catlytics.app.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.app.R
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveLibraryChangesUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -19,7 +21,7 @@ internal sealed interface AppStartupUiState {
     data object WaitingForPermission : AppStartupUiState
     data object Loading : AppStartupUiState
     data object Ready : AppStartupUiState
-    data class Error(val message: String) : AppStartupUiState
+    data class Error(val message: UiText) : AppStartupUiState
 }
 
 @HiltViewModel
@@ -48,7 +50,7 @@ class AppStartupViewModel @Inject constructor(
                 throw cancellationException
             } catch (throwable: Throwable) {
                 AppStartupUiState.Error(
-                    throwable.message ?: "No se pudo cargar la biblioteca musical.",
+                    UiText.Resource(R.string.app_error_library_load),
                 )
             }
             observeLibraryChanges()

@@ -3,6 +3,7 @@ package com.catlytics.core.domain.usecase.statistics
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
+import com.catlytics.core.model.ListeningNarrativeKind
 import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.PeriodUniqueCounts
 import com.catlytics.core.model.RecentlyPlayedTrack
@@ -231,11 +232,11 @@ class BuildListeningNarrativeUseCaseTest {
 
         val narrative = useCase(stats)
         assertEquals(false, narrative.eligible)
-        assertEquals("", narrative.headline)
+        assertEquals(ListeningNarrativeKind.TimeWithArtist, narrative.kind)
     }
 
     @Test
-    fun `eligible builds headline with top artist`() = runTest {
+    fun `eligible prefers time with artist narrative`() = runTest {
         val repository = FakePlaybackEventRepository2().apply {
             totalListeningMillis = 2 * 3_600_000L
             topArtists = listOf(
@@ -252,18 +253,28 @@ class BuildListeningNarrativeUseCaseTest {
 
         val narrative = useCase(stats)
         assertEquals(true, narrative.eligible)
-        assertEquals("Pasaste más tiempo con Eminem", narrative.headline)
-        assertEquals(
-            true,
-            narrative.supportingLines.any {
-                it.contains("Canción más escuchada") && it.contains("Rap God")
-            },
-        )
-        assertEquals(
-            true,
-            narrative.supportingLines.any {
-                it.contains("Artista más escuchado") && it.contains("Eminem")
-            },
-        )
+        assertEquals(ListeningNarrativeKind.TimeWithArtist, narrative.kind)
+        assertEquals("Eminem", narrative.topArtist?.name)
+        assertEquals("Rap God", narrative.topTrack?.title)
+    }
+
+    @Test
+    fun `eligible uses favorite track narrative without top artist`() = runTest {
+        val repository = FakePlaybackEventRepository2().apply {
+            totalListeningMillis = 2 * 3_600_000L
+            topArtists = emptyList()
+            topTracks = listOf(
+                TopTrack("t1", "Rap God", "Eminem", null, 18, 1_000_000L),
+            )
+        }
+        val stats = ObservePeriodStatsUseCase(
+            repository,
+            Clock.fixed(Instant.parse("2026-06-24T12:00:00Z"), ZoneId.of("UTC")),
+        ).invoke(com.catlytics.core.model.StatsGranularity.WEEK).first()
+
+        val narrative = useCase(stats)
+        assertEquals(true, narrative.eligible)
+        assertEquals(ListeningNarrativeKind.FavoriteTrack, narrative.kind)
+        assertEquals("Rap God", narrative.topTrack?.title)
     }
 }

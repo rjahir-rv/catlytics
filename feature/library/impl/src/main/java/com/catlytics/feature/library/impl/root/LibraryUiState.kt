@@ -1,5 +1,6 @@
 package com.catlytics.feature.library.impl.root
 
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
@@ -16,5 +17,5 @@ internal sealed interface LibraryUiState {
         val sortDirection: SortDirection,
         val folders: List<LibraryFolder>,
     ) : LibraryUiState
-    data class Error(val message: String) : LibraryUiState
+    data class Error(val message: UiText) : LibraryUiState
 }

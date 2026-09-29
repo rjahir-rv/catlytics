@@ -2,10 +2,12 @@ package com.catlytics.feature.library.impl.album
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Track
+import com.catlytics.feature.library.impl.R
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,7 +38,7 @@ internal class LibraryAlbumViewModel @Inject constructor(
         .catch { error ->
             emit(
                 LibraryAlbumUiState.Error(
-                    error.message ?: "No se pudo cargar el contenido del álbum.",
+                    UiText.Resource(R.string.library_album_load_error),
                 ),
             )
         }

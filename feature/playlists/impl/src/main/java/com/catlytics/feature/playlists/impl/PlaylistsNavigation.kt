@@ -3,12 +3,14 @@ package com.catlytics.feature.playlists.impl
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.playlists.api.PlaylistsRoute
@@ -31,12 +33,22 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
         val playlists by viewModel.playlists.collectAsStateWithLifecycle()
         val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
         val sortDirection by viewModel.sortDirection.collectAsStateWithLifecycle()
+        val likedPlaylistName = stringResource(R.string.playlist_liked_name)
         PlaylistsScreen(
             playlists = playlists,
             viewMode = viewMode,
             onViewModeChange = viewModel::setViewMode,
             onPlaylistSelected = { playlist ->
-                onDestinationSelected(PlaylistDetailRoute(playlist.id, playlist.name))
+                onDestinationSelected(
+                    PlaylistDetailRoute(
+                        playlistId = playlist.id,
+                        playlistName = if (playlist.id == LIKED_PLAYLIST_ID) {
+                            likedPlaylistName
+                        } else {
+                            playlist.name
+                        },
+                    ),
+                )
             },
             onCreate = viewModel::create,
             onRename = viewModel::rename,

@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Inicio -->
+    <string name="home_all_tracks_title">Todas las canciones</string>
+    <string name="home_quick_actions_title">Accesos rápidos</string>
+    <string name="home_toggle_featured_sections_hide_content_description">Ocultar secciones destacadas</string>
+    <string name="home_toggle_featured_sections_show_content_description">Mostrar secciones destacadas</string>
+    <string name="home_quick_action_recently_added_title">Agregados recientemente</string>
+    <plurals name="home_quick_action_recently_added_subtitle">
+        <item quantity="one">1 canción nueva</item>
+        <item quantity="other">%1$d canciones nuevas</item>
+    </plurals>
+    <string name="home_quick_action_recently_added_content_description">Abrir Agregados recientemente</string>
+    <string name="home_quick_action_daily_playlist_title">Playlist diaria</string>
+    <plurals name="home_quick_action_daily_playlist_subtitle">
+        <item quantity="one">1 canción para hoy</item>
+        <item quantity="other">%1$d canciones para hoy</item>
+    </plurals>
+    <string name="home_quick_action_daily_playlist_content_description">Abrir Playlist diaria</string>
+    <string name="home_quick_action_shuffle_title">Aleatorio</string>
+    <string name="home_quick_action_shuffle_subtitle">Reproducir todas</string>
+    <string name="home_quick_action_shuffle_content_description">Reproducir todas las canciones aleatoriamente</string>
+    <string name="home_quick_action_favorites_title">Favoritos</string>
+    <plurals name="home_quick_action_favorites_subtitle">
+        <item quantity="one">1 canción</item>
+        <item quantity="other">%1$d canciones</item>
+    </plurals>
+    <string name="home_quick_action_favorites_content_description">Abrir Favoritos</string>
+
+    <!-- Secciones destacadas -->
+    <string name="home_recently_played_title">Últimas escuchadas</string>
+    <string name="home_play_recently_played_content_description">Reproducir %1$s</string>
+    <string name="home_top_tracks_title">Top 3 de esta semana</string>
+    <string name="home_top_tracks_subtitle">Tus canciones más escuchadas</string>
+    <string name="home_play_top_track_content_description">Reproducir %1$s desde Top 3</string>
+    <string name="home_open_statistics">Ver estadísticas</string>
+    <string name="home_activity_empty">Tu actividad aparecerá aquí después de escuchar música.</string>
+
+    <!-- Fila de pista -->
+    <string name="home_track_options_content_description">Opciones de %1$s</string>
+    <string name="home_new_track_badge">Nuevo</string>
+
+    <!-- Estados -->
+    <string name="home_permission_required_message">Catlytics necesita permiso para leer tu música local.</string>
+    <string name="home_permission_required_action">Permitir acceso a música</string>
+    <string name="home_empty_library_message">No encontramos canciones en este dispositivo.</string>
+    <string name="home_search_no_results_message">No encontramos canciones que coincidan con tu búsqueda.</string>
+
+    <!-- Agregados recientemente -->
+    <string name="recently_added_empty_message">No hay canciones agregadas en los últimos %1$d días.</string>
+    <plurals name="recently_added_tracks_count">
+        <item quantity="one">%1$d canción agregada en los últimos %2$d días</item>
+        <item quantity="other">%1$d canciones agregadas en los últimos %2$d días</item>
+    </plurals>
+    <string name="recently_added_shuffle_content_description">Reproducir aleatoriamente</string>
+    <string name="recently_added_play_all_content_description">Reproducir canciones</string>
+
+    <!-- Playlist diaria -->
+    <string name="daily_playlist_title">Tu selección para hoy</string>
+    <plurals name="daily_playlist_tracks_count">
+        <item quantity="one">1 canción elegida para ti</item>
+        <item quantity="other">%1$d canciones elegidas para ti</item>
+    </plurals>
+    <string name="daily_playlist_empty_message">Necesitas al menos 5 canciones para crear tu Playlist diaria.</string>
+    <string name="daily_playlist_shuffle_content_description">Reproducir aleatoriamente</string>
+    <string name="daily_playlist_play_all_content_description">Reproducir canciones</string>
+</resources>

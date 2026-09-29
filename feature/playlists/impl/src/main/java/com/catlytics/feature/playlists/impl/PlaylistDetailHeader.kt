@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -46,6 +47,7 @@ import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
 @Composable
 internal fun PlaylistHeader(
@@ -84,7 +86,10 @@ internal fun PlaylistHeader(
                 )
                 AsyncImage(
                     model = artworkRequest,
-                    contentDescription = "Portada de ${playlist.name}",
+                    contentDescription = stringResource(
+                        PlaylistsR.string.playlists_artwork_content_description,
+                        playlist.displayName(),
+                    ),
                     modifier = Modifier
                         .size(artworkSize)
                         .clip(RoundedCornerShape(24.dp)),
@@ -99,7 +104,9 @@ internal fun PlaylistHeader(
                 IconButton(onClick = onOptionsClick) {
                     Icon(
                         painterResource(R.drawable.ic_options),
-                        contentDescription = "Opciones de la playlist",
+                        contentDescription = stringResource(
+                            PlaylistsR.string.playlist_detail_options_content_description,
+                        ),
                     )
                 }
                 optionsMenu()
@@ -107,7 +114,7 @@ internal fun PlaylistHeader(
         }
 
         Text(
-            playlist.name,
+            playlist.displayName(),
             style = MaterialTheme.typography.headlineSmall,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -127,13 +134,17 @@ internal fun PlaylistHeader(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "Mantén pulsado el control y arrastra",
+                    stringResource(PlaylistsR.string.playlist_detail_ordering_hint),
                     modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                TextButton(onClick = onCancelOrdering) { Text("Cancelar") }
-                Button(onClick = onSaveOrdering) { Text("Guardar") }
+                TextButton(onClick = onCancelOrdering) {
+                    Text(stringResource(PlaylistsR.string.playlists_action_cancel))
+                }
+                Button(onClick = onSaveOrdering) {
+                    Text(stringResource(PlaylistsR.string.playlists_action_save))
+                }
             }
         } else {
             PlaylistPlaybackActions(
@@ -182,7 +193,9 @@ private fun PlaylistPlaybackActions(
         ) {
             Icon(
                 painterResource(R.drawable.ic_shuffle),
-                contentDescription = "Reproducir aleatoriamente",
+                contentDescription = stringResource(
+                    PlaylistsR.string.playlist_detail_shuffle_content_description,
+                ),
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -201,7 +214,13 @@ private fun PlaylistPlaybackActions(
                 painter = painterResource(
                     if (isPlayingThis) R.drawable.ic_pause else R.drawable.ic_play,
                 ),
-                contentDescription = if (isPlayingThis) "Pausar" else "Reproducir playlist",
+                contentDescription = stringResource(
+                    if (isPlayingThis) {
+                        PlaylistsR.string.playlist_detail_pause_content_description
+                    } else {
+                        PlaylistsR.string.playlist_detail_play_content_description
+                    },
+                ),
                 modifier = Modifier.size(24.dp),
             )
         }
@@ -222,35 +241,40 @@ internal fun PlaylistOptionsMenu(
 ) {
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuItem(
-            text = { Text("Ordenar canciones") },
+            text = { Text(stringResource(PlaylistsR.string.playlist_detail_order)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_filter), null) },
             onClick = { onDismiss(); onOrder() },
         )
         if (canEdit) {
             DropdownMenuItem(
-                text = { Text("Editar playlist") },
+                text = { Text(stringResource(PlaylistsR.string.playlist_detail_edit)) },
                 leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
                 onClick = { onDismiss(); onEdit() },
             )
         }
         DropdownMenuItem(
-            text = { Text("Agregar canciones") },
+            text = { Text(stringResource(PlaylistsR.string.playlist_detail_add_tracks)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_add), null) },
             onClick = { onDismiss(); onAddTracks() },
         )
         DropdownMenuItem(
-            text = { Text("Agregar a otra playlist") },
+            text = { Text(stringResource(PlaylistsR.string.playlist_detail_add_to_playlist)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_add_playlist), null) },
             onClick = { onDismiss(); onAddToPlaylist() },
         )
         DropdownMenuItem(
-            text = { Text("Exportar como M3U8") },
+            text = { Text(stringResource(PlaylistsR.string.playlist_detail_export_m3u8)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_share), null) },
             onClick = { onDismiss(); onExportM3u() },
         )
         if (canEdit) {
             DropdownMenuItem(
-                text = { Text("Eliminar playlist", color = MaterialTheme.colorScheme.error) },
+                text = {
+                    Text(
+                        stringResource(PlaylistsR.string.playlist_detail_delete),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                },
                 leadingIcon = {
                     Icon(
                         painterResource(R.drawable.ic_delete),
@@ -275,25 +299,33 @@ internal fun PlaylistOrderSheet(
     val optionColors = ListItemDefaults.colors(containerColor = Color.Transparent)
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
-            "Ordenar canciones",
+            stringResource(PlaylistsR.string.playlist_detail_order),
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             style = MaterialTheme.typography.titleLarge,
         )
         ListItem(
-            headlineContent = { Text("Personalizado") },
-            supportingContent = { Text("Arrastra las canciones al orden que prefieras") },
+            headlineContent = { Text(stringResource(PlaylistsR.string.playlist_detail_order_custom)) },
+            supportingContent = {
+                Text(stringResource(PlaylistsR.string.playlist_detail_order_custom_hint))
+            },
             colors = optionColors,
             modifier = Modifier.clickable(onClick = onCustom),
         )
         ListItem(
-            headlineContent = { Text("Alfabético") },
-            supportingContent = { Text("Ordenar por título y artista") },
+            headlineContent = {
+                Text(stringResource(PlaylistsR.string.playlist_detail_order_alphabetical))
+            },
+            supportingContent = {
+                Text(stringResource(PlaylistsR.string.playlist_detail_order_alphabetical_hint))
+            },
             colors = optionColors,
             modifier = Modifier.clickable(onClick = onAlphabetical),
         )
         ListItem(
-            headlineContent = { Text("Random") },
-            supportingContent = { Text("Mezclar y guardar un orden nuevo") },
+            headlineContent = { Text(stringResource(PlaylistsR.string.playlist_detail_order_random)) },
+            supportingContent = {
+                Text(stringResource(PlaylistsR.string.playlist_detail_order_random_hint))
+            },
             colors = optionColors,
             modifier = Modifier.clickable(onClick = onRandom),
         )

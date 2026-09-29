@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ajustes: pantalla principal -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_section_app_config">Configuración de la app</string>
+    <string name="settings_notifications_title">Notificaciones</string>
+    <string name="settings_music_scan_title">Escanear música</string>
+    <string name="settings_music_scan_supporting">Carpetas y filtros para encontrar música local</string>
+    <string name="settings_section_home_recommendations">Inicio y recomendaciones</string>
+    <string name="settings_recommended_playlists_title">Playlists recomendadas</string>
+    <string name="settings_recommended_playlists_supporting">Tarjetas de Accesos rápidos en el inicio</string>
+    <string name="settings_new_track_badge_title">Distintivo «Nuevo»</string>
+    <string name="settings_new_track_badge_supporting">Marca las canciones agregadas recientemente</string>
+    <string name="settings_section_audio">Audio</string>
+    <string name="settings_sleep_timer_title">Temporizador de sueño</string>
+    <string name="settings_sleep_timer_supporting">Pausa la música después de un tiempo</string>
+    <string name="settings_sleep_timer_remaining">Quedan %1$s</string>
+    <string name="settings_sleep_timer_active">Activo</string>
+    <string name="settings_crossfade_title">Crossfade</string>
+    <string name="settings_crossfade_supporting_inactive">Se usará reproducción sin pausas automática</string>
+    <string name="settings_crossfade_supporting_active">Mezcla al terminar una canción</string>
+    <string name="settings_crossfade_value_off">Desactivado</string>
+    <string name="settings_crossfade_value_seconds">%1$d s</string>
+    <string name="settings_equalizer_title">Ecualizador</string>
+    <string name="settings_equalizer_supporting">Presets del dispositivo</string>
+    <string name="settings_equalizer_status_unavailable">No disponible</string>
+    <string name="settings_equalizer_status_active">Activo</string>
+    <string name="settings_equalizer_status_disabled">Desactivado</string>
+    <string name="settings_section_data_recovery">Datos y recuperación</string>
+    <string name="settings_backup_title">Copia de seguridad</string>
+    <string name="settings_backup_supporting">Exportar o restaurar playlists y estadísticas de escucha</string>
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_about_title">Acerca de Catlytics</string>
+    <string name="settings_about_supporting">Información de la app y código fuente</string>
+    <string name="settings_privacy_policy_title">Política de privacidad</string>
+
+    <!-- Ajustes: tema y canciones recientes -->
+    <string name="settings_theme_title">Tema</string>
+    <string name="settings_theme_system">Predeterminado del sistema</string>
+    <string name="settings_theme_light">Claro</string>
+    <string name="settings_theme_dark">Oscuro</string>
+    <string name="settings_theme_system_description">Usar el tema configurado en el dispositivo</string>
+    <string name="settings_theme_light_description">Usar siempre el tema claro</string>
+    <string name="settings_theme_dark_description">Usar siempre el tema oscuro</string>
+    <string name="settings_recent_added_title">Canciones recientes</string>
+    <string name="settings_recent_added_supporting">Ventana para Agregados recientemente y el distintivo Nuevo</string>
+    <string name="settings_recent_added_window_days">%1$d días</string>
+
+    <!-- Ajustes: escaneo de música -->
+    <string name="settings_scan_library_section">Biblioteca musical</string>
+    <string name="settings_folders_title">Carpetas</string>
+    <string name="settings_folders_supporting">Elige qué carpetas aparecen en tu biblioteca</string>
+    <string name="settings_scan_filters_section">Filtros de escaneo</string>
+    <string name="settings_scan_duration_title">Ignorar duración</string>
+    <string name="settings_scan_duration_supporting">Excluir canciones más cortas que el límite</string>
+    <string name="settings_scan_size_title">Ignorar tamaño</string>
+    <string name="settings_scan_size_supporting">Excluir archivos más pequeños que el límite</string>
+    <string name="settings_scan_button_scanning">Escaneando…</string>
+    <string name="settings_scan_button_scan">Escanear ahora</string>
+    <string name="settings_scan_button_permission">Permitir acceso a música</string>
+    <string name="settings_scan_filter_disabled">No ignorar</string>
+    <string name="settings_scan_duration_30_seconds">30 segundos</string>
+    <string name="settings_scan_duration_60_seconds">60 segundos</string>
+    <string name="settings_scan_size_500_kb">500 KB</string>
+    <string name="settings_scan_size_1_mb">1 MB</string>
+    <string name="settings_scan_status_searching">Buscando música</string>
+    <string name="settings_scan_status_success">Escaneo completado</string>
+    <string name="settings_scan_status_error">No se pudo completar</string>
+    <string name="settings_scan_status_scanning_supporting">Revisando carpetas y aplicando tus filtros…</string>
+    <string name="settings_scan_success_no_new_tracks">No se encontraron canciones nuevas.</string>
+    <plurals name="settings_scan_success_new_tracks">
+        <item quantity="one">Se agregó 1 canción nueva.</item>
+        <item quantity="other">Se agregaron %1$d canciones nuevas.</item>
+    </plurals>
+    <string name="settings_folders_screen_title">Carpetas musicales</string>
+    <string name="settings_folders_screen_subtitle">Los cambios también se reflejan en la sección Carpetas de Library.</string>
+    <string name="settings_folders_empty">Escanea el dispositivo para encontrar carpetas con música.</string>
+    <string name="settings_folder_supporting">%1$s · %2$d canciones</string>
+
+    <!-- Ajustes: errores genéricos -->
+    <string name="settings_error_scan_failed">No se pudo escanear la música del dispositivo.</string>
+    <string name="settings_error_backup_export_failed">No se pudo exportar la copia de seguridad.</string>
+    <string name="settings_error_backup_read_failed">No se pudo leer el archivo de respaldo.</string>
+    <string name="settings_error_backup_import_failed">No se pudo importar la copia de seguridad.</string>
+
+    <!-- Ajustes: copia de seguridad -->
+    <string name="settings_backup_description">Exporta un archivo de respaldo para proteger tus listas de reproducción y tu historial de escucha en caso de desinstalar la app o migrar de teléfono.</string>
+    <string name="settings_backup_playlists_summary">🎵 Playlists: %1$d listas (%2$d canciones, %3$d favoritas)</string>
+    <string name="settings_backup_statistics_summary">📊 Estadísticas: %1$d reproducciones registradas</string>
+    <string name="settings_backup_statistics_summary_artists">📊 Estadísticas: %1$d reproducciones registradas, %2$d artistas unificados</string>
+    <string name="settings_backup_export_title">Exportar copia de seguridad</string>
+    <string name="settings_backup_export_supporting">Elige si deseas exportar playlists, estadísticas o ambos en un archivo JSON</string>
+    <string name="settings_backup_restore_title">Restaurar copia de seguridad</string>
+    <string name="settings_backup_restore_supporting">Carga tus datos desde un archivo JSON previamente exportado</string>
+    <string name="settings_backup_exporting">Generando copia de seguridad…</string>
+    <string name="settings_backup_importing">Restaurando datos…</string>
+    <string name="settings_backup_reading_file">Leyendo archivo…</string>
+    <string name="settings_backup_import_success">Restauración completada con éxito: %1$s.</string>
+    <string name="settings_backup_import_part_playlists">%1$d playlists</string>
+    <string name="settings_backup_import_part_listens">%1$d reproducciones</string>
+    <string name="settings_backup_export_dialog_description">Selecciona qué datos deseas incluir en el archivo de respaldo:</string>
+    <string name="settings_backup_export_playlists_option">Listas de reproducción (Playlists)</string>
+    <string name="settings_backup_export_playlists_count">%1$d listas (%2$d canciones)</string>
+    <string name="settings_backup_export_statistics_option">Estadísticas de escucha</string>
+    <string name="settings_backup_export_statistics_count">%1$d reproducciones registradas</string>
+    <string name="settings_action_export">Exportar</string>
+    <string name="settings_action_cancel">Cancelar</string>
+    <string name="settings_action_restore">Restaurar</string>
+    <string name="settings_action_close">Cerrar</string>
+    <string name="settings_backup_exported_at">Archivo exportado el %1$s</string>
+    <string name="settings_backup_restore_content_title">Contenido a restaurar:</string>
+    <string name="settings_backup_restore_playlists_option">Listas de reproducción</string>
+    <string name="settings_backup_restore_playlists_count">%1$d playlists (%2$d pistas)</string>
+    <string name="settings_backup_restore_missing_warning">Aviso: %1$d canciones no están en este dispositivo.</string>
+    <string name="settings_backup_restore_statistics_count">%1$d eventos de escucha</string>
+    <string name="settings_backup_restore_mode_title">Modo de restauración:</string>
+    <string name="settings_backup_restore_mode_merge_title">Combinar con los datos actuales</string>
+    <string name="settings_backup_restore_mode_merge_description">Conserva lo que tienes en la app y añade o actualiza los datos del archivo.</string>
+    <string name="settings_backup_restore_mode_replace_title">Reemplazar datos actuales</string>
+    <string name="settings_backup_restore_mode_replace_description">Elimina los datos actuales en la app y los sustituye por los del archivo.</string>
+    <string name="settings_backup_missing_tracks_title">⚠️ Canciones no encontradas en el dispositivo (%1$d)</string>
+    <string name="settings_backup_missing_tracks_description">Las playlists se importaron omitiendo las pistas que no se encontraron en tu almacenamiento local:</string>
+    <string name="settings_backup_missing_track_name">• %1$s</string>
+
+    <!-- Ajustes: exportación (Toast) -->
+    <string name="settings_backup_export_toast_success">Copia de seguridad exportada con éxito</string>
+    <string name="settings_backup_export_toast_detail">\u0020(%1$s)</string>
+    <!-- El copy original usa siempre el plural (también con 1); se conserva tal cual. -->
+    <plurals name="settings_backup_export_toast_playlists">
+        <item quantity="one">%1$d playlists</item>
+        <item quantity="other">%1$d playlists</item>
+    </plurals>
+    <plurals name="settings_backup_export_toast_listens">
+        <item quantity="one">%1$d reproducciones</item>
+        <item quantity="other">%1$d reproducciones</item>
+    </plurals>
+
+    <!-- Ajustes: ecualizador -->
+    <string name="settings_equalizer_mode_preset">Predefinido</string>
+    <string name="settings_equalizer_mode_custom">Personalizado</string>
+    <string name="settings_equalizer_output_label">OUTPUT</string>
+    <string name="settings_equalizer_enable_title">Activar ecualizador</string>
+    <string name="settings_equalizer_presets_available">%1$d presets disponibles</string>
+    <string name="settings_equalizer_session_ready">Sesión lista, sin presets disponibles</string>
+    <string name="settings_equalizer_not_available_hint">Reproduce una canción para activar el ecualizador</string>
+    <string name="settings_equalizer_no_presets_for_session">El dispositivo no expone presets para esta sesión.</string>
+    <string name="settings_equalizer_device_preset_label">DEVICE PRESET</string>
+    <string name="settings_equalizer_select_curve">Seleccionar curva</string>
+    <string name="settings_equalizer_close_label">CLOSE</string>
+    <string name="settings_equalizer_presets_label">%1$d PRESETS</string>
+    <string name="settings_equalizer_preset_index">PRESET %1$02d</string>
+    <string name="settings_equalizer_active_label">ACTIVE</string>
+    <string name="settings_equalizer_load_label">LOAD</string>
+    <string name="settings_equalizer_error_audio_session">Sesión de audio no disponible.</string>
+    <string name="settings_equalizer_error_unavailable">El ecualizador no está disponible en este dispositivo.</string>
+    <string name="settings_equalizer_error_playback_required">Reproduce una canción para activar el ecualizador.</string>
+    <string name="settings_equalizer_error_presets_unreadable">No se pudieron leer los presets del dispositivo.</string>
+    <string name="settings_equalizer_frequency_kilohertz" translatable="false">%1$dK</string>
+
+    <!-- Ajustes: temporizador de sueño -->
+    <string name="settings_sleep_timer_sheet_description">La música se pausará sin perder tu cola ni tu posición.</string>
+    <string name="settings_sleep_timer_sheet_active">Temporizador activo</string>
+    <string name="settings_sleep_timer_start">Iniciar temporizador</string>
+    <string name="settings_sleep_timer_restart">Reiniciar temporizador</string>
+    <string name="settings_sleep_timer_cancel">Cancelar temporizador</string>
+    <string name="settings_sleep_timer_minutes_unit">min</string>
+    <string name="settings_sleep_timer_dial_hint">Desliza para ajustar</string>
+    <plurals name="settings_sleep_timer_dial_state_description">
+        <item quantity="one">1 minuto</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
+
+    <!-- Ajustes: acerca de -->
+    <string name="settings_about_app_title">Catlytics</string>
+    <string name="settings_about_version">Versión %1$s</string>
+    <string name="settings_about_local_music_title">Música local y estadísticas</string>
+    <string name="settings_about_local_music_description">Catlytics es un reproductor para la música almacenada en tu dispositivo. También registra estadísticas de escucha para consultar tu actividad de reproducción.</string>
+    <string name="settings_about_open_source_title">Código abierto y sin anuncios</string>
+    <string name="settings_about_open_source_description">La aplicación es un proyecto de código abierto y no incluye anuncios. El código fuente está disponible públicamente en GitHub.</string>
+    <string name="settings_about_repository_action">Ver repositorio en GitHub</string>
+</resources>

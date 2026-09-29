@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Estadísticas: dashboard -->
+    <string name="stats_dashboard_this_week">Esta semana</string>
+    <plurals name="stats_streak_days">
+        <item quantity="one">1 día</item>
+        <item quantity="other">%1$d días</item>
+    </plurals>
+    <string name="stats_streak_none">Sin racha</string>
+    <string name="stats_totals_title">Histórico</string>
+    <string name="stats_totals_tracks">Canciones</string>
+    <string name="stats_totals_artists">Artistas</string>
+    <string name="stats_totals_albums">Álbumes</string>
+
+    <!-- Estadísticas: narrativa -->
+    <string name="stats_summary_title">Tu resumen</string>
+    <string name="stats_summary_week_title">Resumen de la semana</string>
+    <string name="stats_narrative_time_with_artist">Pasaste más tiempo con</string>
+    <string name="stats_narrative_favorite_track">Tu canción favorita fue</string>
+    <string name="stats_narrative_default_title">Tu resumen de escucha</string>
+    <string name="stats_narrative_top_track_label">Canción más escuchada</string>
+    <string name="stats_narrative_top_artist_label">Artista más escuchado</string>
+    <string name="stats_narrative_unlock_title">Desbloquea tu resumen</string>
+    <string name="stats_narrative_unlock_hint">Escucha %1$s más esta semana</string>
+    <string name="stats_narrative_unlock_progress">%1$s / 1h</string>
+
+    <!-- Estadísticas: explorar -->
+    <string name="stats_explore_cta_title">Explorar estadísticas</string>
+    <string name="stats_explore_cta_subtitle">Semanas, meses y tops completos</string>
+    <string name="stats_granularity_week">Semana</string>
+    <string name="stats_granularity_month">Mes</string>
+    <string name="stats_period_previous_content_description">Periodo anterior</string>
+    <string name="stats_period_next_content_description">Periodo siguiente</string>
+    <string name="stats_period_this_week">Esta semana</string>
+    <string name="stats_period_last_week">Semana pasada</string>
+    <string name="stats_period_this_month">Este mes</string>
+    <string name="stats_period_last_month">Mes pasado</string>
+
+    <!-- Estadísticas: resumen del periodo -->
+    <string name="stats_period_metric_tracks">canciones</string>
+    <string name="stats_period_metric_artists">artistas</string>
+    <string name="stats_period_metric_albums">álbumes</string>
+
+    <!-- Estadísticas: gráfico de actividad -->
+    <string name="stats_chart_weekly_title">Actividad semanal</string>
+    <string name="stats_chart_monthly_title">Actividad del mes</string>
+    <string name="stats_chart_subtitle">Minutos escuchados por día</string>
+    <string name="stats_chart_selected_day">Día %1$d: %2$d min</string>
+    <string-array name="stats_weekday_short_labels">
+        <item>L</item>
+        <item>M</item>
+        <item>X</item>
+        <item>J</item>
+        <item>V</item>
+        <item>S</item>
+        <item>D</item>
+    </string-array>
+
+    <!-- Estadísticas: listas top -->
+    <string name="stats_top_tracks_title">Top canciones</string>
+    <string name="stats_top_artists_title">Top artistas</string>
+    <string name="stats_top_albums_title">Top álbumes</string>
+    <string name="stats_top_see_all">Ver todo</string>
+
+    <!-- Estadísticas: estados vacíos y error -->
+    <string name="stats_empty_history_title">Aún no hay estadísticas</string>
+    <string name="stats_empty_history_subtitle">Escucha música por más de 30 segundos para empezar a registrar tu actividad.</string>
+    <string name="stats_empty_week_title">Sin actividad esta semana</string>
+    <string name="stats_empty_week_subtitle">Escucha algo esta semana o explora periodos anteriores.</string>
+    <string name="stats_empty_period_title">Sin reproducciones en este periodo</string>
+    <string name="stats_empty_period_subtitle">Prueba otra semana o mes, o vuelve a escuchar música.</string>
+    <string name="stats_error_loading">Ocurrió un error al cargar las estadísticas.</string>
+
+    <!-- Estadísticas: formatos -->
+    <plurals name="stats_play_count">
+        <item quantity="one">1 reproducción</item>
+        <item quantity="other">%1$d reproducciones</item>
+    </plurals>
+    <string name="stats_duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="stats_duration_hours">%1$dh</string>
+    <string name="stats_duration_minutes">%1$d min</string>
+</resources>

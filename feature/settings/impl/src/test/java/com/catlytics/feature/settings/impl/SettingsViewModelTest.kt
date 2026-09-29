@@ -1,5 +1,6 @@
 package com.catlytics.feature.settings.impl
 
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
 import com.catlytics.core.domain.repository.HomePreferencesRepository
@@ -209,7 +210,10 @@ class SettingsViewModelTest {
         viewModel.scanMusic()
         advanceUntilIdle()
 
-        assertEquals(MusicScanStatus.Error("Falló MediaStore"), viewModel.musicScanStatus.value)
+        assertEquals(
+            MusicScanStatus.Error(UiText.Resource(R.string.settings_error_scan_failed)),
+            viewModel.musicScanStatus.value,
+        )
     }
 
     @Test

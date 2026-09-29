@@ -52,6 +52,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -63,6 +65,7 @@ import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 import kotlinx.coroutines.launch
 
 @Composable
@@ -211,7 +214,9 @@ internal fun PlaylistsScreen(
                 IconButton(onClick = { expanded = true }) {
                     Icon(
                         painter = painterResource(R.drawable.ic_filter),
-                        contentDescription = "Ordenar alfabéticamente",
+                        contentDescription = stringResource(
+                            PlaylistsR.string.playlists_sort_content_description,
+                        ),
                     )
                 }
                 DropdownMenu(
@@ -219,7 +224,7 @@ internal fun PlaylistsScreen(
                     onDismissRequest = { expanded = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("A-Z") },
+                        text = { Text(stringResource(PlaylistsR.string.playlists_sort_ascending)) },
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.ic_arrow_down),
@@ -233,7 +238,7 @@ internal fun PlaylistsScreen(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Z-A") },
+                        text = { Text(stringResource(PlaylistsR.string.playlists_sort_descending)) },
                         leadingIcon = {
                             Icon(
                                 painter = painterResource(R.drawable.ic_arrow_down),
@@ -259,7 +264,13 @@ internal fun PlaylistsScreen(
                     painter = painterResource(
                         if (isList) R.drawable.ic_grid else R.drawable.ic_list_shadow,
                     ),
-                    contentDescription = if (isList) "Mostrar en mosaico" else "Mostrar en lista",
+                    contentDescription = stringResource(
+                        if (isList) {
+                            PlaylistsR.string.playlists_show_grid_content_description
+                        } else {
+                            PlaylistsR.string.playlists_show_list_content_description
+                        },
+                    ),
                 )
             }
             }
@@ -271,10 +282,10 @@ internal fun PlaylistsScreen(
             icon = {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_add),
-                    contentDescription = "Agregar"
+                    contentDescription = stringResource(PlaylistsR.string.playlists_add_content_description),
                 )
             },
-            text = { Text("Nueva playlist") },
+            text = { Text(stringResource(PlaylistsR.string.playlists_new_playlist)) },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(
@@ -283,12 +294,22 @@ internal fun PlaylistsScreen(
                 ),
         )
     }
-    if (creating) NameDialog("Nueva playlist", "", { creating = false }) {
-        creating = false
-        onCreate(it)
+    if (creating) {
+        NameDialog(
+            title = stringResource(PlaylistsR.string.playlists_new_playlist),
+            initialName = "",
+            onDismiss = { creating = false },
+        ) {
+            creating = false
+            onCreate(it)
+        }
     }
     editor?.let { playlist ->
-        NameDialog("Renombrar playlist", playlist.name, { editor = null }) {
+        NameDialog(
+            title = stringResource(PlaylistsR.string.playlists_rename_title),
+            initialName = playlist.displayName(),
+            onDismiss = { editor = null },
+        ) {
             editor = null
             onRename(playlist.id, it)
         }
@@ -296,14 +317,20 @@ internal fun PlaylistsScreen(
     deleting?.let { playlist ->
         AlertDialog(
             onDismissRequest = { deleting = null },
-            title = { Text("Eliminar ${playlist.name}") },
-            text = { Text("Esta acción no eliminará las canciones del dispositivo.") },
+            title = {
+                Text(stringResource(PlaylistsR.string.playlists_delete_title, playlist.displayName()))
+            },
+            text = { Text(stringResource(PlaylistsR.string.playlists_delete_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     deleting = null; onDelete(playlist.id)
-                }) { Text("Eliminar") }
+                }) { Text(stringResource(PlaylistsR.string.playlists_action_delete)) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text("Cancelar") } },
+            dismissButton = {
+                TextButton(onClick = { deleting = null }) {
+                    Text(stringResource(PlaylistsR.string.playlists_action_cancel))
+                }
+            },
         )
     }
 }
@@ -376,7 +403,10 @@ private fun PlaylistListRow(
     ) {
         AsyncImage(
             model = playlist.artworkUri,
-            contentDescription = "Portada de ${playlist.name}",
+            contentDescription = stringResource(
+                PlaylistsR.string.playlists_artwork_content_description,
+                playlist.displayName(),
+            ),
             modifier = Modifier
                 .size(56.dp)
                 .clip(RoundedCornerShape(16.dp)),
@@ -392,14 +422,18 @@ private fun PlaylistListRow(
                 .padding(start = 16.dp),
         ) {
             Text(
-                text = playlist.name,
+                text = playlist.displayName(),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "${playlist.trackIds.size} canciones",
+                text = pluralStringResource(
+                    PlaylistsR.plurals.playlists_track_count,
+                    playlist.trackIds.size,
+                    playlist.trackIds.size,
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -484,7 +518,10 @@ private fun PlaylistMosaicCard(
     ) {
         AsyncImage(
             model = playlist.artworkUri,
-            contentDescription = "Portada de ${playlist.name}",
+            contentDescription = stringResource(
+                PlaylistsR.string.playlists_artwork_content_description,
+                playlist.displayName(),
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
@@ -501,14 +538,18 @@ private fun PlaylistMosaicCard(
         ) {
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = playlist.name,
+                    text = playlist.displayName(),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = "${playlist.trackIds.size} canciones",
+                    text = pluralStringResource(
+                        PlaylistsR.plurals.playlists_track_count,
+                        playlist.trackIds.size,
+                        playlist.trackIds.size,
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -539,7 +580,10 @@ private fun PlaylistActionsMenu(
         IconButton(onClick = { expanded = true }) {
             Icon(
                 painter = painterResource(R.drawable.ic_options),
-                contentDescription = "Opciones de ${playlist.name}",
+                contentDescription = stringResource(
+                    PlaylistsR.string.playlists_options_content_description,
+                    playlist.displayName(),
+                ),
             )
         }
         DropdownMenu(
@@ -547,7 +591,7 @@ private fun PlaylistActionsMenu(
             onDismissRequest = { expanded = false },
         ) {
             DropdownMenuItem(
-                text = { Text("Renombrar") },
+                text = { Text(stringResource(PlaylistsR.string.playlists_action_rename)) },
                 onClick = {
                     expanded = false
                     onRename()
@@ -555,7 +599,7 @@ private fun PlaylistActionsMenu(
                 leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
             )
             DropdownMenuItem(
-                text = { Text("Cambiar portada") },
+                text = { Text(stringResource(PlaylistsR.string.playlists_change_cover)) },
                 onClick = {
                     expanded = false
                     onChangeCover()
@@ -564,7 +608,7 @@ private fun PlaylistActionsMenu(
             )
             if (playlist.artworkUri != null) {
                 DropdownMenuItem(
-                    text = { Text("Quitar portada") },
+                    text = { Text(stringResource(PlaylistsR.string.playlists_remove_cover)) },
                     onClick = {
                         expanded = false
                         onClearCover()
@@ -573,7 +617,7 @@ private fun PlaylistActionsMenu(
                 )
             }
             DropdownMenuItem(
-                text = { Text("Eliminar") },
+                text = { Text(stringResource(PlaylistsR.string.playlists_action_delete)) },
                 onClick = {
                     expanded = false
                     onDelete()
@@ -600,12 +644,12 @@ private fun EmptyPlaylistsContent(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "Aún no tienes playlists.",
+            text = stringResource(PlaylistsR.string.playlists_empty_title),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
         Text(
-            text = "Toca el botón + para crear una y organizar tu música.",
+            text = stringResource(PlaylistsR.string.playlists_empty_message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -628,7 +672,7 @@ private fun NoSearchResultsContent(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = "No encontramos playlists que coincidan con tu búsqueda.",
+            text = stringResource(PlaylistsR.string.playlists_no_search_results),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -651,15 +695,19 @@ internal fun NameDialog(
                 name,
                 { name = it },
                 singleLine = true,
-                label = { Text("Nombre") })
+                label = { Text(stringResource(PlaylistsR.string.playlists_name_label)) })
         },
         confirmButton = {
             TextButton(
                 onClick = { onConfirm(name.trim()) },
                 enabled = name.isNotBlank()
-            ) { Text("Guardar") }
+            ) { Text(stringResource(PlaylistsR.string.playlists_action_save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(PlaylistsR.string.playlists_action_cancel))
+            }
+        },
     )
 }
 

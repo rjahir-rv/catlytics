@@ -39,6 +39,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -54,11 +56,12 @@ import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.model.Track
-import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
+import com.catlytics.feature.library.impl.R as LibraryR
 
 @Composable
 internal fun LibraryAlbumScreen(
@@ -82,10 +85,10 @@ internal fun LibraryAlbumScreen(
             CircularProgressIndicator()
         }
         LibraryAlbumUiState.NotFound -> AlbumMessage(
-            message = "Este álbum ya no está disponible.",
+            message = stringResource(LibraryR.string.library_album_not_found_message),
             modifier = modifier,
         )
-        is LibraryAlbumUiState.Error -> AlbumMessage(uiState.message, modifier)
+        is LibraryAlbumUiState.Error -> AlbumMessage(uiState.message.asString(), modifier)
         is LibraryAlbumUiState.Success -> {
             val content = uiState.content
             val platformContext = LocalPlatformContext.current
@@ -205,7 +208,10 @@ private fun AlbumHeader(
     ) {
         AsyncImage(
             model = artworkModel,
-            contentDescription = "Portada de ${album.title}",
+            contentDescription = stringResource(
+                LibraryR.string.library_album_cover_content_description,
+                album.title,
+            ),
             modifier = Modifier
                 .fillMaxWidth(0.72f)
                 .aspectRatio(1f)
@@ -231,7 +237,11 @@ private fun AlbumHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            text = album.trackCount.trackCountLabel(),
+            text = pluralStringResource(
+                LibraryR.plurals.library_track_count,
+                album.trackCount,
+                album.trackCount,
+            ),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -247,7 +257,9 @@ private fun AlbumHeader(
             ) {
                 Icon(
                     painterResource(R.drawable.ic_shuffle),
-                    contentDescription = "Reproducir aleatoriamente",
+                    contentDescription = stringResource(
+                        LibraryR.string.library_album_play_shuffled_content_description,
+                    ),
                     modifier = Modifier.size(24.dp),
                 )
             }
@@ -258,7 +270,9 @@ private fun AlbumHeader(
             ) {
                 Icon(
                     painterResource(R.drawable.ic_play),
-                    contentDescription = "Reproducir",
+                    contentDescription = stringResource(
+                        LibraryR.string.library_album_play_content_description,
+                    ),
                     modifier = Modifier.size(24.dp),
                 )
             }
@@ -292,7 +306,9 @@ private fun AlbumTrackRow(
             if (selectionActive && selected) {
                 Icon(
                     painter = painterResource(R.drawable.ic_check_list),
-                    contentDescription = "Seleccionada",
+                    contentDescription = stringResource(
+                        LibraryR.string.library_track_selected_content_description,
+                    ),
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier
                         .size(22.dp)
@@ -323,13 +339,19 @@ private fun AlbumTrackRow(
             )
         }
         Text(
-            text = track.durationMillis.formatDuration(),
+            text = TrackDurationFormat.format(track.durationMillis),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (!selectionActive) {
             IconButton(onClick = onTrackOptions) {
-                Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
+                Icon(
+                    painterResource(R.drawable.ic_options),
+                    stringResource(
+                        LibraryR.string.library_track_options_content_description,
+                        track.title,
+                    ),
+                )
             }
         }
     }
@@ -351,19 +373,5 @@ private fun AlbumMessage(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-private fun Int.trackCountLabel() = if (this == 1) "1 canción" else "$this canciones"
-
-private fun Long.formatDuration(): String {
-    val totalSeconds = milliseconds.inWholeSeconds
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.US, "%d:%02d", minutes, seconds)
     }
 }

@@ -17,10 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.designsystem.text.asString
+import com.catlytics.feature.home.impl.R as HomeR
 
 @Composable
 internal fun PermissionRequiredContent(
@@ -28,12 +32,12 @@ internal fun PermissionRequiredContent(
     modifier: Modifier = Modifier,
 ) {
     EmptyStateContent(
-        message = "Catlytics necesita permiso para leer tu musica local.",
+        message = stringResource(HomeR.string.home_permission_required_message),
         modifier = modifier,
         contentOffset = (-68).dp,
         action = {
             Button(onClick = onRequestPermission) {
-                Text(text = "Permitir acceso a musica")
+                Text(text = stringResource(HomeR.string.home_permission_required_action))
             }
         },
     )
@@ -49,7 +53,7 @@ internal fun LoadingContent(modifier: Modifier = Modifier) {
 @Composable
 internal fun EmptyLibraryContent(modifier: Modifier = Modifier) {
     EmptyStateContent(
-        message = "No encontramos canciones en este dispositivo.",
+        message = stringResource(HomeR.string.home_empty_library_message),
         modifier = modifier,
         contentOffset = (-34).dp,
     )
@@ -98,7 +102,7 @@ private fun EmptyStateContent(
 internal fun NoSearchResultsContent(modifier: Modifier = Modifier) {
     Text(
         modifier = modifier,
-        text = "No encontramos canciones que coincidan con tu búsqueda.",
+        text = stringResource(HomeR.string.home_search_no_results_message),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -106,12 +110,12 @@ internal fun NoSearchResultsContent(modifier: Modifier = Modifier) {
 
 @Composable
 internal fun ErrorContent(
-    message: String,
+    message: UiText,
     modifier: Modifier = Modifier,
 ) {
     Text(
         modifier = modifier,
-        text = message,
+        text = message.asString(),
         style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.error,
     )

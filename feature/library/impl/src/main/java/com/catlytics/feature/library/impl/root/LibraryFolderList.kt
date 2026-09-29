@@ -33,12 +33,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.sortedFoldersByDirection
 
 @Composable
@@ -71,12 +74,12 @@ internal fun LibraryFolderList(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Carpetas musicales",
+                    text = stringResource(LibraryR.string.library_folders_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 Text(
-                    text = "Elige qué carpetas forman parte de tu biblioteca.",
+                    text = stringResource(LibraryR.string.library_folders_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -215,7 +218,11 @@ private fun FolderDetails(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = folder.trackCount.trackCountLabel(),
+            text = pluralStringResource(
+                LibraryR.plurals.library_track_count,
+                folder.trackCount,
+                folder.trackCount,
+            ),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -234,7 +241,10 @@ private fun FolderOptionsMenu(
         IconButton(onClick = { onExpandedChange(true) }) {
             Icon(
                 painter = painterResource(R.drawable.ic_options),
-                contentDescription = "Opciones de ${folder.name}",
+                contentDescription = stringResource(
+                    LibraryR.string.library_folder_options_content_description,
+                    folder.name,
+                ),
             )
         }
         DropdownMenu(
@@ -244,12 +254,12 @@ private fun FolderOptionsMenu(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
             DropdownMenuItem(
-                text = { Text("Agregar a playlist") },
+                text = { Text(stringResource(LibraryR.string.library_action_add_to_playlist)) },
                 onClick = { onExpandedChange(false); onAddToPlaylist() },
                 leadingIcon = { Icon(painterResource(R.drawable.ic_playlist), null) },
             )
             FolderVisibilityMenuItem(
-                label = "Mostrar carpeta",
+                label = stringResource(LibraryR.string.library_action_show_folder),
                 iconRes = R.drawable.ic_show,
                 selected = folder.isVisible,
                 onClick = {
@@ -258,7 +268,7 @@ private fun FolderOptionsMenu(
                 },
             )
             FolderVisibilityMenuItem(
-                label = "Ocultar carpeta",
+                label = stringResource(LibraryR.string.library_action_hide_folder),
                 iconRes = R.drawable.ic_hide,
                 selected = !folder.isVisible,
                 onClick = {
@@ -312,5 +322,3 @@ private fun FolderVisibilityMenuItem(
         onClick = onClick,
     )
 }
-
-private fun Int.trackCountLabel() = if (this == 1) "1 canción" else "$this canciones"

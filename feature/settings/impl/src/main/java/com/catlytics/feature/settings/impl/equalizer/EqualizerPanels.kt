@@ -1,5 +1,6 @@
 package com.catlytics.feature.settings.impl.equalizer
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,8 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.model.EqualizerError
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.feature.settings.impl.R
 
 @Composable
 internal fun EqualizerGlassPanel(
@@ -124,14 +128,14 @@ internal fun EqualizerOutputRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            EqualizerSectionLabel(text = "OUTPUT")
+            EqualizerSectionLabel(text = stringResource(R.string.settings_equalizer_output_label))
             Text(
-                text = "Activar ecualizador",
+                text = stringResource(R.string.settings_equalizer_enable_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = equalizerState.availabilityLabel,
+                text = equalizerState.availabilityLabel(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -145,9 +149,20 @@ internal fun EqualizerOutputRow(
 }
 
 // Local UI extension
-private val EqualizerState.availabilityLabel: String
-    get() = when {
-        isAvailable && presets.isNotEmpty() -> "${presets.size} presets disponibles"
-        isAvailable -> "Sesión lista, sin presets disponibles"
-        else -> errorMessage ?: "Reproduce una canción para activar el ecualizador"
+@Composable
+private fun EqualizerState.availabilityLabel(): String = when {
+    isAvailable && presets.isNotEmpty() ->
+        stringResource(R.string.settings_equalizer_presets_available, presets.size)
+    isAvailable -> stringResource(R.string.settings_equalizer_session_ready)
+    else -> error?.let { stringResource(it.messageRes) }
+        ?: stringResource(R.string.settings_equalizer_not_available_hint)
+}
+
+@get:StringRes
+internal val EqualizerError.messageRes: Int
+    get() = when (this) {
+        EqualizerError.AudioSessionUnavailable -> R.string.settings_equalizer_error_audio_session
+        EqualizerError.EqualizerUnavailable -> R.string.settings_equalizer_error_unavailable
+        EqualizerError.PlaybackRequired -> R.string.settings_equalizer_error_playback_required
+        EqualizerError.PresetsUnreadable -> R.string.settings_equalizer_error_presets_unreadable
     }

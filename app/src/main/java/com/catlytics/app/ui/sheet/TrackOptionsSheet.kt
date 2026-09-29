@@ -1,5 +1,6 @@
 package com.catlytics.app.ui.sheet
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,12 +24,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.Track
 
 internal data class TrackOption(
-    val text: String,
+    @param:StringRes val textRes: Int,
     val icon: Int,
     val enabled: Boolean = true,
     val onClick: () -> Unit,
@@ -53,21 +56,25 @@ internal fun buildTrackOptions(
 ): List<TrackOption> = buildList {
     add(
         TrackOption(
-            text = "Agregar a playlist",
+            textRes = AppR.string.app_track_option_add_to_playlist,
             icon = R.drawable.ic_add_playlist,
             onClick = callbacks.onAddToPlaylist,
         ),
     )
     add(
         TrackOption(
-            text = if (isLiked) "Quitar de Tus me gusta" else "Guardar en Tus me gusta",
+            textRes = if (isLiked) {
+                AppR.string.app_track_option_remove_from_liked
+            } else {
+                AppR.string.app_track_option_save_to_liked
+            },
             icon = if (isLiked) R.drawable.ic_favorite_fill else R.drawable.ic_favorite,
             onClick = callbacks.onToggleLiked,
         ),
     )
     add(
         TrackOption(
-            text = "Reproducir siguiente",
+            textRes = AppR.string.app_track_option_play_next,
             icon = R.drawable.ic_skip_next,
             enabled = canAddToQueue,
             onClick = callbacks.onPlayNext,
@@ -75,7 +82,7 @@ internal fun buildTrackOptions(
     )
     add(
         TrackOption(
-            text = "Agregar a la cola",
+            textRes = AppR.string.app_track_option_add_to_queue,
             icon = R.drawable.ic_add,
             enabled = canAddToQueue,
             onClick = callbacks.onAddToQueue,
@@ -83,7 +90,7 @@ internal fun buildTrackOptions(
     )
     add(
         TrackOption(
-            text = "Ir al álbum",
+            textRes = AppR.string.app_track_option_go_to_album,
             icon = R.drawable.ic_album,
             enabled = track.albumId != null && track.albumTitle != null,
             onClick = callbacks.onGoToAlbum,
@@ -91,7 +98,7 @@ internal fun buildTrackOptions(
     )
     add(
         TrackOption(
-            text = "Ir al artista",
+            textRes = AppR.string.app_track_option_go_to_artist,
             icon = R.drawable.ic_artist,
             onClick = callbacks.onGoToArtist,
         ),
@@ -99,7 +106,7 @@ internal fun buildTrackOptions(
     if (canRemoveFromPlaylist) {
         add(
             TrackOption(
-                text = "Quitar de playlist",
+                textRes = AppR.string.app_track_option_remove_from_playlist,
                 icon = R.drawable.ic_delete,
                 onClick = callbacks.onRemoveFromPlaylist,
             ),
@@ -153,7 +160,7 @@ internal fun TrackOptionsSheet(
             )
             options.forEach { option ->
                 TrackOptionItem(
-                    text = option.text,
+                    textRes = option.textRes,
                     icon = option.icon,
                     enabled = option.enabled,
                     onClick = option.onClick,
@@ -197,7 +204,10 @@ internal fun TrackOptionsDropdownMenu(
         IconButton(onClick = { expanded = true }) {
             Icon(
                 painter = painterResource(id = R.drawable.ic_options),
-                contentDescription = "Opciones de ${track.title}",
+                contentDescription = stringResource(
+                    AppR.string.app_content_description_track_options,
+                    track.title,
+                ),
             )
         }
         DropdownMenu(
@@ -208,7 +218,7 @@ internal fun TrackOptionsDropdownMenu(
         ) {
             options.forEach { option ->
                 DropdownMenuItem(
-                    text = { Text(option.text) },
+                    text = { Text(stringResource(option.textRes)) },
                     onClick = {
                         expanded = false
                         option.onClick()
@@ -228,7 +238,7 @@ internal fun TrackOptionsDropdownMenu(
 
 @Composable
 private fun TrackOptionItem(
-    text: String,
+    @StringRes textRes: Int,
     icon: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -242,7 +252,7 @@ private fun TrackOptionItem(
     ListItem(
         headlineContent = {
             Text(
-                text = text,
+                text = stringResource(textRes),
                 color = color,
             )
         },

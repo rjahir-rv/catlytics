@@ -39,11 +39,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.Track
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,9 +74,12 @@ internal fun AddTracksToPlaylistSheet(
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Agregar canciones", style = MaterialTheme.typography.titleLarge)
             Text(
-                "Selecciona canciones de tu biblioteca",
+                stringResource(PlaylistsR.string.playlist_detail_add_tracks),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            Text(
+                stringResource(PlaylistsR.string.playlist_detail_add_tracks_hint),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -82,14 +87,19 @@ internal fun AddTracksToPlaylistSheet(
                 value = query,
                 onValueChange = { query = it },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar canciones o artistas") },
+                placeholder = {
+                    Text(stringResource(PlaylistsR.string.playlist_detail_add_tracks_search_placeholder))
+                },
                 leadingIcon = {
                     Icon(painterResource(R.drawable.ic_search), contentDescription = null)
                 },
                 trailingIcon = {
                     if (query.isNotBlank()) {
                         IconButton(onClick = { query = "" }) {
-                            Icon(painterResource(R.drawable.ic_close), "Limpiar búsqueda")
+                            Icon(
+                                painterResource(R.drawable.ic_close),
+                                stringResource(PlaylistsR.string.playlists_clear_search_content_description),
+                            )
                         }
                     }
                 },
@@ -106,9 +116,9 @@ internal fun AddTracksToPlaylistSheet(
                 ) {
                     Text(
                         if (tracks.isEmpty()) {
-                            "No hay canciones disponibles."
+                            stringResource(PlaylistsR.string.playlist_detail_add_tracks_empty)
                         } else {
-                            "No encontramos canciones para esta búsqueda."
+                            stringResource(PlaylistsR.string.playlist_detail_add_tracks_no_search_results)
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -148,7 +158,11 @@ internal fun AddTracksToPlaylistSheet(
                                     overflow = TextOverflow.Ellipsis,
                                 )
                                 Text(
-                                    if (alreadyAdded) "Ya agregada" else track.artist.name,
+                                    if (alreadyAdded) {
+                                        stringResource(PlaylistsR.string.playlists_already_added)
+                                    } else {
+                                        track.artist.name
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     maxLines = 1,
@@ -179,9 +193,9 @@ internal fun AddTracksToPlaylistSheet(
             ) {
                 Text(
                     if (selectedIds.isEmpty()) {
-                        "Agregar canciones"
+                        stringResource(PlaylistsR.string.playlist_detail_add_tracks)
                     } else {
-                        "Agregar (${selectedIds.size})"
+                        stringResource(PlaylistsR.string.playlist_detail_add_selected, selectedIds.size)
                     },
                 )
             }
@@ -216,10 +230,15 @@ internal fun EditPlaylistSheet(
                 .padding(horizontal = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text("Editar playlist", style = MaterialTheme.typography.titleLarge)
+            Text(
+                stringResource(PlaylistsR.string.playlist_detail_edit),
+                style = MaterialTheme.typography.titleLarge,
+            )
             AsyncImage(
                 model = artworkUri,
-                contentDescription = "Vista previa de portada",
+                contentDescription = stringResource(
+                    PlaylistsR.string.playlist_detail_artwork_preview_content_description,
+                ),
                 modifier = Modifier
                     .size(144.dp)
                     .align(Alignment.CenterHorizontally)
@@ -233,20 +252,24 @@ internal fun EditPlaylistSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
             ) {
-                TextButton(onClick = onChooseArtwork) { Text("Cambiar imagen") }
+                TextButton(onClick = onChooseArtwork) {
+                    Text(stringResource(PlaylistsR.string.playlist_detail_change_artwork))
+                }
                 if (artworkUri != null) {
-                    TextButton(onClick = onRemoveArtwork) { Text("Quitar") }
+                    TextButton(onClick = onRemoveArtwork) {
+                        Text(stringResource(PlaylistsR.string.playlist_detail_remove_artwork))
+                    }
                 }
             }
             OutlinedTextField(
                 value = name,
                 onValueChange = onNameChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Nombre") },
+                label = { Text(stringResource(PlaylistsR.string.playlists_name_label)) },
                 singleLine = true,
                 isError = name.isBlank(),
                 supportingText = if (name.isBlank()) {
-                    { Text("El nombre no puede estar vacío") }
+                    { Text(stringResource(PlaylistsR.string.playlist_detail_name_required)) }
                 } else {
                     null
                 },
@@ -255,7 +278,7 @@ internal fun EditPlaylistSheet(
                 value = description,
                 onValueChange = onDescriptionChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Descripción") },
+                label = { Text(stringResource(PlaylistsR.string.playlist_detail_description_label)) },
                 minLines = 3,
                 maxLines = 5,
             )
@@ -263,8 +286,12 @@ internal fun EditPlaylistSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End),
             ) {
-                OutlinedButton(onClick = onDismiss) { Text("Cancelar") }
-                Button(onClick = onSave, enabled = name.isNotBlank()) { Text("Guardar") }
+                OutlinedButton(onClick = onDismiss) {
+                    Text(stringResource(PlaylistsR.string.playlists_action_cancel))
+                }
+                Button(onClick = onSave, enabled = name.isNotBlank()) {
+                    Text(stringResource(PlaylistsR.string.playlists_action_save))
+                }
             }
             Spacer(Modifier.height(24.dp))
         }

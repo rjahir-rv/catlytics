@@ -1,5 +1,6 @@
 package com.catlytics.feature.home.impl
 
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopTrack
 
@@ -24,5 +25,5 @@ internal sealed interface HomeUiState {
             emptySet()
         },
     ) : HomeUiState
-    data class Error(val message: String) : HomeUiState
+    data class Error(val message: UiText) : HomeUiState
 }

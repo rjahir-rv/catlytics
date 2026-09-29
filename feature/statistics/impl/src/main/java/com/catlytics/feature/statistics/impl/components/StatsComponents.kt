@@ -47,6 +47,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -56,12 +59,14 @@ import coil3.request.crossfade
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningNarrative
+import com.catlytics.core.model.ListeningNarrativeKind
 import com.catlytics.core.model.ListeningStreak
 import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.StatsGranularity
 import com.catlytics.core.model.TopAlbum
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
+import com.catlytics.feature.statistics.impl.R as StatsR
 import com.catlytics.feature.statistics.impl.formatListeningDuration
 import com.catlytics.feature.statistics.impl.formatPlayCountLabel
 
@@ -90,7 +95,7 @@ internal fun DashboardHeroCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = "Esta semana",
+                    text = stringResource(StatsR.string.stats_dashboard_this_week),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                 )
@@ -147,9 +152,13 @@ private fun StreakPill(
         )
         Text(
             text = if (hasStreak) {
-                "${streak.currentDays} ${if (streak.currentDays == 1) "día" else "días"}"
+                pluralStringResource(
+                    StatsR.plurals.stats_streak_days,
+                    streak.currentDays,
+                    streak.currentDays,
+                )
             } else {
-                "Sin racha"
+                stringResource(StatsR.string.stats_streak_none)
             },
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
@@ -165,7 +174,7 @@ internal fun ListeningTotalsRow(
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Histórico",
+            text = stringResource(StatsR.string.stats_totals_title),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 8.dp, start = 2.dp),
@@ -175,17 +184,17 @@ internal fun ListeningTotalsRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             ListeningTotalItem(
-                label = "Canciones",
+                label = stringResource(StatsR.string.stats_totals_tracks),
                 value = totals.trackCount,
                 modifier = Modifier.weight(1f),
             )
             ListeningTotalItem(
-                label = "Artistas",
+                label = stringResource(StatsR.string.stats_totals_artists),
                 value = totals.artistCount,
                 modifier = Modifier.weight(1f),
             )
             ListeningTotalItem(
-                label = "Álbumes",
+                label = stringResource(StatsR.string.stats_totals_albums),
                 value = totals.albumCount,
                 modifier = Modifier.weight(1f),
             )
@@ -234,7 +243,7 @@ private fun ListeningTotalItem(
 internal fun NarrativeSummaryCard(
     modifier: Modifier = Modifier,
     narrative: ListeningNarrative,
-    title: String = "Tu resumen"
+    title: String = stringResource(StatsR.string.stats_summary_title)
 ) {
     if (!narrative.eligible) return
 
@@ -286,13 +295,13 @@ internal fun NarrativeSummaryCard(
                     Spacer(modifier = Modifier.height(10.dp))
                     narrative.topTrack?.let { track ->
                         NarrativeStatRow(
-                            label = "Canción más escuchada",
+                            label = stringResource(StatsR.string.stats_narrative_top_track_label),
                             value = "${track.title} · ${formatPlayCountLabel(track.playCount)}",
                         )
                     }
                     narrative.topArtist?.let { artist ->
                         NarrativeStatRow(
-                            label = "Artista más escuchado",
+                            label = stringResource(StatsR.string.stats_narrative_top_artist_label),
                             value = "${artist.name} · ${formatListeningDuration(artist.totalListenedMillis)}",
                         )
                     }
@@ -304,52 +313,49 @@ internal fun NarrativeSummaryCard(
 
 @Composable
 private fun NarrativeHeadline(narrative: ListeningNarrative) {
-    val artistName = narrative.topArtist?.name
-    val trackTitle = narrative.topTrack?.title
-
-    when {
-        artistName != null -> {
-            Column {
-                Text(
-                    text = "Pasaste más tiempo con",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.9f),
-                )
-                Text(
-                    text = artistName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+    when (narrative.kind) {
+        ListeningNarrativeKind.TimeWithArtist -> {
+            NarrativeHeadlineText(
+                label = stringResource(StatsR.string.stats_narrative_time_with_artist),
+                value = (narrative.topArtist?.name ?: narrative.topTrack?.title).orEmpty(),
+            )
         }
-        trackTitle != null -> {
-            Column {
-                Text(
-                    text = "Tu canción favorita fue",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.9f),
-                )
-                Text(
-                    text = trackTitle,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
+        ListeningNarrativeKind.FavoriteTrack -> {
+            NarrativeHeadlineText(
+                label = stringResource(StatsR.string.stats_narrative_favorite_track),
+                value = narrative.topTrack?.title.orEmpty(),
+            )
         }
-        else -> {
+        ListeningNarrativeKind.Summary -> {
             Text(
-                text = narrative.headline,
+                text = stringResource(StatsR.string.stats_narrative_default_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
         }
+    }
+}
+
+@Composable
+private fun NarrativeHeadlineText(
+    label: String,
+    value: String,
+) {
+    Column {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.9f),
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -394,13 +400,16 @@ internal fun NarrativeProgressHint(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Desbloquea tu resumen",
+                text = stringResource(StatsR.string.stats_narrative_unlock_title),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Escucha ${formatListeningDuration(remaining)} más esta semana",
+                text = stringResource(
+                    StatsR.string.stats_narrative_unlock_hint,
+                    formatListeningDuration(remaining),
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -415,7 +424,10 @@ internal fun NarrativeProgressHint(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "${formatListeningDuration(totalListenedMillis)} / 1h",
+                text = stringResource(
+                    StatsR.string.stats_narrative_unlock_progress,
+                    formatListeningDuration(totalListenedMillis),
+                ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -453,13 +465,13 @@ internal fun ExploreStatsCta(
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Explorar estadísticas",
+                    text = stringResource(StatsR.string.stats_explore_cta_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
                 Text(
-                    text = "Semanas, meses y tops completos",
+                    text = stringResource(StatsR.string.stats_explore_cta_subtitle),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
                 )
@@ -534,14 +546,14 @@ internal fun PeriodSelectorHeader(
                 onClick = { onGranularityChange(StatsGranularity.WEEK) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
             ) {
-                Text("Semana")
+                Text(stringResource(StatsR.string.stats_granularity_week))
             }
             SegmentedButton(
                 selected = granularity == StatsGranularity.MONTH,
                 onClick = { onGranularityChange(StatsGranularity.MONTH) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
             ) {
-                Text("Mes")
+                Text(stringResource(StatsR.string.stats_granularity_month))
             }
         }
 
@@ -558,7 +570,9 @@ internal fun PeriodSelectorHeader(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Periodo anterior",
+                    contentDescription = stringResource(
+                        StatsR.string.stats_period_previous_content_description,
+                    ),
                 )
             }
             Column(
@@ -590,7 +604,9 @@ internal fun PeriodSelectorHeader(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "Periodo siguiente",
+                    contentDescription = stringResource(
+                        StatsR.string.stats_period_next_content_description,
+                    ),
                 )
             }
         }
@@ -630,9 +646,18 @@ internal fun PeriodSummaryCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                PeriodMetric(value = uniqueTracks.toString(), label = "canciones")
-                PeriodMetric(value = uniqueArtists.toString(), label = "artistas")
-                PeriodMetric(value = uniqueAlbums.toString(), label = "álbumes")
+                PeriodMetric(
+                    value = uniqueTracks.toString(),
+                    label = stringResource(StatsR.string.stats_period_metric_tracks),
+                )
+                PeriodMetric(
+                    value = uniqueArtists.toString(),
+                    label = stringResource(StatsR.string.stats_period_metric_artists),
+                )
+                PeriodMetric(
+                    value = uniqueAlbums.toString(),
+                    label = stringResource(StatsR.string.stats_period_metric_albums),
+                )
             }
         }
     }
@@ -676,7 +701,8 @@ internal fun ActivityChart(
     val maxMinutes = remember(dailyMinutes) {
         dailyMinutes.maxOrNull()?.coerceAtLeast(1f) ?: 1f
     }
-    val resolvedLabels = dayLabels ?: defaultDayLabels(safeDayCount)
+    val weekDayLabels = stringArrayResource(StatsR.array.stats_weekday_short_labels)
+    val resolvedLabels = dayLabels ?: defaultDayLabels(safeDayCount, weekDayLabels.toList())
     var selectedIndex by remember(safeDayCount) { mutableStateOf<Int?>(null) }
 
     Card(
@@ -701,7 +727,11 @@ internal fun ActivityChart(
             val selected = selectedIndex
             if (selected != null && selected in dailyMinutes.indices) {
                 Text(
-                    text = "Día ${selected + 1}: ${dailyMinutes[selected].toInt()} min",
+                    text = stringResource(
+                        StatsR.string.stats_chart_selected_day,
+                        selected + 1,
+                        dailyMinutes[selected].toInt(),
+                    ),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
@@ -820,11 +850,10 @@ private fun DayActivityBar(
     }
 }
 
-private fun defaultDayLabels(dayCount: Int): List<String> {
-    if (dayCount <= 0) return emptyList()
+private fun defaultDayLabels(dayCount: Int, weekDayLabels: List<String>): List<String> {
+    if (dayCount <= 0 || weekDayLabels.isEmpty()) return emptyList()
     if (dayCount <= 7) {
-        val week = listOf("L", "M", "X", "J", "V", "S", "D")
-        return List(dayCount) { week[it % week.size] }
+        return List(dayCount) { weekDayLabels[it % weekDayLabels.size] }
     }
     val step = when {
         dayCount <= 14 -> 2

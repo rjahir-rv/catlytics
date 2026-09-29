@@ -2,6 +2,7 @@
 
 package com.catlytics.app.ui.chrome
 
+import androidx.annotation.StringRes
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -16,6 +17,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsTopAppBar
 
@@ -29,7 +32,7 @@ internal fun TopLevelTopAppBar(
     onSearchQueryChange: (String) -> Unit,
     onSearchActionClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    searchPlaceholder: String = "Buscar",
+    @StringRes searchPlaceholderRes: Int = AppR.string.app_search_placeholder_default,
     containerColor: Color? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
@@ -42,7 +45,7 @@ internal fun TopLevelTopAppBar(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
                     modifier = Modifier.focusRequester(searchFocusRequester),
-                    placeholder = { Text(searchPlaceholder) },
+                    placeholder = { Text(stringResource(searchPlaceholderRes)) },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -67,9 +70,9 @@ internal fun TopLevelTopAppBar(
                             },
                         ),
                         contentDescription = if (isSearchExpanded) {
-                            "Cerrar búsqueda"
+                            stringResource(AppR.string.app_action_close_search)
                         } else {
-                            searchPlaceholder
+                            stringResource(searchPlaceholderRes)
                         },
                     )
                 }
@@ -77,7 +80,7 @@ internal fun TopLevelTopAppBar(
             IconButton(onClick = onSettingsClick) {
                 Icon(
                     painter = painterResource(R.drawable.ic_settings),
-                    contentDescription = "Abrir ajustes",
+                    contentDescription = stringResource(AppR.string.app_action_open_settings),
                 )
             }
         },
@@ -86,7 +89,7 @@ internal fun TopLevelTopAppBar(
 
 @Composable
 internal fun SettingsTopAppBar(
-    title: String = "Ajustes",
+    title: String,
     onBack: () -> Unit,
     containerColor: Color? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
@@ -99,7 +102,7 @@ internal fun SettingsTopAppBar(
             IconButton(onClick = onBack) {
                 Icon(
                     painter = painterResource(R.drawable.ic_arrow_left),
-                    contentDescription = "Volver",
+                    contentDescription = stringResource(AppR.string.app_action_back),
                 )
             }
         },
@@ -116,7 +119,7 @@ internal fun LibraryDetailTopAppBar(
     searchQuery: String = "",
     onSearchQueryChange: (String) -> Unit = {},
     onSearchActionClick: () -> Unit = {},
-    searchPlaceholder: String = "Buscar",
+    @StringRes searchPlaceholderRes: Int = AppR.string.app_search_placeholder_default,
     searchFocusRequester: FocusRequester? = null,
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
@@ -132,7 +135,7 @@ internal fun LibraryDetailTopAppBar(
                     value = searchQuery,
                     onValueChange = onSearchQueryChange,
                     modifier = if (searchFocusRequester != null) Modifier.focusRequester(searchFocusRequester) else Modifier,
-                    placeholder = { Text(searchPlaceholder) },
+                    placeholder = { Text(stringResource(searchPlaceholderRes)) },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.Transparent,
@@ -149,7 +152,7 @@ internal fun LibraryDetailTopAppBar(
             IconButton(onClick = onBack) {
                 Icon(
                     painter = painterResource(R.drawable.ic_arrow_left),
-                    contentDescription = "Volver",
+                    contentDescription = stringResource(AppR.string.app_action_back),
                 )
             }
         },
@@ -165,9 +168,9 @@ internal fun LibraryDetailTopAppBar(
                             },
                         ),
                         contentDescription = if (isSearchExpanded) {
-                            "Cerrar búsqueda"
+                            stringResource(AppR.string.app_action_close_search)
                         } else {
-                            searchPlaceholder
+                            stringResource(searchPlaceholderRes)
                         },
                     )
                 }

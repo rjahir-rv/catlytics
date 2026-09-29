@@ -1,6 +1,8 @@
 package com.catlytics.feature.playlists.impl
 
+import android.content.res.Resources
 import android.widget.Toast
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -45,6 +50,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.CreatePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
@@ -52,7 +59,9 @@ import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUs
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.PlaylistSourceKind
 import com.catlytics.core.model.PlaylistSourcePreview
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -62,9 +71,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+/** Playlist agregada, con su id para poder resolver el nombre de la playlist del sistema. */
+data class PlaylistRef(
+    val id: String,
+    val name: String,
+)
+
 data class AddToPlaylistResult(
     val totalAdded: Int,
-    val playlistNames: List<String>,
+    val playlists: List<PlaylistRef>,
 )
 
 internal fun pendingTrackCount(playlist: Playlist, sourceTrackIds: List<String>): Int =
@@ -128,22 +143,21 @@ class AddToPlaylistViewModel @Inject constructor(
                 !isPlaylistFullyAdded(playlist, sourceTrackIds)
             }
             if (targetPlaylistIds.isEmpty()) {
-                onComplete(AddToPlaylistResult(totalAdded = 0, playlistNames = emptyList()))
+                onComplete(AddToPlaylistResult(totalAdded = 0, playlists = emptyList()))
                 return@launch
             }
             val addedByPlaylist = addToPlaylist.addToPlaylists(targetPlaylistIds, source)
             var totalAdded = 0
-            val playlistNames = mutableListOf<String>()
+            val addedPlaylists = mutableListOf<PlaylistRef>()
             addedByPlaylist.forEach { (playlistId, addedCount) ->
                 totalAdded += addedCount
                 if (addedCount > 0) {
-                    val playlistName = playlists.value.firstOrNull { it.id == playlistId }?.name
-                    if (playlistName != null) {
-                        playlistNames += playlistName
+                    playlists.value.firstOrNull { it.id == playlistId }?.let { playlist ->
+                        addedPlaylists += PlaylistRef(id = playlist.id, name = playlist.name)
                     }
                 }
             }
-            onComplete(AddToPlaylistResult(totalAdded = totalAdded, playlistNames = playlistNames))
+            onComplete(AddToPlaylistResult(totalAdded = totalAdded, playlists = addedPlaylists))
         }
     }
 }
@@ -158,6 +172,7 @@ fun AddToPlaylistSheet(
     viewModel: AddToPlaylistViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val preview by viewModel.preview.collectAsStateWithLifecycle()
     val sourceTrackIds = preview?.trackIds.orEmpty()
@@ -188,7 +203,9 @@ fun AddToPlaylistSheet(
             if (allowCreate) {
                 item {
                     ListItem(
-                        headlineContent = { Text("Nueva playlist") },
+                        headlineContent = {
+                            Text(stringResource(PlaylistsR.string.playlists_new_playlist))
+                        },
                         leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -206,7 +223,7 @@ fun AddToPlaylistSheet(
                 ListItem(
                     headlineContent = {
                         Text(
-                            text = playlist.name,
+                            text = playlist.displayName(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -214,11 +231,19 @@ fun AddToPlaylistSheet(
                     supportingContent = {
                         Text(
                             text = when {
-                                isFullyAdded -> "Ya agregada"
+                                isFullyAdded -> stringResource(PlaylistsR.string.playlists_already_added)
                                 pendingCount < sourceTrackIds.size && sourceTrackIds.isNotEmpty() -> {
-                                    "$pendingCount canciones nuevas"
+                                    pluralStringResource(
+                                        PlaylistsR.plurals.add_to_playlist_pending_track_count,
+                                        pendingCount,
+                                        pendingCount,
+                                    )
                                 }
-                                else -> "${playlist.trackIds.size} canciones"
+                                else -> pluralStringResource(
+                                    PlaylistsR.plurals.playlists_track_count,
+                                    playlist.trackIds.size,
+                                    playlist.trackIds.size,
+                                )
                             },
                         )
                     },
@@ -226,7 +251,7 @@ fun AddToPlaylistSheet(
                         PlaylistCoverImage(
                             playlistId = playlist.id,
                             artworkUri = playlist.artworkUri,
-                            name = playlist.name,
+                            name = playlist.displayName(),
                         )
                     },
                     trailingContent = {
@@ -258,7 +283,7 @@ fun AddToPlaylistSheet(
                             result?.let {
                                 Toast.makeText(
                                     context,
-                                    addToPlaylistToastMessage(it),
+                                    addToPlaylistToastMessage(it, resources).resolve(resources),
                                     Toast.LENGTH_SHORT,
                                 ).show()
                             }
@@ -267,14 +292,18 @@ fun AddToPlaylistSheet(
                     },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Hecho")
+                    Text(stringResource(PlaylistsR.string.add_to_playlist_done))
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
     if (creating) {
-        NameDialog("Nueva playlist", "", { creating = false }) { name ->
+        NameDialog(
+            title = stringResource(PlaylistsR.string.playlists_new_playlist),
+            initialName = "",
+            onDismiss = { creating = false },
+        ) { name ->
             creating = false
             viewModel.createPlaylistForSelection(name) { playlistId ->
                 selectedPlaylistIds = selectedPlaylistIds + playlistId
@@ -299,7 +328,10 @@ private fun PlaylistCoverImage(
     )
     AsyncImage(
         model = artworkUri,
-        contentDescription = "Portada de $name",
+        contentDescription = stringResource(
+            PlaylistsR.string.playlists_artwork_content_description,
+            name,
+        ),
         modifier = modifier
             .size(48.dp)
             .clip(RoundedCornerShape(12.dp)),
@@ -323,14 +355,18 @@ private fun SourceCoverImage(
     if (artworkUri == null) {
         Image(
             painter = painterResource(R.drawable.placeholder_album),
-            contentDescription = title?.let { "Portada de $it" },
+            contentDescription = title?.let {
+                stringResource(PlaylistsR.string.playlists_artwork_content_description, it)
+            },
             modifier = imageModifier,
             contentScale = ContentScale.Crop,
         )
     } else {
         AsyncImage(
             model = artworkUri,
-            contentDescription = title?.let { "Portada de $it" },
+            contentDescription = title?.let {
+                stringResource(PlaylistsR.string.playlists_artwork_content_description, it)
+            },
             modifier = imageModifier,
             placeholder = painterResource(R.drawable.placeholder_album),
             error = painterResource(R.drawable.placeholder_album),
@@ -340,11 +376,24 @@ private fun SourceCoverImage(
     }
 }
 
+@StringRes
+private fun PlaylistSourceKind.fallbackTitleRes(): Int = when (this) {
+    PlaylistSourceKind.Track -> PlaylistsR.string.playlists_source_track
+    PlaylistSourceKind.Album -> PlaylistsR.string.playlists_source_album
+    PlaylistSourceKind.Artist -> PlaylistsR.string.playlists_source_artist
+    PlaylistSourceKind.Folder -> PlaylistsR.string.playlists_source_folder
+    PlaylistSourceKind.Collection -> PlaylistsR.string.add_to_playlist_title
+}
+
 @Composable
 private fun AddToPlaylistHeader(
     preview: PlaylistSourcePreview?,
     modifier: Modifier = Modifier,
 ) {
+    val title = preview?.let { it.title ?: stringResource(it.kind.fallbackTitleRes()) }
+    val subtitle = preview?.albumCount
+        ?.let { pluralStringResource(PlaylistsR.plurals.playlists_album_count, it, it) }
+        ?: preview?.subtitle
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -354,20 +403,20 @@ private fun AddToPlaylistHeader(
     ) {
         SourceCoverImage(
             artworkUri = preview?.artworkUri,
-            title = preview?.title,
+            title = title,
         )
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = preview?.title ?: "Agregar a playlist",
+                text = title ?: stringResource(PlaylistsR.string.add_to_playlist_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            preview?.subtitle?.let { subtitle ->
+            subtitle?.let { subtitle ->
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
@@ -378,7 +427,11 @@ private fun AddToPlaylistHeader(
             }
             preview?.itemCount?.takeIf { it > 0 }?.let { count ->
                 Text(
-                    text = count.trackCountLabel(),
+                    text = pluralStringResource(
+                        PlaylistsR.plurals.playlists_track_count,
+                        count,
+                        count,
+                    ),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -386,35 +439,55 @@ private fun AddToPlaylistHeader(
         }
         Icon(
             painter = painterResource(R.drawable.ic_check_list),
-            contentDescription = "Selección múltiple",
+            contentDescription = stringResource(
+                PlaylistsR.string.add_to_playlist_multiselect_content_description,
+            ),
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(24.dp),
         )
     }
 }
 
-private fun Int.trackCountLabel() = if (this == 1) "1 canción" else "$this canciones"
-
-private fun addToPlaylistToastMessage(result: AddToPlaylistResult): String {
+private fun addToPlaylistToastMessage(result: AddToPlaylistResult, resources: Resources): UiText {
     if (result.totalAdded == 0) {
-        return "No se agregaron canciones nuevas"
+        return UiText.Resource(PlaylistsR.string.add_to_playlist_toast_none)
     }
-    return when (result.playlistNames.size) {
-        0 -> when (result.totalAdded) {
-            1 -> "Canción agregada"
-            else -> "${result.totalAdded} canciones agregadas"
-        }
+    return when (result.playlists.size) {
+        0 -> UiText.Plural(PlaylistsR.plurals.add_to_playlist_toast_added, result.totalAdded)
         1 -> playlistToastMessage(
-            playlistName = result.playlistNames.first(),
+            playlist = result.playlists.first(),
             addedCount = result.totalAdded,
+            resources = resources,
         )
-        else -> "${result.totalAdded} canciones agregadas a ${result.playlistNames.size} playlists"
+        else -> UiText.Resource(
+            PlaylistsR.string.add_to_playlist_toast_multiple,
+            listOf(result.totalAdded, result.playlists.size),
+        )
     }
 }
 
-private fun playlistToastMessage(playlistName: String, addedCount: Int): String =
-    when (addedCount) {
-        0 -> "No se agregaron canciones nuevas a $playlistName"
-        1 -> "Canción agregada a $playlistName"
-        else -> "$addedCount canciones agregadas a $playlistName"
+private fun playlistToastMessage(
+    playlist: PlaylistRef,
+    addedCount: Int,
+    resources: Resources,
+): UiText {
+    val playlistName = playlist.displayName(resources)
+    return when (addedCount) {
+        0 -> UiText.Resource(
+            PlaylistsR.string.add_to_playlist_toast_playlist_none,
+            listOf(playlistName),
+        )
+        else -> UiText.Plural(
+            PlaylistsR.plurals.add_to_playlist_toast_playlist_added,
+            addedCount,
+            listOf(addedCount, playlistName),
+        )
+    }
+}
+
+private fun PlaylistRef.displayName(resources: Resources): String =
+    if (id == LIKED_PLAYLIST_ID) {
+        resources.getString(PlaylistsR.string.playlist_liked_name)
+    } else {
+        name
     }

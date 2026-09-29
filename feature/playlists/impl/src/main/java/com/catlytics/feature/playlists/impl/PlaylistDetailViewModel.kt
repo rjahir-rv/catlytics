@@ -2,6 +2,7 @@ package com.catlytics.feature.playlists.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
@@ -41,7 +42,7 @@ internal sealed interface PlaylistDetailUiState {
 }
 
 internal sealed interface PlaylistDetailEffect {
-    data class Message(val text: String) : PlaylistDetailEffect
+    data class Message(val text: UiText) : PlaylistDetailEffect
     data object Deleted : PlaylistDetailEffect
 }
 
@@ -101,7 +102,7 @@ internal class PlaylistDetailViewModel @Inject constructor(
         val removed = removeTrack(id, trackIds)
         _effects.emit(
             PlaylistDetailEffect.Message(
-                if (removed == 1) "1 canción quitada" else "$removed canciones quitadas",
+                UiText.Plural(R.plurals.playlist_detail_tracks_removed, removed),
             ),
         )
     }
@@ -142,33 +143,34 @@ internal class PlaylistDetailViewModel @Inject constructor(
         deletePlaylist(id)
     }
 
-    fun addTracks(trackIds: List<String>, onAdded: () -> Unit) = viewModelScope.launch {
-        val id = playlistId.value ?: return@launch
-        try {
-            val added = addToPlaylist(
-                playlistId = id,
-                source = PlaylistSource.TrackCollectionSource(
-                    title = "Canciones seleccionadas",
-                    artworkUri = null,
-                    trackIds = trackIds,
-                ),
-            )
-            _effects.emit(
-                PlaylistDetailEffect.Message(
-                    if (added == 1) "1 canción agregada" else "$added canciones agregadas",
-                ),
-            )
-            onAdded()
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (error: Exception) {
-            _effects.emit(
-                PlaylistDetailEffect.Message(
-                    error.message ?: "No se pudieron agregar las canciones.",
-                ),
-            )
+    fun addTracks(trackIds: List<String>, title: String, onAdded: () -> Unit) =
+        viewModelScope.launch {
+            val id = playlistId.value ?: return@launch
+            try {
+                val added = addToPlaylist(
+                    playlistId = id,
+                    source = PlaylistSource.TrackCollectionSource(
+                        title = title,
+                        artworkUri = null,
+                        trackIds = trackIds,
+                    ),
+                )
+                _effects.emit(
+                    PlaylistDetailEffect.Message(
+                        UiText.Plural(R.plurals.playlist_detail_tracks_added, added),
+                    ),
+                )
+                onAdded()
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                _effects.emit(
+                    PlaylistDetailEffect.Message(
+                        UiText.Resource(R.string.playlist_detail_error_add_tracks),
+                    ),
+                )
+            }
         }
-    }
 
     private fun launchOperation(
         onSuccess: () -> Unit = {},
@@ -183,7 +185,7 @@ internal class PlaylistDetailViewModel @Inject constructor(
         } catch (error: Exception) {
             _effects.emit(
                 PlaylistDetailEffect.Message(
-                    error.message ?: "No se pudo completar la operación.",
+                    UiText.Resource(R.string.playlist_detail_error_generic),
                 ),
             )
         }
@@ -193,12 +195,16 @@ internal class PlaylistDetailViewModel @Inject constructor(
         val id = playlistId.value ?: return@launch
         exportPlaylistToM3u(id, uri).fold(
             onSuccess = {
-                _effects.emit(PlaylistDetailEffect.Message("Playlist exportada como M3U8."))
+                _effects.emit(
+                    PlaylistDetailEffect.Message(
+                        UiText.Resource(R.string.playlist_detail_export_success),
+                    ),
+                )
             },
             onFailure = { error ->
                 _effects.emit(
                     PlaylistDetailEffect.Message(
-                        error.message ?: "No se pudo exportar la playlist.",
+                        UiText.Resource(R.string.playlist_detail_error_export),
                     ),
                 )
             },

@@ -22,6 +22,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,6 +41,7 @@ import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.feature.home.impl.R as HomeR
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -162,7 +165,7 @@ internal fun DailyPlaylistScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "Necesitas al menos 5 canciones para crear tu Playlist diaria.",
+                text = stringResource(HomeR.string.daily_playlist_empty_message),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -201,7 +204,7 @@ internal fun DailyPlaylistScreen(
                             verticalArrangement = Arrangement.spacedBy(4.dp),
                         ) {
                             Text(
-                                text = "Tu selección para hoy",
+                                text = stringResource(HomeR.string.daily_playlist_title),
                                 style = MaterialTheme.typography.headlineSmall,
                             )
                             Row(
@@ -210,7 +213,11 @@ internal fun DailyPlaylistScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
                                 Text(
-                                    text = "${uiState.tracks.size} canciones elegidas para ti",
+                                    text = pluralStringResource(
+                                        HomeR.plurals.daily_playlist_tracks_count,
+                                        uiState.tracks.size,
+                                        uiState.tracks.size,
+                                    ),
                                     modifier = Modifier.weight(1f),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -222,7 +229,9 @@ internal fun DailyPlaylistScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.ic_shuffle),
-                                        contentDescription = "Reproducir aleatoriamente",
+                                        contentDescription = stringResource(
+                                            HomeR.string.daily_playlist_shuffle_content_description,
+                                        ),
                                         modifier = Modifier.size(24.dp),
                                     )
                                 }
@@ -232,7 +241,9 @@ internal fun DailyPlaylistScreen(
                                 ) {
                                     Icon(
                                         painter = painterResource(R.drawable.ic_play),
-                                        contentDescription = "Reproducir canciones",
+                                        contentDescription = stringResource(
+                                            HomeR.string.daily_playlist_play_all_content_description,
+                                        ),
                                         modifier = Modifier.size(24.dp),
                                     )
                                 }

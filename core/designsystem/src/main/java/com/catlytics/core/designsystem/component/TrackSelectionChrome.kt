@@ -31,6 +31,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
@@ -152,16 +154,22 @@ private fun TrackSelectionTopBar(
             IconButton(onClick = onClose) {
                 Icon(
                     painter = painterResource(R.drawable.ic_close),
-                    contentDescription = "Salir de la selección",
+                    contentDescription = stringResource(
+                        R.string.ds_selection_exit_content_description,
+                    ),
                 )
             }
             Text(
-                text = if (selectedCount == 1) "1 seleccionada" else "$selectedCount seleccionadas",
+                text = pluralStringResource(
+                    R.plurals.ds_selection_count,
+                    selectedCount,
+                    selectedCount,
+                ),
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.titleMedium,
             )
             TextButton(onClick = onSelectVisible) {
-                Text("Seleccionar todo")
+                Text(stringResource(R.string.ds_selection_select_all))
             }
         }
     }
@@ -202,7 +210,7 @@ private fun TrackSelectionActionBar(
             IconButton(onClick = onAddToPlaylist, enabled = enabled) {
                 Icon(
                     painter = painterResource(R.drawable.ic_add_playlist),
-                    contentDescription = "Agregar a playlist",
+                    contentDescription = stringResource(R.string.ds_selection_add_to_playlist),
                 )
             }
             if (showLike) {
@@ -212,9 +220,9 @@ private fun TrackSelectionActionBar(
                             if (likeRemoves) R.drawable.ic_favorite_fill else R.drawable.ic_favorite,
                         ),
                         contentDescription = if (likeRemoves) {
-                            "Quitar de Tus me gusta"
+                            stringResource(R.string.ds_selection_remove_from_liked)
                         } else {
-                            "Guardar en Tus me gusta"
+                            stringResource(R.string.ds_selection_save_to_liked)
                         },
                     )
                 }
@@ -222,13 +230,13 @@ private fun TrackSelectionActionBar(
             IconButton(onClick = onPlayNext, enabled = queueEnabled) {
                 Icon(
                     painter = painterResource(R.drawable.ic_skip_next),
-                    contentDescription = "Reproducir siguiente",
+                    contentDescription = stringResource(R.string.ds_selection_play_next),
                 )
             }
             IconButton(onClick = onAddToQueue, enabled = queueEnabled) {
                 Icon(
                     painter = painterResource(R.drawable.ic_add),
-                    contentDescription = "Agregar a la cola",
+                    contentDescription = stringResource(R.string.ds_selection_add_to_queue),
                 )
             }
             if (showRemove) {
@@ -236,9 +244,9 @@ private fun TrackSelectionActionBar(
                     Icon(
                         painter = painterResource(R.drawable.ic_delete),
                         contentDescription = if (removeUnlike) {
-                            "Quitar de Tus me gusta"
+                            stringResource(R.string.ds_selection_remove_from_liked)
                         } else {
-                            "Quitar de playlist"
+                            stringResource(R.string.ds_selection_remove_from_playlist)
                         },
                     )
                 }

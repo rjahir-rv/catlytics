@@ -6,11 +6,13 @@ import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.PlaylistSourceKind
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ResolvePlaylistSourcePreviewUseCaseTest {
@@ -61,6 +63,40 @@ class ResolvePlaylistSourcePreviewUseCaseTest {
         assertEquals("Hidden", preview.title)
         assertEquals("content://track-art/1", preview.artworkUri)
         assertEquals(1, preview.itemCount)
+    }
+
+    @Test
+    fun `unresolved sources expose null title with their kind`() = runTest {
+        val useCase = ResolvePlaylistSourcePreviewUseCase(FakeLibraryRepository())
+
+        val track = useCase(PlaylistSource.TrackSource("missing"))
+        val folder = useCase(PlaylistSource.FolderSource("missing"))
+
+        assertNull(track.title)
+        assertEquals(PlaylistSourceKind.Track, track.kind)
+        assertNull(folder.title)
+        assertEquals(PlaylistSourceKind.Folder, folder.kind)
+    }
+
+    @Test
+    fun `artist source exposes album count instead of formatted text`() = runTest {
+        val repository = FakeLibraryRepository(
+            artists = listOf(
+                ArtistSummary(
+                    artist = Artist(id = "artist-1", name = "Nova"),
+                    albumCount = 3,
+                    trackCount = 5,
+                ),
+            ),
+        )
+        val useCase = ResolvePlaylistSourcePreviewUseCase(repository)
+
+        val preview = useCase(PlaylistSource.ArtistSource("artist-1"))
+
+        assertEquals("Nova", preview.title)
+        assertEquals(3, preview.albumCount)
+        assertNull(preview.subtitle)
+        assertEquals(PlaylistSourceKind.Artist, preview.kind)
     }
 
     private fun track(

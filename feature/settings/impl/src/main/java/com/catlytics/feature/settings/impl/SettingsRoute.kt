@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -64,6 +65,7 @@ internal fun SettingsRoute(
     }
 
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     LaunchedEffect(Unit) {
         viewModel.refreshEqualizer()
@@ -75,12 +77,35 @@ internal fun SettingsRoute(
                 val stats = status.result.statistics
                 val playlists = status.result.playlists
                 val parts = mutableListOf<String>()
-                if (playlists != null) parts.add("${playlists.playlistCount} playlists")
-                if (stats != null) parts.add("${stats.eventCount} reproducciones")
-                val detail = if (parts.isNotEmpty()) " (${parts.joinToString(", ")})" else ""
+                if (playlists != null) {
+                    parts.add(
+                        resources.getQuantityString(
+                            R.plurals.settings_backup_export_toast_playlists,
+                            playlists.playlistCount,
+                            playlists.playlistCount,
+                        ),
+                    )
+                }
+                if (stats != null) {
+                    parts.add(
+                        resources.getQuantityString(
+                            R.plurals.settings_backup_export_toast_listens,
+                            stats.eventCount,
+                            stats.eventCount,
+                        ),
+                    )
+                }
+                val detail = if (parts.isNotEmpty()) {
+                    resources.getString(
+                        R.string.settings_backup_export_toast_detail,
+                        parts.joinToString(", "),
+                    )
+                } else {
+                    ""
+                }
                 Toast.makeText(
                     context,
-                    "Copia de seguridad exportada con éxito$detail",
+                    resources.getString(R.string.settings_backup_export_toast_success) + detail,
                     Toast.LENGTH_SHORT,
                 ).show()
                 viewModel.dismissUnifiedBackupStatus()

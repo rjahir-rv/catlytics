@@ -1,6 +1,7 @@
 package com.catlytics.feature.library.impl.artist
 
 import android.graphics.Bitmap
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -61,6 +62,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -78,6 +81,8 @@ import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
@@ -88,8 +93,7 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.model.TrackSelectionSnapshot
-import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
+import com.catlytics.feature.library.impl.R as LibraryR
 import kotlinx.coroutines.launch
 
 @Composable
@@ -123,10 +127,10 @@ internal fun LibraryArtistScreen(
             CircularProgressIndicator()
         }
         LibraryArtistUiState.NotFound -> ArtistMessage(
-            message = "Este artista ya no está disponible.",
+            message = stringResource(LibraryR.string.library_artist_not_found_message),
             modifier = modifier,
         )
-        is LibraryArtistUiState.Error -> ArtistMessage(uiState.message, modifier)
+        is LibraryArtistUiState.Error -> ArtistMessage(uiState.message.asString(), modifier)
         is LibraryArtistUiState.Success -> ArtistContent(
             content = uiState.content,
             playbackQueue = uiState.playbackQueue,
@@ -318,7 +322,10 @@ private fun ArtistHeader(
     ) {
         AsyncImage(
             model = artworkModel,
-            contentDescription = "Imagen de ${content.summary.artist.name}",
+            contentDescription = stringResource(
+                LibraryR.string.library_artist_image_content_description,
+                content.summary.artist.name,
+            ),
             modifier = Modifier
                 .fillMaxWidth(0.52f)
                 .aspectRatio(1f)
@@ -337,17 +344,31 @@ private fun ArtistHeader(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
+        val albumCountText = pluralStringResource(
+            LibraryR.plurals.library_album_count,
+            content.summary.albumCount,
+            content.summary.albumCount,
+        )
+        val trackCountText = pluralStringResource(
+            LibraryR.plurals.library_track_count,
+            content.summary.trackCount,
+            content.summary.trackCount,
+        )
         Text(
-            text = "${content.summary.albumCount} álbumes · ${content.summary.trackCount} canciones",
+            text = stringResource(
+                LibraryR.string.library_artist_metadata,
+                albumCountText,
+                trackCountText,
+            ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         FilledTonalButton(onClick = onShowMergePicker) {
-            Text("Fusionar con…")
+            Text(stringResource(LibraryR.string.library_artist_merge_open))
         }
         if (aliasCount > 0) {
             TextButton(onClick = onShowAliasManager) {
-                Text("Administrar fusiones ($aliasCount)")
+                Text(stringResource(LibraryR.string.library_artist_merge_manage, aliasCount))
             }
         }
     }
@@ -375,12 +396,12 @@ private fun ArtistMergeDialogs(
             }
             ModalBottomSheet(onDismissRequest = onDismiss) {
                 Text(
-                    text = "Elegir artista principal",
+                    text = stringResource(LibraryR.string.library_artist_merge_picker_title),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(horizontal = 20.dp),
                 )
                 Text(
-                    text = "El artista elegido conservará su nombre en toda la app.",
+                    text = stringResource(LibraryR.string.library_artist_merge_picker_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -388,7 +409,9 @@ private fun ArtistMergeDialogs(
                 OutlinedTextField(
                     value = dialog.query,
                     onValueChange = onQueryChange,
-                    label = { Text("Buscar artista") },
+                    label = {
+                        Text(stringResource(LibraryR.string.library_artist_merge_search_hint))
+                    },
                     singleLine = true,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -409,37 +432,53 @@ private fun ArtistMergeDialogs(
         }
         is ArtistMergeDialog.ConfirmMerge -> AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Fusionar artistas") },
+            title = { Text(stringResource(LibraryR.string.library_artist_merge_dialog_title)) },
             text = {
                 Text(
-                    "${state.content.summary.artist.name} pasará a formar parte de " +
-                        "${dialog.target.name}. Biblioteca y estadísticas usarán ese nombre.",
+                    stringResource(
+                        LibraryR.string.library_artist_merge_confirm_message,
+                        state.content.summary.artist.name,
+                        dialog.target.name,
+                    ),
                 )
             },
             confirmButton = {
                 Button(onClick = onConfirmMerge, enabled = !state.isMergeBusy) {
-                    Text(if (state.isMergeBusy) "Fusionando…" else "Fusionar")
+                    Text(
+                        if (state.isMergeBusy) {
+                            stringResource(LibraryR.string.library_action_merging)
+                        } else {
+                            stringResource(LibraryR.string.library_action_merge)
+                        },
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismiss, enabled = !state.isMergeBusy) {
-                    Text("Cancelar")
+                    Text(stringResource(LibraryR.string.library_action_cancel))
                 }
             },
         )
         ArtistMergeDialog.ManageAliases -> ModalBottomSheet(onDismissRequest = onDismiss) {
             Text(
-                text = "Artistas fusionados",
+                text = stringResource(LibraryR.string.library_artist_aliases_title),
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
             )
             state.aliases.forEachIndexed { index, alias ->
                 ListItem(
                     headlineContent = { Text(alias.source.name) },
-                    supportingContent = { Text("Se muestra como ${alias.target.name}") },
+                    supportingContent = {
+                        Text(
+                            stringResource(
+                                LibraryR.string.library_artist_alias_target,
+                                alias.target.name,
+                            ),
+                        )
+                    },
                     trailingContent = {
                         TextButton(onClick = { onUnmergeRequested(alias) }) {
-                            Text("Separar")
+                            Text(stringResource(LibraryR.string.library_action_unmerge))
                         }
                     },
                 )
@@ -448,21 +487,29 @@ private fun ArtistMergeDialogs(
         }
         is ArtistMergeDialog.ConfirmUnmerge -> AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Separar artista") },
+            title = { Text(stringResource(LibraryR.string.library_artist_unmerge_dialog_title)) },
             text = {
                 Text(
-                    "${dialog.alias.source.name} volverá a aparecer como artista independiente " +
-                        "y sus estadísticas se separarán.",
+                    stringResource(
+                        LibraryR.string.library_artist_unmerge_confirm_message,
+                        dialog.alias.source.name,
+                    ),
                 )
             },
             confirmButton = {
                 Button(onClick = onConfirmUnmerge, enabled = !state.isMergeBusy) {
-                    Text(if (state.isMergeBusy) "Separando…" else "Separar")
+                    Text(
+                        if (state.isMergeBusy) {
+                            stringResource(LibraryR.string.library_action_unmerging)
+                        } else {
+                            stringResource(LibraryR.string.library_action_unmerge)
+                        },
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = onDismiss, enabled = !state.isMergeBusy) {
-                    Text("Cancelar")
+                    Text(stringResource(LibraryR.string.library_action_cancel))
                 }
             },
         )
@@ -496,7 +543,7 @@ private fun ArtistSectionTabs(
             Tab(
                 selected = index == selectedIndex,
                 onClick = { onSectionSelected(index) },
-                text = { Text(section.label) },
+                text = { Text(stringResource(section.labelRes)) },
             )
         }
     }
@@ -580,7 +627,10 @@ private fun ArtistAlbumCard(
     ) {
         AsyncImage(
             model = album.artworkUri,
-            contentDescription = "Portada de ${album.title}",
+            contentDescription = stringResource(
+                LibraryR.string.library_album_cover_content_description,
+                album.title,
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
@@ -606,7 +656,11 @@ private fun ArtistAlbumCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = album.trackCount.trackCountLabel(),
+                    text = pluralStringResource(
+                        LibraryR.plurals.library_track_count,
+                        album.trackCount,
+                        album.trackCount,
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -614,7 +668,13 @@ private fun ArtistAlbumCard(
                 )
             }
             IconButton(onClick = onAddToPlaylist) {
-                Icon(painterResource(R.drawable.ic_options), "Opciones de ${album.title}")
+                Icon(
+                    painterResource(R.drawable.ic_options),
+                    stringResource(
+                        LibraryR.string.library_album_options_content_description,
+                        album.title,
+                    ),
+                )
             }
         }
     }
@@ -652,7 +712,11 @@ private fun ArtistTrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = "${track.artist.name} · ${track.durationMillis.formatDuration()}",
+                text = stringResource(
+                    LibraryR.string.library_track_metadata,
+                    track.artist.name,
+                    TrackDurationFormat.formatMinutesSeconds(track.durationMillis),
+                ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -663,7 +727,10 @@ private fun ArtistTrackRow(
             IconButton(onClick = onTrackOptions) {
                 Icon(
                     painter = painterResource(R.drawable.ic_options),
-                    contentDescription = "Opciones de ${track.title}",
+                    contentDescription = stringResource(
+                        LibraryR.string.library_track_options_content_description,
+                        track.title,
+                    ),
                 )
             }
         }
@@ -735,20 +802,10 @@ private fun ArtistMessage(
     }
 }
 
-private enum class ArtistDetailSection(val label: String) {
-    Songs("Canciones"),
-    Albums("Álbumes"),
+private enum class ArtistDetailSection(@param:StringRes val labelRes: Int) {
+    Songs(LibraryR.string.library_artist_tab_songs),
+    Albums(LibraryR.string.library_artist_tab_albums),
 }
-
-private fun Int.trackCountLabel() = if (this == 1) "1 canción" else "$this canciones"
-
-private fun Long.formatDuration(): String {
-    val totalSeconds = milliseconds.inWholeSeconds
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format(Locale.US, "%d:%02d", minutes, seconds)
-}
-
 
 @Preview(name = "Phone", widthDp = 390, heightDp = 844, showBackground = true)
 @Composable

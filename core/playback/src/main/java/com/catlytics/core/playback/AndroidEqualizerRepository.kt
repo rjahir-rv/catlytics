@@ -5,6 +5,7 @@ import androidx.media3.common.C
 import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
 import com.catlytics.core.model.EqualizerBand
+import com.catlytics.core.model.EqualizerError
 import com.catlytics.core.model.EqualizerLevelRange
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
@@ -87,7 +88,7 @@ class AndroidEqualizerRepository @Inject constructor(
             bands = runtime.bands,
             levelRange = runtime.levelRange,
             isAvailable = runtime.isAvailable,
-            errorMessage = runtime.errorMessage,
+            error = runtime.error,
         )
     }
 
@@ -123,7 +124,7 @@ class AndroidEqualizerRepository @Inject constructor(
     fun attachAudioSessionId(audioSessionId: Int) {
         releaseEqualizer()
         if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) {
-            runtimeState.value = EqualizerRuntimeState(errorMessage = "Sesión de audio no disponible.")
+            runtimeState.value = EqualizerRuntimeState(error = EqualizerError.AudioSessionUnavailable)
             return
         }
         runCatching {
@@ -134,9 +135,9 @@ class AndroidEqualizerRepository @Inject constructor(
             applyEnabled(latestEnabled)
             applyModeAndBands()
             refreshRuntimeCapabilities()
-        }.onFailure { error ->
+        }.onFailure {
             runtimeState.value = EqualizerRuntimeState(
-                errorMessage = error.message ?: "El ecualizador no está disponible en este dispositivo.",
+                error = EqualizerError.EqualizerUnavailable,
             )
         }
     }
@@ -149,7 +150,7 @@ class AndroidEqualizerRepository @Inject constructor(
     private fun refreshRuntimeCapabilities() {
         val effect = equalizer
         if (effect == null) {
-            runtimeState.value = EqualizerRuntimeState(errorMessage = "Reproduce una canción para activar el ecualizador.")
+            runtimeState.value = EqualizerRuntimeState(error = EqualizerError.PlaybackRequired)
             return
         }
 
@@ -185,9 +186,9 @@ class AndroidEqualizerRepository @Inject constructor(
                 currentPresetId = runCatching { effect.currentPreset }.getOrNull(),
                 isAvailable = true,
             )
-        }.onFailure { error ->
+        }.onFailure {
             runtimeState.value = EqualizerRuntimeState(
-                errorMessage = error.message ?: "No se pudieron leer los presets del dispositivo.",
+                error = EqualizerError.PresetsUnreadable,
             )
         }
     }
@@ -237,7 +238,7 @@ private data class EqualizerRuntimeState(
     val levelRange: EqualizerLevelRange? = null,
     val currentPresetId: Short? = null,
     val isAvailable: Boolean = false,
-    val errorMessage: String? = null,
+    val error: EqualizerError? = null,
 ) {
     fun resolvePresetName(preferredName: String?): String? =
         presets.firstOrNull { it.name.equals(preferredName, ignoreCase = true) }?.name

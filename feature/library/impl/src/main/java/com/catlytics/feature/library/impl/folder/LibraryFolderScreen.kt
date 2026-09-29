@@ -25,19 +25,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.feature.library.impl.R as LibraryR
 import androidx.compose.material3.IconButton
-import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun LibraryFolderScreen(
@@ -62,14 +65,17 @@ internal fun LibraryFolderScreen(
             CircularProgressIndicator()
         }
         LibraryFolderUiState.NotFound -> FolderMessage(
-            message = "Esta carpeta ya no está disponible.",
+            message = stringResource(LibraryR.string.library_folder_not_found_message),
             modifier = modifier,
         )
-        is LibraryFolderUiState.Error -> FolderMessage(uiState.message, modifier)
+        is LibraryFolderUiState.Error -> FolderMessage(uiState.message.asString(), modifier)
         is LibraryFolderUiState.Success -> {
             val content = uiState.content
             if (content.subfolders.isEmpty() && content.tracks.isEmpty()) {
-                FolderMessage("Esta carpeta no contiene música.", modifier)
+                FolderMessage(
+                    stringResource(LibraryR.string.library_folder_empty_message),
+                    modifier,
+                )
             } else {
                 val selectionState = rememberTrackSelectionState()
                 val selection = selectionState.value
@@ -148,7 +154,13 @@ private fun SubfolderRow(folder: LibraryFolder, onClick: () -> Unit, onAddToPlay
             tint = MaterialTheme.colorScheme.primary,
         )
         IconButton(onClick = onAddToPlaylist) {
-            Icon(painterResource(R.drawable.ic_options), "Opciones de ${folder.name}")
+            Icon(
+                painterResource(R.drawable.ic_options),
+                stringResource(
+                    LibraryR.string.library_folder_options_content_description,
+                    folder.name,
+                ),
+            )
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -158,7 +170,11 @@ private fun SubfolderRow(folder: LibraryFolder, onClick: () -> Unit, onAddToPlay
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = folder.trackCount.trackCountLabel(),
+                text = pluralStringResource(
+                    LibraryR.plurals.library_track_count,
+                    folder.trackCount,
+                    folder.trackCount,
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -196,7 +212,9 @@ private fun TrackRow(
                 if (selected) {
                     Icon(
                         painter = painterResource(R.drawable.ic_check_list),
-                        contentDescription = "Seleccionada",
+                        contentDescription = stringResource(
+                            LibraryR.string.library_track_selected_content_description,
+                        ),
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier
                             .size(22.dp)
@@ -215,13 +233,19 @@ private fun TrackRow(
             )
         }
         Text(
-            text = track.durationMillis.formatDuration(),
+            text = TrackDurationFormat.format(track.durationMillis),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (!selectionActive) {
             IconButton(onClick = onTrackOptions) {
-                Icon(painterResource(R.drawable.ic_options), "Opciones de ${track.title}")
+                Icon(
+                    painterResource(R.drawable.ic_options),
+                    stringResource(
+                        LibraryR.string.library_track_options_content_description,
+                        track.title,
+                    ),
+                )
             }
         }
     }
@@ -241,19 +265,5 @@ private fun FolderMessage(message: String, modifier: Modifier = Modifier) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-    }
-}
-
-private fun Int.trackCountLabel() = if (this == 1) "1 canción" else "$this canciones"
-
-private fun Long.formatDuration(): String {
-    val totalSeconds = milliseconds.inWholeSeconds
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.US, "%d:%02d", minutes, seconds)
     }
 }

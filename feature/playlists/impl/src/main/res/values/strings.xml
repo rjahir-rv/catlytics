@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Playlists: compartido -->
+    <string name="playlist_liked_name">Tus me gusta</string>
+    <string name="playlists_artwork_content_description">Portada de %1$s</string>
+    <string name="playlists_options_content_description">Opciones de %1$s</string>
+    <string name="playlists_name_label">Nombre</string>
+    <string name="playlists_clear_search_content_description">Limpiar búsqueda</string>
+    <string name="playlists_already_added">Ya agregada</string>
+    <string name="playlists_action_rename">Renombrar</string>
+    <string name="playlists_action_delete">Eliminar</string>
+    <string name="playlists_action_cancel">Cancelar</string>
+    <string name="playlists_action_save">Guardar</string>
+    <plurals name="playlists_track_count">
+        <item quantity="one">1 canción</item>
+        <item quantity="other">%1$d canciones</item>
+    </plurals>
+
+    <plurals name="playlists_album_count">
+        <item quantity="one">1 álbum</item>
+        <item quantity="other">%1$d álbumes</item>
+    </plurals>
+    <string name="playlists_source_track">Canción</string>
+    <string name="playlists_source_album">Álbum</string>
+    <string name="playlists_source_artist">Artista</string>
+    <string name="playlists_source_folder">Carpeta</string>
+
+    <!-- Playlists: listado -->
+    <string name="playlists_sort_content_description">Ordenar alfabéticamente</string>
+    <string name="playlists_sort_ascending">A-Z</string>
+    <string name="playlists_sort_descending">Z-A</string>
+    <string name="playlists_show_grid_content_description">Mostrar en mosaico</string>
+    <string name="playlists_show_list_content_description">Mostrar en lista</string>
+    <string name="playlists_add_content_description">Agregar</string>
+    <string name="playlists_new_playlist">Nueva playlist</string>
+    <string name="playlists_rename_title">Renombrar playlist</string>
+    <string name="playlists_change_cover">Cambiar portada</string>
+    <string name="playlists_remove_cover">Quitar portada</string>
+    <string name="playlists_delete_title">Eliminar %1$s</string>
+    <string name="playlists_delete_message">Esta acción no eliminará las canciones del dispositivo.</string>
+    <string name="playlists_empty_title">Aún no tienes playlists.</string>
+    <string name="playlists_empty_message">Toca el botón + para crear una y organizar tu música.</string>
+    <string name="playlists_no_search_results">No encontramos playlists que coincidan con tu búsqueda.</string>
+
+    <!-- Playlists: detalle -->
+    <string name="playlist_detail_not_found">Playlist no disponible.</string>
+    <string name="playlist_detail_empty">Esta playlist está vacía.</string>
+    <string name="playlist_detail_no_search_results">No encontramos canciones que coincidan con tu búsqueda.</string>
+    <string name="playlist_detail_delete_message">Esta acción no se puede deshacer. Las canciones permanecerán en el dispositivo.</string>
+    <string name="playlist_detail_options_content_description">Opciones de la playlist</string>
+    <string name="playlist_detail_shuffle_content_description">Reproducir aleatoriamente</string>
+    <string name="playlist_detail_play_content_description">Reproducir playlist</string>
+    <string name="playlist_detail_pause_content_description">Pausar</string>
+    <string name="playlist_detail_search_placeholder">Buscar canciones</string>
+    <string name="playlist_detail_summary">%1$s · %2$s</string>
+    <string name="playlist_detail_track_metadata">%1$s · %2$s</string>
+    <string name="playlist_detail_track_options_content_description">Opciones de %1$s</string>
+    <string name="playlist_detail_drag_content_description">Arrastrar %1$s</string>
+    <string name="playlist_detail_ordering_hint">Mantén pulsado el control y arrastra</string>
+    <string name="playlist_detail_order">Ordenar canciones</string>
+    <string name="playlist_detail_order_custom">Personalizado</string>
+    <string name="playlist_detail_order_custom_hint">Arrastra las canciones al orden que prefieras</string>
+    <string name="playlist_detail_order_alphabetical">Alfabético</string>
+    <string name="playlist_detail_order_alphabetical_hint">Ordenar por título y artista</string>
+    <string name="playlist_detail_order_random">Random</string>
+    <string name="playlist_detail_order_random_hint">Mezclar y guardar un orden nuevo</string>
+    <string name="playlist_detail_edit">Editar playlist</string>
+    <string name="playlist_detail_selection_title">Canciones seleccionadas</string>
+    <string name="playlist_detail_add_tracks">Agregar canciones</string>
+    <string name="playlist_detail_add_to_playlist">Agregar a otra playlist</string>
+    <string name="playlist_detail_export_m3u8">Exportar como M3U8</string>
+    <string name="playlist_detail_delete">Eliminar playlist</string>
+    <string name="playlist_detail_duration_hours_minutes">%1$s %2$s</string>
+    <plurals name="playlist_detail_duration_hours">
+        <item quantity="one">1 h</item>
+        <item quantity="other">%1$d h</item>
+    </plurals>
+    <plurals name="playlist_detail_duration_minutes">
+        <item quantity="one">1 min</item>
+        <item quantity="other">%1$d min</item>
+    </plurals>
+    <plurals name="playlist_detail_tracks_added">
+        <item quantity="one">1 canción agregada</item>
+        <item quantity="other">%1$d canciones agregadas</item>
+    </plurals>
+    <plurals name="playlist_detail_tracks_removed">
+        <item quantity="one">1 canción quitada</item>
+        <item quantity="other">%1$d canciones quitadas</item>
+    </plurals>
+    <string name="playlist_detail_export_success">Playlist exportada como M3U8.</string>
+    <string name="playlist_detail_error_add_tracks">No se pudieron agregar las canciones.</string>
+    <string name="playlist_detail_error_generic">No se pudo completar la operación.</string>
+    <string name="playlist_detail_error_export">No se pudo exportar la playlist.</string>
+
+    <!-- Playlists: agregar canciones al detalle -->
+    <string name="playlist_detail_add_tracks_hint">Selecciona canciones de tu biblioteca</string>
+    <string name="playlist_detail_add_tracks_search_placeholder">Buscar canciones o artistas</string>
+    <string name="playlist_detail_add_tracks_empty">No hay canciones disponibles.</string>
+    <string name="playlist_detail_add_tracks_no_search_results">No encontramos canciones para esta búsqueda.</string>
+    <string name="playlist_detail_add_selected">Agregar (%1$d)</string>
+    <string name="playlist_detail_artwork_preview_content_description">Vista previa de portada</string>
+    <string name="playlist_detail_change_artwork">Cambiar imagen</string>
+    <string name="playlist_detail_remove_artwork">Quitar</string>
+    <string name="playlist_detail_name_required">El nombre no puede estar vacío</string>
+    <string name="playlist_detail_description_label">Descripción</string>
+
+    <!-- Playlists: agregar a playlist -->
+    <string name="add_to_playlist_title">Agregar a playlist</string>
+    <string name="add_to_playlist_multiselect_content_description">Selección múltiple</string>
+    <string name="add_to_playlist_done">Hecho</string>
+    <plurals name="add_to_playlist_pending_track_count">
+        <item quantity="one">1 canción nueva</item>
+        <item quantity="other">%1$d canciones nuevas</item>
+    </plurals>
+    <string name="add_to_playlist_toast_none">No se agregaron canciones nuevas</string>
+    <string name="add_to_playlist_toast_playlist_none">No se agregaron canciones nuevas a %1$s</string>
+    <plurals name="add_to_playlist_toast_added">
+        <item quantity="one">Canción agregada</item>
+        <item quantity="other">%1$d canciones agregadas</item>
+    </plurals>
+    <plurals name="add_to_playlist_toast_playlist_added">
+        <item quantity="one">Canción agregada a %2$s</item>
+        <item quantity="other">%1$d canciones agregadas a %2$s</item>
+    </plurals>
+    <string name="add_to_playlist_toast_multiple">%1$d canciones agregadas a %2$d playlists</string>
+</resources>

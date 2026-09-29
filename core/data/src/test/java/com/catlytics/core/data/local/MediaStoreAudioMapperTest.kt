@@ -165,7 +165,7 @@ class MediaStoreAudioMapperTest {
         )
 
         requireNotNull(track)
-        assertEquals("Cancion sin titulo", track.title)
+        assertEquals("Canción sin título", track.title)
         assertEquals("Artista desconocido", track.artistName)
         assertEquals("content://media/external/audio/media/42", track.mediaUri)
         assertNull(track.artworkUri)

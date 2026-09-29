@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,7 @@ import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.sortedAlbumsByDirection
 
 @Composable
@@ -91,7 +93,10 @@ private fun AlbumCard(
     ) {
         AsyncImage(
             model = album.artworkUri,
-            contentDescription = "Portada de ${album.title}",
+            contentDescription = stringResource(
+                LibraryR.string.library_album_cover_content_description,
+                album.title,
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
@@ -125,7 +130,11 @@ private fun AlbumCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = album.trackCount.trackCountLabel(),
+                    text = pluralStringResource(
+                        LibraryR.plurals.library_track_count,
+                        album.trackCount,
+                        album.trackCount,
+                    ),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -133,10 +142,14 @@ private fun AlbumCard(
                 )
             }
             IconButton(onClick = onAddToPlaylist) {
-                Icon(painterResource(R.drawable.ic_options), "Opciones de ${album.title}")
+                Icon(
+                    painterResource(R.drawable.ic_options),
+                    stringResource(
+                        LibraryR.string.library_album_options_content_description,
+                        album.title,
+                    ),
+                )
             }
         }
     }
 }
-
-private fun Int.trackCountLabel() = if (this == 1) "1 canción" else "$this canciones"

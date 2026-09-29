@@ -2,6 +2,7 @@ package com.catlytics.feature.settings.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
 import com.catlytics.core.domain.repository.HomePreferencesRepository
@@ -195,10 +196,8 @@ internal class SettingsViewModel @Inject constructor(
                 MusicScanStatus.Success(refreshLibraryUseCase())
             } catch (cancellationException: CancellationException) {
                 throw cancellationException
-            } catch (throwable: Throwable) {
-                MusicScanStatus.Error(
-                    throwable.message ?: "No se pudo escanear la música del dispositivo.",
-                )
+            } catch (_: Throwable) {
+                MusicScanStatus.Error(UiText.Resource(R.string.settings_error_scan_failed))
             }
         }
     }
@@ -251,9 +250,9 @@ internal class SettingsViewModel @Inject constructor(
                     onSuccess = { result ->
                         UnifiedBackupStatus.ExportSuccess(result)
                     },
-                    onFailure = { error ->
+                    onFailure = {
                         UnifiedBackupStatus.Error(
-                            error.message ?: "No se pudo exportar la copia de seguridad.",
+                            UiText.Resource(R.string.settings_error_backup_export_failed),
                         )
                     },
                 )
@@ -271,11 +270,11 @@ internal class SettingsViewModel @Inject constructor(
                         _unifiedImportPreview.value = preview
                         _unifiedBackupStatus.value = UnifiedBackupStatus.Idle
                     },
-                    onFailure = { error ->
+                    onFailure = {
                         pendingImportUri = null
                         _unifiedImportPreview.value = null
                         _unifiedBackupStatus.value = UnifiedBackupStatus.Error(
-                            error.message ?: "No se pudo leer el archivo de respaldo.",
+                            UiText.Resource(R.string.settings_error_backup_read_failed),
                         )
                     },
                 )
@@ -297,9 +296,9 @@ internal class SettingsViewModel @Inject constructor(
                         pendingImportUri = null
                         UnifiedBackupStatus.ImportSuccess(result)
                     },
-                    onFailure = { error ->
+                    onFailure = {
                         UnifiedBackupStatus.Error(
-                            error.message ?: "No se pudo importar la copia de seguridad.",
+                            UiText.Resource(R.string.settings_error_backup_import_failed),
                         )
                     },
                 )
@@ -327,7 +326,7 @@ internal sealed interface MusicScanStatus {
     data object Idle : MusicScanStatus
     data object Scanning : MusicScanStatus
     data class Success(val newTrackCount: Int) : MusicScanStatus
-    data class Error(val message: String) : MusicScanStatus
+    data class Error(val message: UiText) : MusicScanStatus
 }
 
 internal sealed interface UnifiedBackupStatus {
@@ -337,6 +336,6 @@ internal sealed interface UnifiedBackupStatus {
     data object Importing : UnifiedBackupStatus
     data class ExportSuccess(val result: UnifiedExportResult) : UnifiedBackupStatus
     data class ImportSuccess(val result: UnifiedImportResult) : UnifiedBackupStatus
-    data class Error(val message: String) : UnifiedBackupStatus
+    data class Error(val message: UiText) : UnifiedBackupStatus
 }
 

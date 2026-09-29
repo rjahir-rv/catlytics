@@ -15,8 +15,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.model.EqualizerMode
+import com.catlytics.feature.settings.impl.R
 
 @Composable
 internal fun EqualizerModeSelector(
@@ -40,13 +42,13 @@ internal fun EqualizerModeSelector(
             .padding(4.dp),
     ) {
         EqualizerModeTab(
-            text = "Predefinido",
+            text = stringResource(R.string.settings_equalizer_mode_preset),
             selected = currentMode == EqualizerMode.Preset,
             onClick = { onModeSelected(EqualizerMode.Preset) },
             modifier = Modifier.weight(1f),
         )
         EqualizerModeTab(
-            text = "Personalizado",
+            text = stringResource(R.string.settings_equalizer_mode_custom),
             selected = currentMode == EqualizerMode.Custom,
             onClick = { onModeSelected(EqualizerMode.Custom) },
             modifier = Modifier.weight(1f),

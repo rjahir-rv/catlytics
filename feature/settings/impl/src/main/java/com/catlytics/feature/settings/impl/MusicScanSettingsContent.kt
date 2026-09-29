@@ -1,5 +1,6 @@
 package com.catlytics.feature.settings.impl
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
@@ -40,14 +41,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
+import com.catlytics.feature.settings.impl.R as SettingsR
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsRowText
 import com.catlytics.feature.settings.impl.components.SettingsSection
@@ -83,12 +88,12 @@ internal fun MusicScanSettingsContent(
     ) {
         item {
             SettingsSection(
-                title = "Biblioteca musical",
+                title = stringResource(SettingsR.string.settings_scan_library_section),
                 iconRes = R.drawable.ic_library,
             ) {
                 SettingsValueRow(
-                    title = "Carpetas",
-                    supportingText = "Elige qué carpetas aparecen en tu biblioteca",
+                    title = stringResource(SettingsR.string.settings_folders_title),
+                    supportingText = stringResource(SettingsR.string.settings_folders_supporting),
                     value = "$visibleFolderCount/${folders.size}",
                     onClick = onFoldersClick,
                 )
@@ -96,7 +101,7 @@ internal fun MusicScanSettingsContent(
         }
         item {
             SettingsSection(
-                title = "Filtros de escaneo",
+                title = stringResource(SettingsR.string.settings_scan_filters_section),
                 iconRes = R.drawable.ic_filter,
             ) {
                 DurationFilterSelector(
@@ -132,14 +137,14 @@ internal fun MusicScanSettingsContent(
                                     strokeWidth = 2.dp,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                 )
-                                Text("Escaneando…")
+                                Text(stringResource(SettingsR.string.settings_scan_button_scanning))
                             }
                         } else {
                             Text(
                                 if (hasAudioPermission) {
-                                    "Escanear ahora"
+                                    stringResource(SettingsR.string.settings_scan_button_scan)
                                 } else {
-                                    "Permitir acceso a música"
+                                    stringResource(SettingsR.string.settings_scan_button_permission)
                                 },
                             )
                         }
@@ -159,9 +164,9 @@ private fun DurationFilterSelector(
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column(modifier = Modifier.animateContentSize()) {
         SettingsValueRow(
-            title = "Ignorar duración",
-            supportingText = "Excluir canciones más cortas que el límite",
-            value = selected.label,
+            title = stringResource(SettingsR.string.settings_scan_duration_title),
+            supportingText = stringResource(SettingsR.string.settings_scan_duration_supporting),
+            value = stringResource(selected.labelRes),
             onClick = { expanded = !expanded },
         )
         AnimatedVisibility(
@@ -174,7 +179,7 @@ private fun DurationFilterSelector(
                 Column(modifier = Modifier.selectableGroup()) {
                     MusicScanDurationFilter.entries.forEach { filter ->
                         ScanFilterOption(
-                            title = filter.label,
+                            title = stringResource(filter.labelRes),
                             selected = selected == filter,
                             onClick = {
                                 onSelected(filter)
@@ -196,9 +201,9 @@ private fun SizeFilterSelector(
     var expanded by rememberSaveable { mutableStateOf(false) }
     Column(modifier = Modifier.animateContentSize()) {
         SettingsValueRow(
-            title = "Ignorar tamaño",
-            supportingText = "Excluir archivos más pequeños que el límite",
-            value = selected.label,
+            title = stringResource(SettingsR.string.settings_scan_size_title),
+            supportingText = stringResource(SettingsR.string.settings_scan_size_supporting),
+            value = stringResource(selected.labelRes),
             onClick = { expanded = !expanded },
         )
         AnimatedVisibility(
@@ -211,7 +216,7 @@ private fun SizeFilterSelector(
                 Column(modifier = Modifier.selectableGroup()) {
                     MusicScanSizeFilter.entries.forEach { filter ->
                         ScanFilterOption(
-                            title = filter.label,
+                            title = stringResource(filter.labelRes),
                             selected = selected == filter,
                             onClick = {
                                 onSelected(filter)
@@ -309,11 +314,11 @@ private fun ScanStatusCard(status: MusicScanStatus) {
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
-                                text = currentStatus.title,
+                                text = currentStatus.title(),
                                 style = MaterialTheme.typography.titleSmall,
                             )
                             Text(
-                                text = currentStatus.supportingText,
+                                text = currentStatus.supportingText(),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
@@ -357,11 +362,11 @@ internal fun ScanFoldersContent(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Carpetas musicales",
+                    text = stringResource(SettingsR.string.settings_folders_screen_title),
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Text(
-                    text = "Los cambios también se reflejan en la sección Carpetas de Library.",
+                    text = stringResource(SettingsR.string.settings_folders_screen_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -370,7 +375,7 @@ internal fun ScanFoldersContent(
         if (sortedFolders.isEmpty()) {
             item {
                 Text(
-                    text = "Escanea el dispositivo para encontrar carpetas con música.",
+                    text = stringResource(SettingsR.string.settings_folders_empty),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -407,42 +412,52 @@ private fun FolderSelectionRow(
         Checkbox(checked = folder.isVisible, onCheckedChange = null)
         SettingsRowText(
             title = folder.name,
-            supportingText = "${folder.path} · ${folder.trackCount} canciones",
+            supportingText = stringResource(
+                SettingsR.string.settings_folder_supporting,
+                folder.path,
+                folder.trackCount,
+            ),
             modifier = Modifier.weight(1f),
         )
     }
 }
 
-private val MusicScanDurationFilter.label: String
+@get:StringRes
+private val MusicScanDurationFilter.labelRes: Int
     get() = when (this) {
-        MusicScanDurationFilter.Disabled -> "No ignorar"
-        MusicScanDurationFilter.Seconds30 -> "30 segundos"
-        MusicScanDurationFilter.Seconds60 -> "60 segundos"
+        MusicScanDurationFilter.Disabled -> SettingsR.string.settings_scan_filter_disabled
+        MusicScanDurationFilter.Seconds30 -> SettingsR.string.settings_scan_duration_30_seconds
+        MusicScanDurationFilter.Seconds60 -> SettingsR.string.settings_scan_duration_60_seconds
     }
 
-private val MusicScanSizeFilter.label: String
+@get:StringRes
+private val MusicScanSizeFilter.labelRes: Int
     get() = when (this) {
-        MusicScanSizeFilter.Disabled -> "No ignorar"
-        MusicScanSizeFilter.Kilobytes500 -> "500 KB"
-        MusicScanSizeFilter.Megabyte1 -> "1 MB"
+        MusicScanSizeFilter.Disabled -> SettingsR.string.settings_scan_filter_disabled
+        MusicScanSizeFilter.Kilobytes500 -> SettingsR.string.settings_scan_size_500_kb
+        MusicScanSizeFilter.Megabyte1 -> SettingsR.string.settings_scan_size_1_mb
     }
 
-private val MusicScanStatus.title: String
-    get() = when (this) {
-        MusicScanStatus.Idle -> ""
-        MusicScanStatus.Scanning -> "Buscando música"
-        is MusicScanStatus.Success -> "Escaneo completado"
-        is MusicScanStatus.Error -> "No se pudo completar"
-    }
+@Composable
+private fun MusicScanStatus.title(): String = when (this) {
+    MusicScanStatus.Idle -> ""
+    MusicScanStatus.Scanning -> stringResource(SettingsR.string.settings_scan_status_searching)
+    is MusicScanStatus.Success -> stringResource(SettingsR.string.settings_scan_status_success)
+    is MusicScanStatus.Error -> stringResource(SettingsR.string.settings_scan_status_error)
+}
 
-private val MusicScanStatus.supportingText: String
-    get() = when (this) {
-        MusicScanStatus.Idle -> ""
-        MusicScanStatus.Scanning -> "Revisando carpetas y aplicando tus filtros…"
-        is MusicScanStatus.Success -> when (newTrackCount) {
-            0 -> "No se encontraron canciones nuevas."
-            1 -> "Se agregó 1 canción nueva."
-            else -> "Se agregaron $newTrackCount canciones nuevas."
-        }
-        is MusicScanStatus.Error -> message
+@Composable
+private fun MusicScanStatus.supportingText(): String = when (this) {
+    MusicScanStatus.Idle -> ""
+    MusicScanStatus.Scanning ->
+        stringResource(SettingsR.string.settings_scan_status_scanning_supporting)
+    is MusicScanStatus.Success -> when (newTrackCount) {
+        0 -> stringResource(SettingsR.string.settings_scan_success_no_new_tracks)
+        else -> pluralStringResource(
+            SettingsR.plurals.settings_scan_success_new_tracks,
+            newTrackCount,
+            newTrackCount,
+        )
     }
+    is MusicScanStatus.Error -> message.asString()
+}

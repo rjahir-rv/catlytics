@@ -9,12 +9,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.feature.playlists.impl.R
 
 @Composable
 internal fun PlaylistDetailRoute(
@@ -29,6 +32,7 @@ internal fun PlaylistDetailRoute(
     viewModel: PlaylistDetailViewModel = hiltViewModel(key = playlistId),
 ) {
     val context = LocalContext.current
+    val resources = LocalResources.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val allTracks by viewModel.allTracks.collectAsStateWithLifecycle()
@@ -40,7 +44,7 @@ internal fun PlaylistDetailRoute(
                 PlaylistDetailEffect.Deleted -> onDeleted()
                 is PlaylistDetailEffect.Message -> Toast.makeText(
                     context,
-                    effect.text,
+                    effect.text.resolve(resources),
                     Toast.LENGTH_SHORT,
                 ).show()
             }
@@ -70,7 +74,13 @@ internal fun PlaylistDetailRoute(
         onTogglePlayback = viewModel::togglePlayback,
         onSaveDetails = viewModel::saveDetails,
         onSaveOrder = viewModel::saveOrder,
-        onAddTracks = viewModel::addTracks,
+        onAddTracks = { trackIds, onAdded ->
+            viewModel.addTracks(
+                trackIds = trackIds,
+                title = resources.getString(R.string.playlist_detail_selection_title),
+                onAdded = onAdded,
+            )
+        },
         onDelete = viewModel::delete,
         onExportM3u = {
             val name = (uiState as? PlaylistDetailUiState.Success)?.content?.playlist?.name ?: "playlist"

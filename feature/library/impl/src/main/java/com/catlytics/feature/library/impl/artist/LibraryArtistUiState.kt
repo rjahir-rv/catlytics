@@ -1,5 +1,6 @@
 package com.catlytics.feature.library.impl.artist
 
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
@@ -17,7 +18,7 @@ internal sealed interface LibraryArtistUiState {
         val mergeDialog: ArtistMergeDialog = ArtistMergeDialog.Hidden,
         val isMergeBusy: Boolean = false,
     ) : LibraryArtistUiState
-    data class Error(val message: String) : LibraryArtistUiState
+    data class Error(val message: UiText) : LibraryArtistUiState
 }
 
 internal sealed interface ArtistMergeDialog {

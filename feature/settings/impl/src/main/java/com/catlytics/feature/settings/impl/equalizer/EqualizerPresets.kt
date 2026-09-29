@@ -19,10 +19,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
+import com.catlytics.feature.settings.impl.R as SettingsR
 
 @Composable
 internal fun EqualizerPresetDropdown(
@@ -58,8 +60,8 @@ internal fun EqualizerPresetDropdown(
                         .padding(16.dp),
                 ) {
                     Text(
-                        text = equalizerState.errorMessage
-                            ?: "El dispositivo no expone presets para esta sesión.",
+                        text = equalizerState.error?.let { stringResource(it.messageRes) }
+                            ?: stringResource(SettingsR.string.settings_equalizer_no_presets_for_session),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -108,15 +110,23 @@ internal fun EqualizerPresetSelectorRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            EqualizerSectionLabel(text = "DEVICE PRESET")
+            EqualizerSectionLabel(text = stringResource(SettingsR.string.settings_equalizer_device_preset_label))
             Text(
-                text = equalizerState.selectedPresetName ?: "Seleccionar curva",
+                text = equalizerState.selectedPresetName
+                    ?: stringResource(SettingsR.string.settings_equalizer_select_curve),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
         }
         EqualizerTechPill(
-            text = if (expanded) "CLOSE" else "${equalizerState.presets.size} PRESETS",
+            text = if (expanded) {
+                stringResource(SettingsR.string.settings_equalizer_close_label)
+            } else {
+                stringResource(
+                    SettingsR.string.settings_equalizer_presets_label,
+                    equalizerState.presets.size,
+                )
+            },
             active = equalizerState.presets.isNotEmpty(),
         )
         Icon(
@@ -183,13 +193,20 @@ internal fun EqualizerPresetOption(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "PRESET ${preset.id.toInt().plus(1).toString().padStart(2, '0')}",
+                text = stringResource(
+                    SettingsR.string.settings_equalizer_preset_index,
+                    preset.id.toInt() + 1,
+                ),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         EqualizerTechPill(
-            text = if (selected) "ACTIVE" else "LOAD",
+            text = if (selected) {
+                stringResource(SettingsR.string.settings_equalizer_active_label)
+            } else {
+                stringResource(SettingsR.string.settings_equalizer_load_label)
+            },
             active = selected,
         )
     }

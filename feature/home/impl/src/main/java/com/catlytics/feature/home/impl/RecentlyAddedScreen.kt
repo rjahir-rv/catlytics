@@ -21,6 +21,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,6 +41,7 @@ import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.feature.home.impl.R as HomeR
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
@@ -168,7 +171,10 @@ internal fun RecentlyAddedScreen(
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "No hay canciones agregadas en los últimos ${uiState.windowDays} días.",
+                text = stringResource(
+                    HomeR.string.recently_added_empty_message,
+                    uiState.windowDays,
+                ),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -208,12 +214,12 @@ internal fun RecentlyAddedScreen(
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                text = if (uiState.tracks.size == 1) {
-                                    "1 canción agregada en los últimos ${uiState.windowDays} días"
-                                } else {
-                                    "${uiState.tracks.size} canciones agregadas en los últimos " +
-                                        "${uiState.windowDays} días"
-                                },
+                                text = pluralStringResource(
+                                    HomeR.plurals.recently_added_tracks_count,
+                                    uiState.tracks.size,
+                                    uiState.tracks.size,
+                                    uiState.windowDays,
+                                ),
                                 modifier = Modifier.weight(1f),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -225,7 +231,9 @@ internal fun RecentlyAddedScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_shuffle),
-                                    contentDescription = "Reproducir aleatoriamente",
+                                    contentDescription = stringResource(
+                                        HomeR.string.recently_added_shuffle_content_description,
+                                    ),
                                     modifier = Modifier.size(24.dp),
                                 )
                             }
@@ -235,7 +243,9 @@ internal fun RecentlyAddedScreen(
                             ) {
                                 Icon(
                                     painter = painterResource(R.drawable.ic_play),
-                                    contentDescription = "Reproducir canciones",
+                                    contentDescription = stringResource(
+                                        HomeR.string.recently_added_play_all_content_description,
+                                    ),
                                     modifier = Modifier.size(24.dp),
                                 )
                             }

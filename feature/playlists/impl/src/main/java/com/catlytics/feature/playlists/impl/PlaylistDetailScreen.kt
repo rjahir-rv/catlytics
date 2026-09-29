@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
@@ -93,7 +94,7 @@ internal fun PlaylistDetailScreen(
         }
         PlaylistDetailUiState.NotFound -> {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Playlist no disponible.")
+                Text(stringResource(R.string.playlist_detail_not_found))
             }
             return
         }
@@ -284,12 +285,12 @@ internal fun PlaylistDetailScreen(
 
                 if (content.tracks.isEmpty()) {
                     item(key = "empty") {
-                        PlaylistMessage("Esta playlist está vacía.")
+                        PlaylistMessage(stringResource(R.string.playlist_detail_empty))
                     }
                 } else if (displayedTracks.isEmpty()) {
                     item(key = "no-results") {
                         PlaylistMessage(
-                            text = "No encontramos canciones que coincidan con tu búsqueda.",
+                            text = stringResource(R.string.playlist_detail_no_search_results),
                             secondary = true,
                         )
                     }
@@ -349,7 +350,7 @@ internal fun PlaylistDetailScreen(
     }
 
     PlaylistDetailOverlays(
-        playlistName = playlist.name,
+        playlistName = playlist.displayName(),
         showOrderSheet = showOrderSheet,
         showEditSheet = showEditSheet,
         showDeleteDialog = showDeleteDialog,
@@ -403,7 +404,7 @@ internal fun PlaylistDetailScreen(
     if (showAddSheet) {
         AddToPlaylistSheet(
             source = PlaylistSource.TrackCollectionSource(
-                title = playlist.name,
+                title = playlist.displayName(),
                 artworkUri = playlist.artworkUri,
                 trackIds = content.tracks.map(Track::id),
             ),
@@ -491,17 +492,21 @@ private fun PlaylistDetailOverlays(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = onDismissDelete,
-            title = { Text("Eliminar $playlistName") },
+            title = { Text(stringResource(R.string.playlists_delete_title, playlistName)) },
             text = {
                 Text(
-                    "Esta acción no se puede deshacer. Las canciones permanecerán en el dispositivo.",
+                    stringResource(R.string.playlist_detail_delete_message),
                 )
             },
             confirmButton = {
-                TextButton(onClick = onDelete) { Text("Eliminar") }
+                TextButton(onClick = onDelete) {
+                    Text(stringResource(R.string.playlists_action_delete))
+                }
             },
             dismissButton = {
-                TextButton(onClick = onDismissDelete) { Text("Cancelar") }
+                TextButton(onClick = onDismissDelete) {
+                    Text(stringResource(R.string.playlists_action_cancel))
+                }
             },
         )
     }

@@ -17,6 +17,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.Track
@@ -35,17 +36,17 @@ internal fun HomeRoute(
     onNavigateToRecentlyAdded: () -> Unit,
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
-    startupError: String? = null,
+    startupError: UiText? = null,
     onContentReady: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val displayedUiState = startupError?.let(HomeUiState::Error) ?: uiState
 
     HomeScreen(
-        uiState = displayedUiState,
+        uiState = uiState,
+        startupError = startupError,
         searchQuery = searchQuery,
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = onRequestPermission,
@@ -71,6 +72,7 @@ internal fun HomeScreen(
     modifier: Modifier = Modifier,
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     uiState: HomeUiState,
+    startupError: UiText? = null,
     searchQuery: String,
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
@@ -87,8 +89,10 @@ internal fun HomeScreen(
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    LaunchedEffect(uiState, hasAudioPermission) {
-        if (!hasAudioPermission || uiState != HomeUiState.Loading) {
+    val displayedUiState = startupError?.let(HomeUiState::Error) ?: uiState
+
+    LaunchedEffect(displayedUiState, hasAudioPermission) {
+        if (!hasAudioPermission || displayedUiState != HomeUiState.Loading) {
             onContentReady()
         }
     }
@@ -113,7 +117,7 @@ internal fun HomeScreen(
         return
     }
 
-    when (uiState) {
+    when (displayedUiState) {
             HomeUiState.Empty -> EmptyLibraryContent(
                 modifier = modifier
                     .fillMaxSize()
@@ -125,7 +129,7 @@ internal fun HomeScreen(
                     ),
             )
             is HomeUiState.Error -> ErrorContent(
-                message = uiState.message,
+                message = displayedUiState.message,
                 modifier = modifier.padding(
                     start = 20.dp,
                     top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
@@ -136,7 +140,7 @@ internal fun HomeScreen(
                 modifier = modifier.padding(top = scaffoldContentPadding.calculateTopPadding()),
             )
             is HomeUiState.Success -> {
-                val filteredTracks = uiState.tracks.filterByQuery(searchQuery)
+                val filteredTracks = displayedUiState.tracks.filterByQuery(searchQuery)
                 if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
                     NoSearchResultsContent(
                         modifier = modifier.padding(
@@ -148,14 +152,14 @@ internal fun HomeScreen(
                 } else {
                     val selectionState = rememberTrackSelectionState()
                     val selection = selectionState.value
-                    val selectedTracks = selection.selectedTracks(uiState.tracks)
+                    val selectedTracks = selection.selectedTracks(displayedUiState.tracks)
                     TrackSelectionHost(
                         selection = selection,
                         onSelectionChange = { selectionState.value = it },
                         visibleIds = filteredTracks.map(Track::id),
                         selectedTracks = selectedTracks,
                         likedTrackIds = likedTrackIds,
-                        currentTrackId = uiState.currentTrackId,
+                        currentTrackId = displayedUiState.currentTrackId,
                         topInset = scaffoldContentPadding.calculateTopPadding(),
                         bottomInset = bottomPadding(),
                         onAction = onTrackSelectionAction,
@@ -163,17 +167,17 @@ internal fun HomeScreen(
                     ) {
                         HomeTrackList(
                             tracks = filteredTracks,
-                            playbackQueue = uiState.tracks,
-                            dailyPlaylistTrackCount = uiState.dailyPlaylistTrackCount,
-                            canShuffleAll = uiState.canShuffleAll,
-                            favoriteTrackCount = uiState.favoriteTracks.size,
-                            recentlyAddedTrackCount = uiState.recentlyAddedTracks.size,
-                            newTrackIds = uiState.newTrackIds,
-                            showRecommendedPlaylists = uiState.showRecommendedPlaylists,
-                            recentlyPlayedTracks = uiState.recentlyPlayedTracks,
-                            topTracks = uiState.topTracks,
-                            currentTrackId = uiState.currentTrackId,
-                            isCurrentTrackPlaying = uiState.isCurrentTrackPlaying,
+                            playbackQueue = displayedUiState.tracks,
+                            dailyPlaylistTrackCount = displayedUiState.dailyPlaylistTrackCount,
+                            canShuffleAll = displayedUiState.canShuffleAll,
+                            favoriteTrackCount = displayedUiState.favoriteTracks.size,
+                            recentlyAddedTrackCount = displayedUiState.recentlyAddedTracks.size,
+                            newTrackIds = displayedUiState.newTrackIds,
+                            showRecommendedPlaylists = displayedUiState.showRecommendedPlaylists,
+                            recentlyPlayedTracks = displayedUiState.recentlyPlayedTracks,
+                            topTracks = displayedUiState.topTracks,
+                            currentTrackId = displayedUiState.currentTrackId,
+                            isCurrentTrackPlaying = displayedUiState.isCurrentTrackPlaying,
                             onTrackSelected = onTrackSelected,
                             onOpenDailyPlaylist = onOpenDailyPlaylist,
                             onShuffleAll = onShuffleAll,
@@ -194,7 +198,7 @@ internal fun HomeScreen(
                                 selectionState.value = selection.onTrackLongClick(track.id)
                             },
                             onRecentlyPlayedTrackSelected = { track ->
-                                onTrackSelected(track, uiState.tracks)
+                                onTrackSelected(track, displayedUiState.tracks)
                             },
                             onTopTrackSelected = onTopTrackSelected,
                             onNavigateToStatistics = onNavigateToStatistics,

@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.home.api.DailyPlaylistRoute
@@ -21,7 +22,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
     onNavigateToRecentlyAdded: () -> Unit,
     hasAudioPermission: () -> Boolean,
     onRequestAudioPermission: () -> Unit,
-    startupError: () -> String?,
+    startupError: () -> UiText?,
     onContentReady: () -> Unit,
     bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
     scaffoldContentPadding: () -> PaddingValues = { PaddingValues(0.dp) },

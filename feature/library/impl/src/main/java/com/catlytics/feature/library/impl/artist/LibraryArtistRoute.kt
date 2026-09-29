@@ -8,9 +8,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import android.widget.Toast
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
@@ -35,6 +37,7 @@ internal fun LibraryArtistRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val resources = LocalResources.current
 
     LaunchedEffect(route.artistId) {
         viewModel.openArtist(route.artistId)
@@ -46,7 +49,7 @@ internal fun LibraryArtistRoute(
 
     LaunchedEffect(viewModel) {
         viewModel.messages.collect { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, message.resolve(resources), Toast.LENGTH_SHORT).show()
         }
     }
 

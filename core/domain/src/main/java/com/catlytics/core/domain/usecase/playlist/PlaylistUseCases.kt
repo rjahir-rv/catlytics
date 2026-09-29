@@ -6,6 +6,7 @@ import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistContent
 import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.PlaylistSourceKind
 import com.catlytics.core.model.PlaylistSourcePreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -94,7 +95,8 @@ class ResolvePlaylistSourcePreviewUseCase(
             is PlaylistSource.TrackSource -> {
                 val track = tracks.firstOrNull()
                 PlaylistSourcePreview(
-                    title = track?.title ?: "Canción",
+                    title = track?.title,
+                    kind = PlaylistSourceKind.Track,
                     subtitle = track?.artist?.name,
                     artworkUri = track?.artworkUri,
                     itemCount = tracks.size,
@@ -105,7 +107,8 @@ class ResolvePlaylistSourcePreviewUseCase(
                 val album = libraryRepository.observeAlbums().first()
                     .firstOrNull { it.id == source.albumId }
                 PlaylistSourcePreview(
-                    title = album?.title ?: tracks.firstOrNull()?.albumTitle ?: "Álbum",
+                    title = album?.title ?: tracks.firstOrNull()?.albumTitle,
+                    kind = PlaylistSourceKind.Album,
                     subtitle = album?.artist?.name ?: tracks.firstOrNull()?.artist?.name,
                     artworkUri = album?.artworkUri ?: tracks.firstNotNullOfOrNull { it.artworkUri },
                     itemCount = tracks.size,
@@ -116,14 +119,9 @@ class ResolvePlaylistSourcePreviewUseCase(
                 val artist = libraryRepository.observeArtists().first()
                     .firstOrNull { it.artist.id == source.artistId }
                 PlaylistSourcePreview(
-                    title = artist?.artist?.name ?: tracks.firstOrNull()?.artist?.name ?: "Artista",
-                    subtitle = artist?.let { artistSummary ->
-                        if (artistSummary.albumCount == 1) {
-                            "1 álbum"
-                        } else {
-                            "${artistSummary.albumCount} álbumes"
-                        }
-                    },
+                    title = artist?.artist?.name ?: tracks.firstOrNull()?.artist?.name,
+                    kind = PlaylistSourceKind.Artist,
+                    albumCount = artist?.albumCount,
                     artworkUri = artist?.artworkUri ?: tracks.firstNotNullOfOrNull { it.artworkUri },
                     itemCount = tracks.size,
                     trackIds = trackIds,
@@ -133,7 +131,8 @@ class ResolvePlaylistSourcePreviewUseCase(
                 val folder = libraryRepository.observeFolders().first()
                     .firstOrNull { it.id == source.folderId }
                 PlaylistSourcePreview(
-                    title = folder?.name ?: "Carpeta",
+                    title = folder?.name,
+                    kind = PlaylistSourceKind.Folder,
                     subtitle = folder?.path,
                     artworkUri = tracks.firstNotNullOfOrNull { it.artworkUri },
                     itemCount = tracks.size,
@@ -142,6 +141,7 @@ class ResolvePlaylistSourcePreviewUseCase(
             }
             is PlaylistSource.TrackCollectionSource -> PlaylistSourcePreview(
                 title = source.title,
+                kind = PlaylistSourceKind.Collection,
                 artworkUri = source.artworkUri,
                 itemCount = tracks.size,
                 trackIds = trackIds,
