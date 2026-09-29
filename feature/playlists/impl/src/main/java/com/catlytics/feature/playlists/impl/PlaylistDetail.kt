@@ -17,7 +17,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
-import com.catlytics.feature.playlists.impl.R
 
 @Composable
 internal fun PlaylistDetailRoute(

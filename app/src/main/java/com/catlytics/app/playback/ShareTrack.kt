@@ -6,9 +6,10 @@ import android.content.Intent
 import android.net.Uri
 import com.catlytics.app.R
 import com.catlytics.core.model.Track
+import androidx.core.net.toUri
 
 internal fun Context.shareTrack(track: Track) {
-    val mediaUri = Uri.parse(track.mediaUri)
+    val mediaUri = track.mediaUri.toUri()
     val shareIntent = Intent(Intent.ACTION_SEND).apply {
         type = "audio/*"
         putExtra(Intent.EXTRA_STREAM, mediaUri)

@@ -739,10 +739,10 @@ private fun ArtistTrackRow(
 
 @Composable
 private fun ArtistTrackArtwork(
+    modifier: Modifier = Modifier,
     track: Track,
     selected: Boolean = false,
     selectionActive: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val artworkShape = RoundedCornerShape(10.dp)
 

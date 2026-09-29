@@ -1,7 +1,9 @@
 package com.catlytics.core.playback
 
 import android.media.audiofx.Equalizer
+import androidx.annotation.OptIn
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
 import com.catlytics.core.model.EqualizerBand
@@ -121,6 +123,7 @@ class AndroidEqualizerRepository @Inject constructor(
         refreshRuntimeCapabilities()
     }
 
+    @OptIn(UnstableApi::class)
     fun attachAudioSessionId(audioSessionId: Int) {
         releaseEqualizer()
         if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) {
