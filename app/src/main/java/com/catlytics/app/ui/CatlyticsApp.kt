@@ -748,6 +748,7 @@ fun CatlyticsApp(
                         },
                         bottomPadding = { bottomPaddingState.value },
                         scaffoldContentPadding = { regularPaddingState.value },
+                        collapseFraction = { topBarScrollBehavior.state.collapsedFraction },
                     )
                     playlistsEntry(
                         searchQuery = { playlistsSearchQuery },
@@ -763,6 +764,7 @@ fun CatlyticsApp(
                             detailTopBarColors = detailTopBarColors + (route to color)
                         },
                         scaffoldContentPadding = { regularPaddingState.value },
+                        collapseFraction = { topBarScrollBehavior.state.collapsedFraction },
                     )
                     settingsEntry(
                         appVersion = appVersion,

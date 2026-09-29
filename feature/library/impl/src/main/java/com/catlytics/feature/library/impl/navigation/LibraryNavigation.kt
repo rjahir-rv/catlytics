@@ -33,6 +33,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     onRequestAudioPermission: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: () -> PaddingValues = { PaddingValues(0.dp) },
+    collapseFraction: () -> Float = { 0f },
 ) {
     entry<LibraryRoute> {
         LibraryRootRoute(
@@ -53,6 +54,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onRequestPermission = onRequestAudioPermission,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding(),
+            collapseFraction = collapseFraction,
         )
     }
     entry<LibraryAlbumDestination> { route ->

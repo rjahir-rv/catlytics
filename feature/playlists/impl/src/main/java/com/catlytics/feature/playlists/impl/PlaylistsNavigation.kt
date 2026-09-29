@@ -24,6 +24,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
     bottomPadding: () -> Dp = { 0.dp },
     onPlaylistDetailTopBarColorChange: (NavKey, Color) -> Unit,
     scaffoldContentPadding: () -> PaddingValues = { PaddingValues(0.dp) },
+    collapseFraction: () -> Float = { 0f },
 ) {
     entry<PlaylistsRoute> {
         val viewModel: PlaylistsViewModel = hiltViewModel()
@@ -46,6 +47,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             onSortDirectionChange = viewModel::setSortDirection,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding(),
+            collapseFraction = collapseFraction,
         )
     }
     entry<PlaylistDetailRoute> { route ->

@@ -24,6 +24,7 @@ internal fun LibraryRoute(
     onRequestPermission: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
+    collapseFraction: () -> Float = { 0f },
     viewModel: LibraryViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -43,5 +44,6 @@ internal fun LibraryRoute(
         onSortDirectionChange = viewModel::setSortDirection,
         bottomPadding = bottomPadding,
         scaffoldContentPadding = scaffoldContentPadding,
+        collapseFraction = collapseFraction,
     )
 }

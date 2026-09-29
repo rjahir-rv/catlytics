@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,8 +37,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -47,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -77,6 +81,7 @@ internal fun PlaylistsScreen(
     onSortDirectionChange: (SortDirection) -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
+    collapseFraction: () -> Float = { 0f },
 ) {
     var editor by remember { mutableStateOf<Playlist?>(null) }
     var creating by remember { mutableStateOf(false) }
@@ -106,6 +111,18 @@ internal fun PlaylistsScreen(
     val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val mosaicState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
     val coroutineScope = rememberCoroutineScope()
+    var controlsHeightPx by remember { mutableIntStateOf(0) }
+    val controlsAtTop by remember(viewMode) {
+        derivedStateOf {
+            if (viewMode == PlaylistViewMode.List) {
+                listState.firstVisibleItemIndex == 0 &&
+                    listState.firstVisibleItemScrollOffset == 0
+            } else {
+                mosaicState.firstVisibleItemIndex == 0 &&
+                    mosaicState.firstVisibleItemScrollOffset == 0
+            }
+        }
+    }
 
     fun selectSortDirection(direction: SortDirection) {
         if (direction == sortDirection) {
@@ -159,18 +176,36 @@ internal fun PlaylistsScreen(
             }
         }
 
-        // View mode + sort toggles (same level as artists)
-        Row(
+        Column(
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .fillMaxWidth()
-                .padding(
-                    start = 12.dp,
-                    top = scaffoldContentPadding.calculateTopPadding() + 8.dp,
-                    end = 12.dp,
-                ),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                .padding(top = scaffoldContentPadding.calculateTopPadding()),
         ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { controlsHeightPx = it.height }
+                    .then(
+                        if (controlsAtTop) {
+                            Modifier
+                        } else {
+                            Modifier.graphicsLayer {
+                                val f = collapseFraction().coerceIn(0f, 1f)
+                                translationY = -f * controlsHeightPx
+                                alpha = 1f - f
+                            }
+                        }
+                    )
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(top = 8.dp),
+            ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
             var expanded by remember { mutableStateOf(false) }
             Box {
                 IconButton(onClick = { expanded = true }) {
@@ -227,6 +262,8 @@ internal fun PlaylistsScreen(
                     contentDescription = if (isList) "Mostrar en mosaico" else "Mostrar en lista",
                 )
             }
+            }
+        }
         }
 
         ExtendedFloatingActionButton(

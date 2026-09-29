@@ -26,7 +26,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,8 +40,6 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.SortDirection
 import com.catlytics.feature.library.impl.sortedFoldersByDirection
-import androidx.compose.ui.graphics.graphicsLayer
-import kotlinx.coroutines.launch
 
 @Composable
 internal fun LibraryFolderList(
@@ -50,42 +47,27 @@ internal fun LibraryFolderList(
     modifier: Modifier = Modifier,
     state: LazyListState = rememberLazyListState(),
     sortDirection: SortDirection,
-    onSortDirectionChange: (SortDirection) -> Unit,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
     onAddToPlaylist: (LibraryFolder) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     topPadding: Dp = 0.dp,
 ) {
-    // Sort inside the leaf so the passed list (search filtered) is stable when only sort changes.
     val sortedFolders: List<LibraryFolder> = remember(folders, sortDirection) {
         folders.sortedFoldersByDirection(sortDirection)
     }
-    val coroutineScope = rememberCoroutineScope()
 
-    fun selectSortDirection(direction: SortDirection) {
-        if (direction == sortDirection) {
-            onSortDirectionChange(direction)
-            return
-        }
-        coroutineScope.launch {
-            state.scrollToItem(0)
-            onSortDirectionChange(direction)
-        }
-    }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
-            state = state,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 20.dp,
-                top = topPadding + 56.dp,
-                end = 20.dp,
-                bottom = bottomPadding() + 16.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
+    LazyColumn(
+        state = state,
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 20.dp,
+            top = topPadding + 56.dp,
+            end = 20.dp,
+            bottom = bottomPadding() + 16.dp,
+        ),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
@@ -112,58 +94,6 @@ internal fun LibraryFolderList(
                 onClick = { onFolderSelected(folder) },
                 onAddToPlaylist = { onAddToPlaylist(folder) },
             )
-        }
-    }
-
-        // Sort button using ic_filter, same size as view toggle
-        Row(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .fillMaxWidth()
-                .padding(start = 12.dp, top = topPadding, end = 12.dp),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            var expanded by remember { mutableStateOf(false) }
-            Box {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_filter),
-                        contentDescription = "Ordenar alfabéticamente",
-                    )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("A-Z") },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_arrow_down),
-                                contentDescription = null,
-                                modifier = Modifier.graphicsLayer { rotationZ = 180f }
-                            )
-                        },
-                        onClick = {
-                            selectSortDirection(SortDirection.Ascending)
-                            expanded = false
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Z-A") },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_arrow_down),
-                                contentDescription = null,
-                            )
-                        },
-                        onClick = {
-                            selectSortDirection(SortDirection.Descending)
-                            expanded = false
-                        }
-                    )
-                }
-            }
         }
     }
 }
