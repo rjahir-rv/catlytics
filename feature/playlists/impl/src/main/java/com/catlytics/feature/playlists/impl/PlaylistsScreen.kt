@@ -68,6 +68,17 @@ import com.catlytics.core.model.SortDirection
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
 import kotlinx.coroutines.launch
 
+// La fila de controles (filtro y modo de vista) va superpuesta sobre las listas,
+// por lo que el contenido reserva su altura completa para no quedar tapado.
+private val ControlsTopPadding = 8.dp
+private val ControlsBottomPadding = 8.dp
+private val ControlsIconSize = 48.dp
+private val ControlsHeight = ControlsTopPadding + ControlsIconSize + ControlsBottomPadding
+
+// Aire extra entre los controles y la primera playlist.
+private val ControlsContentGap = 8.dp
+private val ControlsContentInset = ControlsHeight + ControlsContentGap
+
 @Composable
 internal fun PlaylistsScreen(
     playlists: List<Playlist>,
@@ -201,12 +212,12 @@ internal fun PlaylistsScreen(
                         }
                     )
                     .background(MaterialTheme.colorScheme.background)
-                    .padding(top = 8.dp),
+                    .padding(top = ControlsTopPadding),
             ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
+                    .padding(start = 12.dp, end = 12.dp, bottom = ControlsBottomPadding),
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
             var expanded by remember { mutableStateOf(false) }
@@ -359,7 +370,7 @@ private fun PlaylistList(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = topPadding + 56.dp,
+            top = topPadding + ControlsContentInset,
             end = 20.dp,
             bottom = bottomPadding() + 104.dp,
         ),
@@ -474,7 +485,7 @@ private fun PlaylistMosaic(
         modifier = modifier,
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = topPadding + 56.dp,
+            top = topPadding + ControlsContentInset,
             end = 20.dp,
             bottom = bottomPadding() + 104.dp,
         ),
