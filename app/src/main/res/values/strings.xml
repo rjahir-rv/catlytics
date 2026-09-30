@@ -35,21 +35,21 @@
     <string name="app_action_enable_shuffle">Activar mezcla</string>
     <string name="app_action_disable_shuffle">Desactivar mezcla</string>
     <string name="app_action_share_track">Compartir canción</string>
-    <string name="app_action_open_queue">Abrir cola de reproducción</string>
+    <string name="app_action_open_queue">Abrir fila de reproducción</string>
     <string name="app_action_enable_repeat_one">Activar repetir canción</string>
     <string name="app_action_enable_repeat_all">Activar repetir todo</string>
     <string name="app_action_disable_repeat">Desactivar repetición</string>
     <string name="app_repeat_state_off">Repetición desactivada</string>
     <string name="app_repeat_state_one">Repitiendo canción</string>
-    <string name="app_repeat_state_all">Repitiendo cola</string>
+    <string name="app_repeat_state_all">Repitiendo fila</string>
     <string name="app_action_remove_from_liked">Quitar de Tus me gusta</string>
     <string name="app_action_add_to_liked">Agregar a Tus me gusta</string>
     <string name="app_content_description_artwork">Carátula de %1$s</string>
 
-    <!-- Cola de reproducción -->
-    <string name="app_queue_title">Cola de reproducción</string>
+    <!-- Fila de reproducción -->
+    <string name="app_queue_title">Fila de reproducción</string>
     <string name="app_queue_now_playing_track">Reproduciendo · %1$s</string>
-    <string name="app_queue_remove_track">Quitar %1$s de la cola</string>
+    <string name="app_queue_remove_track">Quitar %1$s de la fila</string>
     <plurals name="app_queue_tracks_count">
         <item quantity="one">1 canción</item>
         <item quantity="other">%1$d canciones</item>
@@ -61,7 +61,7 @@
     <string name="app_track_option_remove_from_liked">Quitar de Tus me gusta</string>
     <string name="app_track_option_save_to_liked">Guardar en Tus me gusta</string>
     <string name="app_track_option_play_next">Reproducir siguiente</string>
-    <string name="app_track_option_add_to_queue">Agregar a la cola</string>
+    <string name="app_track_option_add_to_queue">Agregar a la fila</string>
     <string name="app_track_option_go_to_album">Ir al álbum</string>
     <string name="app_track_option_go_to_artist">Ir al artista</string>
     <string name="app_track_option_remove_from_playlist">Quitar de playlist</string>
@@ -77,7 +77,7 @@
     <string name="app_track_collection_selected_title">Canciones seleccionadas</string>
     <string name="app_toast_track_added_to_liked">Canción agregada a %1$s</string>
     <string name="app_toast_track_removed_from_liked">Canción eliminada de %1$s</string>
-    <string name="app_toast_added_to_queue">Se agregó a la cola de reproducción</string>
+    <string name="app_toast_added_to_queue">Se agregó a la fila de reproducción</string>
     <string name="app_toast_will_play_next">Se reproducirá a continuación</string>
     <plurals name="app_toast_tracks_added_to_liked">
         <item quantity="one">1 canción agregada a %1$s</item>
@@ -88,8 +88,8 @@
         <item quantity="other">%1$d canciones eliminadas de %1$s</item>
     </plurals>
     <plurals name="app_toast_tracks_added_to_queue">
-        <item quantity="one">1 canción agregada a la cola</item>
-        <item quantity="other">%1$d canciones agregadas a la cola</item>
+        <item quantity="one">1 canción agregada a la fila</item>
+        <item quantity="other">%1$d canciones agregadas a la fila</item>
     </plurals>
     <plurals name="app_toast_tracks_will_play_next">
         <item quantity="one">1 canción se reproducirá a continuación</item>

@@ -158,7 +158,7 @@
     <string name="settings_equalizer_frequency_kilohertz" translatable="false">%1$dK</string>
 
     <!-- Ajustes: temporizador de sueño -->
-    <string name="settings_sleep_timer_sheet_description">La música se pausará sin perder tu cola ni tu posición.</string>
+    <string name="settings_sleep_timer_sheet_description">La música se pausará sin perder tu fila ni tu posición.</string>
     <string name="settings_sleep_timer_sheet_active">Temporizador activo</string>
     <string name="settings_sleep_timer_start">Iniciar temporizador</string>
     <string name="settings_sleep_timer_restart">Reiniciar temporizador</string>

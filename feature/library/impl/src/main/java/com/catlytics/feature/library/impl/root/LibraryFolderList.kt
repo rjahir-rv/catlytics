@@ -292,7 +292,7 @@ private fun FolderVisibilityMenuItem(
             Text(
                 text = label,
                 color = if (selected) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
+                    MaterialTheme.colorScheme.primary
                 } else {
                     MaterialTheme.colorScheme.onSurface
                 },
@@ -302,12 +302,12 @@ private fun FolderVisibilityMenuItem(
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = if (selected) {
-                    MaterialTheme.colorScheme.secondaryContainer
+                    MaterialTheme.colorScheme.primaryContainer
                 } else {
                     MaterialTheme.colorScheme.surfaceContainer
                 },
                 contentColor = if (selected) {
-                    MaterialTheme.colorScheme.onSecondaryContainer
+                    MaterialTheme.colorScheme.onPrimaryContainer
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },

@@ -27,6 +27,6 @@
     <string name="ds_selection_remove_from_liked">Quitar de Tus me gusta</string>
     <string name="ds_selection_save_to_liked">Guardar en Tus me gusta</string>
     <string name="ds_selection_play_next">Reproducir siguiente</string>
-    <string name="ds_selection_add_to_queue">Agregar a la cola</string>
+    <string name="ds_selection_add_to_queue">Agregar a la fila</string>
     <string name="ds_selection_remove_from_playlist">Quitar de playlist</string>
 </resources>
