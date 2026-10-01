@@ -53,7 +53,6 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
-import com.catlytics.core.domain.usecase.playlist.CreatePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
 import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUseCase
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
@@ -71,7 +70,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Playlist agregada, con su id para poder resolver el nombre de la playlist del sistema. */
 data class PlaylistRef(
     val id: String,
     val name: String,
@@ -100,7 +98,6 @@ internal fun togglePlaylistSelectionState(
 @HiltViewModel
 class AddToPlaylistViewModel @Inject constructor(
     observePlaylists: ObservePlaylistsUseCase,
-    private val createPlaylistUseCase: CreatePlaylistUseCase,
     private val addToPlaylist: AddToPlaylistUseCase,
     private val resolvePreview: ResolvePlaylistSourcePreviewUseCase,
 ) : ViewModel() {
@@ -116,14 +113,6 @@ class AddToPlaylistViewModel @Inject constructor(
     fun loadPreview(source: PlaylistSource) {
         viewModelScope.launch {
             _preview.value = resolvePreview(source)
-        }
-    }
-
-    fun createPlaylistForSelection(name: String, onCreated: (String) -> Unit) {
-        viewModelScope.launch {
-            val playlist = playlists.value.firstOrNull { it.name.equals(name.trim(), ignoreCase = true) }
-                ?: createPlaylistUseCase(name)
-            onCreated(playlist.id)
         }
     }
 
@@ -169,6 +158,7 @@ fun AddToPlaylistSheet(
     onDismiss: () -> Unit,
     excludedPlaylistIds: Set<String> = emptySet(),
     allowCreate: Boolean = true,
+    onCreatePlaylist: (trackIds: List<String>) -> Unit = {},
     viewModel: AddToPlaylistViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
@@ -177,7 +167,6 @@ fun AddToPlaylistSheet(
     val preview by viewModel.preview.collectAsStateWithLifecycle()
     val sourceTrackIds = preview?.trackIds.orEmpty()
     var selectedPlaylistIds by remember { mutableStateOf(emptySet<String>()) }
-    var creating by remember { mutableStateOf(false) }
 
     LaunchedEffect(source) {
         viewModel.loadPreview(source)
@@ -209,7 +198,7 @@ fun AddToPlaylistSheet(
                         leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { creating = true },
+                            .clickable(enabled = preview != null) { onCreatePlaylist(sourceTrackIds) },
                     )
                 }
             }
@@ -295,18 +284,6 @@ fun AddToPlaylistSheet(
                     Text(stringResource(PlaylistsR.string.add_to_playlist_done))
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
-    }
-    if (creating) {
-        NameDialog(
-            title = stringResource(PlaylistsR.string.playlists_new_playlist),
-            initialName = "",
-            onDismiss = { creating = false },
-        ) { name ->
-            creating = false
-            viewModel.createPlaylistForSelection(name) { playlistId ->
-                selectedPlaylistIds = selectedPlaylistIds + playlistId
             }
         }
     }

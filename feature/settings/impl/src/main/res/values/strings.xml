@@ -36,7 +36,7 @@
 
     <!-- Ajustes: tema y canciones recientes -->
     <string name="settings_theme_title">Tema</string>
-    <string name="settings_theme_system">Predeterminado del sistema</string>
+    <string name="settings_theme_system_short">Sistema</string>
     <string name="settings_theme_light">Claro</string>
     <string name="settings_theme_dark">Oscuro</string>
     <string name="settings_theme_system_description">Usar el tema configurado en el dispositivo</string>
@@ -178,4 +178,8 @@
     <string name="settings_about_open_source_title">Código abierto y sin anuncios</string>
     <string name="settings_about_open_source_description">La aplicación es un proyecto de código abierto y no incluye anuncios. El código fuente está disponible públicamente en GitHub.</string>
     <string name="settings_about_repository_action">Ver repositorio en GitHub</string>
+
+    <!-- Cabecera de Ajustes -->
+    <string name="settings_profile_title">Catlytics</string>
+    <string name="settings_profile_version">Versión %1$s</string>
 </resources>

@@ -15,6 +15,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.androidx.palette.ktx)
     implementation(libs.coil.compose)
+    api(libs.haze)
+    implementation(libs.haze.blur)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.junit)

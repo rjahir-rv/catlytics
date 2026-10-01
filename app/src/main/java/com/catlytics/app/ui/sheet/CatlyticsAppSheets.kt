@@ -21,6 +21,7 @@ internal fun CatlyticsAppSheets(
     playlistSource: PlaylistSource?,
     playlistSheetSession: Int,
     onDismissPlaylistSheet: () -> Unit,
+    onCreatePlaylist: (trackIds: List<String>) -> Unit,
 ) {
     trackOptionsRequest?.let { request ->
         TrackOptionsSheet(
@@ -44,7 +45,11 @@ internal fun CatlyticsAppSheets(
 
     playlistSource?.let { source ->
         key(playlistSheetSession) {
-            AddToPlaylistSheet(source = source, onDismiss = onDismissPlaylistSheet)
+            AddToPlaylistSheet(
+                source = source,
+                onDismiss = onDismissPlaylistSheet,
+                onCreatePlaylist = onCreatePlaylist,
+            )
         }
     }
 }

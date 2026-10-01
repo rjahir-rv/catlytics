@@ -31,10 +31,24 @@ class ObservePlaylistContentUseCase(
 }
 
 class CreatePlaylistUseCase(private val repository: PlaylistRepository) {
-    suspend operator fun invoke(name: String): Playlist {
+    suspend operator fun invoke(
+        name: String,
+        trackIds: List<String> = emptyList(),
+        artworkUri: String? = null,
+        description: String = "",
+    ): Playlist {
         val normalized = name.trim()
         require(normalized.isNotEmpty()) { "El nombre no puede estar vacío." }
-        return repository.createPlaylist(normalized)
+        val normalizedDescription = description.trim()
+        var playlist = repository.createPlaylist(normalized, trackIds)
+        if (normalizedDescription.isNotEmpty()) {
+            repository.updatePlaylistDetails(playlist.id, normalized, normalizedDescription)
+            playlist = playlist.copy(description = normalizedDescription)
+        }
+        if (artworkUri != null) {
+            repository.setPlaylistArtwork(playlist.id, artworkUri)
+        }
+        return playlist
     }
 }
 

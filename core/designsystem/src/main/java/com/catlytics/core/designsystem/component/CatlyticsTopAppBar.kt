@@ -95,25 +95,29 @@ private fun CatlyticsTopAppBarRow(
     windowInsets: WindowInsets,
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
+    // El fondo se pinta aquí y no en TopAppBar: Material anima internamente el color del
+    // contenedor, lo que desfasaba la barra respecto al resto de la app al cambiar de tema.
     TopAppBar(
         title = title,
         navigationIcon = navigationIcon,
         actions = actions,
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = containerColor,
-            scrolledContainerColor = scrolledContainerColor,
+            containerColor = Color.Transparent,
+            scrolledContainerColor = Color.Transparent,
             navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
             titleContentColor = MaterialTheme.colorScheme.onBackground,
         ),
-        modifier = modifier,
+        modifier = modifier.drawBehind {
+            val isScrolled = (scrollBehavior?.state?.overlappedFraction ?: 0f) > OVERLAP_THRESHOLD
+            drawRect(if (isScrolled) scrolledContainerColor else containerColor)
+        },
         windowInsets = windowInsets,
         scrollBehavior = scrollBehavior,
     )
 }
 
-/**
- * Resolves the color used by Material3 when content is scrolled under the top app bar.
- */
+private const val OVERLAP_THRESHOLD = 0.01f
+
 internal fun resolveScrolledContainerColor(
     containerColor: Color,
     scrolledContainerColor: Color?,
@@ -127,7 +131,7 @@ private fun CatlyticsTopAppBarPreview() {
         CatlyticsTopAppBar(
             title = {
                 Text(
-                    text = "Inicio", // no-translate: dato de muestra del @Preview
+                    text = "Inicio",
                     style = MaterialTheme.typography.titleLarge,
                 )
             },

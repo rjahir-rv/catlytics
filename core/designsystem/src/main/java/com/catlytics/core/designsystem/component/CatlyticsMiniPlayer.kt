@@ -1,7 +1,11 @@
 package com.catlytics.core.designsystem.component
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +23,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -30,6 +41,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import dev.chrisbanes.haze.HazeInput
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.blur.HazeBlurStyle
+import dev.chrisbanes.haze.blur.HazeColorEffect
+import dev.chrisbanes.haze.blur.hazeBlur
 
 @Composable
 fun CatlyticsMiniPlayer(
@@ -43,6 +59,8 @@ fun CatlyticsMiniPlayer(
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
     onClick: () -> Unit,
+    hazeState: HazeState? = null,
+    accentColor: Color = Color.Unspecified,
     artwork: @Composable (Modifier) -> Unit = { artworkModifier ->
         Image(
             painter = painterResource(id = R.drawable.placeholder_track),
@@ -53,16 +71,55 @@ fun CatlyticsMiniPlayer(
     },
 ) {
     val containerShape = RoundedCornerShape(20.dp)
+    // Solo se anima el acento de la portada; los colores del tema ya llegan animados y
+    // animarlos otra vez haría que el mini se desfasara al cambiar entre claro y oscuro.
+    var lastAccent by remember { mutableStateOf(Color.Unspecified) }
+    if (accentColor.isSpecified) lastAccent = accentColor
+    val animatedAccent by animateColorAsState(
+        targetValue = if (lastAccent.isSpecified) lastAccent else MaterialTheme.colorScheme.primary,
+        animationSpec = tween(MINI_PLAYER_COLOR_ANIMATION_MILLIS),
+        label = "miniPlayerAccent",
+    )
+    val accentWeight by animateFloatAsState(
+        targetValue = if (accentColor.isSpecified) 1f else 0f,
+        animationSpec = tween(MINI_PLAYER_COLOR_ANIMATION_MILLIS),
+        label = "miniPlayerAccentWeight",
+    )
+    val tintColor = lerp(
+        MaterialTheme.colorScheme.surfaceContainer,
+        animatedAccent,
+        MINI_PLAYER_ACCENT_BLEND * accentWeight,
+    )
+    val progressColor = lerp(MaterialTheme.colorScheme.primary, animatedAccent, accentWeight)
+    val backgroundModifier = if (hazeState != null) {
+        Modifier.hazeBlur(
+            input = HazeInput.Sources(hazeState),
+            style = HazeBlurStyle {
+                blurRadius(28.dp)
+                noiseFactor(0.05f)
+                colorEffects(listOf(HazeColorEffect.tint(tintColor.copy(alpha = 0.72f))))
+                fallbackColorEffect(HazeColorEffect.tint(tintColor.copy(alpha = 0.92f)))
+            },
+        )
+    } else {
+        Modifier
+    }
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp, vertical = 6.dp)
             .clip(containerShape)
+            .then(backgroundModifier)
+            .border(
+                width = 0.5.dp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                shape = containerShape,
+            )
             .animateContentSize(),
         onClick = onClick,
         shape = containerShape,
-        color = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.78f),
+        color = if (hazeState != null) Color.Transparent else tintColor.copy(alpha = 0.78f),
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 0.dp,
         shadowElevation = 0.dp,
@@ -164,7 +221,7 @@ fun CatlyticsMiniPlayer(
                     .semantics {
                         contentDescription = progressContentDescription
                     },
-                color = MaterialTheme.colorScheme.primary,
+                color = progressColor,
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f),
                 gapSize = 0.dp,
                 drawStopIndicator = {},
@@ -172,3 +229,6 @@ fun CatlyticsMiniPlayer(
         }
     }
 }
+
+private const val MINI_PLAYER_ACCENT_BLEND = 0.3f
+private const val MINI_PLAYER_COLOR_ANIMATION_MILLIS = 600

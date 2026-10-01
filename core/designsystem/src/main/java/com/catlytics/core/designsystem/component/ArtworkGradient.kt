@@ -93,6 +93,13 @@ suspend fun Bitmap.extractArtworkGradientColors(
         .toArtworkGradientColors(fallback, surfaceBlend.coerceIn(0f, 1f))
 }
 
+suspend fun Bitmap.extractArtworkAccentColor(): Color = withContext(Dispatchers.Default) {
+    val palette = Palette.from(this@extractArtworkAccentColor)
+        .maximumColorCount(PALETTE_MAX_COLOR_COUNT)
+        .generate()
+    (palette.vibrantSwatch ?: palette.dominantSwatch)?.rgb?.let(::Color) ?: Color.Unspecified
+}
+
 private fun Palette.toArtworkGradientColors(
     fallback: ArtworkGradientColors,
     surfaceBlend: Float,

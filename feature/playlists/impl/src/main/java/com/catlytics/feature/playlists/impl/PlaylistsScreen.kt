@@ -74,8 +74,6 @@ private val ControlsTopPadding = 8.dp
 private val ControlsBottomPadding = 8.dp
 private val ControlsIconSize = 48.dp
 private val ControlsHeight = ControlsTopPadding + ControlsIconSize + ControlsBottomPadding
-
-// Aire extra entre los controles y la primera playlist.
 private val ControlsContentGap = 8.dp
 private val ControlsContentInset = ControlsHeight + ControlsContentGap
 
@@ -86,7 +84,7 @@ internal fun PlaylistsScreen(
     modifier: Modifier = Modifier,
     onViewModeChange: (PlaylistViewMode) -> Unit,
     onPlaylistSelected: (Playlist) -> Unit,
-    onCreate: (String) -> Unit,
+    onCreateClick: () -> Unit,
     onRename: (String, String) -> Unit,
     onDelete: (String) -> Unit,
     onSetCover: (String, String?) -> Unit,
@@ -98,7 +96,6 @@ internal fun PlaylistsScreen(
     collapseFraction: () -> Float = { 0f },
 ) {
     var editor by remember { mutableStateOf<Playlist?>(null) }
-    var creating by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<Playlist?>(null) }
     var pendingCoverForId by remember { mutableStateOf<String?>(null) }
 
@@ -289,7 +286,7 @@ internal fun PlaylistsScreen(
         }
 
         ExtendedFloatingActionButton(
-            onClick = { creating = true },
+            onClick = onCreateClick,
             icon = {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_add),
@@ -304,16 +301,6 @@ internal fun PlaylistsScreen(
                     bottom = bottomPadding() + 20.dp,
                 ),
         )
-    }
-    if (creating) {
-        NameDialog(
-            title = stringResource(PlaylistsR.string.playlists_new_playlist),
-            initialName = "",
-            onDismiss = { creating = false },
-        ) {
-            creating = false
-            onCreate(it)
-        }
     }
     editor?.let { playlist ->
         NameDialog(
@@ -735,7 +722,7 @@ private fun PlaylistsScreenListPreview() {
             viewMode = PlaylistViewMode.List,
             onViewModeChange = {},
             onPlaylistSelected = {},
-            onCreate = {},
+            onCreateClick = {},
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },
@@ -758,7 +745,7 @@ private fun PlaylistsScreenMosaicPreview() {
             viewMode = PlaylistViewMode.Mosaic,
             onViewModeChange = {},
             onPlaylistSelected = {},
-            onCreate = {},
+            onCreateClick = {},
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },
@@ -778,7 +765,7 @@ private fun PlaylistsScreenEmptyPreview() {
             viewMode = PlaylistViewMode.List,
             onViewModeChange = {},
             onPlaylistSelected = {},
-            onCreate = {},
+            onCreateClick = {},
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },

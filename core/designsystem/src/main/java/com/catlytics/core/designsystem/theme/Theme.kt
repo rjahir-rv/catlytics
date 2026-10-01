@@ -1,7 +1,10 @@
 package com.catlytics.core.designsystem.theme
 
 import android.os.Build
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.darkColorScheme
@@ -9,7 +12,13 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 
 private val lightScheme = lightColorScheme(
@@ -270,8 +279,69 @@ fun CatlyticsTheme(
   }
 
   MaterialTheme(
-    colorScheme = colorScheme,
+    colorScheme = animateColorScheme(colorScheme),
     typography = AppTypography,
     content = content
   )
 }
+
+/**
+ * Interpola todo el esquema con una sola animación para que el cambio claro/oscuro
+ * (por ejemplo desde Ajustes) sea un fundido en lugar de un corte.
+ */
+@Composable
+private fun animateColorScheme(target: ColorScheme): ColorScheme {
+    var from by remember { mutableStateOf(target) }
+    var to by remember { mutableStateOf(target) }
+    val progress = remember { Animatable(1f) }
+    LaunchedEffect(target) {
+        if (target == to) return@LaunchedEffect
+        from = lerpColorScheme(from, to, progress.value)
+        to = target
+        progress.snapTo(0f)
+        progress.animateTo(1f, tween(durationMillis = THEME_TRANSITION_MILLIS))
+    }
+    val fraction = progress.value
+    return if (fraction >= 1f) to else lerpColorScheme(from, to, fraction)
+}
+
+private fun lerpColorScheme(from: ColorScheme, to: ColorScheme, fraction: Float): ColorScheme = to.copy(
+    primary = lerp(from.primary, to.primary, fraction),
+    onPrimary = lerp(from.onPrimary, to.onPrimary, fraction),
+    primaryContainer = lerp(from.primaryContainer, to.primaryContainer, fraction),
+    onPrimaryContainer = lerp(from.onPrimaryContainer, to.onPrimaryContainer, fraction),
+    inversePrimary = lerp(from.inversePrimary, to.inversePrimary, fraction),
+    secondary = lerp(from.secondary, to.secondary, fraction),
+    onSecondary = lerp(from.onSecondary, to.onSecondary, fraction),
+    secondaryContainer = lerp(from.secondaryContainer, to.secondaryContainer, fraction),
+    onSecondaryContainer = lerp(from.onSecondaryContainer, to.onSecondaryContainer, fraction),
+    tertiary = lerp(from.tertiary, to.tertiary, fraction),
+    onTertiary = lerp(from.onTertiary, to.onTertiary, fraction),
+    tertiaryContainer = lerp(from.tertiaryContainer, to.tertiaryContainer, fraction),
+    onTertiaryContainer = lerp(from.onTertiaryContainer, to.onTertiaryContainer, fraction),
+    background = lerp(from.background, to.background, fraction),
+    onBackground = lerp(from.onBackground, to.onBackground, fraction),
+    surface = lerp(from.surface, to.surface, fraction),
+    onSurface = lerp(from.onSurface, to.onSurface, fraction),
+    surfaceVariant = lerp(from.surfaceVariant, to.surfaceVariant, fraction),
+    onSurfaceVariant = lerp(from.onSurfaceVariant, to.onSurfaceVariant, fraction),
+    surfaceTint = lerp(from.surfaceTint, to.surfaceTint, fraction),
+    inverseSurface = lerp(from.inverseSurface, to.inverseSurface, fraction),
+    inverseOnSurface = lerp(from.inverseOnSurface, to.inverseOnSurface, fraction),
+    error = lerp(from.error, to.error, fraction),
+    onError = lerp(from.onError, to.onError, fraction),
+    errorContainer = lerp(from.errorContainer, to.errorContainer, fraction),
+    onErrorContainer = lerp(from.onErrorContainer, to.onErrorContainer, fraction),
+    outline = lerp(from.outline, to.outline, fraction),
+    outlineVariant = lerp(from.outlineVariant, to.outlineVariant, fraction),
+    scrim = lerp(from.scrim, to.scrim, fraction),
+    surfaceBright = lerp(from.surfaceBright, to.surfaceBright, fraction),
+    surfaceDim = lerp(from.surfaceDim, to.surfaceDim, fraction),
+    surfaceContainer = lerp(from.surfaceContainer, to.surfaceContainer, fraction),
+    surfaceContainerHigh = lerp(from.surfaceContainerHigh, to.surfaceContainerHigh, fraction),
+    surfaceContainerHighest = lerp(from.surfaceContainerHighest, to.surfaceContainerHighest, fraction),
+    surfaceContainerLow = lerp(from.surfaceContainerLow, to.surfaceContainerLow, fraction),
+    surfaceContainerLowest = lerp(from.surfaceContainerLowest, to.surfaceContainerLowest, fraction),
+)
+
+private const val THEME_TRANSITION_MILLIS = 350

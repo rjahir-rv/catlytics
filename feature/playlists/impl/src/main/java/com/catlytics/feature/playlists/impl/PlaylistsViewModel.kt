@@ -2,7 +2,6 @@ package com.catlytics.feature.playlists.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.catlytics.core.domain.usecase.playlist.CreatePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.DeletePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistSortDirectionUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistViewModeUseCase
@@ -26,7 +25,6 @@ internal class PlaylistsViewModel @Inject constructor(
     observePlaylistsUseCase: ObservePlaylistsUseCase,
     observePlaylistViewModeUseCase: ObservePlaylistViewModeUseCase,
     observePlaylistSortDirectionUseCase: ObservePlaylistSortDirectionUseCase,
-    private val createPlaylistUseCase: CreatePlaylistUseCase,
     private val renamePlaylistUseCase: RenamePlaylistUseCase,
     private val deletePlaylistUseCase: DeletePlaylistUseCase,
     private val setPlaylistViewModeUseCase: SetPlaylistViewModeUseCase,
@@ -50,12 +48,6 @@ internal class PlaylistsViewModel @Inject constructor(
         SharingStarted.WhileSubscribed(5_000),
         SortDirection.Ascending,
     )
-
-    fun create(name: String) = viewModelScope.launch {
-        if (playlists.value.none { it.name.equals(name.trim(), ignoreCase = true) }) {
-            createPlaylistUseCase(name)
-        }
-    }
 
     fun rename(id: String, name: String) = viewModelScope.launch {
         if (playlists.value.none {

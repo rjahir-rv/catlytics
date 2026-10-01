@@ -10,4 +10,5 @@ android {
 dependencies {
     api(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.compose.animation)
 }

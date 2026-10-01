@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -31,11 +32,14 @@ internal fun CatlyticsBottomBar(
     modifier: Modifier = Modifier,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val containerColor = if (colorScheme.background.luminance() < DARK_LUMINANCE_THRESHOLD) {
-        Color.Black
-    } else {
-        Color.White
-    }
+    // Negro en tema oscuro y blanco en claro; interpolado por luminancia para que acompañe
+    // el fundido de tema en lugar de cambiar de golpe a mitad de la transición.
+    val containerColor = lerp(
+        Color.Black,
+        Color.White,
+        ((colorScheme.background.luminance() - DARK_BACKGROUND_LUMINANCE) /
+            (LIGHT_BACKGROUND_LUMINANCE - DARK_BACKGROUND_LUMINANCE)).coerceIn(0f, 1f),
+    )
     val selectedColor = colorScheme.primary
     val unselectedColor = colorScheme.onSurfaceVariant
     val itemColors = NavigationBarItemDefaults.colors(
@@ -86,5 +90,6 @@ internal fun CatlyticsBottomBar(
     }
 }
 
-private const val DARK_LUMINANCE_THRESHOLD = 0.5f
+private const val DARK_BACKGROUND_LUMINANCE = 0.05f
+private const val LIGHT_BACKGROUND_LUMINANCE = 0.85f
 private const val SELECTED_INDICATOR_ALPHA = 0.15f

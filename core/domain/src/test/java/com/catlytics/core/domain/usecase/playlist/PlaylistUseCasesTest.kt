@@ -87,6 +87,36 @@ class PlaylistUseCasesTest {
         assertFalse(useCase(null).first())
     }
 
+    @Test
+    fun `create playlist stores tracks description and artwork`() = runTest {
+        val repository = FakePlaylistRepository()
+
+        val playlist = CreatePlaylistUseCase(repository)(
+            name = "  Road trip ",
+            trackIds = listOf("one", "two"),
+            artworkUri = "content://cover",
+            description = " Para el camino ",
+        )
+
+        val stored = repository.observePlaylists().first().first { it.id == playlist.id }
+        assertEquals("Road trip", stored.name)
+        assertEquals(listOf("one", "two"), stored.trackIds)
+        assertEquals("Para el camino", stored.description)
+        assertEquals("content://cover", stored.artworkUri)
+    }
+
+    @Test
+    fun `create playlist without extras keeps defaults`() = runTest {
+        val repository = FakePlaylistRepository()
+
+        val playlist = CreatePlaylistUseCase(repository)("Focus")
+
+        val stored = repository.observePlaylists().first().first { it.id == playlist.id }
+        assertTrue(stored.trackIds.isEmpty())
+        assertEquals("", stored.description)
+        assertEquals(null, stored.artworkUri)
+    }
+
     private class FakePlaylistRepository : PlaylistRepository {
         private val playlists = MutableStateFlow(
             listOf(Playlist(LIKED_PLAYLIST_ID, "Tus me gusta", emptyList())),

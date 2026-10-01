@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -30,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -55,10 +57,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
 import com.catlytics.app.R
 import com.catlytics.app.navigation.TopLevelDestination
-import com.catlytics.app.navigation.navigationBackTransition
-import com.catlytics.app.navigation.navigationForwardTransition
-import com.catlytics.app.navigation.nowPlayingEnterTransition
-import com.catlytics.app.navigation.nowPlayingExitTransition
 import com.catlytics.app.playback.NowPlayingRoute
 import com.catlytics.app.playback.NowPlayingScreen
 import com.catlytics.app.playback.PlaybackArtwork
@@ -73,6 +71,7 @@ import com.catlytics.app.ui.chrome.TopLevelTopAppBar
 import com.catlytics.app.ui.sheet.CatlyticsAppSheets
 import com.catlytics.app.ui.sheet.TrackOptionsRequest
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
+import com.catlytics.core.designsystem.component.extractArtworkAccentColor
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
@@ -81,6 +80,10 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.navigation.TopLevelBackStack
+import com.catlytics.core.navigation.navigationBackTransition
+import com.catlytics.core.navigation.navigationForwardTransition
+import com.catlytics.core.navigation.verticalSheetEnterTransition
+import com.catlytics.core.navigation.verticalSheetExitTransition
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.api.DailyPlaylistRoute
 import com.catlytics.feature.home.api.RecentlyAddedRoute
@@ -90,14 +93,19 @@ import com.catlytics.feature.library.api.LibraryAlbumRoute
 import com.catlytics.feature.library.api.LibraryArtistRoute
 import com.catlytics.feature.library.api.LibraryFolderRoute
 import com.catlytics.feature.library.impl.navigation.libraryEntry
+import com.catlytics.feature.playlists.api.CreatePlaylistRoute
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
 import com.catlytics.feature.playlists.api.PlaylistsRoute
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 import com.catlytics.feature.playlists.impl.playlistsEntry
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.settings.impl.settingsEntry
 import com.catlytics.feature.statistics.impl.statisticsEntry
 import com.catlytics.feature.statistics.api.StatisticsExploreRoute
 import com.catlytics.feature.statistics.api.StatisticsRoute
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -160,6 +168,9 @@ fun CatlyticsApp(
     var detailTopBarColors by remember { mutableStateOf<Map<NavKey, Color>>(emptyMap()) }
     var settingsTopBarTitle by remember { mutableStateOf<String?>(null) }
     var settingsTopBarBackAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val hazeState = rememberHazeState()
+    val coroutineScope = rememberCoroutineScope()
+    var miniPlayerAccent by remember { mutableStateOf<Pair<String?, Color>?>(null) }
     val appVersion = remember(context) {
         context.packageManager
             .getPackageInfo(context.packageName, 0)
@@ -183,12 +194,14 @@ fun CatlyticsApp(
     val selectedTopLevelDestination = when (currentRoute) {
         is LibraryAlbumRoute, is LibraryArtistRoute, is LibraryFolderRoute ->
             TopLevelDestination.Library
-        is PlaylistDetailRoute -> TopLevelDestination.Playlists
+        is PlaylistDetailRoute, is CreatePlaylistRoute -> TopLevelDestination.Playlists
         DailyPlaylistRoute, RecentlyAddedRoute -> TopLevelDestination.Home
         StatisticsExploreRoute -> TopLevelDestination.Statistics
         else -> currentTopLevelDestination
     }
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
+    val isCreatePlaylistVisible = currentRoute is CreatePlaylistRoute
+    val isFullScreenRoute = isNowPlayingVisible || isCreatePlaylistVisible
     val isSettingsVisible = currentRoute == SettingsRoute
     val isDetailTopBarVisible = when (currentRoute) {
         is LibraryAlbumRoute,
@@ -208,7 +221,7 @@ fun CatlyticsApp(
         else -> false
     }
     val canTopBarScroll = rememberUpdatedState(
-        !isNowPlayingVisible && !isCurrentSearchExpanded,
+        !isFullScreenRoute && !isCurrentSearchExpanded,
     )
     val topBarState = remember(currentRoute) {
         TopAppBarState(
@@ -465,7 +478,7 @@ fun CatlyticsApp(
             contentColor = MaterialTheme.colorScheme.onBackground,
         topBar = {
             Box {
-                if (!isNowPlayingVisible) {
+                if (!isFullScreenRoute) {
                     StatusBarProtection(
                         color = detailChromeColor ?: MaterialTheme.colorScheme.background,
                         modifier = Modifier
@@ -477,6 +490,7 @@ fun CatlyticsApp(
                 }
 
                 when {
+                isCreatePlaylistVisible -> Unit
                 currentRoute is LibraryAlbumRoute -> {
                     LibraryDetailTopAppBar(
                         title = currentRoute.albumTitle,
@@ -616,7 +630,7 @@ fun CatlyticsApp(
             }
         },
         bottomBar = {
-            if (!isNowPlayingVisible) {
+            if (!isFullScreenRoute) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     playbackState.currentTrack?.let { track ->
                         CatlyticsMiniPlayer(
@@ -643,6 +657,11 @@ fun CatlyticsApp(
                                     topLevelBackStack.add(NowPlayingRoute)
                                 }
                             },
+                            hazeState = hazeState,
+                            accentColor = miniPlayerAccent
+                                ?.takeIf { (uri, _) -> uri == track.artworkUri && uri != null }
+                                ?.second
+                                ?: Color.Unspecified,
                             artwork = { artworkModifier ->
                                 PlaybackArtwork(
                                     artworkUri = track.artworkUri,
@@ -651,6 +670,12 @@ fun CatlyticsApp(
                                         track.title,
                                     ),
                                     modifier = artworkModifier,
+                                    onSuccess = { bitmap ->
+                                        val artworkUri = track.artworkUri
+                                        coroutineScope.launch {
+                                            miniPlayerAccent = artworkUri to bitmap.extractArtworkAccentColor()
+                                        }
+                                    },
                                 )
                             },
                         )
@@ -682,21 +707,26 @@ fun CatlyticsApp(
         )
 
         SideEffect {
-            if (!isNowPlayingVisible) {
+            if (!isFullScreenRoute) {
                 lastBottomPadding = currentBottomPadding
                 lastRegularNavigationContentPadding = contentPaddingBehindBottomBar
             }
         }
 
-        val bottomPaddingToUse = if (isNowPlayingVisible) lastBottomPadding else currentBottomPadding
-        val regularNavigationContentPadding = if (isNowPlayingVisible) lastRegularNavigationContentPadding else contentPaddingBehindBottomBar
+        val bottomPaddingToUse = if (isFullScreenRoute) lastBottomPadding else currentBottomPadding
+        val regularNavigationContentPadding = if (isFullScreenRoute) lastRegularNavigationContentPadding else contentPaddingBehindBottomBar
 
         val bottomPaddingState = rememberUpdatedState(bottomPaddingToUse)
         val regularPaddingState = rememberUpdatedState(regularNavigationContentPadding)
 
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
-                modifier = Modifier.fillMaxSize(),
+                // El fondo va dentro de la fuente del blur: las pantallas son transparentes y,
+                // sin él, el minirreproductor dejaría ver el contenido nítido por debajo.
+                modifier = Modifier
+                    .fillMaxSize()
+                    .hazeSource(hazeState)
+                    .background(detailChromeColor ?: MaterialTheme.colorScheme.background),
                 backStack = topLevelBackStack.backStack,
                 onBack = ::closeCurrentDestination,
                 transitionSpec = {
@@ -777,6 +807,29 @@ fun CatlyticsApp(
                         },
                         scaffoldContentPadding = { regularPaddingState.value },
                         collapseFraction = { topBarScrollBehavior.state.collapsedFraction },
+                        onCloseCreatePlaylist = ::closeCurrentDestination,
+                        onPlaylistCreated = { route, playlist ->
+                            closeCurrentDestination()
+                            if (route.openDetailOnCreate) {
+                                topLevelBackStack.add(
+                                    PlaylistDetailRoute(
+                                        playlistId = playlist.id,
+                                        playlistName = playlist.name,
+                                    ),
+                                )
+                            } else {
+                                Toast.makeText(
+                                    context,
+                                    resources.getQuantityString(
+                                        PlaylistsR.plurals.create_playlist_toast_created,
+                                        playlist.trackIds.size,
+                                        playlist.trackIds.size,
+                                        playlist.name,
+                                    ),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        },
                     )
                     settingsEntry(
                         appVersion = appVersion,
@@ -801,13 +854,13 @@ fun CatlyticsApp(
                     entry<NowPlayingRoute>(
                         metadata = metadata {
                             put(NavDisplay.TransitionKey) {
-                                nowPlayingEnterTransition()
+                                verticalSheetEnterTransition()
                             }
                             put(NavDisplay.PopTransitionKey) {
-                                nowPlayingExitTransition()
+                                verticalSheetExitTransition()
                             }
                             put(NavDisplay.PredictivePopTransitionKey) { _ ->
-                                nowPlayingExitTransition()
+                                verticalSheetExitTransition()
                             }
                         },
                     ) {
@@ -906,6 +959,15 @@ fun CatlyticsApp(
             playlistSource = playlistSource,
             playlistSheetSession = playlistSheetSession,
             onDismissPlaylistSheet = { playlistSource = null },
+            onCreatePlaylist = { trackIds ->
+                playlistSource = null
+                topLevelBackStack.add(
+                    CreatePlaylistRoute(
+                        initialTrackIds = trackIds,
+                        openDetailOnCreate = false,
+                    ),
+                )
+            },
         )
     }
 }

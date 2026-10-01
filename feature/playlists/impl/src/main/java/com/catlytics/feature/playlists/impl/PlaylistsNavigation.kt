@@ -10,9 +10,15 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.metadata
+import androidx.navigation3.ui.NavDisplay
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.core.navigation.verticalSheetEnterTransition
+import com.catlytics.core.navigation.verticalSheetExitTransition
+import com.catlytics.feature.playlists.api.CreatePlaylistRoute
 import com.catlytics.feature.playlists.api.PlaylistsRoute
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
 
@@ -27,6 +33,8 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
     onPlaylistDetailTopBarColorChange: (NavKey, Color) -> Unit,
     scaffoldContentPadding: () -> PaddingValues = { PaddingValues(0.dp) },
     collapseFraction: () -> Float = { 0f },
+    onCloseCreatePlaylist: () -> Unit = {},
+    onPlaylistCreated: (route: CreatePlaylistRoute, playlist: Playlist) -> Unit = { _, _ -> },
 ) {
     entry<PlaylistsRoute> {
         val viewModel: PlaylistsViewModel = hiltViewModel()
@@ -50,7 +58,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
                     ),
                 )
             },
-            onCreate = viewModel::create,
+            onCreateClick = { onDestinationSelected(CreatePlaylistRoute()) },
             onRename = viewModel::rename,
             onDelete = viewModel::delete,
             onSetCover = viewModel::setCover,
@@ -74,6 +82,31 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             onDeleted = onPlaylistDeleted,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding(),
+        )
+    }
+    entry<CreatePlaylistRoute>(
+        metadata = metadata {
+            put(NavDisplay.TransitionKey) { verticalSheetEnterTransition() }
+            put(NavDisplay.PopTransitionKey) { verticalSheetExitTransition() }
+            put(NavDisplay.PredictivePopTransitionKey) { _ -> verticalSheetExitTransition() }
+        },
+    ) { route ->
+        val viewModel: CreatePlaylistViewModel = hiltViewModel()
+        val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+        val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+        CreatePlaylistScreen(
+            playlists = playlists,
+            initialTrackCount = route.initialTrackIds.size,
+            isSaving = isSaving,
+            onClose = onCloseCreatePlaylist,
+            onCreate = { name, description, artworkUri ->
+                viewModel.create(
+                    name = name,
+                    description = description,
+                    artworkUri = artworkUri,
+                    trackIds = route.initialTrackIds,
+                ) { playlist -> onPlaylistCreated(route, playlist) }
+            },
         )
     }
 }

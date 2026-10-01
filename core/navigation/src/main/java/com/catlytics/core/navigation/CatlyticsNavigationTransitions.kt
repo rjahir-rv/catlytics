@@ -1,4 +1,4 @@
-package com.catlytics.app.navigation
+package com.catlytics.core.navigation
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -10,7 +10,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 
-internal fun navigationForwardTransition() =
+fun navigationForwardTransition() =
     (slideInHorizontally(
         animationSpec = tween(
             durationMillis = NAVIGATION_TRANSITION_MILLIS,
@@ -29,7 +29,7 @@ internal fun navigationForwardTransition() =
         animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
     ))
 
-internal fun navigationBackTransition() =
+fun navigationBackTransition() =
     (slideInHorizontally(
         animationSpec = tween(
             durationMillis = NAVIGATION_TRANSITION_MILLIS,
@@ -48,34 +48,34 @@ internal fun navigationBackTransition() =
         animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
     ))
 
-internal fun nowPlayingEnterTransition() =
+fun verticalSheetEnterTransition() =
     slideInVertically(
         animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
+            durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
             easing = FastOutSlowInEasing,
         ),
         initialOffsetY = { fullHeight -> fullHeight },
     ) + fadeIn(
         animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
+            durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
             easing = FastOutSlowInEasing,
         ),
     ) togetherWith fadeOut(
         animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
+            durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
             easing = FastOutSlowInEasing,
         ),
     )
 
-internal fun nowPlayingExitTransition() =
+fun verticalSheetExitTransition() =
     (fadeIn(
         animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
+            durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
             easing = FastOutSlowInEasing,
         ),
     ) togetherWith slideOutVertically(
         animationSpec = tween(
-            durationMillis = NOW_PLAYING_TRANSITION_MILLIS,
+            durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
             easing = FastOutSlowInEasing,
         ),
         targetOffsetY = { fullHeight -> fullHeight },
@@ -83,5 +83,5 @@ internal fun nowPlayingExitTransition() =
         targetContentZIndex = -1f
     }
 
-private const val NOW_PLAYING_TRANSITION_MILLIS = 450
+private const val VERTICAL_SHEET_TRANSITION_MILLIS = 450
 private const val NAVIGATION_TRANSITION_MILLIS = 280

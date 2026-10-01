@@ -123,4 +123,17 @@
         <item quantity="other">%1$d canciones agregadas a %2$s</item>
     </plurals>
     <string name="add_to_playlist_toast_multiple">%1$d canciones agregadas a %2$d playlists</string>
+
+    <!-- Crear playlist -->
+    <string name="create_playlist_title">Ponle nombre a tu playlist</string>
+    <string name="create_playlist_default_name">Mi playlist n.º %1$d</string>
+    <string name="create_playlist_action_create">Crear</string>
+    <string name="create_playlist_close_content_description">Cerrar</string>
+    <string name="create_playlist_add_cover">Añadir portada</string>
+    <string name="create_playlist_description_placeholder">Añade una descripción (opcional)</string>
+    <string name="create_playlist_name_taken">Ya tienes una playlist con ese nombre</string>
+    <plurals name="create_playlist_toast_created">
+        <item quantity="one">%2$s creada con 1 canción</item>
+        <item quantity="other">%2$s creada con %1$d canciones</item>
+    </plurals>
 </resources>

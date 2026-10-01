@@ -2,6 +2,12 @@ package com.catlytics.feature.settings.impl
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,10 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,6 +55,9 @@ import com.catlytics.core.model.ThemeMode
 import com.catlytics.core.model.UnifiedBackupPreview
 import com.catlytics.core.model.UnifiedBackupSummary
 import com.catlytics.feature.settings.impl.R as SettingsR
+import com.catlytics.core.navigation.navigationBackTransition
+import com.catlytics.core.navigation.navigationForwardTransition
+import com.catlytics.feature.settings.impl.components.SettingsAnimatedValue
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsRowText
 import com.catlytics.feature.settings.impl.components.SettingsSection
@@ -102,6 +109,7 @@ internal fun SettingsScreen(
 ) {
     var destination by rememberSaveable { mutableStateOf(SettingsDestination.Main) }
     var showSleepTimerSheet by rememberSaveable { mutableStateOf(false) }
+    var hasPlayedEntrance by rememberSaveable { mutableStateOf(false) }
 
     fun navigateBack() {
         destination = when (destination) {
@@ -152,9 +160,22 @@ internal fun SettingsScreen(
         }
     }
 
-    when (destination) {
+    AnimatedContent(
+        targetState = destination,
+        transitionSpec = {
+            if (targetState.depth >= initialState.depth) {
+                navigationForwardTransition()
+            } else {
+                navigationBackTransition()
+            }
+        },
+        label = "settingsDestination",
+    ) { currentDestination ->
+    when (currentDestination) {
         SettingsDestination.Main -> SettingsMainContent(
             appVersion = appVersion,
+            animateEntrance = !hasPlayedEntrance,
+            onEntranceStarted = { hasPlayedEntrance = true },
             themeMode = themeMode,
             homeRecommendationsSettings = homeRecommendationsSettings,
             equalizerState = equalizerState,
@@ -225,6 +246,7 @@ internal fun SettingsScreen(
             modifier = modifier,
         )
     }
+    }
 
     if (showSleepTimerSheet) {
         SleepTimerBottomSheet(
@@ -245,6 +267,8 @@ internal fun SettingsScreen(
 @Composable
 private fun SettingsMainContent(
     appVersion: String,
+    animateEntrance: Boolean,
+    onEntranceStarted: () -> Unit,
     themeMode: ThemeMode,
     homeRecommendationsSettings: HomeRecommendationsSettings,
     equalizerState: EqualizerState,
@@ -264,6 +288,7 @@ private fun SettingsMainContent(
     scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(Unit) { onEntranceStarted() }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -275,7 +300,14 @@ private fun SettingsMainContent(
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item {
+            SettingsAppHeader(
+                appVersion = appVersion,
+                modifier = Modifier.settingsEntrance(index = 0, animate = animateEntrance),
+            )
+        }
+        item {
             SettingsSection(
+                modifier = Modifier.settingsEntrance(index = 1, animate = animateEntrance),
                 title = stringResource(SettingsR.string.settings_section_app_config),
                 iconRes = R.drawable.ic_theme,
             ) {
@@ -295,6 +327,7 @@ private fun SettingsMainContent(
         }
         item {
             SettingsSection(
+                modifier = Modifier.settingsEntrance(index = 2, animate = animateEntrance),
                 title = stringResource(SettingsR.string.settings_section_home_recommendations),
                 iconRes = R.drawable.ic_playlist,
             ) {
@@ -320,6 +353,7 @@ private fun SettingsMainContent(
         }
         item {
             SettingsSection(
+                modifier = Modifier.settingsEntrance(index = 3, animate = animateEntrance),
                 title = stringResource(SettingsR.string.settings_section_audio),
                 iconRes = R.drawable.ic_audio,
             ) {
@@ -356,6 +390,7 @@ private fun SettingsMainContent(
         }
         item {
             SettingsSection(
+                modifier = Modifier.settingsEntrance(index = 4, animate = animateEntrance),
                 title = stringResource(SettingsR.string.settings_section_data_recovery),
                 iconRes = R.drawable.ic_line_chart,
             ) {
@@ -368,6 +403,7 @@ private fun SettingsMainContent(
         }
         item {
             SettingsSection(
+                modifier = Modifier.settingsEntrance(index = 5, animate = animateEntrance),
                 title = stringResource(SettingsR.string.settings_section_about),
                 iconRes = R.drawable.ic_info,
             ) {
@@ -421,11 +457,7 @@ private fun CrossfadeDurationSlider(
                 },
                 modifier = Modifier.weight(1f),
             )
-            Text(
-                text = valueLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            SettingsAnimatedValue(value = valueLabel)
         }
         Slider(
             value = sliderValue,
@@ -447,49 +479,29 @@ private fun ThemeModeSelector(
     onThemeModeSelected: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
-
-    Column(modifier = modifier) {
-        SettingsValueRow(
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SettingsRowText(
             title = stringResource(SettingsR.string.settings_theme_title),
-            value = stringResource(selectedThemeMode.labelRes),
-            onClick = { expanded = !expanded },
+            supportingText = stringResource(selectedThemeMode.descriptionRes),
         )
-        if (expanded) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .selectableGroup()
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                ThemeMode.entries.forEach { themeMode ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .selectable(
-                                selected = themeMode == selectedThemeMode,
-                                onClick = {
-                                    onThemeModeSelected(themeMode)
-                                    expanded = false
-                                },
-                                role = Role.RadioButton,
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        RadioButton(
-                            selected = themeMode == selectedThemeMode,
-                            onClick = null,
-                        )
-                        SettingsRowText(
-                            title = stringResource(themeMode.labelRes),
-                            supportingText = stringResource(themeMode.descriptionRes),
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(start = 16.dp),
-                        )
-                    }
-                }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            ThemeMode.entries.forEach { themeMode ->
+                ThemePreviewCard(
+                    themeMode = themeMode,
+                    selected = themeMode == selectedThemeMode,
+                    onClick = { onThemeModeSelected(themeMode) },
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -508,9 +520,14 @@ private fun RecentAddedWindowSelector(
             title = stringResource(SettingsR.string.settings_recent_added_title),
             supportingText = stringResource(SettingsR.string.settings_recent_added_supporting),
             value = stringResource(selected.labelRes, selected.days),
+            expanded = expanded,
             onClick = { expanded = !expanded },
         )
-        if (expanded) {
+        AnimatedVisibility(
+            visible = expanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically(),
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -555,14 +572,6 @@ private val RecentAddedWindow.labelRes: Int
     get() = SettingsR.string.settings_recent_added_window_days
 
 @get:StringRes
-private val ThemeMode.labelRes: Int
-    get() = when (this) {
-        ThemeMode.System -> SettingsR.string.settings_theme_system
-        ThemeMode.Light -> SettingsR.string.settings_theme_light
-        ThemeMode.Dark -> SettingsR.string.settings_theme_dark
-    }
-
-@get:StringRes
 private val ThemeMode.descriptionRes: Int
     get() = when (this) {
         ThemeMode.System -> SettingsR.string.settings_theme_system_description
@@ -577,11 +586,11 @@ private fun EqualizerState.statusLabel(): String = when {
     else -> stringResource(SettingsR.string.settings_equalizer_status_disabled)
 }
 
-private enum class SettingsDestination {
-    Main,
-    About,
-    Equalizer,
-    MusicScan,
-    ScanFolders,
-    Backup,
+private enum class SettingsDestination(val depth: Int) {
+    Main(0),
+    About(1),
+    Equalizer(1),
+    MusicScan(1),
+    ScanFolders(2),
+    Backup(1),
 }
