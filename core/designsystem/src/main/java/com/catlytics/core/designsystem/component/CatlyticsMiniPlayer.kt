@@ -71,8 +71,6 @@ fun CatlyticsMiniPlayer(
     },
 ) {
     val containerShape = RoundedCornerShape(20.dp)
-    // Solo se anima el acento de la portada; los colores del tema ya llegan animados y
-    // animarlos otra vez haría que el mini se desfasara al cambiar entre claro y oscuro.
     var lastAccent by remember { mutableStateOf(Color.Unspecified) }
     if (accentColor.isSpecified) lastAccent = accentColor
     val animatedAccent by animateColorAsState(
@@ -95,9 +93,9 @@ fun CatlyticsMiniPlayer(
         Modifier.hazeBlur(
             input = HazeInput.Sources(hazeState),
             style = HazeBlurStyle {
-                blurRadius(28.dp)
+                blurRadius(20.dp)
                 noiseFactor(0.05f)
-                colorEffects(listOf(HazeColorEffect.tint(tintColor.copy(alpha = 0.72f))))
+                colorEffects(listOf(HazeColorEffect.tint(tintColor.copy(alpha = 0.5f))))
                 fallbackColorEffect(HazeColorEffect.tint(tintColor.copy(alpha = 0.92f)))
             },
         )

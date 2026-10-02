@@ -685,6 +685,8 @@ fun CatlyticsApp(
                         CatlyticsBottomBar(
                             selectedRoute = topLevelBackStack.topLevelKey,
                             onDestinationSelected = topLevelBackStack::addTopLevel,
+                            hazeState = hazeState,
+                            glassEnabled = detailChromeColor != null,
                         )
                     }
                 }

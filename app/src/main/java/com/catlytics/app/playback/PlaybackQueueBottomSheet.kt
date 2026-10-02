@@ -126,6 +126,10 @@ internal fun PlaybackQueueBottomSheet(
     val maxSheetHeight = remember(density, containerHeightPx) {
         with(density) { (containerHeightPx * QueueSheetMaxHeightFraction).toDp() }
     }
+    // Extra end space so any track, even the last one, can be scrolled to the top of the list.
+    val listBottomPadding = with(density) {
+        (maxSheetHeight - headerHeightPx.toDp() - QueueItemHeight).coerceAtLeast(16.dp)
+    }
     val sheetShape = RoundedCornerShape(topStart = QueueSheetCornerRadius, topEnd = QueueSheetCornerRadius)
     val sheetGradient = remember(gradientColors) {
         Brush.verticalGradient(
@@ -203,7 +207,7 @@ internal fun PlaybackQueueBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 state = listState,
                 userScrollEnabled = draggedTrackId == null,
-                contentPadding = PaddingValues(bottom = 16.dp),
+                contentPadding = PaddingValues(bottom = listBottomPadding),
             ) {
                 items(
                     items = visibleQueue,
