@@ -554,7 +554,7 @@ private fun RecentAddedWindowSelector(
                             onClick = null,
                         )
                         SettingsRowText(
-                            title = stringResource(window.labelRes),
+                            title = stringResource(window.labelRes, window.days),
                             supportingText = null,
                             modifier = Modifier
                                 .weight(1f)

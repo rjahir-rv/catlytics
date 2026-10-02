@@ -1,6 +1,7 @@
 package com.catlytics.feature.home.impl
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -8,11 +9,15 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,7 +29,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,6 +41,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,9 +67,12 @@ import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.sectionLetter
+import com.catlytics.core.designsystem.modifier.pressScale
+import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.Track
 import com.catlytics.feature.home.impl.R as HomeR
+import kotlinx.coroutines.delay
 
 @Composable
 internal fun HomeTrackList(
@@ -91,6 +107,11 @@ internal fun HomeTrackList(
     areFeaturedSectionsVisible: Boolean,
     onToggleFeaturedSections: () -> Unit,
 ) {
+    var entranceDone by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(ENTRANCE_SETTLE_MILLIS)
+        entranceDone = true
+    }
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -103,7 +124,7 @@ internal fun HomeTrackList(
                     FeaturedSectionsHeader(
                         areFeaturedSectionsVisible = areFeaturedSectionsVisible,
                         onToggleFeaturedSections = onToggleFeaturedSections,
-                        modifier = Modifier.padding(horizontal = 20.dp),
+                        modifier = Modifier.padding(horizontal = HomeDimens.ScreenPadding),
                     )
                 }
                 item(key = "featured-sections-content") {
@@ -121,8 +142,8 @@ internal fun HomeTrackList(
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 20.dp),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                                .padding(horizontal = HomeDimens.ScreenPadding),
+                            verticalArrangement = Arrangement.spacedBy(HomeDimens.SectionSpacing),
                         ) {
                             if (
                                 showRecommendedPlaylists &&
@@ -142,6 +163,7 @@ internal fun HomeTrackList(
                                     onShuffleAll = onShuffleAll,
                                     onOpenFavorites = onOpenFavorites,
                                     onOpenRecentlyAdded = onOpenRecentlyAdded,
+                                    animateEntrance = !entranceDone,
                                 )
                             }
                             HomeHighlights(
@@ -150,22 +172,38 @@ internal fun HomeTrackList(
                                 onRecentlyPlayedTrackSelected = onRecentlyPlayedTrackSelected,
                                 onTopTrackSelected = onTopTrackSelected,
                                 onNavigateToStatistics = onNavigateToStatistics,
+                                animateEntrance = !entranceDone,
                                 modifier = Modifier.padding(bottom = 8.dp),
                             )
                         }
                     }
                 }
                 item {
-                    Text(
-                        text = stringResource(HomeR.string.home_all_tracks_title),
-                        style = MaterialTheme.typography.titleMedium,
+                    Row(
                         modifier = Modifier.padding(
-                            start = 20.dp,
+                            start = HomeDimens.ScreenPadding,
                             top = 8.dp,
-                            end = 20.dp,
+                            end = HomeDimens.ScreenPadding,
                             bottom = 4.dp,
                         ),
-                    )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Text(
+                            text = stringResource(HomeR.string.home_all_tracks_title),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            text = pluralStringResource(
+                                HomeR.plurals.home_all_tracks_count,
+                                tracks.size,
+                                tracks.size,
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 2.dp),
+                        )
+                    }
                 }
             }
             items(items = tracks, key = Track::id) { track ->
@@ -182,7 +220,7 @@ internal fun HomeTrackList(
                         }
                     },
                     onTrackOptions = { onTrackOptions(track) },
-                    modifier = Modifier.padding(horizontal = 20.dp),
+                    modifier = Modifier.padding(horizontal = HomeDimens.ScreenPadding),
                     selected = track.id in selectedTrackIds,
                     selectionActive = selectionActive,
                     onLongClick = { onTrackLongClick(track) },
@@ -199,7 +237,11 @@ internal fun HomeTrackList(
     }
 }
 
+/** Items fijos antes de las canciones: encabezado, secciones destacadas y título de la lista. */
 private const val HIGHLIGHT_HEADER_ITEM_COUNT = 3
+private val QUICK_ACTION_CARD_HEIGHT = 116.dp
+private const val ENTRANCE_SETTLE_MILLIS = 900L
+private const val ENTRANCE_MAX_STAGGERED_ITEMS = 4
 
 @Composable
 private fun FeaturedSectionsHeader(
@@ -217,20 +259,20 @@ private fun FeaturedSectionsHeader(
             style = MaterialTheme.typography.titleMedium,
         )
         IconButton(onClick = onToggleFeaturedSections) {
-            Icon(
-                painter = painterResource(
-                    if (areFeaturedSectionsVisible) {
-                        R.drawable.ic_hide
+            Crossfade(
+                targetState = areFeaturedSectionsVisible,
+                animationSpec = tween(durationMillis = 180),
+                label = "featuredSectionsToggle",
+            ) { visible ->
+                Icon(
+                    painter = painterResource(if (visible) R.drawable.ic_hide else R.drawable.ic_show),
+                    contentDescription = if (visible) {
+                        stringResource(HomeR.string.home_toggle_featured_sections_hide_content_description)
                     } else {
-                        R.drawable.ic_show
+                        stringResource(HomeR.string.home_toggle_featured_sections_show_content_description)
                     },
-                ),
-                contentDescription = if (areFeaturedSectionsVisible) {
-                    stringResource(HomeR.string.home_toggle_featured_sections_hide_content_description)
-                } else {
-                    stringResource(HomeR.string.home_toggle_featured_sections_show_content_description)
-                },
-            )
+                )
+            }
         }
     }
 }
@@ -245,8 +287,10 @@ private fun HomeQuickActions(
     onShuffleAll: () -> Unit,
     onOpenFavorites: () -> Unit,
     onOpenRecentlyAdded: () -> Unit,
+    animateEntrance: Boolean,
     modifier: Modifier = Modifier,
 ) {
+    var order = 0
     Column(
         modifier = modifier.fillMaxWidth(),
     ) {
@@ -255,8 +299,13 @@ private fun HomeQuickActions(
             contentPadding = PaddingValues(end = 4.dp),
         ) {
             if (recentlyAddedTrackCount > 0) {
+                val index = order++
                 item(key = "recently-added") {
                     HomeQuickActionCard(
+                        modifier = Modifier.staggeredEntrance(
+                            index = index,
+                            animate = animateEntrance && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                        ),
                         title = stringResource(HomeR.string.home_quick_action_recently_added_title),
                         subtitle = pluralStringResource(
                             HomeR.plurals.home_quick_action_recently_added_subtitle,
@@ -275,8 +324,13 @@ private fun HomeQuickActions(
                 }
             }
             if (dailyPlaylistTrackCount > 0) {
+                val index = order++
                 item(key = "daily-playlist") {
                     HomeQuickActionCard(
+                        modifier = Modifier.staggeredEntrance(
+                            index = index,
+                            animate = animateEntrance && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                        ),
                         title = stringResource(HomeR.string.home_quick_action_daily_playlist_title),
                         subtitle = pluralStringResource(
                             HomeR.plurals.home_quick_action_daily_playlist_subtitle,
@@ -295,8 +349,13 @@ private fun HomeQuickActions(
                 }
             }
             if (canShuffleAll) {
+                val index = order++
                 item(key = "shuffle-all") {
                     HomeQuickActionCard(
+                        modifier = Modifier.staggeredEntrance(
+                            index = index,
+                            animate = animateEntrance && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                        ),
                         title = stringResource(HomeR.string.home_quick_action_shuffle_title),
                         subtitle = stringResource(HomeR.string.home_quick_action_shuffle_subtitle),
                         icon = R.drawable.ic_shuffle_square,
@@ -311,8 +370,13 @@ private fun HomeQuickActions(
                 }
             }
             if (favoriteTrackCount > 0) {
+                val index = order++
                 item(key = "favorites") {
                     HomeQuickActionCard(
+                        modifier = Modifier.staggeredEntrance(
+                            index = index,
+                            animate = animateEntrance && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                        ),
                         title = stringResource(HomeR.string.home_quick_action_favorites_title),
                         subtitle = pluralStringResource(
                             HomeR.plurals.home_quick_action_favorites_subtitle,
@@ -346,21 +410,25 @@ private fun HomeQuickActionCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Card(
         onClick = onClick,
+        interactionSource = interactionSource,
         modifier = modifier
+            .pressScale(interactionSource)
             .width(168.dp)
-            .heightIn(min = 104.dp)
+            .height(QUICK_ACTION_CARD_HEIGHT)
             .semantics { this.contentDescription = contentDescription },
         colors = CardDefaults.cardColors(
             containerColor = Color.Transparent,
             contentColor = contentColor,
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = HomeDimens.CardShape,
+        border = BorderStroke(0.5.dp, contentColor.copy(alpha = 0.12f)),
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxSize()
                 .background(
                     brush = Brush.linearGradient(
                         colors = listOf(
@@ -369,14 +437,21 @@ private fun HomeQuickActionCard(
                         ),
                     ),
                 )
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(14.dp),
         ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                modifier = Modifier.size(28.dp),
-            )
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(contentColor.copy(alpha = 0.14f), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleSmall,
@@ -401,11 +476,12 @@ private fun HomeHighlights(
     onRecentlyPlayedTrackSelected: (Track) -> Unit,
     onTopTrackSelected: (String) -> Unit,
     onNavigateToStatistics: () -> Unit,
+    animateEntrance: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalArrangement = Arrangement.spacedBy(HomeDimens.SectionSpacing),
     ) {
         if (recentlyPlayedTracks.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -417,8 +493,12 @@ private fun HomeHighlights(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(end = 4.dp),
                 ) {
-                    items(items = recentlyPlayedTracks, key = Track::id) { track ->
+                    itemsIndexed(items = recentlyPlayedTracks, key = { _, track -> track.id }) { index, track ->
                         RecentlyPlayedTrackCard(
+                            modifier = Modifier.staggeredEntrance(
+                                index = index,
+                                animate = animateEntrance && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                            ),
                             track = track,
                             onClick = { onRecentlyPlayedTrackSelected(track) },
                         )
@@ -484,11 +564,15 @@ private fun RecentlyPlayedTrackCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Card(
         onClick = onClick,
-        modifier = modifier.width(128.dp),
+        interactionSource = interactionSource,
+        modifier = modifier
+            .pressScale(interactionSource)
+            .width(128.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-        shape = RoundedCornerShape(14.dp),
+        shape = HomeDimens.CardShape,
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
             AsyncImage(
@@ -504,7 +588,7 @@ private fun RecentlyPlayedTrackCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(104.dp)
-                    .clip(RoundedCornerShape(10.dp)),
+                    .clip(HomeDimens.ThumbShape),
             )
             Text(
                 text = track.title,
@@ -535,12 +619,19 @@ private fun TopTrackRow(
         HomeR.string.home_play_top_track_content_description,
         track.title,
     )
+    val interactionSource = remember { MutableInteractionSource() }
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .pressScale(interactionSource)
             .heightIn(min = 56.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClick = onClick,
+            )
             .semantics {
                 contentDescription = topTrackContentDescription
             }
@@ -564,7 +655,7 @@ private fun TopTrackRow(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(44.dp)
-                .clip(RoundedCornerShape(10.dp)),
+                .clip(HomeDimens.ThumbShape),
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -582,7 +673,11 @@ private fun TopTrackRow(
             )
         }
         Text(
-            text = "${track.playCount}",
+            text = pluralStringResource(
+                HomeR.plurals.home_top_track_play_count,
+                track.playCount,
+                track.playCount,
+            ),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

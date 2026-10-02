@@ -1,8 +1,11 @@
 package com.catlytics.feature.home.impl
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -97,8 +100,8 @@ internal fun HomeScreen(
         }
     }
 
-    val trackListState = rememberSaveable(saver = androidx.compose.foundation.lazy.LazyListState.Saver) {
-        androidx.compose.foundation.lazy.LazyListState()
+    val trackListState = rememberSaveable(saver = LazyListState.Saver) {
+        LazyListState()
     }
     var areFeaturedSectionsVisible by rememberSaveable { mutableStateOf(true) }
 
@@ -108,32 +111,43 @@ internal fun HomeScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(
-                    start = 20.dp,
-                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
-                    end = 20.dp,
+                    start = HomeDimens.ScreenPadding,
+                    top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
+                    end = HomeDimens.ScreenPadding,
                     bottom = bottomPadding(),
                 ),
         )
         return
     }
 
-    when (displayedUiState) {
+    val stateKind = when (displayedUiState) {
+        HomeUiState.Empty -> HomeStateKind.Empty
+        is HomeUiState.Error -> HomeStateKind.Error
+        HomeUiState.Loading -> HomeStateKind.Loading
+        is HomeUiState.Success -> HomeStateKind.Success
+    }
+    Crossfade(
+        targetState = stateKind,
+        animationSpec = tween(STATE_FADE_MILLIS),
+        label = "homeState",
+    ) { _ ->
+        when (displayedUiState) {
             HomeUiState.Empty -> EmptyLibraryContent(
                 modifier = modifier
                     .fillMaxSize()
                     .padding(
-                        start = 20.dp,
-                        top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
-                        end = 20.dp,
+                        start = HomeDimens.ScreenPadding,
+                        top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
+                        end = HomeDimens.ScreenPadding,
                         bottom = bottomPadding(),
                     ),
             )
             is HomeUiState.Error -> ErrorContent(
                 message = displayedUiState.message,
                 modifier = modifier.padding(
-                    start = 20.dp,
-                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
-                    end = 20.dp,
+                    start = HomeDimens.ScreenPadding,
+                    top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
+                    end = HomeDimens.ScreenPadding,
                 ),
             )
             HomeUiState.Loading -> LoadingContent(
@@ -144,9 +158,9 @@ internal fun HomeScreen(
                 if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
                     NoSearchResultsContent(
                         modifier = modifier.padding(
-                            start = 20.dp,
-                            top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
-                            end = 20.dp,
+                            start = HomeDimens.ScreenPadding,
+                            top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
+                            end = HomeDimens.ScreenPadding,
                         ),
                     )
                 } else {
@@ -186,9 +200,9 @@ internal fun HomeScreen(
                             modifier = Modifier.fillMaxSize(),
                             state = trackListState,
                             contentPadding = PaddingValues(
-                                top = scaffoldContentPadding.calculateTopPadding() + 28.dp +
+                                top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.TopContentInset +
                                     if (selection.active) 64.dp else 0.dp,
-                                bottom = bottomPadding() + 20.dp +
+                                bottom = bottomPadding() + HomeDimens.ScreenPadding +
                                     if (selection.active) 72.dp else 0.dp,
                             ),
                             onTrackOptions = onTrackOptions,
@@ -211,8 +225,13 @@ internal fun HomeScreen(
                     }
                 }
             }
+        }
     }
 }
+
+private enum class HomeStateKind { Loading, Empty, Error, Success }
+
+private const val STATE_FADE_MILLIS = 220
 
 @Preview(showBackground = true)
 @Composable

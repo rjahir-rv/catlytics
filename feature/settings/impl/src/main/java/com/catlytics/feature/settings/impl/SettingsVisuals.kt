@@ -1,8 +1,6 @@
 package com.catlytics.feature.settings.impl
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -26,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -41,32 +38,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.feature.settings.impl.R as SettingsR
-import kotlinx.coroutines.delay
-import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * Entrada escalonada: cada bloque aparece con fundido y un leve desplazamiento hacia arriba.
- * Con [animate] en false (por ejemplo al volver de una subpantalla) se muestra directamente.
- */
 @Composable
-internal fun Modifier.settingsEntrance(index: Int, animate: Boolean): Modifier {
-    val progress = remember { Animatable(if (animate) 0f else 1f) }
-    LaunchedEffect(Unit) {
-        if (progress.value < 1f) {
-            delay((index * ENTRANCE_STAGGER_MILLIS).milliseconds)
-            progress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(ENTRANCE_DURATION_MILLIS, easing = FastOutSlowInEasing),
-            )
-        }
-    }
-    return graphicsLayer {
-        alpha = progress.value
-        translationY = (1f - progress.value) * ENTRANCE_OFFSET.toPx()
-    }
-}
+internal fun Modifier.settingsEntrance(index: Int, animate: Boolean): Modifier =
+    staggeredEntrance(index = index, animate = animate)
 
 @Composable
 internal fun SettingsAppHeader(
@@ -261,6 +239,3 @@ private fun ThemeMockup(colors: MockupColors) {
     }
 }
 
-private const val ENTRANCE_STAGGER_MILLIS = 50L
-private const val ENTRANCE_DURATION_MILLIS = 380
-private val ENTRANCE_OFFSET = 16.dp

@@ -2,6 +2,10 @@
 <resources>
     <!-- Inicio -->
     <string name="home_all_tracks_title">Todas las canciones</string>
+    <plurals name="home_all_tracks_count">
+        <item quantity="one">%1$d canción</item>
+        <item quantity="other">%1$d canciones</item>
+    </plurals>
     <string name="home_quick_actions_title">Accesos rápidos</string>
     <string name="home_toggle_featured_sections_hide_content_description">Ocultar secciones destacadas</string>
     <string name="home_toggle_featured_sections_show_content_description">Mostrar secciones destacadas</string>
@@ -32,6 +36,10 @@
     <string name="home_play_recently_played_content_description">Reproducir %1$s</string>
     <string name="home_top_tracks_title">Top 3 de esta semana</string>
     <string name="home_top_tracks_subtitle">Tus canciones más escuchadas</string>
+    <plurals name="home_top_track_play_count">
+        <item quantity="one">%1$d reproducción</item>
+        <item quantity="other">%1$d reproducciones</item>
+    </plurals>
     <string name="home_play_top_track_content_description">Reproducir %1$s desde Top 3</string>
     <string name="home_open_statistics">Ver estadísticas</string>
     <string name="home_activity_empty">Tu actividad aparecerá aquí después de escuchar música.</string>
