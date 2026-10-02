@@ -180,6 +180,8 @@ fun CatlyticsApp(
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val isCurrentTrackLiked by playbackViewModel.isCurrentTrackLiked.collectAsStateWithLifecycle()
     val likedTrackIds by playbackViewModel.likedTrackIds.collectAsStateWithLifecycle()
+    val queueSourcePlaylist by playbackViewModel.queueSourcePlaylist.collectAsStateWithLifecycle()
+    val sleepTimerState by playbackViewModel.sleepTimerState.collectAsStateWithLifecycle()
     val currentRoute = topLevelBackStack.backStack.lastOrNull()
     val isWaitingForHomeContent = hasAudioPermission &&
         !isLibraryRefreshRunning &&
@@ -908,6 +910,16 @@ fun CatlyticsApp(
                                 playbackState.currentTrack?.let(::navigateToArtist)
                             },
                             isCurrentTrackLiked = isCurrentTrackLiked,
+                            queueSourceTitle = queueSourcePlaylist?.let { (id, name) ->
+                                if (id == LIKED_PLAYLIST_ID) {
+                                    stringResource(R.string.app_playlist_liked_name)
+                                } else {
+                                    name
+                                }
+                            } ?: stringResource(R.string.app_now_playing_from_library),
+                            sleepTimerState = sleepTimerState,
+                            onStartSleepTimer = playbackViewModel::startSleepTimer,
+                            onCancelSleepTimer = playbackViewModel::cancelSleepTimer,
                             onAddCurrentTrackToLiked = {
                                 playbackViewModel.toggleCurrentTrackLiked { result ->
                                     val likedPlaylistName =

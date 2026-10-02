@@ -1,18 +1,33 @@
 package com.catlytics.app.playback
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.unit.IntOffset
+import com.catlytics.core.model.PlaybackRepeatMode
+import com.catlytics.core.model.SleepTimerState
+import kotlinx.coroutines.delay
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +38,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -85,6 +99,16 @@ internal fun PlaybackQueueBottomSheet(
     onRemoveQueueItem: (Int) -> Unit,
     onTrackOptions: (Track) -> Unit,
     modifier: Modifier = Modifier,
+    accent: Color = MaterialTheme.colorScheme.primary,
+    isPlaying: Boolean = false,
+    isShuffleEnabled: Boolean = false,
+    repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
+    positionMillis: Long = 0L,
+    sleepTimerState: SleepTimerState = SleepTimerState.Inactive,
+    onToggleShuffle: () -> Unit = {},
+    onCycleRepeatMode: () -> Unit = {},
+    onStartSleepTimer: (Int) -> Unit = {},
+    onCancelSleepTimer: () -> Unit = {},
 ) {
     var visibleQueue by remember { mutableStateOf(queue) }
     var draggedTrackId by remember { mutableStateOf<String?>(null) }
@@ -92,6 +116,7 @@ internal fun PlaybackQueueBottomSheet(
     var originalIndex by remember { mutableIntStateOf(-1) }
     var dragOffsetSync by remember { mutableFloatStateOf(0f) }
     var headerHeightPx by remember { mutableIntStateOf(0) }
+    var controlsHeightPx by remember { mutableIntStateOf(0) }
     val dragOffset = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val hapticFeedback = LocalHapticFeedback.current
@@ -120,7 +145,46 @@ internal fun PlaybackQueueBottomSheet(
         }
     }
 
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false)
+    // Al mezclar o restaurar el orden, la fila llega reordenada: tras la animación de reubicación,
+    // se lleva la canción actual a la vista.
+    var lastShuffleEnabled by remember { mutableStateOf(isShuffleEnabled) }
+    LaunchedEffect(isShuffleEnabled) {
+        if (isShuffleEnabled == lastShuffleEnabled) return@LaunchedEffect
+        lastShuffleEnabled = isShuffleEnabled
+        delay(SHUFFLE_SCROLL_DELAY_MILLIS)
+        val currentIndex = visibleQueue.indexOfFirst { it.id == currentTrackId }
+        if (currentIndex >= 0 && draggedTrackId == null) {
+            listState.animateScrollToItem(currentIndex)
+        }
+    }
+
+    // Si la canción actual estaba a la vista, la lista la sigue cuando avanza la reproducción.
+    var lastCurrentTrackId by remember { mutableStateOf(currentTrackId) }
+    LaunchedEffect(currentTrackId) {
+        val previousId = lastCurrentTrackId
+        lastCurrentTrackId = currentTrackId
+        if (previousId == null || previousId == currentTrackId || draggedTrackId != null) return@LaunchedEffect
+        val wasVisible = listState.layoutInfo.visibleItemsInfo.any { it.key == previousId }
+        val currentIndex = visibleQueue.indexOfFirst { it.id == currentTrackId }
+        if (wasVisible && currentIndex >= 0) {
+            listState.animateScrollToItem(currentIndex)
+        }
+    }
+
+    val currentIndex = visibleQueue.indexOfFirst { it.id == currentTrackId }
+    val upcomingCount = if (currentIndex >= 0) visibleQueue.size - currentIndex - 1 else visibleQueue.size
+    val sleepTimerEnd = (sleepTimerState as? SleepTimerState.Active)?.let { timer ->
+        sleepTimerEndIndex(
+            queue = visibleQueue,
+            currentIndex = currentIndex,
+            positionMillis = positionMillis,
+            remainingMillis = timer.remainingMillis,
+            repeatMode = repeatMode,
+        )
+    }?.takeIf { draggedTrackId == null && settlingTrackId == null }
+
+    // Siempre expandido: la barra de controles vive al fondo y debe verse desde el inicio.
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val density = LocalDensity.current
     val containerHeightPx = LocalWindowInfo.current.containerSize.height
     val maxSheetHeight = remember(density, containerHeightPx) {
@@ -128,7 +192,8 @@ internal fun PlaybackQueueBottomSheet(
     }
     // Extra end space so any track, even the last one, can be scrolled to the top of the list.
     val listBottomPadding = with(density) {
-        (maxSheetHeight - headerHeightPx.toDp() - QueueItemHeight).coerceAtLeast(16.dp)
+        (maxSheetHeight - headerHeightPx.toDp() - controlsHeightPx.toDp() - QueueItemHeight)
+            .coerceAtLeast(16.dp)
     }
     val sheetShape = RoundedCornerShape(topStart = QueueSheetCornerRadius, topEnd = QueueSheetCornerRadius)
     val sheetGradient = remember(gradientColors) {
@@ -181,12 +246,11 @@ internal fun PlaybackQueueBottomSheet(
                             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.32f)),
                     )
                 }
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
                 ) {
                     Text(
                         text = stringResource(AppR.string.app_queue_title),
@@ -194,25 +258,29 @@ internal fun PlaybackQueueBottomSheet(
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
                     )
-                    Text(
-                        text = queueTracksLabel(visibleQueue.size),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    AnimatedContent(
+                        targetState = upcomingCount,
+                        transitionSpec = { fadeIn(tween(180)) togetherWith fadeOut(tween(120)) },
+                        label = "QueueUpcomingCount",
+                    ) { count ->
+                        Text(
+                            text = queueUpNextLabel(count),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
+            Box(modifier = Modifier.weight(1f, fill = false)) {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
                 state = listState,
                 userScrollEnabled = draggedTrackId == null,
                 contentPadding = PaddingValues(bottom = listBottomPadding),
             ) {
-                items(
-                    items = visibleQueue,
-                    key = Track::id,
-                ) { track ->
+                visibleQueue.forEachIndexed { index, track ->
+                item(key = track.id) {
                     val isDragging = track.id == draggedTrackId
                     val isSettling = track.id == settlingTrackId
                     val isLifted = isDragging || isSettling
@@ -220,7 +288,8 @@ internal fun PlaybackQueueBottomSheet(
                         Modifier
                     } else {
                         Modifier.animateItem(
-                            fadeInSpec = null,
+                            fadeInSpec = tween(durationMillis = 220),
+                            placementSpec = queuePlacementSpec,
                             fadeOutSpec = tween(durationMillis = 220),
                         )
                     }
@@ -256,9 +325,23 @@ internal fun PlaybackQueueBottomSheet(
                                 scaleY = scale
                             },
                     ) {
+                        val isDimmed = currentIndex >= 0 && (
+                            index < currentIndex ||
+                                (repeatMode == PlaybackRepeatMode.One && index > currentIndex) ||
+                                (sleepTimerEnd != null && index > sleepTimerEnd)
+                            )
+                        val contentAlpha by animateFloatAsState(
+                            targetValue = if (isDimmed && !isLifted) DimmedRowAlpha else 1f,
+                            animationSpec = tween(durationMillis = 260),
+                            label = "queueItemAlpha",
+                        )
                         QueueTrackRow(
                             track = track,
                             isCurrent = track.id == currentTrackId,
+                            isPlaying = isPlaying,
+                            isRepeatingOne = repeatMode == PlaybackRepeatMode.One,
+                            accent = accent,
+                            contentAlpha = contentAlpha,
                             isDragging = isDragging,
                             liftProgress = lift,
                             onClick = {
@@ -361,11 +444,69 @@ internal fun PlaybackQueueBottomSheet(
                                     },
                                 )
                             },
-                            onTrackOptions = { onTrackOptions(track) },
+                            onTrackOptions = {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onTrackOptions(track)
+                            },
                         )
                     }
                 }
+                if (index == sleepTimerEnd) {
+                    item(key = SleepTimerMarkerKey) {
+                        SleepTimerMarker(
+                            accent = accent,
+                            modifier = Modifier.animateItem(
+                                fadeInSpec = tween(durationMillis = 260),
+                                placementSpec = queuePlacementSpec,
+                                fadeOutSpec = tween(durationMillis = 180),
+                            ),
+                        )
+                    }
+                }
+                }
+                item(key = RepeatAllFooterKey) {
+                    AnimatedContent(
+                        targetState = repeatMode == PlaybackRepeatMode.All && visibleQueue.size > 1,
+                        transitionSpec = {
+                            (fadeIn(tween(220)) togetherWith fadeOut(tween(160)))
+                                .using(SizeTransform(clip = false))
+                        },
+                        label = "QueueRepeatAllFooter",
+                    ) { showFooter ->
+                        if (showFooter) {
+                            RepeatAllFooter()
+                        } else {
+                            Spacer(modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
             }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(QueueFadeHeight)
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color.Transparent, gradientColors.end),
+                        ),
+                    ),
+            )
+            }
+            QueueControlsBar(
+                isShuffleEnabled = isShuffleEnabled,
+                repeatMode = repeatMode,
+                sleepTimerState = sleepTimerState,
+                accent = accent,
+                enabled = visibleQueue.isNotEmpty(),
+                onToggleShuffle = onToggleShuffle,
+                onCycleRepeatMode = onCycleRepeatMode,
+                onStartSleepTimer = onStartSleepTimer,
+                onCancelSleepTimer = onCancelSleepTimer,
+                modifier = Modifier
+                    .background(gradientColors.end)
+                    .onSizeChanged { controlsHeightPx = it.height },
+            )
         }
     }
 }
@@ -449,6 +590,10 @@ private fun QueueSwipeableItem(
 private fun QueueTrackRow(
     track: Track,
     isCurrent: Boolean,
+    isPlaying: Boolean,
+    isRepeatingOne: Boolean,
+    accent: Color,
+    contentAlpha: Float,
     isDragging: Boolean,
     liftProgress: Float,
     onClick: () -> Unit,
@@ -456,14 +601,29 @@ private fun QueueTrackRow(
     onTrackOptions: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val currentHighlight by animateColorAsState(
+        targetValue = if (isCurrent) accent.copy(alpha = CurrentRowHighlightAlpha) else Color.Transparent,
+        animationSpec = tween(durationMillis = 300),
+        label = "queueCurrentHighlight",
+    )
+    val titleColor by animateColorAsState(
+        targetValue = if (isCurrent) accent else MaterialTheme.colorScheme.onSurface,
+        animationSpec = tween(durationMillis = 300),
+        label = "queueTitleColor",
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
             .height(QueueItemHeight)
             .clip(QueueRowShape)
+            .background(currentHighlight)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = liftProgress))
-            .clickable(onClick = onClick)
-            .padding(start = 16.dp, end = 4.dp),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onTrackOptions,
+                onLongClickLabel = stringResource(AppR.string.app_queue_track_options_hint),
+            )
+            .padding(start = 16.dp, end = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -476,36 +636,44 @@ private fun QueueTrackRow(
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(QueueArtworkSize)
+                .graphicsLayer { alpha = contentAlpha }
                 .clip(QueueArtworkShape),
         )
-        Column(modifier = Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .graphicsLayer { alpha = contentAlpha },
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 if (isCurrent) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_play),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(16.dp),
-                    )
+                    NowPlayingBars(isPlaying = isPlaying, color = accent)
                 }
                 Text(
                     text = track.title,
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
                     ),
-                    color = if (isCurrent) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
+                    color = titleColor,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
+                AnimatedVisibility(
+                    visible = isCurrent && isRepeatingOne,
+                    enter = fadeIn() + scaleIn(),
+                    exit = fadeOut() + scaleOut(),
+                ) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_repeat_one),
+                        contentDescription = null,
+                        tint = accent,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
             }
             Text(
                 text = if (isCurrent) {
@@ -515,7 +683,7 @@ private fun QueueTrackRow(
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isCurrent) {
-                    MaterialTheme.colorScheme.primary
+                    accent.copy(alpha = 0.8f)
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 },
@@ -523,45 +691,23 @@ private fun QueueTrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(0.dp),
-            verticalAlignment = Alignment.CenterVertically,
+        Box(
+            modifier = dragModifier
+                .size(QueueActionTouchTarget)
+                .clip(CircleShape),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(QueueActionTouchTarget)
-                    .clip(CircleShape)
-                    .clickable(onClick = onTrackOptions),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_options),
-                    contentDescription = stringResource(
-                        AppR.string.app_content_description_track_options,
-                        track.title,
-                    ),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(QueueActionIconSize),
-                )
-            }
-            Box(
-                modifier = dragModifier
-                    .size(QueueActionTouchTarget)
-                    .clip(CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_item_selection),
-                    contentDescription = stringResource(
-                        AppR.string.app_content_description_reorder_track,
-                        track.title,
-                    ),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
-                        alpha = if (isDragging) 1f else 0.72f,
-                    ),
-                    modifier = Modifier.size(QueueActionIconSize),
-                )
-            }
+            Icon(
+                painter = painterResource(id = R.drawable.ic_item_selection),
+                contentDescription = stringResource(
+                    AppR.string.app_content_description_reorder_track,
+                    track.title,
+                ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
+                    alpha = if (isDragging) 1f else 0.72f,
+                ),
+                modifier = Modifier.size(QueueActionIconSize),
+            )
         }
     }
 }
@@ -575,14 +721,25 @@ private val QueueActionIconSize = 20.dp
 private val QueueActionTouchTarget = 48.dp
 private val QueueDragHandleWidth = 32.dp
 private val QueueDragHandleHeight = 4.dp
+private val QueueFadeHeight = 24.dp
+private val queuePlacementSpec = spring(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessMediumLow,
+    visibilityThreshold = IntOffset.VisibilityThreshold,
+)
+private const val SleepTimerMarkerKey = "queue_sleep_timer_marker"
+private const val RepeatAllFooterKey = "queue_repeat_all_footer"
+private const val DimmedRowAlpha = 0.5f
+private const val CurrentRowHighlightAlpha = 0.12f
+private const val SHUFFLE_SCROLL_DELAY_MILLIS = 120L
 private const val DeleteIconRevealProgress = 0.08f
 private const val QueueSheetMaxHeightFraction = 0.92f
 private const val QueueSwapThresholdFraction = 0.55f
 private const val QueueDragLiftScale = 0.02f
 
 @Composable
-internal fun queueTracksLabel(count: Int): String =
-    pluralStringResource(AppR.plurals.app_queue_tracks_count, count, count)
+internal fun queueUpNextLabel(count: Int): String =
+    pluralStringResource(AppR.plurals.app_queue_up_next_count, count, count)
 
 internal fun queueVisibleBottomPx(
     containerHeightPx: Int,

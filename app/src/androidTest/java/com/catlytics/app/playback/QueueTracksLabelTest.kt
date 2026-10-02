@@ -17,14 +17,14 @@ class QueueTracksLabelTest {
     fun rendersSingularAndPluralCopyWithCount() {
         composeRule.setContent {
             Column {
-                Text(queueTracksLabel(1))
-                Text(queueTracksLabel(0))
-                Text(queueTracksLabel(5))
+                Text(queueUpNextLabel(1))
+                Text(queueUpNextLabel(0))
+                Text(queueUpNextLabel(5))
             }
         }
 
-        composeRule.onNodeWithText("1 canción").assertIsDisplayed()
-        composeRule.onNodeWithText("0 canciones").assertIsDisplayed()
-        composeRule.onNodeWithText("5 canciones").assertIsDisplayed()
+        composeRule.onNodeWithText("A continuación · 1 canción").assertIsDisplayed()
+        composeRule.onNodeWithText("A continuación · 0 canciones").assertIsDisplayed()
+        composeRule.onNodeWithText("A continuación · 5 canciones").assertIsDisplayed()
     }
 }

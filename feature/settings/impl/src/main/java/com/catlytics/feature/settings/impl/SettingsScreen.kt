@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.format.SleepTimerFormat
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MAX_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MIN_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.model.EqualizerMode
@@ -364,7 +365,7 @@ private fun SettingsMainContent(
                             stringResource(SettingsR.string.settings_sleep_timer_supporting)
                         is SleepTimerState.Active -> stringResource(
                             SettingsR.string.settings_sleep_timer_remaining,
-                            formatSleepTimerRemaining(sleepTimerState.remainingMillis),
+                            SleepTimerFormat.formatRemaining(sleepTimerState.remainingMillis),
                         )
                     },
                     value = if (sleepTimerState is SleepTimerState.Active) {

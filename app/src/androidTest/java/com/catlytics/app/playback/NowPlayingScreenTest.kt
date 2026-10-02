@@ -316,6 +316,82 @@ class NowPlayingScreenTest {
         assertEquals(1, addToPlaylistClicks)
     }
 
+    @Test
+    fun upNextChipShowsFollowingTrack() {
+        val nextTrack = track.copy(id = "next-id", title = "Next Song")
+        setNowPlayingContent(
+            PlaybackState(
+                currentTrack = track,
+                queue = listOf(track, nextTrack),
+                currentIndex = 0,
+            ),
+        )
+
+        composeRule.onNodeWithText("A continuación · Next Song").assertIsDisplayed()
+    }
+
+    @Test
+    fun tappingDurationTogglesRemainingTime() {
+        setNowPlayingContent(
+            PlaybackState(
+                currentTrack = track,
+                positionMillis = 45_000L,
+                durationMillis = 180_000L,
+            ),
+        )
+
+        composeRule.onNodeWithText("3:00").performClick()
+
+        composeRule.onNodeWithText("-2:15").assertIsDisplayed()
+    }
+
+    @Test
+    fun topBarShowsQueueSource() {
+        setNowPlayingContent(
+            PlaybackState(currentTrack = track),
+            queueSourceTitle = "Mi playlist",
+        )
+
+        composeRule.onNodeWithText("Reproduciendo desde").assertIsDisplayed()
+        composeRule.onNodeWithText("Mi playlist").assertIsDisplayed()
+    }
+
+    private fun setNowPlayingContent(
+        playbackState: PlaybackState,
+        queueSourceTitle: String? = null,
+    ) {
+        composeRule.setContent {
+            MaterialTheme {
+                NowPlayingScreen(
+                    playbackState = playbackState,
+                    onShareTrack = {},
+                    onBack = {},
+                    onTogglePlayback = {},
+                    onSkipPrevious = {},
+                    onSkipNext = {},
+                    onSeekTo = {},
+                    onSeekBackward10Seconds = {},
+                    onSeekForward10Seconds = {},
+                    onToggleShuffle = {},
+                    onCycleRepeatMode = {},
+                    onPlayQueueItem = {},
+                    onMoveQueueItem = { _, _ -> },
+                    onRemoveQueueItem = {},
+                    onTrackOptions = {},
+                    canAddCurrentTrackToQueue = true,
+                    onAddCurrentTrackToPlaylist = {},
+                    onToggleCurrentTrackLikedFromOptions = {},
+                    onAddCurrentTrackToQueue = {},
+                    onGoToCurrentTrackAlbum = {},
+                    onGoToCurrentTrackArtist = {},
+                    isCurrentTrackLiked = false,
+                    onAddCurrentTrackToLiked = {},
+                    queueSourceTitle = queueSourceTitle,
+                )
+            }
+        }
+    }
+
     private companion object {
         val track = Track(
             id = "track-id",

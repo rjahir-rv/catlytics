@@ -45,16 +45,36 @@
     <string name="app_action_remove_from_liked">Quitar de Tus me gusta</string>
     <string name="app_action_add_to_liked">Agregar a Tus me gusta</string>
     <string name="app_content_description_artwork">Carátula de %1$s</string>
+    <string name="app_now_playing_from">Reproduciendo desde</string>
+    <string name="app_now_playing_from_library">Tu biblioteca</string>
+    <string name="app_now_playing_show_remaining_time">Mostrar tiempo restante</string>
+    <string name="app_now_playing_show_total_time">Mostrar duración total</string>
+    <string name="app_now_playing_remaining_time">-%1$s</string>
+    <string name="app_now_playing_artwork_gestures">Desliza para cambiar de canción; toca dos veces a un lado para retroceder o adelantar 10 segundos</string>
 
     <!-- Fila de reproducción -->
     <string name="app_queue_title">Fila de reproducción</string>
     <string name="app_queue_now_playing_track">Reproduciendo · %1$s</string>
+    <string name="app_queue_up_next">A continuación · %1$s</string>
     <string name="app_queue_remove_track">Quitar %1$s de la fila</string>
-    <plurals name="app_queue_tracks_count">
-        <item quantity="one">1 canción</item>
-        <item quantity="other">%1$d canciones</item>
-    </plurals>
     <string name="app_content_description_reorder_track">Reordenar %1$s</string>
+    <plurals name="app_queue_up_next_count">
+        <item quantity="one">A continuación · 1 canción</item>
+        <item quantity="other">A continuación · %1$d canciones</item>
+    </plurals>
+    <string name="app_queue_shuffle">Aleatorio</string>
+    <string name="app_queue_repeat">Repetir</string>
+    <string name="app_queue_repeat_one">Repetir canción</string>
+    <string name="app_queue_repeat_all">Repetir todo</string>
+    <string name="app_queue_sleep_timer">Temporizador</string>
+    <string name="app_queue_sleep_timer_minutes">%1$d min</string>
+    <string name="app_queue_sleep_timer_off">Desactivar temporizador</string>
+    <string name="app_queue_sleep_timer_active">Temporizador activo, quedan %1$s</string>
+    <string name="app_queue_sleep_timer_marker">La música se pausará aquí</string>
+    <string name="app_queue_repeat_all_footer">La fila volverá a empezar</string>
+    <string name="app_queue_track_options_hint">Opciones de la canción</string>
+    <string name="app_state_on">Activado</string>
+    <string name="app_state_off">Desactivado</string>
 
     <!-- Opciones de pista -->
     <string name="app_track_option_add_to_playlist">Agregar a playlist</string>

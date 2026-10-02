@@ -2,6 +2,7 @@ package com.catlytics.app.playback
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.core.domain.repository.SleepTimerController
 import com.catlytics.core.domain.usecase.playback.AddQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
 import com.catlytics.core.domain.usecase.playback.MoveQueueItemUseCase
@@ -21,15 +22,19 @@ import com.catlytics.core.domain.usecase.playlist.RemoveTracksFromLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackUseCase
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -54,6 +59,7 @@ class PlaybackViewModel @Inject constructor(
     private val toggleLikedTrackUseCase: ToggleLikedTrackUseCase,
     private val addTracksToLikedUseCase: AddTracksToLikedUseCase,
     private val removeTracksFromLikedUseCase: RemoveTracksFromLikedUseCase,
+    private val sleepTimerController: SleepTimerController,
 ) : ViewModel() {
     val playbackState: StateFlow<PlaybackState> = observePlaybackStateUseCase()
         .stateIn(
@@ -72,7 +78,31 @@ class PlaybackViewModel @Inject constructor(
             initialValue = false,
         )
 
-    val likedTrackIds: StateFlow<Set<String>> = observePlaylistsUseCase()
+    private val playlists = observePlaylistsUseCase()
+        .shareIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            replay = 1,
+        )
+
+    /** Id y nombre de la playlist desde la que se reproduce la fila; null si no viene de una. */
+    val queueSourcePlaylist: StateFlow<Pair<String, String>?> = combine(
+        playbackState.map { it.queueSource }.distinctUntilChanged(),
+        playlists,
+    ) { source, playlists ->
+        (source as? PlaybackQueueSource.Playlist)?.let { playlistSource ->
+            playlists
+                .firstOrNull { it.id == playlistSource.playlistId }
+                ?.let { it.id to it.name }
+        }
+    }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = null,
+        )
+
+    val likedTrackIds: StateFlow<Set<String>> = playlists
         .map { playlists ->
             playlists
                 .firstOrNull { it.id == LIKED_PLAYLIST_ID }
@@ -86,10 +116,20 @@ class PlaybackViewModel @Inject constructor(
             initialValue = emptySet(),
         )
 
+    val sleepTimerState: StateFlow<SleepTimerState> = sleepTimerController.state
+
     init {
         viewModelScope.launch {
             restorePlaybackSessionUseCase()
         }
+    }
+
+    fun startSleepTimer(durationMinutes: Int) {
+        sleepTimerController.start(durationMinutes)
+    }
+
+    fun cancelSleepTimer() {
+        sleepTimerController.cancel()
     }
 
     fun togglePlayback() {

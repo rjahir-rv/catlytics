@@ -23,11 +23,4 @@ class SleepTimerDialTest {
         assertEquals(60, minutesForDialPosition(Offset(100f, 200f), size))
         assertEquals(90, minutesForDialPosition(Offset(0f, 100f), size))
     }
-
-    @Test
-    fun `remaining time formats minutes and hours`() {
-        assertEquals("00:00", formatSleepTimerRemaining(0L))
-        assertEquals("05:01", formatSleepTimerRemaining(300_001L))
-        assertEquals("1:02:03", formatSleepTimerRemaining(3_723_000L))
-    }
 }

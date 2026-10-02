@@ -41,10 +41,10 @@ import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.format.SleepTimerFormat
 import com.catlytics.core.model.SleepTimerState
 import kotlin.math.PI
 import kotlin.math.atan2
-import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
@@ -109,7 +109,7 @@ internal fun SleepTimerBottomSheet(
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
-                            text = formatSleepTimerRemaining(it.remainingMillis),
+                            text = SleepTimerFormat.formatRemaining(it.remainingMillis),
                             style = MaterialTheme.typography.titleMedium,
                         )
                     }
@@ -280,18 +280,6 @@ internal fun snapSleepTimerMinutes(minutes: Int): Int {
     val snappedMinutes = (minutes.toFloat() / SLEEP_TIMER_STEP_MINUTES).roundToInt() *
         SLEEP_TIMER_STEP_MINUTES
     return snappedMinutes.coerceIn(MIN_SLEEP_TIMER_MINUTES, MAX_SLEEP_TIMER_MINUTES)
-}
-
-internal fun formatSleepTimerRemaining(remainingMillis: Long): String {
-    val totalSeconds = ceil(remainingMillis.coerceAtLeast(0L) / 1_000.0).toLong()
-    val hours = totalSeconds / 3_600L
-    val minutes = totalSeconds % 3_600L / 60L
-    val seconds = totalSeconds % 60L
-    return if (hours > 0L) {
-        "%d:%02d:%02d".format(hours, minutes, seconds)
-    } else {
-        "%02d:%02d".format(minutes, seconds)
-    }
 }
 
 private fun androidx.compose.ui.unit.IntSize.toSize() = Size(width.toFloat(), height.toFloat())
