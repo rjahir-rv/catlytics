@@ -83,6 +83,27 @@ fun animateArtworkGradientColors(
     return ArtworkGradientColors(start = start, center = center, end = end)
 }
 
+fun nameSeededGradient(
+    seed: String,
+    isDark: Boolean,
+    surface: Color,
+): ArtworkGradientColors {
+    val hue = ((seed.trim().lowercase().hashCode() % 360) + 360) % 360
+    return if (isDark) {
+        ArtworkGradientColors(
+            start = Color.hsl(hue.toFloat(), 0.55f, 0.40f),
+            center = Color.hsl(((hue + 28) % 360).toFloat(), 0.45f, 0.22f),
+            end = surface,
+        )
+    } else {
+        ArtworkGradientColors(
+            start = Color.hsl(hue.toFloat(), 0.65f, 0.74f),
+            center = Color.hsl(((hue + 28) % 360).toFloat(), 0.55f, 0.87f),
+            end = surface,
+        )
+    }
+}
+
 suspend fun Bitmap.extractArtworkGradientColors(
     fallback: ArtworkGradientColors,
     surfaceBlend: Float = ARTWORK_GRADIENT_SURFACE_BLEND,

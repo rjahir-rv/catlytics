@@ -5,7 +5,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +42,9 @@ internal fun PlaylistDetailRoute(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val allTracks by viewModel.allTracks.collectAsStateWithLifecycle()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val undoLabel = stringResource(R.string.playlist_detail_undo)
+
     LaunchedEffect(playlistId) { viewModel.open(playlistId) }
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -46,6 +55,19 @@ internal fun PlaylistDetailRoute(
                     effect.text.resolve(resources),
                     Toast.LENGTH_SHORT,
                 ).show()
+                is PlaylistDetailEffect.TracksRemoved -> {
+                    snackbarHostState.currentSnackbarData?.dismiss()
+                    launch {
+                        val result = snackbarHostState.showSnackbar(
+                            message = effect.text.resolve(resources),
+                            actionLabel = undoLabel,
+                            duration = SnackbarDuration.Long,
+                        )
+                        if (result == SnackbarResult.ActionPerformed) {
+                            viewModel.undoRemove(effect.previousTrackIds)
+                        }
+                    }
+                }
             }
         }
     }
@@ -86,6 +108,7 @@ internal fun PlaylistDetailRoute(
             exportM3uLauncher.launch("$name.m3u8")
         },
         onTopBarColorChange = onTopBarColorChange,
+        snackbarHostState = snackbarHostState,
         bottomPadding = bottomPadding,
         scaffoldContentPadding = scaffoldContentPadding,
     )

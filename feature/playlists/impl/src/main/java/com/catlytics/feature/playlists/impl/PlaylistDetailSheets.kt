@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -44,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.Track
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
@@ -104,7 +104,7 @@ internal fun AddTracksToPlaylistSheet(
                     }
                 },
                 singleLine = true,
-                shape = RoundedCornerShape(16.dp),
+                shape = CatlyticsCorners.Medium,
             )
 
             if (filteredTracks.isEmpty()) {
@@ -145,7 +145,7 @@ internal fun AddTracksToPlaylistSheet(
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(48.dp)
-                                    .clip(RoundedCornerShape(10.dp)),
+                                    .clip(CatlyticsCorners.Small),
                                 placeholder = painterResource(R.drawable.placeholder_track),
                                 error = painterResource(R.drawable.placeholder_track),
                                 fallback = painterResource(R.drawable.placeholder_track),
@@ -234,19 +234,18 @@ internal fun EditPlaylistSheet(
                 stringResource(PlaylistsR.string.playlist_detail_edit),
                 style = MaterialTheme.typography.titleLarge,
             )
-            AsyncImage(
-                model = artworkUri,
+            PlaylistCover(
+                playlistId = EDIT_PREVIEW_PLAYLIST_ID,
+                name = name,
+                artworkModel = artworkUri,
+                mosaicArtworkUris = emptyList(),
+                shape = CatlyticsCorners.Large,
                 contentDescription = stringResource(
                     PlaylistsR.string.playlist_detail_artwork_preview_content_description,
                 ),
                 modifier = Modifier
                     .size(144.dp)
-                    .align(Alignment.CenterHorizontally)
-                    .clip(RoundedCornerShape(20.dp)),
-                placeholder = painterResource(R.drawable.placeholder_playlist),
-                error = painterResource(R.drawable.placeholder_playlist),
-                fallback = painterResource(R.drawable.placeholder_playlist),
-                contentScale = ContentScale.Crop,
+                    .align(Alignment.CenterHorizontally),
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -297,3 +296,5 @@ internal fun EditPlaylistSheet(
         }
     }
 }
+
+private const val EDIT_PREVIEW_PLAYLIST_ID = "edit-preview"

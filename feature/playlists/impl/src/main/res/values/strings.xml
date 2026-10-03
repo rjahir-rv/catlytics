@@ -39,7 +39,11 @@
     <string name="playlists_delete_title">Eliminar %1$s</string>
     <string name="playlists_delete_message">Esta acción no eliminará las canciones del dispositivo.</string>
     <string name="playlists_empty_title">Aún no tienes playlists.</string>
-    <string name="playlists_empty_message">Toca el botón + para crear una y organizar tu música.</string>
+    <string name="playlists_empty_message">Crea una para organizar tu música a tu manera.</string>
+    <string name="playlists_create_action">Crear playlist</string>
+    <string name="playlists_now_playing_content_description">Reproduciéndose</string>
+    <string name="playlists_action_shuffle">Reproducción aleatoria</string>
+    <string name="playlists_play_content_description">Reproducir %1$s</string>
     <string name="playlists_no_search_results">No encontramos playlists que coincidan con tu búsqueda.</string>
 
     <!-- Playlists: detalle -->
@@ -67,6 +71,7 @@
     <string name="playlist_detail_edit">Editar playlist</string>
     <string name="playlist_detail_selection_title">Canciones seleccionadas</string>
     <string name="playlist_detail_add_tracks">Agregar canciones</string>
+    <string name="playlist_detail_undo">Deshacer</string>
     <string name="playlist_detail_add_to_playlist">Agregar a otra playlist</string>
     <string name="playlist_detail_export_m3u8">Exportar como M3U8</string>
     <string name="playlist_detail_delete">Eliminar playlist</string>

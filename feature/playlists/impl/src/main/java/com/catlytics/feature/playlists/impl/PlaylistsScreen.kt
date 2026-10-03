@@ -4,14 +4,12 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,73 +19,70 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.modifier.staggeredEntrance
+import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
-import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
+import com.catlytics.core.model.PlaylistSummary
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-// La fila de controles (filtro y modo de vista) va superpuesta sobre las listas,
+// La fila de controles (orden y modo de vista) va superpuesta sobre las listas,
 // por lo que el contenido reserva su altura completa para no quedar tapado.
-private val ControlsTopPadding = 8.dp
-private val ControlsBottomPadding = 8.dp
-private val ControlsIconSize = 48.dp
-private val ControlsHeight = ControlsTopPadding + ControlsIconSize + ControlsBottomPadding
-private val ControlsContentGap = 8.dp
-private val ControlsContentInset = ControlsHeight + ControlsContentGap
+private val ControlsContentGap = 4.dp
+private val ControlsContentInset = PlaylistsControlsHeight + ControlsContentGap
+
+private const val ENTRANCE_SETTLE_MILLIS = 900L
+private const val ENTRANCE_MAX_STAGGERED_ITEMS = 6
+
+private enum class PlaylistsStateKind { Loading, Empty, NoResults, Content }
 
 @Composable
 internal fun PlaylistsScreen(
-    playlists: List<Playlist>,
+    uiState: PlaylistsUiState,
     viewMode: PlaylistViewMode,
     modifier: Modifier = Modifier,
+    activePlaylist: ActivePlaylist? = null,
     onViewModeChange: (PlaylistViewMode) -> Unit,
     onPlaylistSelected: (Playlist) -> Unit,
     onCreateClick: () -> Unit,
     onRename: (String, String) -> Unit,
     onDelete: (String) -> Unit,
     onSetCover: (String, String?) -> Unit,
+    onPlay: (String) -> Unit = {},
+    onPlayShuffled: (String) -> Unit = {},
+    onTogglePlayback: () -> Unit = {},
     searchQuery: String = "",
     sortDirection: SortDirection = SortDirection.Ascending,
     onSortDirectionChange: (SortDirection) -> Unit = {},
@@ -95,8 +90,9 @@ internal fun PlaylistsScreen(
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     collapseFraction: () -> Float = { 0f },
 ) {
-    var editor by remember { mutableStateOf<Playlist?>(null) }
-    var deleting by remember { mutableStateOf<Playlist?>(null) }
+    var actionsFor by remember { mutableStateOf<PlaylistSummary?>(null) }
+    var renaming by remember { mutableStateOf<PlaylistSummary?>(null) }
+    var deleting by remember { mutableStateOf<PlaylistSummary?>(null) }
     var pendingCoverForId by remember { mutableStateOf<String?>(null) }
 
     val coverPickerLauncher = rememberLauncherForActivityResult(
@@ -116,11 +112,21 @@ internal fun PlaylistsScreen(
         )
     }
 
-    val filteredPlaylists = remember(playlists, searchQuery) {
-        playlists.filterByQuery(searchQuery)
+    val summaries = (uiState as? PlaylistsUiState.Content)?.playlists.orEmpty()
+    val sorted = remember(summaries, searchQuery, sortDirection) {
+        summaries.filterByQuery(searchQuery).sortedByDirection(sortDirection)
     }
+    val stateKind = when {
+        uiState is PlaylistsUiState.Loading -> PlaylistsStateKind.Loading
+        summaries.isEmpty() -> PlaylistsStateKind.Empty
+        sorted.isEmpty() -> PlaylistsStateKind.NoResults
+        else -> PlaylistsStateKind.Content
+    }
+    val hasPlaylists = stateKind == PlaylistsStateKind.Content ||
+        stateKind == PlaylistsStateKind.NoResults
+
     val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
-    val mosaicState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
+    val gridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
     val coroutineScope = rememberCoroutineScope()
     var controlsHeightPx by remember { mutableIntStateOf(0) }
     val controlsAtTop by remember(viewMode) {
@@ -129,606 +135,264 @@ internal fun PlaylistsScreen(
                 listState.firstVisibleItemIndex == 0 &&
                     listState.firstVisibleItemScrollOffset == 0
             } else {
-                mosaicState.firstVisibleItemIndex == 0 &&
-                    mosaicState.firstVisibleItemScrollOffset == 0
+                gridState.firstVisibleItemIndex == 0 &&
+                    gridState.firstVisibleItemScrollOffset == 0
             }
+        }
+    }
+
+    // La entrada escalonada solo ocurre la primera vez; al volver desde el detalle no se repite.
+    var entranceDone by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(stateKind == PlaylistsStateKind.Content) {
+        if (stateKind == PlaylistsStateKind.Content) {
+            delay(ENTRANCE_SETTLE_MILLIS)
+            entranceDone = true
         }
     }
 
     fun selectSortDirection(direction: SortDirection) {
-        if (direction == sortDirection) {
-            onSortDirectionChange(direction)
-            return
-        }
+        if (direction == sortDirection) return
         coroutineScope.launch {
             when (viewMode) {
                 PlaylistViewMode.List -> listState.scrollToItem(0)
-                PlaylistViewMode.Mosaic -> mosaicState.scrollToItem(0)
+                PlaylistViewMode.Mosaic -> gridState.scrollToItem(0)
             }
             onSortDirectionChange(direction)
+        }
+    }
+
+    val contentPadding = PaddingValues(
+        start = 20.dp,
+        top = scaffoldContentPadding.calculateTopPadding() + ControlsContentInset,
+        end = 20.dp,
+        bottom = bottomPadding() + 104.dp,
+    )
+
+    fun playlistClick(summary: PlaylistSummary) = onPlaylistSelected(summary.playlist)
+    fun playClick(summary: PlaylistSummary) {
+        if (activePlaylist?.id == summary.playlist.id) {
+            onTogglePlayback()
+        } else {
+            onPlay(summary.playlist.id)
         }
     }
 
     Box(modifier = modifier.fillMaxSize()) {
-        if (filteredPlaylists.isEmpty()) {
-            if (searchQuery.isNotBlank()) {
-                NoSearchResultsContent(modifier = Modifier.align(Alignment.Center))
-            } else {
-                EmptyPlaylistsContent(modifier = Modifier.align(Alignment.Center))
-            }
-        } else {
-            when (viewMode) {
-                PlaylistViewMode.List -> PlaylistList(
-                    playlists = filteredPlaylists,
-                    sortDirection = sortDirection,
-                    state = listState,
-                    onClick = onPlaylistSelected,
-                    onRename = { editor = it },
-                    onDelete = { deleting = it },
-                    onChangeCover = ::requestCoverChange,
-                    onClearCover = { id -> onSetCover(id, null) },
-                    bottomPadding = bottomPadding,
-                    topPadding = scaffoldContentPadding.calculateTopPadding(),
-                    modifier = Modifier.fillMaxSize(),
+        Crossfade(
+            targetState = stateKind,
+            modifier = Modifier.fillMaxSize(),
+            label = "playlistsState",
+        ) { kind ->
+            when (kind) {
+                PlaylistsStateKind.Loading -> PlaylistsSkeleton(
+                    contentPadding = contentPadding,
                 )
-                PlaylistViewMode.Mosaic -> PlaylistMosaic(
-                    playlists = filteredPlaylists,
-                    sortDirection = sortDirection,
-                    state = mosaicState,
-                    onClick = onPlaylistSelected,
-                    onRename = { editor = it },
-                    onDelete = { deleting = it },
-                    onChangeCover = ::requestCoverChange,
-                    onClearCover = { id -> onSetCover(id, null) },
-                    bottomPadding = bottomPadding,
-                    topPadding = scaffoldContentPadding.calculateTopPadding(),
-                    modifier = Modifier.fillMaxSize(),
+
+                PlaylistsStateKind.Empty -> CatlyticsEmptyState(
+                    title = stringResource(PlaylistsR.string.playlists_empty_title),
+                    message = stringResource(PlaylistsR.string.playlists_empty_message),
+                    messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    action = {
+                        Button(onClick = onCreateClick) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_add),
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                            )
+                            Text(
+                                text = stringResource(PlaylistsR.string.playlists_create_action),
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
+                    },
                 )
+
+                PlaylistsStateKind.NoResults -> CatlyticsEmptyState(
+                    message = stringResource(PlaylistsR.string.playlists_no_search_results),
+                    messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    mascotSize = 160.dp,
+                )
+
+                PlaylistsStateKind.Content -> when (viewMode) {
+                    PlaylistViewMode.List -> LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = contentPadding,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        itemsIndexed(sorted, key = { _, item -> item.playlist.id }) { index, summary ->
+                            PlaylistListRow(
+                                summary = summary,
+                                isActive = activePlaylist?.id == summary.playlist.id,
+                                isPlaying = activePlaylist?.isPlaying == true,
+                                onClick = { playlistClick(summary) },
+                                onLongClick = { actionsFor = summary },
+                                onOptionsClick = { actionsFor = summary },
+                                modifier = Modifier
+                                    .animateItem()
+                                    .staggeredEntrance(
+                                        index = index,
+                                        animate = !entranceDone && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                                    ),
+                            )
+                        }
+                    }
+
+                    PlaylistViewMode.Mosaic -> LazyVerticalGrid(
+                        state = gridState,
+                        columns = GridCells.Adaptive(minSize = 160.dp),
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = contentPadding,
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                    ) {
+                        itemsIndexed(sorted, key = { _, item -> item.playlist.id }) { index, summary ->
+                            PlaylistGridCard(
+                                summary = summary,
+                                isActive = activePlaylist?.id == summary.playlist.id,
+                                isPlaying = activePlaylist?.isPlaying == true,
+                                onClick = { playlistClick(summary) },
+                                onLongClick = { actionsFor = summary },
+                                onOptionsClick = { actionsFor = summary },
+                                onPlayClick = { playClick(summary) },
+                                modifier = Modifier
+                                    .animateItem()
+                                    .staggeredEntrance(
+                                        index = index,
+                                        animate = !entranceDone && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                                    ),
+                            )
+                        }
+                    }
+                }
             }
         }
 
-        Column(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .fillMaxWidth()
-                .padding(top = scaffoldContentPadding.calculateTopPadding()),
-        ) {
+        if (hasPlaylists) {
             Column(
                 modifier = Modifier
+                    .align(Alignment.TopEnd)
                     .fillMaxWidth()
-                    .onSizeChanged { controlsHeightPx = it.height }
-                    .then(
-                        if (controlsAtTop) {
-                            Modifier
-                        } else {
-                            Modifier.graphicsLayer {
-                                val f = collapseFraction().coerceIn(0f, 1f)
-                                translationY = -f * controlsHeightPx
-                                alpha = 1f - f
-                            }
-                        }
-                    )
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(top = ControlsTopPadding),
+                    .padding(top = scaffoldContentPadding.calculateTopPadding()),
             ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, bottom = ControlsBottomPadding),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-            var expanded by remember { mutableStateOf(false) }
-            Box {
-                IconButton(onClick = { expanded = true }) {
+                PlaylistsControlsRow(
+                    sortDirection = sortDirection,
+                    viewMode = viewMode,
+                    onSortSelected = ::selectSortDirection,
+                    onViewModeChange = onViewModeChange,
+                    modifier = Modifier
+                        .onSizeChanged { controlsHeightPx = it.height }
+                        .then(
+                            if (controlsAtTop) {
+                                Modifier
+                            } else {
+                                Modifier.graphicsLayer {
+                                    val fraction = collapseFraction().coerceIn(0f, 1f)
+                                    translationY = -fraction * controlsHeightPx
+                                    alpha = 1f - fraction
+                                }
+                            },
+                        )
+                        .background(MaterialTheme.colorScheme.background),
+                )
+            }
+
+            ExtendedFloatingActionButton(
+                onClick = onCreateClick,
+                expanded = controlsAtTop,
+                shape = CatlyticsCorners.Large,
+                icon = {
                     Icon(
-                        painter = painterResource(R.drawable.ic_filter),
+                        painter = painterResource(id = R.drawable.ic_add),
                         contentDescription = stringResource(
-                            PlaylistsR.string.playlists_sort_content_description,
+                            PlaylistsR.string.playlists_add_content_description,
                         ),
                     )
-                }
-                DropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(PlaylistsR.string.playlists_sort_ascending)) },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_arrow_down),
-                                contentDescription = null,
-                                modifier = Modifier.graphicsLayer { rotationZ = 180f }
-                            )
-                        },
-                        onClick = {
-                            selectSortDirection(SortDirection.Ascending)
-                            expanded = false
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(PlaylistsR.string.playlists_sort_descending)) },
-                        leadingIcon = {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_arrow_down),
-                                contentDescription = null,
-                            )
-                        },
-                        onClick = {
-                            selectSortDirection(SortDirection.Descending)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-            IconButton(
-                onClick = {
-                    onViewModeChange(
-                        if (viewMode == PlaylistViewMode.List) PlaylistViewMode.Mosaic else PlaylistViewMode.List,
-                    )
                 },
-            ) {
-                val isList = viewMode == PlaylistViewMode.List
-                Icon(
-                    painter = painterResource(
-                        if (isList) R.drawable.ic_grid else R.drawable.ic_list_shadow,
+                text = { Text(stringResource(PlaylistsR.string.playlists_new_playlist)) },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(
+                        end = 20.dp,
+                        bottom = bottomPadding() + 20.dp,
                     ),
-                    contentDescription = stringResource(
-                        if (isList) {
-                            PlaylistsR.string.playlists_show_grid_content_description
-                        } else {
-                            PlaylistsR.string.playlists_show_list_content_description
-                        },
-                    ),
-                )
-            }
-            }
+            )
         }
-        }
+    }
 
-        ExtendedFloatingActionButton(
-            onClick = onCreateClick,
-            icon = {
-                Icon(
-                    painter = painterResource(id = R.drawable.ic_add),
-                    contentDescription = stringResource(PlaylistsR.string.playlists_add_content_description),
-                )
-            },
-            text = { Text(stringResource(PlaylistsR.string.playlists_new_playlist)) },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(
-                    end = 20.dp,
-                    bottom = bottomPadding() + 20.dp,
-                ),
+    actionsFor?.let { target ->
+        PlaylistActionsSheet(
+            summary = target,
+            onDismiss = { actionsFor = null },
+            onPlay = { onPlay(target.playlist.id) },
+            onShuffle = { onPlayShuffled(target.playlist.id) },
+            onRename = { renaming = target },
+            onChangeCover = { requestCoverChange(target.playlist.id) },
+            onClearCover = { onSetCover(target.playlist.id, null) },
+            onDelete = { deleting = target },
         )
     }
-    editor?.let { playlist ->
+    renaming?.let { target ->
+        val otherPlaylists = remember(summaries, target) {
+            summaries.map { it.playlist }.filter { it.id != target.playlist.id }
+        }
         NameDialog(
             title = stringResource(PlaylistsR.string.playlists_rename_title),
-            initialName = playlist.displayName(),
-            onDismiss = { editor = null },
-        ) {
-            editor = null
-            onRename(playlist.id, it)
-        }
+            initialName = target.playlist.displayName(),
+            isNameTaken = { candidate -> isPlaylistNameTaken(candidate, otherPlaylists) },
+            onDismiss = { renaming = null },
+            onConfirm = { newName ->
+                renaming = null
+                onRename(target.playlist.id, newName)
+            },
+        )
     }
-    deleting?.let { playlist ->
-        AlertDialog(
-            onDismissRequest = { deleting = null },
-            title = {
-                Text(stringResource(PlaylistsR.string.playlists_delete_title, playlist.displayName()))
-            },
-            text = { Text(stringResource(PlaylistsR.string.playlists_delete_message)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    deleting = null; onDelete(playlist.id)
-                }) { Text(stringResource(PlaylistsR.string.playlists_action_delete)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { deleting = null }) {
-                    Text(stringResource(PlaylistsR.string.playlists_action_cancel))
-                }
+    deleting?.let { target ->
+        DeletePlaylistDialog(
+            playlistName = target.playlist.displayName(),
+            onDismiss = { deleting = null },
+            onConfirm = {
+                deleting = null
+                onDelete(target.playlist.id)
             },
         )
     }
 }
 
-@Composable
-private fun PlaylistList(
-    playlists: List<Playlist>,
-    modifier: Modifier = Modifier,
-    sortDirection: SortDirection,
-    state: LazyListState = rememberLazyListState(),
-    onClick: (Playlist) -> Unit,
-    onRename: (Playlist) -> Unit,
-    onDelete: (Playlist) -> Unit,
-    onChangeCover: (String) -> Unit,
-    onClearCover: (String) -> Unit,
-    bottomPadding: () -> Dp = { 0.dp },
-    topPadding: Dp = 0.dp,
+private fun previewSummary(
+    id: String,
+    name: String,
+    trackCount: Int,
+    artworks: List<String> = emptyList(),
+) = PlaylistSummary(
+    playlist = Playlist(id = id, name = name, trackIds = List(trackCount) { "$id-$it" }),
+    trackCount = trackCount,
+    totalDurationMillis = trackCount * 210_000L,
+    coverArtworkUris = artworks,
+)
 
-    ) {
-    val sorted: List<Playlist> = remember(playlists, sortDirection) {
-        playlists.sortedByDirection(sortDirection)
-    }
-
-    LazyColumn(
-        state = state,
-        modifier = modifier,
-        contentPadding = PaddingValues(
-            start = 20.dp,
-            top = topPadding + ControlsContentInset,
-            end = 20.dp,
-            bottom = bottomPadding() + 104.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(0.dp),
-    ) {
-        items(sorted, key = { playlist -> "${sortDirection.name}:${playlist.id}" }) { playlist ->
-            PlaylistListRow(
-                playlist = playlist,
-                onClick = { onClick(playlist) },
-                onRename = { onRename(playlist) },
-                onDelete = { onDelete(playlist) },
-                onChangeCover = { onChangeCover(playlist.id) },
-                onClearCover = { onClearCover(playlist.id) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlaylistListRow(
-    playlist: Playlist,
-    onClick: () -> Unit,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onChangeCover: () -> Unit,
-    onClearCover: () -> Unit,
-) {
-    val coverPlaceholder = painterResource(
-        if (playlist.id == LIKED_PLAYLIST_ID) {
-            R.drawable.placeholder_favorites
-        } else {
-            R.drawable.placeholder_playlist
-        },
-    )
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AsyncImage(
-            model = playlist.artworkUri,
-            contentDescription = stringResource(
-                PlaylistsR.string.playlists_artwork_content_description,
-                playlist.displayName(),
-            ),
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(16.dp)),
-            placeholder = coverPlaceholder,
-            error = coverPlaceholder,
-            fallback = coverPlaceholder,
-            contentScale = ContentScale.Crop,
-        )
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = 16.dp),
-        ) {
-            Text(
-                text = playlist.displayName(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = pluralStringResource(
-                    PlaylistsR.plurals.playlists_track_count,
-                    playlist.trackIds.size,
-                    playlist.trackIds.size,
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        PlaylistActionsMenu(
-            playlist = playlist,
-            onRename = onRename,
-            onDelete = onDelete,
-            onChangeCover = onChangeCover,
-            onClearCover = onClearCover,
-        )
-    }
-}
-
-@Composable
-private fun PlaylistMosaic(
-    playlists: List<Playlist>,
-    sortDirection: SortDirection,
-    modifier: Modifier = Modifier,
-    state: LazyGridState = rememberLazyGridState(),
-    onClick: (Playlist) -> Unit,
-    onRename: (Playlist) -> Unit,
-    onDelete: (Playlist) -> Unit,
-    onChangeCover: (String) -> Unit,
-    onClearCover: (String) -> Unit,
-    bottomPadding: () -> Dp = { 0.dp },
-    topPadding: Dp = 0.dp,
-
-    ) {
-    val sorted: List<Playlist> = remember(playlists, sortDirection) {
-        playlists.sortedByDirection(sortDirection)
-    }
-
-    LazyVerticalGrid(
-        state = state,
-        columns = GridCells.Adaptive(minSize = 160.dp),
-        modifier = modifier,
-        contentPadding = PaddingValues(
-            start = 20.dp,
-            top = topPadding + ControlsContentInset,
-            end = 20.dp,
-            bottom = bottomPadding() + 104.dp,
-        ),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        items(sorted, key = { playlist -> "${sortDirection.name}:${playlist.id}" }) { playlist ->
-            PlaylistMosaicCard(
-                playlist = playlist,
-                onClick = { onClick(playlist) },
-                onRename = { onRename(playlist) },
-                onDelete = { onDelete(playlist) },
-                onChangeCover = { onChangeCover(playlist.id) },
-                onClearCover = { onClearCover(playlist.id) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlaylistMosaicCard(
-    playlist: Playlist,
-    onClick: () -> Unit,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onChangeCover: () -> Unit,
-    onClearCover: () -> Unit,
-) {
-    val coverPlaceholder = painterResource(
-        if (playlist.id == LIKED_PLAYLIST_ID) {
-            R.drawable.placeholder_favorites
-        } else {
-            R.drawable.placeholder_playlist
-        },
-    )
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        AsyncImage(
-            model = playlist.artworkUri,
-            contentDescription = stringResource(
-                PlaylistsR.string.playlists_artwork_content_description,
-                playlist.displayName(),
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(20.dp)),
-            placeholder = coverPlaceholder,
-            error = coverPlaceholder,
-            fallback = coverPlaceholder,
-            contentScale = ContentScale.Crop,
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = playlist.displayName(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = pluralStringResource(
-                        PlaylistsR.plurals.playlists_track_count,
-                        playlist.trackIds.size,
-                        playlist.trackIds.size,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            PlaylistActionsMenu(
-                playlist = playlist,
-                onRename = onRename,
-                onDelete = onDelete,
-                onChangeCover = onChangeCover,
-                onClearCover = onClearCover,
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlaylistActionsMenu(
-    playlist: Playlist,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onChangeCover: () -> Unit,
-    onClearCover: () -> Unit,
-) {
-    if (playlist.id == LIKED_PLAYLIST_ID) return
-
-    var expanded by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                painter = painterResource(R.drawable.ic_options),
-                contentDescription = stringResource(
-                    PlaylistsR.string.playlists_options_content_description,
-                    playlist.displayName(),
-                ),
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(PlaylistsR.string.playlists_action_rename)) },
-                onClick = {
-                    expanded = false
-                    onRename()
-                },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(PlaylistsR.string.playlists_change_cover)) },
-                onClick = {
-                    expanded = false
-                    onChangeCover()
-                },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
-            )
-            if (playlist.artworkUri != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(PlaylistsR.string.playlists_remove_cover)) },
-                    onClick = {
-                        expanded = false
-                        onClearCover()
-                    },
-                    leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null) },
-                )
-            }
-            DropdownMenuItem(
-                text = { Text(stringResource(PlaylistsR.string.playlists_action_delete)) },
-                onClick = {
-                    expanded = false
-                    onDelete()
-                },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_delete), null) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun EmptyPlaylistsContent(
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_playlist),
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = stringResource(PlaylistsR.string.playlists_empty_title),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = stringResource(PlaylistsR.string.playlists_empty_message),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun NoSearchResultsContent(
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier.padding(horizontal = 32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Icon(
-            painter = painterResource(R.drawable.ic_playlist),
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = stringResource(PlaylistsR.string.playlists_no_search_results),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-}
-
-@Composable
-internal fun NameDialog(
-    title: String,
-    initialName: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
-) {
-    var name by remember(initialName) { mutableStateOf(initialName) }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            OutlinedTextField(
-                name,
-                { name = it },
-                singleLine = true,
-                label = { Text(stringResource(PlaylistsR.string.playlists_name_label)) })
-        },
-        confirmButton = {
-            TextButton(
-                onClick = { onConfirm(name.trim()) },
-                enabled = name.isNotBlank()
-            ) { Text(stringResource(PlaylistsR.string.playlists_action_save)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(PlaylistsR.string.playlists_action_cancel))
-            }
-        },
-    )
-}
+private val previewContent = PlaylistsUiState.Content(
+    listOf(
+        previewSummary("p1", "Focus", 12),
+        previewSummary("p2", "Gym", 1),
+        previewSummary("p3", "Road trip 2025", 0),
+    ),
+)
 
 @Preview(showBackground = true, name = "List mode")
 @Composable
 private fun PlaylistsScreenListPreview() {
     CatlyticsTheme {
         PlaylistsScreen(
-            playlists = listOf(
-                Playlist(id = "p1", name = "Focus", trackIds = listOf("t1", "t2", "t3")),
-                Playlist(id = "p2", name = "Gym", trackIds = listOf("t4")),
-                Playlist(id = "p3", name = "Road trip 2025", trackIds = emptyList()),
-            ),
+            uiState = previewContent,
             viewMode = PlaylistViewMode.List,
+            activePlaylist = ActivePlaylist(id = "p1", isPlaying = true),
             onViewModeChange = {},
             onPlaylistSelected = {},
             onCreateClick = {},
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },
-            searchQuery = "",
-            sortDirection = SortDirection.Ascending,
-            onSortDirectionChange = {},
         )
     }
 }
@@ -738,10 +402,7 @@ private fun PlaylistsScreenListPreview() {
 private fun PlaylistsScreenMosaicPreview() {
     CatlyticsTheme {
         PlaylistsScreen(
-            playlists = listOf(
-                Playlist(id = "p1", name = "Focus", trackIds = listOf("t1", "t2", "t3"), artworkUri = "file:///tmp/focus.jpg"),
-                Playlist(id = "p2", name = "Gym", trackIds = listOf("t4")),
-            ),
+            uiState = previewContent,
             viewMode = PlaylistViewMode.Mosaic,
             onViewModeChange = {},
             onPlaylistSelected = {},
@@ -749,9 +410,6 @@ private fun PlaylistsScreenMosaicPreview() {
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },
-            searchQuery = "",
-            sortDirection = SortDirection.Ascending,
-            onSortDirectionChange = {},
         )
     }
 }
@@ -761,7 +419,7 @@ private fun PlaylistsScreenMosaicPreview() {
 private fun PlaylistsScreenEmptyPreview() {
     CatlyticsTheme {
         PlaylistsScreen(
-            playlists = emptyList(),
+            uiState = PlaylistsUiState.Content(emptyList()),
             viewMode = PlaylistViewMode.List,
             onViewModeChange = {},
             onPlaylistSelected = {},
@@ -769,9 +427,23 @@ private fun PlaylistsScreenEmptyPreview() {
             onRename = { _, _ -> },
             onDelete = {},
             onSetCover = { _, _ -> },
-            searchQuery = "",
-            sortDirection = SortDirection.Ascending,
-            onSortDirectionChange = {},
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Loading")
+@Composable
+private fun PlaylistsScreenLoadingPreview() {
+    CatlyticsTheme {
+        PlaylistsScreen(
+            uiState = PlaylistsUiState.Loading,
+            viewMode = PlaylistViewMode.List,
+            onViewModeChange = {},
+            onPlaylistSelected = {},
+            onCreateClick = {},
+            onRename = { _, _ -> },
+            onDelete = {},
+            onSetCover = { _, _ -> },
         )
     }
 }

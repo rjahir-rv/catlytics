@@ -1,23 +1,34 @@
 package com.catlytics.feature.playlists.impl
 
 import android.graphics.Bitmap
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,25 +39,32 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
-import coil3.toBitmap
 import com.catlytics.core.designsystem.R
-import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.designsystem.theme.CatlyticsCorners
+import com.catlytics.core.domain.usecase.playlist.PLAYLIST_COVER_MOSAIC_SIZE
 import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.distinctArtworkUris
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
 @Composable
@@ -60,72 +78,80 @@ internal fun PlaylistHeader(
     onPlay: (Track, List<Track>) -> Unit,
     onPlayShuffled: (List<Track>) -> Unit,
     onTogglePlayback: () -> Unit,
+    onAddTracksClick: () -> Unit,
     onOptionsClick: () -> Unit,
     optionsMenu: @Composable () -> Unit,
     onCancelOrdering: () -> Unit,
     onSaveOrdering: () -> Unit,
 ) {
+    val coverShape = CatlyticsCorners.XLarge
+    val mosaicArtworkUris = remember(tracks) { tracks.distinctArtworkUris(PLAYLIST_COVER_MOSAIC_SIZE) }
+    val entrance = remember(playlist.id) { Animatable(0f) }
+    LaunchedEffect(playlist.id) {
+        entrance.animateTo(
+            targetValue = 1f,
+            animationSpec = spring(dampingRatio = 0.75f, stiffness = Spring.StiffnessLow),
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Box(modifier = Modifier.fillMaxWidth()) {
-            BoxWithConstraints(
-                modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
-            ) {
-                val artworkSize = (maxWidth * 0.72f).coerceAtMost(280.dp)
-                val coverPlaceholder = painterResource(
-                    if (playlist.id == LIKED_PLAYLIST_ID) {
-                        R.drawable.placeholder_favorites
-                    } else {
-                        R.drawable.placeholder_playlist
-                    },
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            val coverSize = (maxWidth * 0.64f).coerceAtMost(240.dp)
+            PlaylistCover(
+                playlistId = playlist.id,
+                name = playlist.name,
+                artworkModel = if (playlist.artworkUri != null) artworkRequest else null,
+                mosaicArtworkUris = mosaicArtworkUris,
+                shape = coverShape,
+                contentDescription = stringResource(
+                    PlaylistsR.string.playlists_artwork_content_description,
+                    playlist.displayName(),
+                ),
+                onArtworkLoaded = onArtworkLoaded,
+                modifier = Modifier
+                    .size(coverSize)
+                    .graphicsLayer {
+                        val progress = entrance.value
+                        alpha = progress.coerceIn(0f, 1f)
+                        scaleX = 0.9f + 0.1f * progress
+                        scaleY = 0.9f + 0.1f * progress
+                    }
+                    .shadow(elevation = 20.dp, shape = coverShape),
+            )
+        }
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = playlist.displayName(),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (playlist.description.isNotBlank()) {
+                Text(
+                    text = playlist.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
-                AsyncImage(
-                    model = artworkRequest,
-                    contentDescription = stringResource(
-                        PlaylistsR.string.playlists_artwork_content_description,
-                        playlist.displayName(),
-                    ),
-                    modifier = Modifier
-                        .size(artworkSize)
-                        .clip(RoundedCornerShape(24.dp)),
-                    placeholder = coverPlaceholder,
-                    error = coverPlaceholder,
-                    fallback = coverPlaceholder,
-                    onSuccess = { state -> onArtworkLoaded(state.result.image.toBitmap()) },
-                    contentScale = ContentScale.Crop,
-                )
-            }
-            Box(modifier = Modifier.align(Alignment.TopEnd)) {
-                IconButton(onClick = onOptionsClick) {
-                    Icon(
-                        painterResource(R.drawable.ic_options),
-                        contentDescription = stringResource(
-                            PlaylistsR.string.playlist_detail_options_content_description,
-                        ),
-                    )
-                }
-                optionsMenu()
             }
         }
 
-        Text(
-            playlist.displayName(),
-            style = MaterialTheme.typography.headlineSmall,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (playlist.description.isNotBlank()) {
-            Text(
-                playlist.description,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        PlaylistMetaPills(tracks = tracks)
 
         if (customOrdering) {
             Row(
@@ -154,7 +180,32 @@ internal fun PlaylistHeader(
                 onPlay = onPlay,
                 onPlayShuffled = onPlayShuffled,
                 onTogglePlayback = onTogglePlayback,
+                onAddTracksClick = onAddTracksClick,
+                onOptionsClick = onOptionsClick,
+                optionsMenu = optionsMenu,
             )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PlaylistMetaPills(tracks: List<Track>) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        MetaPill(
+            pluralStringResource(
+                PlaylistsR.plurals.playlists_track_count,
+                tracks.size,
+                tracks.size,
+            ),
+        )
+        val durationMillis = tracks.sumOf(Track::durationMillis)
+        if (durationMillis > 0) {
+            MetaPill(formatPlaylistTotalDuration(durationMillis))
         }
     }
 }
@@ -167,6 +218,9 @@ private fun PlaylistPlaybackActions(
     onPlay: (Track, List<Track>) -> Unit,
     onPlayShuffled: (List<Track>) -> Unit,
     onTogglePlayback: () -> Unit,
+    onAddTracksClick: () -> Unit,
+    onOptionsClick: () -> Unit,
+    optionsMenu: @Composable () -> Unit,
 ) {
     val source = playbackState.queueSource
     val isThisPlaylistActive = source is PlaybackQueueSource.Playlist &&
@@ -177,15 +231,9 @@ private fun PlaylistPlaybackActions(
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            playlistSummaryLabel(tracks),
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         FilledTonalIconButton(
             onClick = { onPlayShuffled(tracks) },
             enabled = tracks.isNotEmpty(),
@@ -199,7 +247,7 @@ private fun PlaylistPlaybackActions(
                 modifier = Modifier.size(24.dp),
             )
         }
-        FilledIconButton(
+        Button(
             onClick = {
                 if (isThisPlaylistActive) {
                     onTogglePlayback()
@@ -208,22 +256,98 @@ private fun PlaylistPlaybackActions(
                 }
             },
             enabled = tracks.isNotEmpty(),
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier
+                .weight(1f)
+                .height(56.dp),
         ) {
             Icon(
                 painter = painterResource(
-                    if (isPlayingThis) R.drawable.ic_pause else R.drawable.ic_play,
+                    if (isPlayingThis) R.drawable.ic_pause_fill else R.drawable.ic_play_fill,
                 ),
-                contentDescription = stringResource(
-                    if (isPlayingThis) {
-                        PlaylistsR.string.playlist_detail_pause_content_description
-                    } else {
-                        PlaylistsR.string.playlist_detail_play_content_description
-                    },
+                contentDescription = null,
+                modifier = Modifier.size(22.dp),
+            )
+            Text(
+                text = stringResource(
+                    if (isPlayingThis) R.string.ds_action_pause else R.string.ds_action_play,
                 ),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(start = 8.dp),
+            )
+        }
+        FilledTonalIconButton(
+            onClick = onAddTracksClick,
+            modifier = Modifier.size(48.dp),
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_add),
+                contentDescription = stringResource(PlaylistsR.string.playlist_detail_add_tracks),
                 modifier = Modifier.size(24.dp),
             )
         }
+        Box {
+            IconButton(onClick = onOptionsClick) {
+                Icon(
+                    painterResource(R.drawable.ic_options),
+                    contentDescription = stringResource(
+                        PlaylistsR.string.playlist_detail_options_content_description,
+                    ),
+                )
+            }
+            optionsMenu()
+        }
+    }
+}
+
+/** Marcador de posición del encabezado mientras carga la playlist. */
+@Composable
+internal fun PlaylistDetailSkeleton(
+    topPadding: Dp,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "playlistDetailSkeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+        label = "playlistDetailSkeletonAlpha",
+    )
+    val block = MaterialTheme.colorScheme.surfaceContainerHigh
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp, top = topPadding + 12.dp)
+            .graphicsLayer { this.alpha = alpha },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        Box(
+            Modifier
+                .size(200.dp)
+                .clip(CatlyticsCorners.XLarge)
+                .background(block),
+        )
+        Box(
+            Modifier
+                .width(180.dp)
+                .height(24.dp)
+                .clip(CircleShape)
+                .background(block),
+        )
+        Box(
+            Modifier
+                .width(120.dp)
+                .height(16.dp)
+                .clip(CircleShape)
+                .background(block),
+        )
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .clip(CircleShape)
+                .background(block),
+        )
     }
 }
 

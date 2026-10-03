@@ -29,6 +29,33 @@ class PlaylistUseCasesTest {
     }
 
     @Test
+    fun `restore playlist tracks puts removed ids back in their previous position`() = runTest {
+        val repository = FakePlaylistRepository()
+        val playlist = repository.createPlaylist("Focus", listOf("one", "two", "three"))
+        RemoveTrackFromPlaylistUseCase(repository)(playlist.id, listOf("one", "three"))
+
+        RestorePlaylistTracksUseCase(repository)(playlist.id, listOf("one", "two", "three"))
+
+        assertEquals(
+            listOf("one", "two", "three"),
+            repository.observePlaylists().first().first { it.id == playlist.id }.trackIds,
+        )
+    }
+
+    @Test
+    fun `restore playlist tracks with nothing to restore leaves the playlist untouched`() = runTest {
+        val repository = FakePlaylistRepository()
+        val playlist = repository.createPlaylist("Focus", listOf("one"))
+
+        RestorePlaylistTracksUseCase(repository)(playlist.id, emptyList())
+
+        assertEquals(
+            listOf("one"),
+            repository.observePlaylists().first().first { it.id == playlist.id }.trackIds,
+        )
+    }
+
+    @Test
     fun `add tracks to liked skips ids already present`() = runTest {
         val repository = FakePlaylistRepository()
         repository.addTracks(LIKED_PLAYLIST_ID, listOf("track-1"))

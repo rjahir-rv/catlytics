@@ -20,15 +20,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +42,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -51,17 +56,22 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.ArtworkGradientColors
+import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.core.designsystem.R as DsR
+import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,20 +92,20 @@ internal fun PlaylistDetailScreen(
     onDelete: () -> Unit,
     onExportM3u: () -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
         PlaylistDetailUiState.Loading -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
+            PlaylistDetailSkeleton(topPadding = scaffoldContentPadding.calculateTopPadding())
             return
         }
         PlaylistDetailUiState.NotFound -> {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.playlist_detail_not_found))
-            }
+            CatlyticsEmptyState(
+                message = stringResource(R.string.playlist_detail_not_found),
+                messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             return
         }
         is PlaylistDetailUiState.Success -> Unit
@@ -161,8 +171,27 @@ internal fun PlaylistDetailScreen(
             .allowHardware(false)
             .build()
     }
+    // Sin portada propia el fondo toma el color de identidad de la playlist (el mismo de su
+    // portada generada); con portada se espera a extraer la paleta de la imagen.
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.surface.luminance() < 0.5f
+    val surface = colorScheme.surface
+    val identityGradient = remember(playlist.id, playlist.name, isDark, surface) {
+        val base = playlistFallbackGradient(
+            isLiked = playlist.id == LIKED_PLAYLIST_ID,
+            seed = playlist.name,
+            isDark = isDark,
+            surface = surface,
+        )
+        ArtworkGradientColors(
+            start = lerp(base.start, surface, IDENTITY_SURFACE_BLEND),
+            center = lerp(base.center, surface, IDENTITY_SURFACE_BLEND),
+            end = surface,
+        )
+    }
+    val noArtworkGradient = if (playlist.artworkUri != null) fallbackGradient else identityGradient
     var artworkBitmap by remember(playlist.artworkUri) { mutableStateOf<Bitmap?>(null) }
-    var gradientColors by remember { mutableStateOf(fallbackGradient) }
+    var gradientColors by remember { mutableStateOf(noArtworkGradient) }
     val animatedGradientColors = animateArtworkGradientColors(
         target = gradientColors,
         labelPrefix = "PlaylistDetailGradient",
@@ -171,11 +200,17 @@ internal fun PlaylistDetailScreen(
     LaunchedEffect(animatedGradientColors.start) {
         onTopBarColorChange(animatedGradientColors.start)
     }
-    LaunchedEffect(playlist.artworkUri, artworkBitmap, fallbackGradient) {
+    LaunchedEffect(playlist.artworkUri, artworkBitmap, fallbackGradient, noArtworkGradient) {
         gradientColors = artworkBitmap?.extractArtworkGradientColors(
             fallback = fallbackGradient,
             surfaceBlend = PLAYLIST_ARTWORK_SURFACE_BLEND,
-        ) ?: fallbackGradient
+        ) ?: noArtworkGradient
+    }
+    // La entrada escalonada de las filas solo ocurre la primera vez que se abre la playlist.
+    var entranceDone by rememberSaveable(playlist.id) { mutableStateOf(false) }
+    LaunchedEffect(playlist.id) {
+        delay(ENTRANCE_SETTLE_MILLIS)
+        entranceDone = true
     }
     LaunchedEffect(playlist.name, playlist.description, playlist.artworkUri) {
         if (!showEditSheet) {
@@ -249,6 +284,7 @@ internal fun PlaylistDetailScreen(
                             onPlay = onPlay,
                             onPlayShuffled = onPlayShuffled,
                             onTogglePlayback = onTogglePlayback,
+                            onAddTracksClick = { showAddTracksSheet = true },
                             onOptionsClick = { optionsExpanded = true },
                             optionsMenu = {
                                 PlaylistOptionsMenu(
@@ -285,18 +321,45 @@ internal fun PlaylistDetailScreen(
 
                 if (content.tracks.isEmpty()) {
                     item(key = "empty") {
-                        PlaylistMessage(stringResource(R.string.playlist_detail_empty))
+                        CatlyticsEmptyState(
+                            message = stringResource(R.string.playlist_detail_empty),
+                            mascotSize = 112.dp,
+                            fillMaxSize = false,
+                            modifier = Modifier.padding(vertical = 16.dp),
+                            action = {
+                                Button(onClick = { showAddTracksSheet = true }) {
+                                    Icon(
+                                        painter = painterResource(DsR.drawable.ic_add),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp),
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.playlist_detail_add_tracks),
+                                        modifier = Modifier.padding(start = 8.dp),
+                                    )
+                                }
+                            },
+                        )
                     }
                 } else if (displayedTracks.isEmpty()) {
                     item(key = "no-results") {
-                        PlaylistMessage(
-                            text = stringResource(R.string.playlist_detail_no_search_results),
-                            secondary = true,
+                        CatlyticsEmptyState(
+                            message = stringResource(R.string.playlist_detail_no_search_results),
+                            messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            mascotSize = 120.dp,
+                            fillMaxSize = false,
+                            modifier = Modifier.padding(vertical = 16.dp),
                         )
                     }
                 } else {
-                    items(displayedTracks, key = Track::id) { track ->
+                    itemsIndexed(displayedTracks, key = { _, track -> track.id }) { index, track ->
                         PlaylistTrackRow(
+                            modifier = Modifier
+                                .animateItem()
+                                .staggeredEntrance(
+                                    index = index,
+                                    animate = !entranceDone && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                                ),
                             track = track,
                             customOrdering = customOrdering,
                             isCurrent = track.id == playbackState.currentTrack?.id,
@@ -345,6 +408,13 @@ internal fun PlaylistDetailScreen(
                         ),
                 )
             }
+
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = maxOf(bottomPadding(), imeBottom) + 8.dp),
+            )
         }
         }
     }
@@ -426,27 +496,6 @@ internal fun PlaylistDetailScreen(
 }
 
 @Composable
-private fun PlaylistMessage(text: String, secondary: Boolean = false) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp)
-            .padding(horizontal = 20.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text,
-            style = if (secondary) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
-            color = if (secondary) {
-                MaterialTheme.colorScheme.onSurfaceVariant
-            } else {
-                MaterialTheme.colorScheme.onSurface
-            },
-        )
-    }
-}
-
-@Composable
 private fun PlaylistDetailOverlays(
     playlistName: String,
     showOrderSheet: Boolean,
@@ -490,24 +539,11 @@ private fun PlaylistDetailOverlays(
         )
     }
     if (showDeleteDialog) {
-        AlertDialog(
-            onDismissRequest = onDismissDelete,
-            title = { Text(stringResource(R.string.playlists_delete_title, playlistName)) },
-            text = {
-                Text(
-                    stringResource(R.string.playlist_detail_delete_message),
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = onDelete) {
-                    Text(stringResource(R.string.playlists_action_delete))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismissDelete) {
-                    Text(stringResource(R.string.playlists_action_cancel))
-                }
-            },
+        DeletePlaylistDialog(
+            playlistName = playlistName,
+            message = stringResource(R.string.playlist_detail_delete_message),
+            onDismiss = onDismissDelete,
+            onConfirm = onDelete,
         )
     }
 }
@@ -518,3 +554,6 @@ internal fun shouldHidePlaylistHeader(
 ): Boolean = searchFocused || searchQuery.isNotBlank()
 
 private const val PLAYLIST_ARTWORK_SURFACE_BLEND = 0.32f
+private const val IDENTITY_SURFACE_BLEND = 0.3f
+private const val ENTRANCE_SETTLE_MILLIS = 1_200L
+private const val ENTRANCE_MAX_STAGGERED_ITEMS = 12

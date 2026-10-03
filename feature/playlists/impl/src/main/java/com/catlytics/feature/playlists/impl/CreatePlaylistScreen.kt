@@ -88,6 +88,7 @@ import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
+import com.catlytics.core.designsystem.component.nameSeededGradient
 import com.catlytics.core.model.Playlist
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
@@ -472,25 +473,4 @@ private fun rememberCreatePlaylistGradient(
         ?.takeIf { (uri, _) -> uri == artworkUri }
         ?.second
         ?: nameGradient
-}
-
-internal fun nameSeededGradient(
-    seed: String,
-    isDark: Boolean,
-    surface: Color,
-): ArtworkGradientColors {
-    val hue = ((seed.trim().lowercase().hashCode() % 360) + 360) % 360
-    return if (isDark) {
-        ArtworkGradientColors(
-            start = Color.hsl(hue.toFloat(), 0.55f, 0.40f),
-            center = Color.hsl(((hue + 28) % 360).toFloat(), 0.45f, 0.22f),
-            end = surface,
-        )
-    } else {
-        ArtworkGradientColors(
-            start = Color.hsl(hue.toFloat(), 0.65f, 0.74f),
-            center = Color.hsl(((hue + 28) % 360).toFloat(), 0.55f, 0.87f),
-            end = surface,
-        )
-    }
 }

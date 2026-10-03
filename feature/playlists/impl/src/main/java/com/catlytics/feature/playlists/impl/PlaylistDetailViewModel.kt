@@ -14,6 +14,7 @@ import com.catlytics.core.domain.usecase.playlist.ExportPlaylistToM3uUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ReorderPlaylistTracksUseCase
+import com.catlytics.core.domain.usecase.playlist.RestorePlaylistTracksUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
 import com.catlytics.core.domain.usecase.playlist.UpdatePlaylistDetailsUseCase
 import com.catlytics.core.model.PlaybackQueueSource
@@ -43,6 +44,13 @@ internal sealed interface PlaylistDetailUiState {
 
 internal sealed interface PlaylistDetailEffect {
     data class Message(val text: UiText) : PlaylistDetailEffect
+
+    /** [previousTrackIds] es el orden anterior completo, para poder deshacer el borrado. */
+    data class TracksRemoved(
+        val text: UiText,
+        val previousTrackIds: List<String>,
+    ) : PlaylistDetailEffect
+
     data object Deleted : PlaylistDetailEffect
 }
 
@@ -59,6 +67,7 @@ internal class PlaylistDetailViewModel @Inject constructor(
     private val setPlaylistCover: SetPlaylistCoverUseCase,
     private val deletePlaylist: DeletePlaylistUseCase,
     private val reorderPlaylistTracks: ReorderPlaylistTracksUseCase,
+    private val restorePlaylistTracks: RestorePlaylistTracksUseCase,
     observeLibrary: ObserveLibraryUseCase,
     private val addToPlaylist: AddToPlaylistUseCase,
     private val exportPlaylistToM3u: ExportPlaylistToM3uUseCase,
@@ -99,13 +108,20 @@ internal class PlaylistDetailViewModel @Inject constructor(
 
     fun remove(trackIds: List<String>) = viewModelScope.launch {
         val id = playlistId.value ?: return@launch
+        val previousTrackIds = (uiState.value as? PlaylistDetailUiState.Success)
+            ?.content?.playlist?.trackIds.orEmpty()
         val removed = removeTrack(id, trackIds)
+        if (removed == 0) return@launch
         _effects.emit(
-            PlaylistDetailEffect.Message(
-                UiText.Plural(R.plurals.playlist_detail_tracks_removed, removed),
+            PlaylistDetailEffect.TracksRemoved(
+                text = UiText.Plural(R.plurals.playlist_detail_tracks_removed, removed),
+                previousTrackIds = previousTrackIds,
             ),
         )
     }
+
+    fun undoRemove(previousTrackIds: List<String>) =
+        launchOperation { id -> restorePlaylistTracks(id, previousTrackIds) }
 
     fun play(track: Track, queue: List<Track>) = viewModelScope.launch {
         val source = playlistId.value

@@ -1,31 +1,40 @@
 package com.catlytics.feature.playlists.impl
 
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
@@ -48,10 +57,16 @@ internal fun PlaylistTrackRow(
     selected: Boolean = false,
     selectionActive: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
     val moveThresholdPx = with(density) { 48.dp.toPx() }
     var dragDistance by remember(track.id) { mutableFloatStateOf(0f) }
+    var dragging by remember(track.id) { mutableStateOf(false) }
+    val dragScale by animateFloatAsState(if (dragging) 1.03f else 1f, label = "trackDragScale")
+    val dragElevation by animateDpAsState(if (dragging) 10.dp else 0.dp, label = "trackDragElevation")
+    val dragShape = CatlyticsCorners.Small
+    val dragSurface = MaterialTheme.colorScheme.surfaceContainerHigh
 
     CatlyticsTrackRow(
         title = track.title,
@@ -82,8 +97,15 @@ internal fun PlaylistTrackRow(
                         .padding(12.dp)
                         .pointerInput(track.id) {
                             detectDragGesturesAfterLongPress(
-                                onDragEnd = { dragDistance = 0f },
-                                onDragCancel = { dragDistance = 0f },
+                                onDragStart = { dragging = true },
+                                onDragEnd = {
+                                    dragDistance = 0f
+                                    dragging = false
+                                },
+                                onDragCancel = {
+                                    dragDistance = 0f
+                                    dragging = false
+                                },
                             ) { change, dragAmount ->
                                 change.consume()
                                 dragDistance += dragAmount.y
@@ -106,7 +128,17 @@ internal fun PlaylistTrackRow(
                 }
             }
         },
-        modifier = Modifier.padding(start = 20.dp, end = 12.dp),
+        modifier = modifier
+            .zIndex(if (dragging) 1f else 0f)
+            .graphicsLayer {
+                scaleX = dragScale
+                scaleY = dragScale
+                shadowElevation = dragElevation.toPx()
+                shape = dragShape
+                clip = false
+            }
+            .background(if (dragging) dragSurface else Color.Transparent, dragShape)
+            .padding(start = 20.dp, end = 12.dp),
     )
 }
 
@@ -117,7 +149,8 @@ internal fun PlaylistTrackSearchBar(
     onFocusChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OutlinedTextField(
+    val container = MaterialTheme.colorScheme.surfaceContainerHigh
+    TextField(
         value = query,
         onValueChange = onQueryChange,
         modifier = modifier
@@ -138,7 +171,15 @@ internal fun PlaylistTrackSearchBar(
             }
         },
         singleLine = true,
-        shape = RoundedCornerShape(16.dp),
+        shape = CircleShape,
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = container,
+            unfocusedContainerColor = container,
+            disabledContainerColor = container,
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+        ),
     )
 }
 
@@ -193,17 +234,22 @@ internal fun Playlist.displayName(): String =
     }
 
 @Composable
-internal fun playlistSummaryLabel(tracks: List<Track>): String {
+internal fun playlistSummaryLabel(tracks: List<Track>): String =
+    playlistSummaryLabel(tracks.size, tracks.sumOf(Track::durationMillis))
+
+/** "12 canciones · 48 min"; con la playlist vacía solo el conteo. */
+@Composable
+internal fun playlistSummaryLabel(trackCount: Int, totalDurationMillis: Long): String {
     val countLabel = pluralStringResource(
         PlaylistsR.plurals.playlists_track_count,
-        tracks.size,
-        tracks.size,
+        trackCount,
+        trackCount,
     )
-    if (tracks.isEmpty()) return countLabel
+    if (trackCount == 0) return countLabel
     return stringResource(
         PlaylistsR.string.playlist_detail_summary,
         countLabel,
-        formatPlaylistTotalDuration(tracks.sumOf(Track::durationMillis)),
+        formatPlaylistTotalDuration(totalDurationMillis),
     )
 }
 

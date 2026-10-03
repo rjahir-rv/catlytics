@@ -194,8 +194,11 @@ private fun TrackArtwork(
                 modifier = Modifier.matchParentSize(),
             )
             if (isPlaying) {
-                PlayingBarsOverlay(
-                    trackTitle = title,
+                CatlyticsPlayingBarsOverlay(
+                    contentDescription = stringResource(
+                        R.string.ds_track_row_playing_content_description,
+                        title,
+                    ),
                     modifier = Modifier.matchParentSize(),
                 )
             }
@@ -237,16 +240,13 @@ fun TrackSelectionMark(
     }
 }
 
+/** Velo oscuro con las barras animadas de "sonando"; se coloca encima de una portada. */
 @Composable
-private fun PlayingBarsOverlay(
-    trackTitle: String,
+fun CatlyticsPlayingBarsOverlay(
+    contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "playing bars")
-    val playingContentDescription = stringResource(
-        R.string.ds_track_row_playing_content_description,
-        trackTitle,
-    )
     val barHeights = listOf(0, 150, 300).mapIndexed { index, delayMillis ->
         transition.animateFloat(
             initialValue = if (index == 1) 0.35f else 0.75f,
@@ -261,7 +261,7 @@ private fun PlayingBarsOverlay(
     Box(
         modifier = modifier
             .background(Color.Black.copy(alpha = 0.38f))
-            .semantics { contentDescription = playingContentDescription },
+            .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
         Row(

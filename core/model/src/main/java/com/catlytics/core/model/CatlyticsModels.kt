@@ -71,6 +71,12 @@ data class Track(
     val albumTitle: String? = null,
 )
 
+fun List<Track>.distinctArtworkUris(limit: Int): List<String> =
+    filter { it.artworkUri != null }
+        .distinctBy { it.albumId ?: it.artworkUri }
+        .mapNotNull { it.artworkUri }
+        .take(limit)
+
 data class LibraryFolder(
     val id: String,
     val name: String,
@@ -147,6 +153,18 @@ data class PlaylistContent(
     val tracks: List<Track>,
 )
 
+/**
+ * Datos derivados de una playlist para la lista: se calculan a partir de las pistas de la
+ * biblioteca y no se persisten. [trackCount] cuenta solo pistas que existen en la biblioteca
+ * (igual que el detalle). [coverArtworkUris] son hasta 4 artworks distintos para el mosaico.
+ */
+data class PlaylistSummary(
+    val playlist: Playlist,
+    val trackCount: Int,
+    val totalDurationMillis: Long,
+    val coverArtworkUris: List<String> = emptyList(),
+)
+
 sealed interface PlaylistSource {
     data class TrackSource(val trackId: String) : PlaylistSource
     data class AlbumSource(val albumId: String) : PlaylistSource
@@ -161,10 +179,6 @@ sealed interface PlaylistSource {
 
 enum class PlaylistSourceKind { Track, Album, Artist, Folder, Collection }
 
-/**
- * [title] es null cuando el origen no se pudo resolver; la UI usa entonces un texto por [kind].
- * [albumCount] (solo artistas) lo formatea la UI como plural; [subtitle] es texto ya resuelto (datos).
- */
 data class PlaylistSourcePreview(
     val title: String?,
     val kind: PlaylistSourceKind,
@@ -308,18 +322,12 @@ data class ListeningStreak(
     val lastActiveDayEpochDay: Long?,
 )
 
-/** Tipo de narrativa de un periodo de escucha; determina el copy que compone la UI. */
 enum class ListeningNarrativeKind {
     TimeWithArtist,
     FavoriteTrack,
     Summary,
 }
 
-/**
- * Spotify-style narrative summary for a listening period.
- * [eligible] is true when the period has at least one hour of listening.
- * [kind] indica qué narrativa mostrar; la UI compone el texto con recursos.
- */
 data class ListeningNarrative(
     val eligible: Boolean,
     val totalListenedMillis: Long,
@@ -338,10 +346,6 @@ data class WeeklyStats(
     val playCount: Int,
 )
 
-/**
- * Listening total for a day bucket within a period.
- * [dayIndex] is 1-based: Mon=1..Sun=7 for weeks, day-of-month for months.
- */
 data class DailyListeningStat(
     val dayIndex: Int,
     val totalListenedMillis: Long,
@@ -360,7 +364,6 @@ data class PlaybackEvent(
     val timestamp: Long,
 )
 
-/** Local summary of stored listening events for backup UI. */
 data class StatisticsBackupSummary(
     val eventCount: Long,
     val firstEventMillis: Long?,
@@ -395,8 +398,6 @@ enum class StatisticsImportMode {
     /** Delete all local events, then insert the file contents. */
     Replace,
 }
-
-/** Local summary of stored playlists for backup UI. */
 data class PlaylistBackupSummary(
     val playlistCount: Int,
     val totalTracks: Int,

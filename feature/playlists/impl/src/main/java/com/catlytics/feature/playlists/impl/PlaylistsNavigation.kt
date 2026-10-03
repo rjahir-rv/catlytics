@@ -38,12 +38,14 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
 ) {
     entry<PlaylistsRoute> {
         val viewModel: PlaylistsViewModel = hiltViewModel()
-        val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+        val activePlaylist by viewModel.activePlaylist.collectAsStateWithLifecycle()
         val viewMode by viewModel.viewMode.collectAsStateWithLifecycle()
         val sortDirection by viewModel.sortDirection.collectAsStateWithLifecycle()
         val likedPlaylistName = stringResource(R.string.playlist_liked_name)
         PlaylistsScreen(
-            playlists = playlists,
+            uiState = uiState,
+            activePlaylist = activePlaylist,
             viewMode = viewMode,
             onViewModeChange = viewModel::setViewMode,
             onPlaylistSelected = { playlist ->
@@ -62,6 +64,9 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             onRename = viewModel::rename,
             onDelete = viewModel::delete,
             onSetCover = viewModel::setCover,
+            onPlay = viewModel::play,
+            onPlayShuffled = viewModel::playShuffled,
+            onTogglePlayback = viewModel::togglePlayback,
             searchQuery = searchQuery(),
             sortDirection = sortDirection,
             onSortDirectionChange = viewModel::setSortDirection,

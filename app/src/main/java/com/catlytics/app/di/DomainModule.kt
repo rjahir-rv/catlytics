@@ -53,11 +53,13 @@ import com.catlytics.core.domain.usecase.playlist.CreatePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.DeletePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ObserveIsTrackLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistSummariesUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistViewModeUseCase
 import com.catlytics.core.domain.usecase.playlist.AddTracksToLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.RemoveTracksFromLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ReorderPlaylistTracksUseCase
+import com.catlytics.core.domain.usecase.playlist.RestorePlaylistTracksUseCase
 import com.catlytics.core.domain.usecase.playlist.RenamePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
@@ -226,6 +228,17 @@ object DomainModule {
         playlistRepository: PlaylistRepository,
         libraryRepository: LibraryRepository,
     ) = ObservePlaylistContentUseCase(playlistRepository, libraryRepository)
+
+    @Provides
+    fun provideRestorePlaylistTracksUseCase(
+        repository: PlaylistRepository,
+    ) = RestorePlaylistTracksUseCase(repository)
+
+    @Provides
+    fun provideObservePlaylistSummariesUseCase(
+        playlistRepository: PlaylistRepository,
+        libraryRepository: LibraryRepository,
+    ) = ObservePlaylistSummariesUseCase(playlistRepository, libraryRepository)
 
     @Provides
     fun provideCreatePlaylistUseCase(repository: PlaylistRepository) = CreatePlaylistUseCase(repository)

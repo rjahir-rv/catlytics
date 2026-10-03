@@ -8,8 +8,14 @@ import com.catlytics.core.model.PlaylistContent
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.PlaylistSourceKind
 import com.catlytics.core.model.PlaylistSourcePreview
+import com.catlytics.core.model.PlaylistSummary
+import com.catlytics.core.model.Track
+import com.catlytics.core.model.distinctArtworkUris
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
@@ -28,6 +34,33 @@ class ObservePlaylistContentUseCase(
             tracks = playlist.trackIds.mapNotNull(tracksById::get),
         )
     }
+}
+
+const val PLAYLIST_COVER_MOSAIC_SIZE = 4
+
+class ObservePlaylistSummariesUseCase(
+    private val playlistRepository: PlaylistRepository,
+    private val libraryRepository: LibraryRepository,
+) {
+    operator fun invoke(): Flow<List<PlaylistSummary>> = combine(
+        playlistRepository.observePlaylists(),
+        libraryRepository.observeAllTracks(),
+    ) { playlists, tracks ->
+        val tracksById = tracks.associateBy { it.id }
+        playlists.map { playlist -> playlist.toSummary(tracksById) }
+    }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+}
+
+internal fun Playlist.toSummary(tracksById: Map<String, Track>): PlaylistSummary {
+    val resolved = trackIds.mapNotNull(tracksById::get)
+    return PlaylistSummary(
+        playlist = this,
+        trackCount = resolved.size,
+        totalDurationMillis = resolved.sumOf { it.durationMillis },
+        coverArtworkUris = resolved.distinctArtworkUris(PLAYLIST_COVER_MOSAIC_SIZE),
+    )
 }
 
 class CreatePlaylistUseCase(private val repository: PlaylistRepository) {
@@ -204,6 +237,15 @@ class RemoveTrackFromPlaylistUseCase(private val repository: PlaylistRepository)
 
     suspend operator fun invoke(playlistId: String, trackIds: Collection<String>): Int =
         repository.removeTracks(playlistId, trackIds)
+}
+
+class RestorePlaylistTracksUseCase(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(playlistId: String, previousTrackIds: List<String>) {
+        val ordered = previousTrackIds.distinct()
+        if (ordered.isEmpty()) return
+        repository.addTracks(playlistId, ordered)
+        repository.reorderTracks(playlistId, ordered)
+    }
 }
 
 class AddTracksToLikedUseCase(private val repository: PlaylistRepository) {
