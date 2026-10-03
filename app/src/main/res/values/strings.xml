@@ -62,6 +62,12 @@
         <item quantity="one">A continuación · 1 canción</item>
         <item quantity="other">A continuación · %1$d canciones</item>
     </plurals>
+    <plurals name="app_queue_history_count">
+        <item quantity="one">Historial · 1 canción</item>
+        <item quantity="other">Historial · %1$d canciones</item>
+    </plurals>
+    <string name="app_queue_history_show">Mostrar historial</string>
+    <string name="app_queue_history_hide">Ocultar historial</string>
     <string name="app_queue_shuffle">Aleatorio</string>
     <string name="app_queue_repeat">Repetir</string>
     <string name="app_queue_repeat_one">Repetir canción</string>

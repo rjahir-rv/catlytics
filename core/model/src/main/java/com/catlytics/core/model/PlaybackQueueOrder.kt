@@ -20,3 +20,19 @@ fun List<Track>.reorderedForShuffle(
     }
     return listOf(start) + shuffledRemaining
 }
+
+/**
+ * Picks the unshuffled order to keep for a restored queue. The persisted original order is used
+ * only while shuffle is enabled and it still describes the same tracks as the restored queue;
+ * otherwise the restored queue itself is the original order.
+ */
+fun restoredOriginalQueue(
+    restoredQueue: List<Track>,
+    persistedOriginalQueue: List<Track>,
+    isShuffleEnabled: Boolean,
+): List<Track> {
+    if (!isShuffleEnabled || persistedOriginalQueue.isEmpty()) return restoredQueue
+    val restoredIds = restoredQueue.map(Track::id).toSet()
+    val originalIds = persistedOriginalQueue.map(Track::id).toSet()
+    return if (restoredIds == originalIds) persistedOriginalQueue else restoredQueue
+}

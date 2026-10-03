@@ -75,7 +75,6 @@ internal fun NowPlayingArtwork(
     val dragOffset = remember { Animatable(0f) }
     var seekFeedback by remember { mutableStateOf<SeekFeedback?>(null) }
 
-    // Estilo Apple Music: la carátula se encoge ligeramente en pausa.
     val artworkScale by animateFloatAsState(
         targetValue = if (isPlaying || !enabled) 1f else PAUSED_ARTWORK_SCALE,
         animationSpec = spring(
@@ -242,11 +241,6 @@ private data class SeekFeedback(val forward: Boolean, val sequence: Int)
 
 internal enum class ArtworkSwipe { Previous, Next, None }
 
-/**
- * Decide si un arrastre horizontal sobre la carátula cambia de pista: basta con superar
- * [SWIPE_DISTANCE_FRACTION] del ancho, o un gesto rápido en la misma dirección.
- * Arrastrar hacia la derecha (offset positivo) va a la anterior; hacia la izquierda, a la siguiente.
- */
 internal fun swipeSkipDirection(
     offsetPx: Float,
     widthPx: Float,

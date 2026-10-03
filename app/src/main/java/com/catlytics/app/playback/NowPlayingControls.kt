@@ -260,7 +260,6 @@ private fun PlayPauseButton(
     val interactionSource = remember { MutableInteractionSource() }
     val isBuffering = status == PlaybackStatus.Buffering
     val showPauseIcon = status == PlaybackStatus.Playing || isBuffering
-    // Círculo en pausa/buffering; squircle mientras reproduce (forma expresiva de M3).
     val cornerRadius by animateDpAsState(
         targetValue = if (status == PlaybackStatus.Playing) {
             PLAY_BUTTON_PLAYING_CORNER
@@ -438,14 +437,9 @@ private fun SecondaryIconButton(
     }
 }
 
-/** Texto/ícono legible sobre un fondo [this] (acento de la carátula). */
 internal fun Color.readableContentColor(): Color =
     if (luminance() > 0.5f) Color.Black else Color.White
 
-/**
- * Siguiente pista de la fila. La fila ya refleja el orden de reproducción (incluso con mezcla),
- * así que basta con el índice siguiente; con "repetir todo" vuelve al inicio.
- */
 internal fun upNextTrack(
     queue: List<Track>,
     currentIndex: Int,

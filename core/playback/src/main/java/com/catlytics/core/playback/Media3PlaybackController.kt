@@ -18,6 +18,7 @@ import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.reorderedForShuffle
+import com.catlytics.core.model.restoredOriginalQueue
 import com.catlytics.core.playback.service.CatlyticsPlaybackService
 import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -376,7 +377,13 @@ class Media3PlaybackController @Inject constructor(
             .takeUnless { it < 0 }
             ?: snapshot.currentIndex.coerceIn(0, restoredQueue.lastIndex)
         queue = restoredQueue
-        originalQueue = restoredQueue
+        // Con shuffle activo, la cola guardada está mezclada: se recupera el orden original para
+        // que desactivar shuffle tras reabrir la app vuelva a ese orden.
+        originalQueue = restoredOriginalQueue(
+            restoredQueue = restoredQueue,
+            persistedOriginalQueue = snapshot.originalQueueTrackIds.mapNotNull(availableTracksById::get),
+            isShuffleEnabled = snapshot.isShuffleEnabled,
+        )
         manualQueue = emptyList()
         queueSource = snapshot.queueSource
 
@@ -516,6 +523,7 @@ class Media3PlaybackController @Inject constructor(
             positionMillis = positionMillis,
             isShuffleEnabled = isShuffleEnabled,
             repeatMode = repeatMode,
+            originalQueueTrackIds = if (isShuffleEnabled) originalQueue.map(Track::id) else emptyList(),
         )
     }
 
@@ -559,6 +567,9 @@ class Media3PlaybackController @Inject constructor(
 
     private suspend fun reconcileQueue(sourceQueue: List<Track>) {
         if (queue.isEmpty()) return
+        // La fuente no cambió (p. ej. la primera emisión tras reproducir o restaurar): reemplazar la
+        // cola volvería a mezclarla y perdería el orden aleatorio actual.
+        if (sourceQueue.map(Track::id) == originalQueue.map(Track::id)) return
         val currentTrackId = _playbackState.value.currentTrack?.id ?: queue.firstOrNull()?.id
         val currentTrack = currentTrackId?.let { id -> sourceQueue.firstOrNull { it.id == id } }
 

@@ -30,11 +30,34 @@ class DataStorePlaybackSessionRepositoryTest {
             positionMillis = 42_000L,
             isShuffleEnabled = true,
             repeatMode = PlaybackRepeatMode.All,
+            originalQueueTrackIds = listOf("track-1", "track-2", "track-3"),
         )
 
         repository.saveSession(snapshot)
 
         assertEquals(snapshot, repository.observeSession().first())
+    }
+
+    @Test
+    fun `saveSession without original order removes previously persisted original order`() = runTest {
+        val repository = repository(backgroundScope)
+        repository.saveSession(
+            PlaybackSessionSnapshot(
+                queueTrackIds = listOf("track-2", "track-1"),
+                currentTrackId = "track-2",
+                isShuffleEnabled = true,
+                originalQueueTrackIds = listOf("track-1", "track-2"),
+            ),
+        )
+
+        repository.saveSession(
+            PlaybackSessionSnapshot(
+                queueTrackIds = listOf("track-1", "track-2"),
+                currentTrackId = "track-2",
+            ),
+        )
+
+        assertEquals(emptyList<String>(), repository.observeSession().first()?.originalQueueTrackIds)
     }
 
     @Test

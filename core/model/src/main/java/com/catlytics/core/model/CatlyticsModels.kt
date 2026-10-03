@@ -127,6 +127,8 @@ data class PlaybackSessionSnapshot(
     val positionMillis: Long = 0L,
     val isShuffleEnabled: Boolean = false,
     val repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
+    /** Unshuffled queue order, kept only while shuffle is enabled so it can be restored later. */
+    val originalQueueTrackIds: List<String> = emptyList(),
 )
 
 data class Playlist(

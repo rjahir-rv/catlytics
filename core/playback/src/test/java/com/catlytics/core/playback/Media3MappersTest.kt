@@ -3,6 +3,7 @@ package com.catlytics.core.playback
 import androidx.media3.common.Player
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.PlaybackRepeatMode
+import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -11,6 +12,22 @@ import org.robolectric.RobolectricTestRunner
 
 @RunWith(RobolectricTestRunner::class)
 class Media3MappersTest {
+    @Test
+    fun `buffering while paused is reported as paused`() {
+        assertEquals(
+            PlaybackStatus.Paused,
+            playbackStatusOf(Player.STATE_BUFFERING, playWhenReady = false),
+        )
+    }
+
+    @Test
+    fun `buffering while about to play is reported as buffering`() {
+        assertEquals(
+            PlaybackStatus.Buffering,
+            playbackStatusOf(Player.STATE_BUFFERING, playWhenReady = true),
+        )
+    }
+
     @Test
     fun `toMediaItem maps track identity uri and metadata`() {
         val track = Track(

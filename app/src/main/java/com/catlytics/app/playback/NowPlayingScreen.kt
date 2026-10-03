@@ -243,8 +243,6 @@ fun NowPlayingScreen(
                 val horizontalPadding = if (useTwoColumns) 32.dp else 24.dp
                 val contentWidth = minOf(maxWidth, NOW_PLAYING_MAX_WIDTH) - horizontalPadding * 2
                 val contentHeight = maxHeight - CONTENT_VERTICAL_PADDING * 2
-                // La carátula se ajusta al alto disponible para que los controles quepan sin scroll;
-                // el scroll queda solo como respaldo en pantallas muy bajas.
                 val artworkSize = if (useTwoColumns) {
                     minOf((contentWidth - TWO_COLUMN_SPACING) / 2, contentHeight, 440.dp)
                 } else {
@@ -560,10 +558,6 @@ private fun LikeButton(
     }
 }
 
-/**
- * Deslizar hacia abajo para cerrar: consume el scroll sobrante hacia abajo (cuando el contenido
- * ya está arriba del todo) y cierra al soltar si se superó el umbral o la velocidad.
- */
 private class SwipeToDismissState(
     private val thresholdPx: Float,
     private val velocityThreshold: Float,
@@ -628,8 +622,6 @@ private val NOW_PLAYING_MAX_WIDTH = 1_040.dp
 private val TWO_COLUMN_SPACING = 40.dp
 private val CONTENT_VERTICAL_PADDING = 12.dp
 private val MIN_ARTWORK_SIZE = 160.dp
-
-/** Alto aproximado de info + progreso + controles + acciones, usado para dimensionar la carátula. */
 private val DETAILS_MIN_HEIGHT = 340.dp
 private val DISMISS_DISTANCE = 120.dp
 private val DISMISS_VELOCITY = 1_200.dp

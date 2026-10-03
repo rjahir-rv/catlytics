@@ -48,6 +48,9 @@ class DataStorePlaybackSessionRepository internal constructor(
     override suspend fun saveSession(snapshot: PlaybackSessionSnapshot) {
         dataStore.edit { preferences ->
             preferences[QUEUE_TRACK_IDS] = snapshot.queueTrackIds.joinToString(TRACK_ID_SEPARATOR)
+            snapshot.originalQueueTrackIds.takeIf { it.isNotEmpty() }?.let { trackIds ->
+                preferences[ORIGINAL_QUEUE_TRACK_IDS] = trackIds.joinToString(TRACK_ID_SEPARATOR)
+            } ?: preferences.remove(ORIGINAL_QUEUE_TRACK_IDS)
             snapshot.currentTrackId?.let { trackId ->
                 preferences[CURRENT_TRACK_ID] = trackId
             } ?: preferences.remove(CURRENT_TRACK_ID)
@@ -70,6 +73,7 @@ class DataStorePlaybackSessionRepository internal constructor(
     override suspend fun clearSession() {
         dataStore.edit { preferences ->
             preferences.remove(QUEUE_TRACK_IDS)
+            preferences.remove(ORIGINAL_QUEUE_TRACK_IDS)
             preferences.remove(CURRENT_TRACK_ID)
             preferences.remove(CURRENT_INDEX)
             preferences.remove(POSITION_MILLIS)
@@ -95,6 +99,10 @@ class DataStorePlaybackSessionRepository internal constructor(
             positionMillis = this[POSITION_MILLIS] ?: 0L,
             isShuffleEnabled = this[SHUFFLE_ENABLED] ?: false,
             repeatMode = this[REPEAT_MODE]?.toPlaybackRepeatMode() ?: PlaybackRepeatMode.Off,
+            originalQueueTrackIds = this[ORIGINAL_QUEUE_TRACK_IDS]
+                ?.split(TRACK_ID_SEPARATOR)
+                ?.filter { it.isNotBlank() }
+                ?: emptyList(),
         )
     }
 
@@ -120,6 +128,7 @@ class DataStorePlaybackSessionRepository internal constructor(
         const val QUEUE_SOURCE_TYPE_STATIC = "static"
         const val QUEUE_SOURCE_TYPE_PLAYLIST = "playlist"
         val QUEUE_TRACK_IDS = stringPreferencesKey("queue_track_ids")
+        val ORIGINAL_QUEUE_TRACK_IDS = stringPreferencesKey("original_queue_track_ids")
         val CURRENT_TRACK_ID = stringPreferencesKey("current_track_id")
         val QUEUE_SOURCE_TYPE = stringPreferencesKey("queue_source_type")
         val QUEUE_SOURCE_PLAYLIST_ID = stringPreferencesKey("queue_source_playlist_id")

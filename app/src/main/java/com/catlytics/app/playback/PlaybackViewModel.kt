@@ -85,7 +85,6 @@ class PlaybackViewModel @Inject constructor(
             replay = 1,
         )
 
-    /** Id y nombre de la playlist desde la que se reproduce la fila; null si no viene de una. */
     val queueSourcePlaylist: StateFlow<Pair<String, String>?> = combine(
         playbackState.map { it.queueSource }.distinctUntilChanged(),
         playlists,

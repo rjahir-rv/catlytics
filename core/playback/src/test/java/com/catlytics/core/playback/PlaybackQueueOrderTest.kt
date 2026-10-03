@@ -157,6 +157,22 @@ class PlaybackQueueOrderTest {
         assertEquals(single, single.reorderedForShuffle(single.first()))
         assertEquals(emptyList<Track>(), emptyList<Track>().reorderedForShuffle(track("one")))
     }
+
+    @Test
+    fun `moves an earlier queue item immediately after the current item`() {
+        assertEquals(
+            1,
+            nextQueueIndexAfterMove(currentIndex = 1, movedIndex = 0),
+        )
+    }
+
+    @Test
+    fun `moves a later queue item immediately after the current item`() {
+        assertEquals(
+            2,
+            nextQueueIndexAfterMove(currentIndex = 1, movedIndex = 3),
+        )
+    }
 }
 
 private fun track(id: String) = Track(
