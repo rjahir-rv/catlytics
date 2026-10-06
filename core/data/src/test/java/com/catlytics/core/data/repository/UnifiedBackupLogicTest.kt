@@ -1,7 +1,6 @@
 package com.catlytics.core.data.repository
 
 import android.content.Context
-import android.net.Uri
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
 import com.catlytics.core.data.local.InMemoryLocalDataSource
@@ -239,7 +238,7 @@ class UnifiedBackupLogicTest {
     private fun newBackupUri(): String {
         val file = temporaryFolder.newFile("unified_backup_${System.nanoTime()}.json")
         temporaryFiles += file
-        return Uri.fromFile(file).toString()
+        return file.toURI().toString()
     }
 
     private fun track(id: String, title: String, artist: String): TrackEntity =

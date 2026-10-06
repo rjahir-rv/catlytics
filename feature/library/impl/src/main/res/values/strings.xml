@@ -13,6 +13,7 @@
     <string name="library_permission_request">Permitir acceso a música</string>
     <string name="library_empty_message">No encontramos música en este dispositivo.</string>
     <string name="library_no_search_results">No encontramos álbumes ni artistas que coincidan con tu búsqueda.</string>
+    <string name="library_sort_current_content_description">Orden actual: %1$s. Cambiar orden</string>
 
     <!-- Biblioteca: carpetas -->
     <string name="library_folders_title">Carpetas musicales</string>
@@ -21,6 +22,16 @@
     <string name="library_action_add_to_playlist">Agregar a playlist</string>
     <string name="library_action_show_folder">Mostrar carpeta</string>
     <string name="library_action_hide_folder">Ocultar carpeta</string>
+    <string name="library_folder_hidden_badge">Oculta</string>
+    <string name="library_folders_summary">%1$s · %2$s</string>
+    <plurals name="library_folders_visible_count">
+        <item quantity="one">1 visible</item>
+        <item quantity="other">%1$d visibles</item>
+    </plurals>
+    <plurals name="library_folders_hidden_count">
+        <item quantity="one">1 oculta</item>
+        <item quantity="other">%1$d ocultas</item>
+    </plurals>
 
     <!-- Biblioteca: contenido compartido -->
     <plurals name="library_track_count">
@@ -77,4 +88,8 @@
     <string name="library_folder_not_found_message">Esta carpeta ya no está disponible.</string>
     <string name="library_folder_empty_message">Esta carpeta no contiene música.</string>
     <string name="library_folder_load_error">No se pudo cargar el contenido de la carpeta.</string>
+    <plurals name="library_subfolder_count">
+        <item quantity="one">1 subcarpeta</item>
+        <item quantity="other">%1$d subcarpetas</item>
+    </plurals>
 </resources>

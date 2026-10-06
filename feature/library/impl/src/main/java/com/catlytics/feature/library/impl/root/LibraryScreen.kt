@@ -1,52 +1,70 @@
 package com.catlytics.feature.library.impl.root
 
-import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
-import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
@@ -60,7 +78,9 @@ import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.filterAlbumsByQuery
 import com.catlytics.feature.library.impl.filterArtistsByQuery
 import com.catlytics.feature.library.impl.filterFoldersByQuery
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 internal fun LibraryScreen(
@@ -96,8 +116,15 @@ internal fun LibraryScreen(
 
     when (uiState) {
         LibraryUiState.Loading -> LoadingContent(modifier)
-        LibraryUiState.Empty -> EmptyContent(modifier)
-        is LibraryUiState.Error -> MessageContent(uiState.message.asString(), modifier)
+        LibraryUiState.Empty -> CatlyticsEmptyState(
+            message = stringResource(LibraryR.string.library_empty_message),
+            modifier = modifier,
+        )
+        is LibraryUiState.Error -> CatlyticsEmptyState(
+            message = uiState.message.asString(),
+            modifier = modifier,
+            messageColor = MaterialTheme.colorScheme.error,
+        )
         is LibraryUiState.Success -> {
             val filteredAlbums = remember(uiState.albums, searchQuery) {
                 uiState.albums.filterAlbumsByQuery(searchQuery)
@@ -114,7 +141,11 @@ internal fun LibraryScreen(
                 filteredArtists.isEmpty() &&
                 filteredFolders.isEmpty()
             ) {
-                NoSearchResultsContent(modifier)
+                CatlyticsEmptyState(
+                    message = stringResource(LibraryR.string.library_no_search_results),
+                    modifier = modifier,
+                    messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             } else {
                 LibraryContent(
                     albums = filteredAlbums,
@@ -144,7 +175,6 @@ internal fun LibraryScreen(
 }
 
 @Composable
-@OptIn(ExperimentalMaterial3Api::class)
 private fun LibraryContent(
     albums: List<Album>,
     artists: List<ArtistSummary>,
@@ -169,15 +199,25 @@ private fun LibraryContent(
 ) {
     val pagerState = rememberPagerState(pageCount = { LibrarySection.entries.size })
     val coroutineScope = rememberCoroutineScope()
+    val density = LocalDensity.current
 
-    val pageTopPadding = scaffoldContentPadding.calculateTopPadding() + 48.dp
-    val scaffoldTopPadding = scaffoldContentPadding.calculateTopPadding()
-    val currentPage = pagerState.currentPage
+    var entranceDone by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(ENTRANCE_SETTLE_MILLIS.milliseconds)
+        entranceDone = true
+    }
 
-    // El header (tabs + controles) se mueve con la MISMA señal del topbar
-    // (collapsedFraction). En reposo no se aplica NINGUNA transformación: es una
-    // columna estática y por construcción imposible de ocultar o atorar.
     var headerHeightPx by remember { mutableIntStateOf(0) }
+    val headerHeight = if (headerHeightPx > 0) {
+        with(density) { headerHeightPx.toDp() }
+    } else {
+        HeaderHeightEstimate
+    }
+    val scaffoldTopPadding = scaffoldContentPadding.calculateTopPadding()
+    val pageTopPadding = scaffoldTopPadding + headerHeight
+    val currentPage = pagerState.currentPage
+    val currentSection = LibrarySection.entries[currentPage]
+
     val headerAtTop by remember(currentPage, artistViewMode) {
         derivedStateOf {
             when (LibrarySection.entries[currentPage]) {
@@ -233,6 +273,7 @@ private fun LibraryContent(
                     onAddToPlaylist = { onAddToPlaylist(PlaylistSource.AlbumSource(it.id)) },
                     bottomPadding = bottomPadding,
                     topPadding = pageTopPadding,
+                    animateEntrance = !entranceDone,
                 )
                 LibrarySection.Artists -> LibraryArtistCollection(
                     artists = artists,
@@ -246,6 +287,7 @@ private fun LibraryContent(
                     },
                     bottomPadding = bottomPadding,
                     topPadding = pageTopPadding,
+                    animateEntrance = !entranceDone,
                 )
                 LibrarySection.Folders -> LibraryFolderList(
                     folders = folders,
@@ -256,6 +298,7 @@ private fun LibraryContent(
                     onAddToPlaylist = { onAddToPlaylist(PlaylistSource.FolderSource(it.id)) },
                     bottomPadding = bottomPadding,
                     topPadding = pageTopPadding,
+                    animateEntrance = !entranceDone,
                 )
             }
         }
@@ -266,7 +309,17 @@ private fun LibraryContent(
                 .fillMaxWidth()
                 .padding(top = scaffoldTopPadding),
         ) {
-            Column(
+            LibraryHeader(
+                currentSection = currentSection,
+                onSectionSelected = { section ->
+                    coroutineScope.launch {
+                        pagerState.animateScrollToPage(section.ordinal)
+                    }
+                },
+                sortDirection = sortDirection,
+                onSelectSort = ::selectSortDirection,
+                artistViewMode = artistViewMode,
+                onArtistViewModeChange = onArtistViewModeChange,
                 modifier = Modifier
                     .fillMaxWidth()
                     .onSizeChanged { headerHeightPx = it.height }
@@ -282,156 +335,215 @@ private fun LibraryContent(
                         }
                     )
                     .background(MaterialTheme.colorScheme.background),
-            ) {
-                SecondaryTabRow(
-                    selectedTabIndex = pagerState.currentPage,
-                    containerColor = MaterialTheme.colorScheme.background,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    divider = {},
-                    indicator = {
-                        TabRowDefaults.SecondaryIndicator(
-                            modifier = Modifier
-                                .tabIndicatorOffset(pagerState.currentPage)
-                                .padding(horizontal = 20.dp)
-                                .clip(MaterialTheme.shapes.extraLarge),
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    },
-                ) {
-                    LibrarySection.entries.forEachIndexed { index, section ->
-                        Tab(
-                            selected = index == pagerState.currentPage,
-                            onClick = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            },
-                            text = { Text(stringResource(section.labelRes)) },
-                        )
-                    }
-                }
-                when (LibrarySection.entries[currentPage]) {
-                    LibrarySection.Albums, LibrarySection.Folders -> LibraryHeaderSortRow(
-                        onSelectSort = ::selectSortDirection,
-                    )
-                    LibrarySection.Artists -> LibraryArtistHeaderControls(
-                        viewMode = artistViewMode,
-                        onViewModeChange = onArtistViewModeChange,
-                        onSelectSort = ::selectSortDirection,
-                    )
-                }
-            }
+            )
         }
-
     }
 }
 
 @Composable
-private fun LibraryHeaderSortRow(
+@OptIn(ExperimentalMaterial3Api::class)
+private fun LibraryHeader(
+    currentSection: LibrarySection,
+    onSectionSelected: (LibrarySection) -> Unit,
+    sortDirection: SortDirection,
     onSelectSort: (SortDirection) -> Unit,
+    artistViewMode: ArtistViewMode,
+    onArtistViewModeChange: (ArtistViewMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.End,
-    ) {
-        LibrarySortMenuButton(onSelectSort = onSelectSort)
-    }
-}
-
-@Composable
-private fun LibraryArtistHeaderControls(
-    viewMode: ArtistViewMode,
-    onViewModeChange: (ArtistViewMode) -> Unit,
-    onSelectSort: (SortDirection) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, bottom = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Spacer(modifier = Modifier.weight(1f))
-        LibrarySortMenuButton(onSelectSort = onSelectSort)
-        IconButton(
-            onClick = {
-                onViewModeChange(
-                    if (viewMode == ArtistViewMode.List) ArtistViewMode.Grid
-                    else ArtistViewMode.List,
+    Column(modifier = modifier) {
+        SecondaryTabRow(
+            selectedTabIndex = currentSection.ordinal,
+            containerColor = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.primary,
+            divider = {},
+            indicator = {
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier
+                        .tabIndicatorOffset(currentSection.ordinal)
+                        .padding(horizontal = 20.dp)
+                        .clip(MaterialTheme.shapes.extraLarge),
+                    color = MaterialTheme.colorScheme.primary,
                 )
             },
         ) {
-            val isList = viewMode == ArtistViewMode.List
-            Icon(
-                painter = painterResource(
-                    if (isList) R.drawable.ic_grid else R.drawable.ic_list_shadow,
-                ),
-                contentDescription = if (isList) {
-                    stringResource(LibraryR.string.library_show_artists_grid_content_description)
-                } else {
-                    stringResource(LibraryR.string.library_show_artists_list_content_description)
-                },
+            LibrarySection.entries.forEach { section ->
+                Tab(
+                    selected = section == currentSection,
+                    onClick = { onSectionSelected(section) },
+                    text = { Text(stringResource(section.labelRes)) },
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 12.dp, top = 4.dp, end = 12.dp, bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LibrarySortMenuButton(
+                sortDirection = sortDirection,
+                onSelectSort = onSelectSort,
             )
+            AnimatedVisibility(
+                visible = currentSection == LibrarySection.Artists,
+                enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
+                exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start),
+            ) {
+                ArtistViewModeToggle(
+                    viewMode = artistViewMode,
+                    onViewModeChange = onArtistViewModeChange,
+                )
+            }
         }
     }
 }
 
 @Composable
 private fun LibrarySortMenuButton(
+    sortDirection: SortDirection,
     onSelectSort: (SortDirection) -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val currentLabel = stringResource(sortDirection.labelRes())
+    val sortDescription = stringResource(
+        LibraryR.string.library_sort_current_content_description,
+        currentLabel,
+    )
+    val arrowRotation by animateFloatAsState(
+        targetValue = sortDirection.arrowRotation(),
+        label = "librarySortArrow",
+    )
     Box {
-        IconButton(onClick = { expanded = true }) {
-            Icon(
-                painter = painterResource(R.drawable.ic_filter),
-                contentDescription = stringResource(
-                    LibraryR.string.library_sort_content_description,
-                ),
-            )
+        Surface(
+            onClick = { expanded = true },
+            modifier = Modifier
+                .pressScale(interactionSource)
+                .semantics { contentDescription = sortDescription },
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+            interactionSource = interactionSource,
+        ) {
+            Row(
+                modifier = Modifier
+                    .height(ControlHeight)
+                    .padding(start = 10.dp, end = 14.dp)
+                    .clearAndSetSemantics {},
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_arrow_down),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(18.dp)
+                        .graphicsLayer { rotationZ = arrowRotation },
+                )
+                Text(
+                    text = currentLabel,
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
         }
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false }
+            onDismissRequest = { expanded = false },
+            shape = RoundedCornerShape(20.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(LibraryR.string.library_sort_ascending)) },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_arrow_down),
-                        contentDescription = null,
-                        modifier = Modifier.graphicsLayer { rotationZ = 180f }
-                    )
-                },
-                onClick = {
-                    onSelectSort(SortDirection.Ascending)
-                    expanded = false
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(LibraryR.string.library_sort_descending)) },
-                leadingIcon = {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_arrow_down),
-                        contentDescription = null,
-                    )
-                },
-                onClick = {
-                    onSelectSort(SortDirection.Descending)
-                    expanded = false
-                }
-            )
+            SortDirection.entries.forEach { direction ->
+                val selected = direction == sortDirection
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = stringResource(direction.labelRes()),
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                    },
+                    leadingIcon = {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_arrow_down),
+                            contentDescription = null,
+                            tint = if (selected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                            modifier = Modifier.graphicsLayer {
+                                rotationZ = direction.arrowRotation()
+                            },
+                        )
+                    },
+                    onClick = {
+                        onSelectSort(direction)
+                        expanded = false
+                    },
+                )
+            }
         }
     }
 }
 
-private enum class LibrarySection(@param:StringRes val labelRes: Int) {
-    Albums(LibraryR.string.library_tab_albums),
-    Artists(LibraryR.string.library_tab_artists),
-    Folders(LibraryR.string.library_tab_folders),
+@Composable
+private fun ArtistViewModeToggle(
+    viewMode: ArtistViewMode,
+    onViewModeChange: (ArtistViewMode) -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isList = viewMode == ArtistViewMode.List
+    val toggleDescription = if (isList) {
+        stringResource(LibraryR.string.library_show_artists_grid_content_description)
+    } else {
+        stringResource(LibraryR.string.library_show_artists_list_content_description)
+    }
+    Surface(
+        onClick = {
+            onViewModeChange(if (isList) ArtistViewMode.Grid else ArtistViewMode.List)
+        },
+        modifier = Modifier
+            .pressScale(interactionSource)
+            .semantics { contentDescription = toggleDescription },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        interactionSource = interactionSource,
+    ) {
+        Box(
+            modifier = Modifier.size(ControlHeight),
+            contentAlignment = Alignment.Center,
+        ) {
+            Crossfade(
+                targetState = isList,
+                animationSpec = tween(durationMillis = 180),
+                label = "artistViewModeToggle",
+            ) { showingList ->
+                Icon(
+                    painter = painterResource(
+                        if (showingList) R.drawable.ic_grid else R.drawable.ic_list_shadow,
+                    ),
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun SortDirection.labelRes(): Int = when (this) {
+    SortDirection.Ascending -> LibraryR.string.library_sort_ascending
+    SortDirection.Descending -> LibraryR.string.library_sort_descending
+}
+
+private fun SortDirection.arrowRotation(): Float = when (this) {
+    SortDirection.Ascending -> 180f
+    SortDirection.Descending -> 0f
 }
 
 @Composable
@@ -439,18 +551,15 @@ private fun PermissionRequiredContent(
     onRequestPermission: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(
-        modifier = modifier.padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = stringResource(LibraryR.string.library_permission_message),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Button(onClick = onRequestPermission) {
-            Text(stringResource(LibraryR.string.library_permission_request))
-        }
-    }
+    CatlyticsEmptyState(
+        message = stringResource(LibraryR.string.library_permission_message),
+        modifier = modifier,
+        action = {
+            Button(onClick = onRequestPermission) {
+                Text(stringResource(LibraryR.string.library_permission_request))
+            }
+        },
+    )
 }
 
 @Composable
@@ -463,50 +572,11 @@ private fun LoadingContent(modifier: Modifier = Modifier) {
     }
 }
 
-@Composable
-private fun EmptyContent(modifier: Modifier = Modifier) {
-    MessageContent(
-        message = stringResource(LibraryR.string.library_empty_message),
-        modifier = modifier,
-    )
-}
+private val ControlHeight = 36.dp
 
-@Composable
-private fun MessageContent(
-    message: String,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun NoSearchResultsContent(
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = stringResource(LibraryR.string.library_no_search_results),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
+/** Altura aproximada del header antes de la primera medición (tabs 48dp + controles 48dp + paddings). */
+private val HeaderHeightEstimate = 108.dp
+private const val ENTRANCE_SETTLE_MILLIS = 900L
 
 @Preview(name = "Phone", widthDp = 390, heightDp = 844, showBackground = true)
 @Preview(name = "Tablet", widthDp = 800, heightDp = 1280, showBackground = true)

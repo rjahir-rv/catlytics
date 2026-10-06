@@ -1,6 +1,10 @@
 package com.catlytics.feature.library.impl.root
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,13 +20,15 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,14 +40,21 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
+import com.catlytics.core.designsystem.component.sectionLetter
+import com.catlytics.core.designsystem.modifier.pressScale
+import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.LibraryDimens
 import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.sortedArtistsByDirection
 
@@ -57,8 +70,8 @@ internal fun LibraryArtistCollection(
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     topPadding: Dp = 0.dp,
+    animateEntrance: Boolean = false,
 ) {
-    // Sort inside so the input list is stable on sort-only changes.
     val sortedArtists: List<ArtistSummary> = remember(artists, sortDirection) {
         artists.sortedArtistsByDirection(sortDirection)
     }
@@ -73,6 +86,7 @@ internal fun LibraryArtistCollection(
                 onAddToPlaylist = onAddToPlaylist,
                 bottomPadding = bottomPadding,
                 topPadding = topPadding,
+                animateEntrance = animateEntrance,
             )
             ArtistViewMode.Grid -> ArtistGrid(
                 artists = sortedArtists,
@@ -82,6 +96,7 @@ internal fun LibraryArtistCollection(
                 onAddToPlaylist = onAddToPlaylist,
                 bottomPadding = bottomPadding,
                 topPadding = topPadding,
+                animateEntrance = animateEntrance,
             )
         }
     }
@@ -97,46 +112,77 @@ private fun ArtistList(
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     topPadding: Dp = 0.dp,
+    animateEntrance: Boolean = false,
 ) {
-    LazyColumn(
-        state = state,
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
-            start = 20.dp,
-            top = topPadding + 56.dp,
-            end = 20.dp,
-            bottom = bottomPadding() + 8.dp,
-        ),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        items(items = artists, key = { artist -> "${sortDirection.name}:${artist.artist.id}" }) { artist ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onArtistSelected(artist) }
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ArtistImage(
+    val contentPadding = PaddingValues(
+        start = LibraryDimens.ScreenPadding,
+        top = topPadding + LibraryDimens.ContentTopSpacing,
+        end = LibraryDimens.ScreenPadding,
+        bottom = bottomPadding() + LibraryDimens.ContentBottomSpacing,
+    )
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            state = state,
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = contentPadding,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            itemsIndexed(
+                items = artists,
+                key = { _, artist -> "${sortDirection.name}:${artist.artist.id}" },
+            ) { index, artist ->
+                ArtistListRow(
                     artist = artist,
-                    modifier = Modifier.size(64.dp),
+                    onClick = { onArtistSelected(artist) },
+                    onOptions = { onAddToPlaylist(artist) },
+                    modifier = Modifier.staggeredEntrance(
+                        index = index,
+                        animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
+                    ),
                 )
-                ArtistText(
-                    artist = artist,
-                    modifier = Modifier.weight(1f),
-                )
-                IconButton(onClick = { onAddToPlaylist(artist) }) {
-                    Icon(
-                        painterResource(R.drawable.ic_options),
-                        stringResource(
-                            LibraryR.string.library_artist_options_content_description,
-                            artist.artist.name,
-                        ),
-                    )
-                }
             }
         }
+        CatlyticsLetterFastScroller(
+            listState = state,
+            itemCount = artists.size,
+            letterForVisibleTrackIndex = { index -> artists[index].artist.name.sectionLetter() },
+            contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding()),
+        )
+    }
+}
+
+@Composable
+private fun ArtistListRow(
+    artist: ArtistSummary,
+    onClick: () -> Unit,
+    onOptions: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .pressScale(interactionSource)
+            .clip(LibraryDimens.RowShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClick = onClick,
+            )
+            .padding(start = 4.dp, top = 6.dp, bottom = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        ArtistImage(
+            artist = artist,
+            modifier = Modifier.size(56.dp),
+        )
+        ArtistText(
+            artist = artist,
+            modifier = Modifier.weight(1f),
+        )
+        ArtistOptionsButton(artist = artist, onClick = onOptions)
     }
 }
 
@@ -150,55 +196,115 @@ private fun ArtistGrid(
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     topPadding: Dp = 0.dp,
+    animateEntrance: Boolean = false,
 ) {
     LazyVerticalGrid(
         state = state,
         columns = GridCells.Adaptive(minSize = 144.dp),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 20.dp,
-            top = topPadding + 56.dp,
-            end = 20.dp,
-            bottom = bottomPadding() + 8.dp,
+            start = LibraryDimens.ScreenPadding,
+            top = topPadding + LibraryDimens.ContentTopSpacing,
+            end = LibraryDimens.ScreenPadding,
+            bottom = bottomPadding() + LibraryDimens.ContentBottomSpacing,
         ),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        items(items = artists, key = { artist -> "${sortDirection.name}:${artist.artist.id}" }) { artist ->
-            Column(
+        itemsIndexed(
+            items = artists,
+            key = { _, artist -> "${sortDirection.name}:${artist.artist.id}" },
+        ) { index, artist ->
+            ArtistGridCard(
+                artist = artist,
+                onClick = { onArtistSelected(artist) },
+                onOptions = { onAddToPlaylist(artist) },
+                modifier = Modifier.staggeredEntrance(
+                    index = index,
+                    animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
+                ),
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun ArtistGridCard(
+    artist: ArtistSummary,
+    onClick: () -> Unit,
+    onOptions: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .pressScale(interactionSource)
+            .clip(LibraryDimens.CardShape)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onLongClick = onOptions,
+                onClick = onClick,
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box {
+            ArtistImage(
+                artist = artist,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { onArtistSelected(artist) },
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                ArtistImage(
-                    artist = artist,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(1f),
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    ArtistText(
-                        artist = artist,
-                        modifier = Modifier.weight(1f),
-                    )
-                    IconButton(onClick = { onAddToPlaylist(artist) }) {
-                        Icon(
-                            painterResource(R.drawable.ic_options),
-                            stringResource(
-                                LibraryR.string.library_artist_options_content_description,
-                                artist.artist.name,
-                            ),
-                        )
-                    }
-                }
-            }
+                    .aspectRatio(1f),
+            )
+            ArtistOptionsButton(
+                artist = artist,
+                onClick = onOptions,
+                modifier = Modifier.align(Alignment.BottomEnd),
+                tonal = true,
+            )
         }
+        ArtistText(
+            artist = artist,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        )
+    }
+}
+
+@Composable
+private fun ArtistOptionsButton(
+    artist: ArtistSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tonal: Boolean = false,
+) {
+    val icon: @Composable () -> Unit = {
+        Icon(
+            painter = painterResource(R.drawable.ic_options),
+            contentDescription = stringResource(
+                LibraryR.string.library_artist_options_content_description,
+                artist.artist.name,
+            ),
+            modifier = if (tonal) Modifier.size(18.dp) else Modifier,
+        )
+    }
+    if (tonal) {
+        FilledTonalIconButton(
+            onClick = onClick,
+            modifier = modifier.size(36.dp),
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.9f),
+                contentColor = MaterialTheme.colorScheme.onSurface,
+            ),
+            content = icon,
+        )
+    } else {
+        IconButton(onClick = onClick, modifier = modifier, content = icon)
     }
 }
 
@@ -227,6 +333,11 @@ private fun ArtistText(
     modifier: Modifier = Modifier,
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
 ) {
+    val textAlign = if (horizontalAlignment == Alignment.CenterHorizontally) {
+        TextAlign.Center
+    } else {
+        TextAlign.Start
+    }
     Column(
         modifier = modifier,
         horizontalAlignment = horizontalAlignment,
@@ -234,14 +345,16 @@ private fun ArtistText(
     ) {
         Text(
             text = artist.artist.name,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleSmall,
+            textAlign = textAlign,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = artist.metadataLabel(),
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = textAlign,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

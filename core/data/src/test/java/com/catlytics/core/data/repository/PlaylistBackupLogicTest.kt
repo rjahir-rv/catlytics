@@ -1,7 +1,6 @@
 package com.catlytics.core.data.repository
 
 import android.content.Context
-import android.net.Uri
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.model.TrackEntity
@@ -210,7 +209,7 @@ class PlaylistBackupLogicTest {
         playlistRepository.addTracks(pl.id, listOf("m-1"))
 
         val m3uFile = File.createTempFile("playlist-", ".m3u8", context.cacheDir).also(temporaryFiles::add)
-        val m3uUri = Uri.fromFile(m3uFile).toString()
+        val m3uUri = m3uFile.toURI().toString()
 
         backupRepository.exportPlaylistToM3uUri(pl.id, m3uUri).getOrThrow()
 
@@ -220,7 +219,7 @@ class PlaylistBackupLogicTest {
         assertTrue(text.contains("#EXTINF:185,Band - Song A"))
     }
 
-    private fun newBackupUri(): String = Uri.fromFile(newBackupFile()).toString()
+    private fun newBackupUri(): String = newBackupFile().toURI().toString()
 
     private fun newBackupFile(): File = File.createTempFile(
         "catlytics-playlists-",

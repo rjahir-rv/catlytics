@@ -255,9 +255,9 @@ class DataStorePlaylistRepository internal constructor(
         val ctx = context ?: return
         val value = artworkUri ?: return
         val uri = value.toUri()
-        val cover = when (uri.scheme) {
-            null -> File(value)
-            "file" -> uri.path?.let(::File)
+        val cover = when {
+            uri.scheme == null || File(value).isAbsolute -> File(value)
+            uri.scheme == "file" -> uri.path?.let(::File)
             else -> null
         } ?: return
         val coversDir = ctx.filesDir.resolve("playlist_covers")

@@ -5,6 +5,8 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -64,6 +66,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -82,6 +85,7 @@ import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
@@ -93,6 +97,7 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.model.TrackSelectionSnapshot
+import com.catlytics.feature.library.impl.LibraryDimens
 import com.catlytics.feature.library.impl.R as LibraryR
 import kotlinx.coroutines.launch
 
@@ -619,10 +624,18 @@ private fun ArtistAlbumCard(
     onClick: () -> Unit,
     onAddToPlaylist: () -> Unit,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
+            .pressScale(interactionSource)
+            .clip(LibraryDimens.CardShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClick = onClick,
+            ),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         AsyncImage(
@@ -634,7 +647,7 @@ private fun ArtistAlbumCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(24.dp)),
+                .clip(LibraryDimens.ArtworkShape),
             placeholder = painterResource(R.drawable.placeholder_album),
             error = painterResource(R.drawable.placeholder_album),
             fallback = painterResource(R.drawable.placeholder_album),

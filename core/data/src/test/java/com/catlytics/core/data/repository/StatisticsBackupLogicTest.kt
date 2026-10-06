@@ -1,7 +1,6 @@
 package com.catlytics.core.data.repository
 
 import android.content.Context
-import android.net.Uri
 import androidx.room.Room
 import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.domain.repository.PlaybackEventRepository
@@ -162,7 +161,7 @@ class StatisticsBackupLogicTest {
         }
 
         val result = backupRepository.importFromUri(
-            Uri.fromFile(invalidFile).toString(),
+            invalidFile.toURI().toString(),
             StatisticsImportMode.Replace,
         )
 
@@ -219,7 +218,7 @@ class StatisticsBackupLogicTest {
         }
     }
 
-    private fun newBackupUri(): String = Uri.fromFile(newBackupFile()).toString()
+    private fun newBackupUri(): String = newBackupFile().toURI().toString()
 
     private fun newBackupFile(): File = File.createTempFile(
         "catlytics-statistics-",

@@ -1,7 +1,6 @@
 package com.catlytics.core.data.repository
 
 import android.content.Context
-import android.net.Uri
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
@@ -107,11 +106,11 @@ class DataStorePlaylistRepositoryTest {
             writeText("second cover")
         }
 
-        repository.setPlaylistArtwork(playlist.id, Uri.fromFile(firstSource).toString())
+        repository.setPlaylistArtwork(playlist.id, firstSource.toURI().toString())
         val firstArtwork = repository.observePlaylists().first()
             .single { it.id == playlist.id }
             .artworkUri
-        repository.setPlaylistArtwork(playlist.id, Uri.fromFile(secondSource).toString())
+        repository.setPlaylistArtwork(playlist.id, secondSource.toURI().toString())
         val secondArtwork = repository.observePlaylists().first()
             .single { it.id == playlist.id }
             .artworkUri

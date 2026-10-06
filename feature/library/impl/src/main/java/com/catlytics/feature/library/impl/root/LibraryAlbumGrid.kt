@@ -1,19 +1,21 @@
 package com.catlytics.feature.library.impl.root
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,13 +29,17 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.modifier.pressScale
+import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.SortDirection
+import com.catlytics.feature.library.impl.LibraryDimens
 import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.sortedAlbumsByDirection
 
@@ -47,6 +53,7 @@ internal fun LibraryAlbumGrid(
     onAddToPlaylist: (Album) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     topPadding: Dp = 0.dp,
+    animateEntrance: Boolean = false,
 ) {
     val sortedAlbums: List<Album> = remember(albums, sortDirection) {
         albums.sortedAlbumsByDirection(sortDirection)
@@ -58,21 +65,25 @@ internal fun LibraryAlbumGrid(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
-            top = topPadding + 56.dp,
+            top = topPadding + LibraryDimens.ContentTopSpacing,
             end = 20.dp,
-            bottom = bottomPadding() + 20.dp,
+            bottom = bottomPadding() + LibraryDimens.ContentBottomSpacing,
         ),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        items(
+        itemsIndexed(
             items = sortedAlbums,
-            key = { album -> "${sortDirection.name}:${album.id}" },
-        ) { album ->
+            key = { _, album -> "${sortDirection.name}:${album.id}" },
+        ) { index, album ->
             AlbumCard(
                 album = album,
                 onClick = { onAlbumSelected(album) },
                 onAddToPlaylist = { onAddToPlaylist(album) },
+                modifier = Modifier.staggeredEntrance(
+                    index = index,
+                    animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
+                ),
             )
         }
     }
@@ -85,11 +96,19 @@ private fun AlbumCard(
     onAddToPlaylist: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+            .pressScale(interactionSource)
+            .clip(LibraryDimens.CardShape)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                role = Role.Button,
+                onClick = onClick,
+            ),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         AsyncImage(
             model = album.artworkUri,
@@ -100,14 +119,16 @@ private fun AlbumCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clip(RoundedCornerShape(24.dp)),
+                .clip(LibraryDimens.ArtworkShape),
             placeholder = painterResource(R.drawable.placeholder_album),
             error = painterResource(R.drawable.placeholder_album),
             fallback = painterResource(R.drawable.placeholder_album),
             contentScale = ContentScale.Crop,
         )
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -117,25 +138,22 @@ private fun AlbumCard(
             ) {
                 Text(
                     text = album.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = album.artist.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = pluralStringResource(
-                        LibraryR.plurals.library_track_count,
-                        album.trackCount,
-                        album.trackCount,
+                    text = stringResource(
+                        LibraryR.string.library_track_metadata,
+                        album.artist.name,
+                        pluralStringResource(
+                            LibraryR.plurals.library_track_count,
+                            album.trackCount,
+                            album.trackCount,
+                        ),
                     ),
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

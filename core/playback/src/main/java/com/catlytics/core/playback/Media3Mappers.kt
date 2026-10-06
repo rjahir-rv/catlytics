@@ -89,12 +89,12 @@ internal fun shuffleIndicesFor(
     }
 }
 
+
+internal fun nextQueueIndexAfterMove(currentIndex: Int, movedIndex: Int): Int =
+    if (movedIndex < currentIndex) currentIndex else currentIndex + 1
+
 private fun Player.toPlaybackStatus(): PlaybackStatus = playbackStatusOf(playbackState, playWhenReady)
 
-/**
- * Cargar en pausa (p. ej. al reordenar la fila con shuffle) no es reproducir: solo se informa
- * [PlaybackStatus.Buffering] cuando el reproductor va a sonar en cuanto termine de cargar.
- */
 internal fun playbackStatusOf(playbackState: Int, playWhenReady: Boolean): PlaybackStatus = when {
     playbackState == Player.STATE_BUFFERING && playWhenReady -> PlaybackStatus.Buffering
     playbackState == Player.STATE_BUFFERING -> PlaybackStatus.Paused
