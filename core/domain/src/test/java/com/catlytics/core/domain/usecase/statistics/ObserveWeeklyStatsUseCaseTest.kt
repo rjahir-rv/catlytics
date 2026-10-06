@@ -221,9 +221,9 @@ class BuildListeningNarrativeUseCaseTest {
     private val useCase = BuildListeningNarrativeUseCase()
 
     @Test
-    fun `not eligible under one hour`() = runTest {
+    fun `not eligible under threshold`() = runTest {
         val repository = FakePlaybackEventRepository2().apply {
-            totalListeningMillis = 30 * 60_000L
+            totalListeningMillis = 29 * 60_000L
         }
         val stats = ObservePeriodStatsUseCase(
             repository,
@@ -233,6 +233,20 @@ class BuildListeningNarrativeUseCaseTest {
         val narrative = useCase(stats)
         assertEquals(false, narrative.eligible)
         assertEquals(ListeningNarrativeKind.TimeWithArtist, narrative.kind)
+    }
+
+    @Test
+    fun `eligible at exactly threshold`() = runTest {
+        val repository = FakePlaybackEventRepository2().apply {
+            totalListeningMillis = BuildListeningNarrativeUseCase.ELIGIBILITY_THRESHOLD_MILLIS
+        }
+        val stats = ObservePeriodStatsUseCase(
+            repository,
+            Clock.fixed(Instant.parse("2026-06-24T12:00:00Z"), ZoneId.of("UTC")),
+        ).invoke(com.catlytics.core.model.StatsGranularity.WEEK).first()
+
+        val narrative = useCase(stats)
+        assertEquals(true, narrative.eligible)
     }
 
     @Test

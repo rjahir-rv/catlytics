@@ -1,6 +1,20 @@
 package com.catlytics.feature.statistics.impl.components
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -32,11 +46,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ripple
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -44,19 +60,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.crossfade
-import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.nameSeededGradient
+import com.catlytics.core.designsystem.modifier.pressScale
+import com.catlytics.core.designsystem.theme.CatlyticsCorners
+import com.catlytics.core.domain.usecase.statistics.BuildListeningNarrativeUseCase
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningNarrative
 import com.catlytics.core.model.ListeningNarrativeKind
@@ -70,8 +94,8 @@ import com.catlytics.feature.statistics.impl.R as StatsR
 import com.catlytics.feature.statistics.impl.formatListeningDuration
 import com.catlytics.feature.statistics.impl.formatPlayCountLabel
 
-private val CardShape = RoundedCornerShape(20.dp)
-private val SoftShape = RoundedCornerShape(14.dp)
+private val CardShape = CatlyticsCorners.Large
+private val SoftShape = CatlyticsCorners.Medium
 
 @Composable
 internal fun DashboardHeroCard(
@@ -81,14 +105,22 @@ internal fun DashboardHeroCard(
     modifier: Modifier = Modifier,
 ) {
     val hasStreak = streak.currentDays > 0
+    val container = MaterialTheme.colorScheme.primaryContainer
+    val gradientTarget = MaterialTheme.colorScheme.tertiaryContainer
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = CardShape,
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
+        Column(
+            modifier = Modifier
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(container, lerp(container, gradientTarget, HERO_GRADIENT_BLEND)),
+                    ),
+                )
+                .padding(20.dp),
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -106,14 +138,14 @@ internal fun DashboardHeroCard(
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = formatListeningDuration(totalListenedMillis),
+                text = formatListeningDuration(animatedMillis(totalListenedMillis)),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = formatPlayCountLabel(playCount),
+                text = formatPlayCountLabel(animatedCount(playCount)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
             )
@@ -223,7 +255,7 @@ private fun ListeningTotalItem(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = value.toString(),
+                text = animatedCount(value).toString(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -249,45 +281,37 @@ internal fun NarrativeSummaryCard(
 
     val artworkUri = narrative.topArtist?.artworkUri
         ?: narrative.topTrack?.artworkUri
+    val seed = (narrative.topArtist?.name ?: narrative.topTrack?.title).orEmpty()
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.surface.luminance() < 0.5f
+    val gradient = remember(seed, isDark, colorScheme.surface) {
+        nameSeededGradient(seed, isDark, colorScheme.surface)
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        ),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         shape = CardShape,
     ) {
         Row(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier
+                .background(Brush.linearGradient(listOf(gradient.start, gradient.center)))
+                .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                AsyncImage(
-                    model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
-                        .data(artworkUri)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = narrative.topArtist?.name
-                        ?: narrative.topTrack?.title,
-                    placeholder = painterResource(R.drawable.placeholder_album),
-                    error = painterResource(R.drawable.placeholder_album),
-                    fallback = painterResource(R.drawable.placeholder_album),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+            ArtworkBox(
+                uri = artworkUri,
+                seed = seed,
+                circular = true,
+                size = 72.dp,
+                contentDescription = seed.ifEmpty { null },
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 NarrativeHeadline(narrative = narrative)
@@ -331,7 +355,7 @@ private fun NarrativeHeadline(narrative: ListeningNarrative) {
                 text = stringResource(StatsR.string.stats_narrative_default_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                color = MaterialTheme.colorScheme.onSurface,
             )
         }
     }
@@ -346,13 +370,13 @@ private fun NarrativeHeadlineText(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.9f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
         )
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
@@ -368,13 +392,13 @@ private fun NarrativeStatRow(
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.75f),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onTertiaryContainer,
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -385,11 +409,18 @@ private fun NarrativeStatRow(
 internal fun NarrativeProgressHint(
     modifier: Modifier = Modifier,
     totalListenedMillis: Long,
-    thresholdMillis: Long = 3_600_000L,
+    thresholdMillis: Long = BuildListeningNarrativeUseCase.ELIGIBILITY_THRESHOLD_MILLIS,
 ) {
     if (totalListenedMillis !in 1..<thresholdMillis) return
-    val progress = (totalListenedMillis.toFloat() / thresholdMillis.toFloat()).coerceIn(0f, 1f)
+    val targetProgress = (totalListenedMillis.toFloat() / thresholdMillis.toFloat()).coerceIn(0f, 1f)
     val remaining = thresholdMillis - totalListenedMillis
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(targetProgress) {
+        progress.animateTo(
+            targetValue = targetProgress,
+            animationSpec = tween(PROGRESS_FILL_MILLIS, easing = FastOutSlowInEasing),
+        )
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -415,7 +446,7 @@ internal fun NarrativeProgressHint(
             )
             Spacer(modifier = Modifier.height(12.dp))
             LinearProgressIndicator(
-                progress = { progress },
+                progress = { progress.value },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(6.dp)
@@ -427,6 +458,7 @@ internal fun NarrativeProgressHint(
                 text = stringResource(
                     StatsR.string.stats_narrative_unlock_progress,
                     formatListeningDuration(totalListenedMillis),
+                    formatListeningDuration(thresholdMillis),
                 ),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -441,10 +473,14 @@ internal fun ExploreStatsCta(
     onClick: () -> Unit,
     enabled: Boolean = true
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     Card(
+        onClick = onClick,
+        enabled = enabled,
+        interactionSource = interactionSource,
         modifier = modifier
-            .fillMaxWidth()
-            .clickable(enabled = enabled, onClick = onClick),
+            .pressScale(interactionSource)
+            .fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.secondaryContainer,
         ),
@@ -490,12 +526,13 @@ internal fun StatsEmptyState(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
-    compact: Boolean = false,
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = if (compact) 16.dp else 28.dp),
+            .clip(SoftShape)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(vertical = 20.dp, horizontal = 16.dp),
         contentAlignment = Alignment.Center,
     ) {
         Column(
@@ -506,7 +543,7 @@ internal fun StatsEmptyState(
                 imageVector = Icons.Filled.MusicNote,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(if (compact) 32.dp else 40.dp),
+                modifier = Modifier.size(32.dp),
             )
             Text(
                 text = title,
@@ -528,6 +565,7 @@ internal fun StatsEmptyState(
 @Composable
 internal fun PeriodSelectorHeader(
     granularity: StatsGranularity,
+    offset: Int,
     title: String,
     subtitle: String?,
     canGoBack: Boolean,
@@ -575,27 +613,43 @@ internal fun PeriodSelectorHeader(
                     ),
                 )
             }
-            Column(
+            AnimatedContent(
+                targetState = PeriodHeading(granularity, offset, title, subtitle),
                 modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                if (!subtitle.isNullOrBlank()) {
+                transitionSpec = {
+                    val direction = when {
+                        targetState.granularity != initialState.granularity -> 0
+                        targetState.offset > initialState.offset -> 1
+                        else -> -1
+                    }
+                    (slideInHorizontally { it / 3 * direction } + fadeIn())
+                        .togetherWith(slideOutHorizontally { -it / 3 * direction } + fadeOut())
+                },
+                contentKey = { it.granularity to it.offset },
+                label = "periodHeading",
+            ) { heading ->
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
                     Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        text = heading.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
                         textAlign = TextAlign.Center,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (!heading.subtitle.isNullOrBlank()) {
+                        Text(
+                            text = heading.subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
             IconButton(
@@ -631,13 +685,13 @@ internal fun PeriodSummaryCard(
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(
-                text = formatListeningDuration(totalListenedMillis),
+                text = formatListeningDuration(animatedMillis(totalListenedMillis)),
                 style = MaterialTheme.typography.displaySmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Text(
-                text = formatPlayCountLabel(playCount),
+                text = formatPlayCountLabel(animatedCount(playCount)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
             )
@@ -647,15 +701,15 @@ internal fun PeriodSummaryCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 PeriodMetric(
-                    value = uniqueTracks.toString(),
+                    value = uniqueTracks,
                     label = stringResource(StatsR.string.stats_period_metric_tracks),
                 )
                 PeriodMetric(
-                    value = uniqueArtists.toString(),
+                    value = uniqueArtists,
                     label = stringResource(StatsR.string.stats_period_metric_artists),
                 )
                 PeriodMetric(
-                    value = uniqueAlbums.toString(),
+                    value = uniqueAlbums,
                     label = stringResource(StatsR.string.stats_period_metric_albums),
                 )
             }
@@ -664,10 +718,10 @@ internal fun PeriodSummaryCard(
 }
 
 @Composable
-private fun PeriodMetric(value: String, label: String) {
+private fun PeriodMetric(value: Int, label: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            text = value,
+            text = animatedCount(value).toString(),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -687,7 +741,8 @@ internal fun ActivityChart(
     dayCount: Int,
     title: String,
     subtitle: String,
-    dayLabels: List<String>? = null
+    dayLabels: List<String>? = null,
+    todayIndex: Int? = null,
 ) {
     val safeDayCount = dayCount.coerceAtLeast(1)
     val dailyMinutes = remember(dailyListening, safeDayCount) {
@@ -704,6 +759,15 @@ internal fun ActivityChart(
     val weekDayLabels = stringArrayResource(StatsR.array.stats_weekday_short_labels)
     val resolvedLabels = dayLabels ?: defaultDayLabels(safeDayCount, weekDayLabels.toList())
     var selectedIndex by remember(safeDayCount) { mutableStateOf<Int?>(null) }
+    // Mantiene el último día tocado para que el texto no desaparezca de golpe al ocultarse.
+    var lastSelectedIndex by remember(safeDayCount) { mutableStateOf(0) }
+    val entrance = remember { Animatable(0f) }
+    LaunchedEffect(Unit) {
+        entrance.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(CHART_ENTRANCE_MILLIS, easing = FastOutSlowInEasing),
+        )
+    }
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -725,25 +789,30 @@ internal fun ActivityChart(
             )
 
             val selected = selectedIndex
-            if (selected != null && selected in dailyMinutes.indices) {
+            val shownIndex = lastSelectedIndex.coerceIn(dailyMinutes.indices)
+            AnimatedVisibility(
+                visible = selected != null && selected in dailyMinutes.indices,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
                 Text(
                     text = stringResource(
                         StatsR.string.stats_chart_selected_day,
-                        selected + 1,
-                        dailyMinutes[selected].toInt(),
+                        shownIndex + 1,
+                        dailyMinutes[shownIndex].toInt(),
                     ),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.padding(top = 8.dp),
                 )
-            } else {
-                Spacer(modifier = Modifier.height(8.dp))
             }
+            Spacer(modifier = Modifier.height(8.dp))
 
             val barSpacing = if (safeDayCount > 14) 2.dp else 4.dp
             val activeColor = MaterialTheme.colorScheme.primary
-            val inactiveColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+            val restColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+            val dimmedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
             val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
             val emptyTickColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
 
@@ -762,12 +831,22 @@ internal fun ActivityChart(
                     DayActivityBar(
                         minutes = minutes,
                         maxMinutes = maxMinutes,
-                        dimmed = selectedIndex != null && selectedIndex != index,
-                        activeColor = activeColor,
-                        inactiveColor = inactiveColor,
+                        entranceProgress = { entrance.value },
+                        barColor = when {
+                            selectedIndex != null ->
+                                if (selectedIndex == index) activeColor else dimmedColor
+                            todayIndex != null ->
+                                if (todayIndex == index) activeColor else restColor
+                            else -> activeColor
+                        },
                         emptyTickColor = emptyTickColor,
                         onClick = {
-                            selectedIndex = if (selectedIndex == index) null else index
+                            if (selectedIndex == index) {
+                                selectedIndex = null
+                            } else {
+                                selectedIndex = index
+                                lastSelectedIndex = index
+                            }
                         },
                         modifier = Modifier
                             .weight(1f)
@@ -800,9 +879,8 @@ internal fun ActivityChart(
 private fun DayActivityBar(
     minutes: Float,
     maxMinutes: Float,
-    dimmed: Boolean,
-    activeColor: Color,
-    inactiveColor: Color,
+    entranceProgress: () -> Float,
+    barColor: Color,
     emptyTickColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -812,7 +890,7 @@ private fun DayActivityBar(
         targetValue = fraction,
         label = "dayBar",
     )
-    val barColor = if (dimmed) inactiveColor else activeColor
+    val animatedColor by animateColorAsState(targetValue = barColor, label = "dayBarColor")
     val minVisible = if (minutes > 0f) 0.06f else 0f
     val heightFraction = if (minutes > 0f) {
         animatedFraction.coerceAtLeast(minVisible)
@@ -835,8 +913,13 @@ private fun DayActivityBar(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(heightFraction)
+                    .graphicsLayer {
+                        // Crecen desde la base la primera vez que aparece la gráfica.
+                        transformOrigin = TransformOrigin(0.5f, 1f)
+                        scaleY = entranceProgress()
+                    }
                     .clip(barShape)
-                    .background(barColor),
+                    .background(animatedColor),
             )
         } else {
             Box(
@@ -912,7 +995,7 @@ internal fun TopTrackItem(
         ) {
             RankBadge(rank = rank)
             Spacer(modifier = Modifier.width(12.dp))
-            ArtworkBox(uri = track.artworkUri, circular = false)
+            ArtworkBox(uri = track.artworkUri, seed = track.title, circular = false)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -963,7 +1046,7 @@ internal fun TopArtistItem(
         ) {
             RankBadge(rank = rank)
             Spacer(modifier = Modifier.width(12.dp))
-            ArtworkBox(uri = artist.artworkUri, circular = true)
+            ArtworkBox(uri = artist.artworkUri, seed = artist.name, circular = true)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1012,7 +1095,7 @@ internal fun TopAlbumItem(
         ) {
             RankBadge(rank = rank)
             Spacer(modifier = Modifier.width(12.dp))
-            ArtworkBox(uri = album.artworkUri, circular = false)
+            ArtworkBox(uri = album.artworkUri, seed = album.title, circular = false)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -1068,27 +1151,45 @@ private fun RankBadge(rank: Int) {
 @Composable
 private fun ArtworkBox(
     uri: String?,
+    seed: String,
     circular: Boolean,
+    size: Dp = 48.dp,
+    contentDescription: String? = null,
 ) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.surface.luminance() < 0.5f
+    val gradient = remember(seed, isDark, colorScheme.surface) {
+        nameSeededGradient(seed, isDark, colorScheme.surface)
+    }
+    // El degradado con la inicial queda debajo: se ve mientras carga o si no hay carátula.
     Box(
         modifier = Modifier
-            .size(48.dp)
-            .clip(if (circular) CircleShape else RoundedCornerShape(10.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .size(size)
+            .clip(if (circular) CircleShape else CatlyticsCorners.Small)
+            .background(Brush.linearGradient(listOf(gradient.start, gradient.center))),
         contentAlignment = Alignment.Center,
     ) {
-        AsyncImage(
-            model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
-                .data(uri)
-                .crossfade(true)
-                .build(),
-            contentDescription = null,
-            placeholder = painterResource(R.drawable.placeholder_album),
-            error = painterResource(R.drawable.placeholder_album),
-            fallback = painterResource(R.drawable.placeholder_album),
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
+        Text(
+            text = seed.trim().firstOrNull()?.uppercase().orEmpty(),
+            style = if (size > 56.dp) {
+                MaterialTheme.typography.headlineSmall
+            } else {
+                MaterialTheme.typography.titleMedium
+            },
+            fontWeight = FontWeight.Bold,
+            color = colorScheme.onSurface.copy(alpha = 0.7f),
         )
+        if (uri != null) {
+            AsyncImage(
+                model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
+                    .data(uri)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = contentDescription,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 
@@ -1110,12 +1211,49 @@ internal fun SectionTitle(
             style = MaterialTheme.typography.titleMedium,
         )
         if (actionLabel != null && onAction != null) {
+            val interactionSource = remember { MutableInteractionSource() }
             Text(
                 text = actionLabel,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onAction),
+                modifier = Modifier
+                    .pressScale(interactionSource, pressedScale = 0.94f)
+                    .clip(RoundedCornerShape(50))
+                    .clickable(interactionSource = interactionSource, indication = ripple(), onClick = onAction)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
     }
 }
+
+private data class PeriodHeading(
+    val granularity: StatsGranularity,
+    val offset: Int,
+    val title: String,
+    val subtitle: String?,
+)
+
+@Composable
+private fun animatedMillis(millis: Long): Long {
+    val animated by animateFloatAsState(
+        targetValue = millis.toFloat(),
+        animationSpec = tween(COUNTER_ANIMATION_MILLIS, easing = FastOutSlowInEasing),
+        label = "animatedMillis",
+    )
+    return animated.toLong()
+}
+
+@Composable
+private fun animatedCount(count: Int): Int {
+    val animated by animateIntAsState(
+        targetValue = count,
+        animationSpec = tween(COUNTER_ANIMATION_MILLIS, easing = FastOutSlowInEasing),
+        label = "animatedCount",
+    )
+    return animated
+}
+
+private const val HERO_GRADIENT_BLEND = 0.35f
+private const val PROGRESS_FILL_MILLIS = 700
+private const val CHART_ENTRANCE_MILLIS = 600
+private const val COUNTER_ANIMATION_MILLIS = 500

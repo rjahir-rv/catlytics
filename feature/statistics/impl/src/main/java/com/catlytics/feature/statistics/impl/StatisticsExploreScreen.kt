@@ -1,22 +1,18 @@
 package com.catlytics.feature.statistics.impl
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.catlytics.core.domain.usecase.statistics.StatsPeriodCalculator
@@ -26,54 +22,43 @@ import com.catlytics.feature.statistics.impl.components.NarrativeSummaryCard
 import com.catlytics.feature.statistics.impl.components.PeriodSelectorHeader
 import com.catlytics.feature.statistics.impl.components.PeriodSummaryCard
 import com.catlytics.feature.statistics.impl.components.StatsEmptyState
+import com.catlytics.feature.statistics.impl.components.StatsSkeleton
 import com.catlytics.feature.statistics.impl.components.TopAlbumItem
 import com.catlytics.feature.statistics.impl.components.TopArtistItem
 import com.catlytics.feature.statistics.impl.components.TopListCard
 import com.catlytics.feature.statistics.impl.components.TopTrackItem
 import java.time.Clock
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 @Composable
 internal fun StatisticsExploreScreen(
     modifier: Modifier = Modifier,
     viewModel: StatisticsExploreViewModel = hiltViewModel(),
-    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
+    bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val contentPadding = statsContentPadding(scaffoldContentPadding, bottomPadding)
 
-    Box(modifier = modifier.fillMaxSize()) {
-        when (val state = uiState) {
-            is StatisticsExploreUiState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
+    Crossfade(
+        targetState = uiState::class,
+        modifier = modifier.fillMaxSize(),
+        label = "statsExploreState",
+    ) { kind ->
+        when (kind) {
+            StatisticsExploreUiState.Loading::class -> StatsSkeleton(contentPadding = contentPadding)
 
-            is StatisticsExploreUiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = stringResource(R.string.stats_error_loading),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
+            StatisticsExploreUiState.Error::class -> StatsErrorState(contentPadding = contentPadding)
 
-            is StatisticsExploreUiState.Success -> {
+            else -> (uiState as? StatisticsExploreUiState.Success)?.let { state ->
                 StatisticsExploreContent(
                     data = state.data,
                     onGranularityChange = viewModel::setGranularity,
                     onShift = viewModel::shiftPeriod,
-                    bottomPadding = bottomPadding,
-                    scaffoldContentPadding = scaffoldContentPadding,
+                    contentPadding = contentPadding,
                 )
             }
         }
@@ -85,12 +70,22 @@ private fun StatisticsExploreContent(
     data: StatisticsExploreData,
     onGranularityChange: (StatsGranularity) -> Unit,
     onShift: (Int) -> Unit,
-    bottomPadding: () -> androidx.compose.ui.unit.Dp,
-    scaffoldContentPadding: PaddingValues,
+    contentPadding: PaddingValues,
 ) {
     val stats = data.stats
+    val entranceDone = rememberStatsEntranceDone()
     val dayCount = remember(stats.range) {
         StatsPeriodCalculator.dayCount(stats.range, Clock.systemDefaultZone())
+    }
+    // Solo el periodo actual contiene "hoy"; en periodos pasados todas las barras van igual.
+    val todayIndex = remember(stats.range) {
+        if (stats.range.offset != 0) {
+            null
+        } else {
+            val zone = ZoneId.systemDefault()
+            val start = Instant.ofEpochMilli(stats.range.startMillis).atZone(zone).toLocalDate()
+            ChronoUnit.DAYS.between(start, LocalDate.now(zone)).toInt()
+        }
     }
     val weekLabels = stringArrayResource(R.array.stats_weekday_short_labels).toList()
     val dayLabels = when (stats.range.granularity) {
@@ -109,38 +104,36 @@ private fun StatisticsExploreContent(
     }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(14.dp),
-        contentPadding = PaddingValues(
-            top = scaffoldContentPadding.calculateTopPadding() + 8.dp,
-            bottom = bottomPadding() + 24.dp,
-        ),
+        contentPadding = contentPadding,
     ) {
-        item {
+        item(key = "period-header") {
             PeriodSelectorHeader(
                 granularity = data.selection.granularity,
+                offset = data.selection.offset,
                 title = periodTitle,
                 subtitle = periodSubtitle,
                 canGoBack = data.canGoBack,
                 canGoForward = data.canGoForward,
                 onGranularityChange = onGranularityChange,
                 onShift = onShift,
+                modifier = statsEntrance(0, entranceDone),
             )
         }
 
-        item {
+        item(key = "period-summary") {
             PeriodSummaryCard(
                 totalListenedMillis = stats.totalListenedMillis,
                 playCount = stats.playCount,
                 uniqueTracks = stats.uniqueTracks,
                 uniqueArtists = stats.uniqueArtists,
                 uniqueAlbums = stats.uniqueAlbums,
+                modifier = statsEntrance(1, entranceDone),
             )
         }
 
-        item {
+        item(key = "activity-chart") {
             ActivityChart(
                 dailyListening = stats.dailyListening,
                 dayCount = dayCount,
@@ -150,30 +143,36 @@ private fun StatisticsExploreContent(
                 },
                 subtitle = stringResource(R.string.stats_chart_subtitle),
                 dayLabels = dayLabels,
+                todayIndex = todayIndex,
+                modifier = statsEntrance(2, entranceDone),
             )
         }
 
         if (stats.isEmpty) {
-            item {
+            item(key = "period-empty") {
                 StatsEmptyState(
                     title = stringResource(R.string.stats_empty_period_title),
                     subtitle = stringResource(R.string.stats_empty_period_subtitle),
-                    compact = true,
+                    modifier = statsEntrance(3, entranceDone),
                 )
             }
         } else {
             if (data.narrative.eligible) {
-                item {
+                item(key = "narrative") {
                     NarrativeSummaryCard(
                         narrative = data.narrative,
                         title = stringResource(R.string.stats_summary_title),
+                        modifier = statsEntrance(3, entranceDone),
                     )
                 }
             }
 
             if (stats.topTracks.isNotEmpty()) {
-                item {
-                    TopListCard(title = stringResource(R.string.stats_top_tracks_title)) {
+                item(key = "top-tracks") {
+                    TopListCard(
+                        title = stringResource(R.string.stats_top_tracks_title),
+                        modifier = statsEntrance(4, entranceDone),
+                    ) {
                         stats.topTracks.forEachIndexed { index, track ->
                             TopTrackItem(
                                 rank = index + 1,
@@ -186,8 +185,11 @@ private fun StatisticsExploreContent(
             }
 
             if (stats.topArtists.isNotEmpty()) {
-                item {
-                    TopListCard(title = stringResource(R.string.stats_top_artists_title)) {
+                item(key = "top-artists") {
+                    TopListCard(
+                        title = stringResource(R.string.stats_top_artists_title),
+                        modifier = statsEntrance(5, entranceDone),
+                    ) {
                         stats.topArtists.forEachIndexed { index, artist ->
                             TopArtistItem(
                                 rank = index + 1,
@@ -200,8 +202,11 @@ private fun StatisticsExploreContent(
             }
 
             if (stats.topAlbums.isNotEmpty()) {
-                item {
-                    TopListCard(title = stringResource(R.string.stats_top_albums_title)) {
+                item(key = "top-albums") {
+                    TopListCard(
+                        title = stringResource(R.string.stats_top_albums_title),
+                        modifier = statsEntrance(6, entranceDone),
+                    ) {
                         stats.topAlbums.forEachIndexed { index, album ->
                             TopAlbumItem(
                                 rank = index + 1,

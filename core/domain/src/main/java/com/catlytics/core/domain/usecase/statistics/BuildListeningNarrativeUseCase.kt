@@ -29,6 +29,6 @@ class BuildListeningNarrativeUseCase {
     }
 
     companion object {
-        const val ELIGIBILITY_THRESHOLD_MILLIS: Long = 3_600_000L // 1 hour
+        const val ELIGIBILITY_THRESHOLD_MILLIS: Long = 30 * 60_000L // 30 min
     }
 }

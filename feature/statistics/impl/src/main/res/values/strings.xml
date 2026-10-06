@@ -22,7 +22,7 @@
     <string name="stats_narrative_top_artist_label">Artista más escuchado</string>
     <string name="stats_narrative_unlock_title">Desbloquea tu resumen</string>
     <string name="stats_narrative_unlock_hint">Escucha %1$s más esta semana</string>
-    <string name="stats_narrative_unlock_progress">%1$s / 1h</string>
+    <string name="stats_narrative_unlock_progress">%1$s / %2$s</string>
 
     <!-- Estadísticas: explorar -->
     <string name="stats_explore_cta_title">Explorar estadísticas</string>
