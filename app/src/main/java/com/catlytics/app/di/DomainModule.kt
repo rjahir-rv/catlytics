@@ -4,6 +4,11 @@ import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryChangeObserver
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.TrackMetadataRepository
+import com.catlytics.core.domain.usecase.library.ObserveEditableTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.ResetTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.SaveTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.WriteTrackTagsToFileUseCase
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
@@ -103,6 +108,24 @@ object DomainModule {
     @Provides
     fun provideUnmergeArtistUseCase(repository: ArtistIdentityRepository) =
         UnmergeArtistUseCase(repository)
+
+    @Provides
+    fun provideObserveEditableTrackMetadataUseCase(
+        metadataRepository: TrackMetadataRepository,
+        libraryRepository: LibraryRepository,
+    ) = ObserveEditableTrackMetadataUseCase(metadataRepository, libraryRepository)
+
+    @Provides
+    fun provideSaveTrackMetadataUseCase(repository: TrackMetadataRepository) =
+        SaveTrackMetadataUseCase(repository)
+
+    @Provides
+    fun provideResetTrackMetadataUseCase(repository: TrackMetadataRepository) =
+        ResetTrackMetadataUseCase(repository)
+
+    @Provides
+    fun provideWriteTrackTagsToFileUseCase(repository: TrackMetadataRepository) =
+        WriteTrackTagsToFileUseCase(repository)
 
     @Provides
     fun provideGenerateDailyPlaylistUseCase() = GenerateDailyPlaylistUseCase()

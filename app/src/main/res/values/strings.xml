@@ -91,6 +91,7 @@
     <string name="app_track_option_go_to_album">Ir al álbum</string>
     <string name="app_track_option_go_to_artist">Ir al artista</string>
     <string name="app_track_option_remove_from_playlist">Quitar de playlist</string>
+    <string name="app_track_option_edit_metadata">Editar información</string>
     <string name="app_content_description_track_options">Opciones de %1$s</string>
 
     <!-- Playlist del sistema -->

@@ -1,6 +1,10 @@
 package com.catlytics.app.di
 
 import com.catlytics.core.data.local.AndroidMediaStoreLibraryDataSource
+import com.catlytics.core.data.local.AudioTagWriter
+import com.catlytics.core.data.local.TagLibAudioTagWriter
+import com.catlytics.core.data.repository.RoomTrackMetadataRepository
+import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.local.LocalDataSource
 import com.catlytics.core.data.local.MediaStoreLibraryChangeObserver
@@ -42,6 +46,15 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 interface DataModule {
+    @Binds
+    @Singleton
+    fun bindTrackMetadataRepository(
+        repository: RoomTrackMetadataRepository,
+    ): TrackMetadataRepository
+
+    @Binds
+    fun bindAudioTagWriter(writer: TagLibAudioTagWriter): AudioTagWriter
+
     @Binds
     @Singleton
     fun bindArtistIdentityRepository(

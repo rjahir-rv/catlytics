@@ -43,6 +43,7 @@ class StatisticsBackupLogicTest {
             eventRepository,
             artistIdentityRepository,
             database,
+            metadataRepository(context, database),
         )
     }
 
@@ -208,6 +209,7 @@ class StatisticsBackupLogicTest {
             },
             artistIdentityRepository,
             database,
+            metadataRepository(context, database),
         )
 
         try {

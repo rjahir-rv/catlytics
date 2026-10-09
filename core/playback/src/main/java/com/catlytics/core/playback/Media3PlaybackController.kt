@@ -534,6 +534,7 @@ class Media3PlaybackController @Inject constructor(
     private fun restartQueueSync() {
         stopQueueSync()
         queueSyncJob = playbackScope.launch {
+            launch { libraryRepository.observeAllTracks().collect(::refreshQueueMetadata) }
             when (val source = queueSource) {
                 is PlaybackQueueSource.Playlist -> observePlaylistQueue(source.playlistId)
                     .collect(::reconcileQueue)
@@ -579,6 +580,26 @@ class Media3PlaybackController @Inject constructor(
         }
 
         applyQueueReplacement(sourceQueue, startTrackId = currentTrack.id)
+    }
+
+    private suspend fun refreshQueueMetadata(tracks: List<Track>) {
+        if (queue.isEmpty()) return
+        val tracksById = tracks.associateBy(Track::id)
+        val refreshedQueue = queue.withLatestMetadata(tracksById)
+        if (refreshedQueue == queue) return
+        val changedTracks = refreshedQueue.filterIndexed { index, track -> track != queue[index] }
+            .associateBy(Track::id)
+        queue = refreshedQueue
+        originalQueue = originalQueue.withLatestMetadata(tracksById)
+        manualQueue = manualQueue.withLatestMetadata(tracksById)
+        withQueuePlayer { player ->
+            mutateQueue(player, player.currentMediaItem?.mediaId) {
+                for (index in 0 until player.mediaItemCount) {
+                    val track = changedTracks[player.getMediaItemAt(index).mediaId] ?: continue
+                    player.replaceMediaItem(index, track.toMediaItem())
+                }
+            }
+        }
     }
 
     private suspend fun removeUnavailableQueueItems(availableTrackIds: Set<String>) {
@@ -651,6 +672,9 @@ class Media3PlaybackController @Inject constructor(
         const val SESSION_SAVE_INTERVAL_MILLIS = 5_000L
     }
 }
+
+internal fun List<Track>.withLatestMetadata(tracksById: Map<String, Track>): List<Track> =
+    map { track -> tracksById[track.id] ?: track }
 
 internal fun shouldSkipToPreviousMediaItem(
     positionMillis: Long,

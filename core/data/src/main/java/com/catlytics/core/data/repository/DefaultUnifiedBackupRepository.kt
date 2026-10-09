@@ -6,7 +6,6 @@ import com.catlytics.core.domain.repository.UnifiedBackupRepository
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.PlaylistExportResult
 import com.catlytics.core.model.PlaylistImportResult
-import com.catlytics.core.model.StatisticsExportResult
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.StatisticsImportResult
 import com.catlytics.core.model.UnifiedBackupPreview
@@ -68,13 +67,10 @@ class DefaultUnifiedBackupRepository @Inject constructor(
                 "Debes seleccionar al menos un tipo de dato para exportar."
             }
 
-            var statsExportResult: StatisticsExportResult? = null
-            val (events, aliases) = if (options.includeStatistics) {
-                val (evs, als) = statisticsBackupRepository.exportEventsAndAliases()
-                statsExportResult = StatisticsExportResult(eventCount = evs.size, artistAliasCount = als.size)
-                evs to als
+            val statistics = if (options.includeStatistics) {
+                statisticsBackupRepository.exportStatisticsSection()
             } else {
-                emptyList<PlaybackEventDto>() to emptyList<ArtistAliasDto>()
+                null
             }
 
             var playlistExportResult: PlaylistExportResult? = null
@@ -91,8 +87,9 @@ class DefaultUnifiedBackupRepository @Inject constructor(
                 schemaVersion = SUPPORTED_SCHEMA_VERSION,
                 exportedAtMillis = System.currentTimeMillis(),
                 appVersion = appVersion,
-                events = events,
-                artistAliases = aliases,
+                events = statistics?.events.orEmpty(),
+                artistAliases = statistics?.artistAliases.orEmpty(),
+                trackMetadataOverrides = statistics?.trackMetadataOverrides.orEmpty(),
                 playlists = playlistDtos,
             )
 
@@ -102,7 +99,7 @@ class DefaultUnifiedBackupRepository @Inject constructor(
             } ?: error("No se pudo abrir el archivo de destino para exportar el respaldo.")
 
             UnifiedExportResult(
-                statistics = statsExportResult,
+                statistics = statistics?.toExportResult(),
                 playlists = playlistExportResult,
             )
         }
@@ -114,7 +111,7 @@ class DefaultUnifiedBackupRepository @Inject constructor(
                 val document = readDocument(uri)
                 validateDocument(document)
 
-                val statsPreview = if (document.events.isNotEmpty() || document.artistAliases.isNotEmpty()) {
+                val statsPreview = if (document.hasStatistics) {
                     statisticsBackupRepository.previewFromDocument(document)
                 } else null
 
@@ -145,7 +142,7 @@ class DefaultUnifiedBackupRepository @Inject constructor(
             validateDocument(document)
 
             var statsImportResult: StatisticsImportResult? = null
-            if (options.includeStatistics && (document.events.isNotEmpty() || document.artistAliases.isNotEmpty())) {
+            if (options.includeStatistics && document.hasStatistics) {
                 statsImportResult = statisticsBackupRepository.restoreStatistics(document, mode)
             }
 
@@ -203,7 +200,7 @@ class DefaultUnifiedBackupRepository @Inject constructor(
         const val BACKUP_FORMAT = "catlytics.backup"
         const val PLAYLIST_BACKUP_FORMAT = "catlytics.playlists.backup"
         const val LEGACY_STATISTICS_FORMAT = "catlytics.statistics.backup"
-        const val SUPPORTED_SCHEMA_VERSION = 3
+        const val SUPPORTED_SCHEMA_VERSION = 4
         const val MIN_SUPPORTED_SCHEMA_VERSION = 1
         internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
     }

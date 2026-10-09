@@ -165,6 +165,7 @@ fun CatlyticsApp(
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
+    var editMetadataTrackId by remember { mutableStateOf<String?>(null) }
     var detailTopBarColors by remember { mutableStateOf<Map<NavKey, Color>>(emptyMap()) }
     var settingsTopBarTitle by remember { mutableStateOf<String?>(null) }
     var settingsTopBarBackAction by remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -909,6 +910,9 @@ fun CatlyticsApp(
                             onGoToCurrentTrackArtist = {
                                 playbackState.currentTrack?.let(::navigateToArtist)
                             },
+                            onEditCurrentTrackMetadata = {
+                                editMetadataTrackId = playbackState.currentTrack?.id
+                            },
                             isCurrentTrackLiked = isCurrentTrackLiked,
                             queueSourceTitle = queueSourcePlaylist?.let { (id, name) ->
                                 if (id == LIKED_PLAYLIST_ID) {
@@ -970,6 +974,12 @@ fun CatlyticsApp(
             },
             onGoToAlbum = ::navigateToAlbum,
             onGoToArtist = ::navigateToArtist,
+            onEditTrackMetadata = { track ->
+                trackOptionsRequest = null
+                editMetadataTrackId = track.id
+            },
+            editMetadataTrackId = editMetadataTrackId,
+            onDismissEditMetadata = { editMetadataTrackId = null },
             playlistSource = playlistSource,
             playlistSheetSession = playlistSheetSession,
             onDismissPlaylistSheet = { playlistSource = null },

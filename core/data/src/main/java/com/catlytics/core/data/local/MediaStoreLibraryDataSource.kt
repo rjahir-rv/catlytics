@@ -56,6 +56,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             val isMusicColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC)
             val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
             val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+            val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
             val relativePathColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH)
             } else {
@@ -92,6 +93,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
                     isMusic = cursor.getInt(isMusicColumn),
                     dateAddedSeconds = cursor.getLong(dateAddedColumn),
                     mediaUri = mediaUri,
+                    displayName = cursor.getString(displayNameColumn),
                     scanSettings = settings,
                     folder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                         MediaStoreAudioMapper.folderFromRelativePath(
@@ -123,6 +125,7 @@ internal object MediaStoreAudioMapper {
         add(MediaStore.Audio.Media.IS_MUSIC)
         add(MediaStore.Audio.Media.SIZE)
         add(MediaStore.Audio.Media.DATE_ADDED)
+        add(MediaStore.Audio.Media.DISPLAY_NAME)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             add(MediaStore.Audio.Media.RELATIVE_PATH)
             add(MediaStore.Audio.Media.VOLUME_NAME)
@@ -145,6 +148,7 @@ internal object MediaStoreAudioMapper {
         isMusic: Int,
         dateAddedSeconds: Long = 0L,
         mediaUri: String,
+        displayName: String? = null,
         folder: MediaFolderMetadata? = null,
         scanSettings: MusicScanSettings = MusicScanSettings(),
     ): TrackEntity? {
@@ -185,7 +189,14 @@ internal object MediaStoreAudioMapper {
             folderId = folder?.id,
             folderName = folder?.name,
             folderPath = folder?.path,
+            fileKey = fileKey(folder, displayName),
         )
+    }
+
+    fun fileKey(folder: MediaFolderMetadata?, displayName: String?): String? {
+        val folderId = folder?.id ?: return null
+        val name = displayName?.takeUnless(String::isBlank) ?: return null
+        return "$folderId/$name"
     }
 
     fun folderFromRelativePath(

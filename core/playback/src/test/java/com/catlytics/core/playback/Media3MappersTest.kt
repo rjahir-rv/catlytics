@@ -53,6 +53,40 @@ class Media3MappersTest {
     }
 
     @Test
+    fun `edited artwork paths become file uris and album title is exposed`() {
+        val track = Track(
+            id = "track-1",
+            title = "Canción",
+            artist = Artist(id = "artist-1", name = "Artista"),
+            durationMillis = 1_000L,
+            mediaUri = "content://media/external/audio/media/1",
+            artworkUri = "/data/user/0/com.catlytics/files/track_artwork/track-1-a.cover",
+            albumTitle = "Demos",
+        )
+
+        val metadata = track.toMediaItem().mediaMetadata
+
+        assertEquals(
+            "file:///data/user/0/com.catlytics/files/track_artwork/track-1-a.cover",
+            metadata.artworkUri.toString(),
+        )
+        assertEquals("Demos", metadata.albumTitle.toString())
+    }
+
+    @Test
+    fun `queued tracks pick up edited metadata and keep unknown ones`() {
+        val queued = listOf(
+            Track("a", "Old", Artist("x", "X"), 1L, mediaUri = "content://a"),
+            Track("gone", "Gone", Artist("x", "X"), 1L, mediaUri = "content://gone"),
+        )
+        val edited = queued.first().copy(title = "New", artist = Artist("y", "Y"))
+
+        val refreshed = queued.withLatestMetadata(mapOf("a" to edited))
+
+        assertEquals(listOf(edited, queued[1]), refreshed)
+    }
+
+    @Test
     fun `repeat modes map from media3 constants`() {
         assertEquals(PlaybackRepeatMode.Off, Player.REPEAT_MODE_OFF.toPlaybackRepeatMode())
         assertEquals(PlaybackRepeatMode.One, Player.REPEAT_MODE_ONE.toPlaybackRepeatMode())

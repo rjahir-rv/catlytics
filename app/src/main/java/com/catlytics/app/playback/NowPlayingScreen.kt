@@ -107,6 +107,7 @@ fun NowPlayingScreen(
     isCurrentTrackLiked: Boolean,
     onAddCurrentTrackToLiked: () -> Unit,
     queueSourceTitle: String? = null,
+    onEditCurrentTrackMetadata: () -> Unit = {},
     sleepTimerState: SleepTimerState = SleepTimerState.Inactive,
     onStartSleepTimer: (Int) -> Unit = {},
     onCancelSleepTimer: () -> Unit = {},
@@ -123,7 +124,6 @@ fun NowPlayingScreen(
         target = gradientColors,
         labelPrefix = "NowPlayingGradient",
     )
-    // Mismo acento que el mini player: color vibrante de la carátula, o primary sin carátula.
     val accent by animateColorAsState(
         targetValue = if (accentTarget.isSpecified) accentTarget else primary,
         animationSpec = tween(ACCENT_ANIMATION_MILLIS),
@@ -227,6 +227,7 @@ fun NowPlayingScreen(
                                 onAddToQueue = onAddCurrentTrackToQueue,
                                 onGoToAlbum = onGoToCurrentTrackAlbum,
                                 onGoToArtist = onGoToCurrentTrackArtist,
+                                onEditMetadata = onEditCurrentTrackMetadata,
                             )
                         }
                     },

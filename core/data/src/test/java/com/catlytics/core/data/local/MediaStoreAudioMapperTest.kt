@@ -47,6 +47,27 @@ class MediaStoreAudioMapperTest {
     }
 
     @Test
+    fun `file key combines folder and file name so it survives reindexing`() {
+        val folder = MediaStoreAudioMapper.folderFromRelativePath("external_primary", "Music/Rock/")
+        fun scan(id: Long) = MediaStoreAudioMapper.toTrackEntity(
+            id = id,
+            title = "Song",
+            artist = "Artist",
+            artistId = 1L,
+            albumId = 1L,
+            durationMillis = 180_000L,
+            isMusic = 1,
+            mediaUri = "content://media/external/audio/media/$id",
+            displayName = "song.mp3",
+            folder = folder,
+        )
+
+        assertEquals("external_primary:Music/Rock/song.mp3", scan(1L)?.fileKey)
+        assertEquals(scan(1L)?.fileKey, scan(999L)?.fileKey)
+        assertEquals(null, MediaStoreAudioMapper.fileKey(folder = null, displayName = "a.mp3"))
+    }
+
+    @Test
     fun `toTrackEntity ignores missing date added`() {
         val withoutDate = MediaStoreAudioMapper.toTrackEntity(
             id = 42L,

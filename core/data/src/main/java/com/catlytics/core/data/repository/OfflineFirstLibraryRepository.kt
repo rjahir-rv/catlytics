@@ -7,6 +7,7 @@ import com.catlytics.core.data.model.toDomain
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
+import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
@@ -22,86 +23,46 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 class OfflineFirstLibraryRepository @Inject constructor(
     private val localDataSource: LocalDataSource,
     private val mediator: DataMediator,
     private val preferencesRepository: LibraryPreferencesRepository,
     private val artistIdentityRepository: ArtistIdentityRepository,
+    private val trackMetadataRepository: TrackMetadataRepository,
 ) : LibraryRepository {
-    override fun observeAlbums(): Flow<List<Album>> = combine(
-        localDataSource.observeTracks(),
-        preferencesRepository.observeHiddenFolderIds(),
-        artistIdentityRepository.observeAliases(),
-    ) { tracks, hiddenFolderIds, aliases ->
-        tracks
-            .filterVisible(hiddenFolderIds)
-            .canonicalizeArtists(aliases)
-            .toAlbums()
-    }
+    override fun observeAlbums(): Flow<List<Album>> = observeVisibleTracks()
+        .map { tracks -> tracks.toAlbums() }
 
-    override fun observeAlbumContent(albumId: String): Flow<AlbumContent?> = combine(
-        localDataSource.observeTracks(),
-        preferencesRepository.observeHiddenFolderIds(),
-        artistIdentityRepository.observeAliases(),
-    ) { tracks, hiddenFolderIds, aliases ->
-        tracks
-            .filterVisible(hiddenFolderIds)
-            .canonicalizeArtists(aliases)
-            .toAlbumContent(albumId)
-    }
+    override fun observeAlbumContent(albumId: String): Flow<AlbumContent?> = observeVisibleTracks()
+        .map { tracks -> tracks.toAlbumContent(albumId) }
 
-    override fun observeArtists(): Flow<List<ArtistSummary>> = combine(
-        localDataSource.observeTracks(),
-        preferencesRepository.observeHiddenFolderIds(),
-        artistIdentityRepository.observeAliases(),
-    ) { tracks, hiddenFolderIds, aliases ->
-        tracks
-            .filterVisible(hiddenFolderIds)
-            .canonicalizeArtists(aliases)
-            .toArtists()
-    }
+    override fun observeArtists(): Flow<List<ArtistSummary>> = observeVisibleTracks()
+        .map { tracks -> tracks.toArtists() }
 
     override fun observeArtistContent(artistId: String): Flow<ArtistContent?> = combine(
-        localDataSource.observeTracks(),
-        preferencesRepository.observeHiddenFolderIds(),
+        observeVisibleTracks(),
         artistIdentityRepository.observeAliases(),
-    ) { tracks, hiddenFolderIds, aliases ->
+    ) { tracks, aliases ->
         val resolvedArtistId = aliases
             .firstOrNull { it.source.id == artistId }
             ?.let(tracks::resolveTargetArtist)
             ?.id
             ?: artistId
-        tracks
-            .filterVisible(hiddenFolderIds)
-            .canonicalizeArtists(aliases)
-            .toArtistContent(resolvedArtistId)
+        tracks.toArtistContent(resolvedArtistId)
     }
 
-    override fun observeTracks(): Flow<List<Track>> = combine(
-        localDataSource.observeTracks(),
-        preferencesRepository.observeHiddenFolderIds(),
-        artistIdentityRepository.observeAliases(),
-    ) { tracks, hiddenFolderIds, aliases ->
-        tracks
-            .filterVisible(hiddenFolderIds)
-            .canonicalizeArtists(aliases)
-            .map { it.toDomain() }
-    }
+    override fun observeTracks(): Flow<List<Track>> = observeVisibleTracks()
+        .map { tracks -> tracks.map(TrackEntity::toDomain) }
 
-    override fun observeAllTracks(): Flow<List<Track>> = combine(
-        localDataSource.observeTracks(),
-        artistIdentityRepository.observeAliases(),
-    ) { tracks, aliases ->
-        tracks.canonicalizeArtists(aliases).map(TrackEntity::toDomain)
-    }
+    override fun observeAllTracks(): Flow<List<Track>> = observeResolvedTracks()
+        .map { tracks -> tracks.map(TrackEntity::toDomain) }
 
     override fun observeFolders(): Flow<List<LibraryFolder>> = combine(
-        localDataSource.observeTracks(),
+        observeResolvedTracks(),
         preferencesRepository.observeHiddenFolderIds(),
-        artistIdentityRepository.observeAliases(),
-    ) { tracks, hiddenFolderIds, aliases ->
-        val canonicalTracks = tracks.canonicalizeArtists(aliases)
+    ) { canonicalTracks, hiddenFolderIds ->
         val rootFolderIds = canonicalTracks.mapNotNull(TrackEntity::toBaseFolder)
             .map(FolderTrack::folderId)
             .toSet()
@@ -109,17 +70,15 @@ class OfflineFirstLibraryRepository @Inject constructor(
     }
 
     override fun observeFolderContent(folderId: String): Flow<LibraryFolderContent?> = combine(
-        localDataSource.observeTracks(),
+        observeResolvedTracks(),
         preferencesRepository.observeHiddenFolderIds(),
-        artistIdentityRepository.observeAliases(),
-    ) { tracks, hiddenFolderIds, aliases ->
-        tracks.canonicalizeArtists(aliases)
-            .toLibraryFolderContent(folderId, hiddenFolderIds)
+    ) { tracks, hiddenFolderIds ->
+        tracks.toLibraryFolderContent(folderId, hiddenFolderIds)
     }
 
     override suspend fun resolvePlaylistSource(source: PlaylistSource): List<Track> {
         val aliases = artistIdentityRepository.observeAliases().first()
-        val tracks = localDataSource.observeTracks().first().canonicalizeArtists(aliases)
+        val tracks = observeResolvedTracks().first()
         return when (source) {
             is PlaylistSource.TrackSource -> tracks.filter { it.id == source.trackId }
             is PlaylistSource.AlbumSource -> tracks.filter { it.albumId == source.albumId }
@@ -142,6 +101,20 @@ class OfflineFirstLibraryRepository @Inject constructor(
             }
         }.map(TrackEntity::toDomain)
     }
+
+    /** Scanned tracks with metadata edits applied first, then artist aliases on top. */
+    private fun observeResolvedTracks(): Flow<List<TrackEntity>> = combine(
+        localDataSource.observeTracks(),
+        trackMetadataRepository.observeOverrides(),
+        artistIdentityRepository.observeAliases(),
+    ) { tracks, overrides, aliases ->
+        tracks.applyMetadataOverrides(overrides).canonicalizeArtists(aliases)
+    }
+
+    private fun observeVisibleTracks(): Flow<List<TrackEntity>> = combine(
+        observeResolvedTracks(),
+        preferencesRepository.observeHiddenFolderIds(),
+    ) { tracks, hiddenFolderIds -> tracks.filterVisible(hiddenFolderIds) }
 
     override suspend fun refreshTracks(): Int {
         val previousTrackIds = localDataSource.observeTracks().first()
@@ -191,6 +164,7 @@ private fun List<TrackEntity>.toAlbums(): List<Album> = mapNotNull { track ->
         artistId = track.artistId,
         artistName = track.artistName,
         artworkUri = track.artworkUri,
+        hasArtworkOverride = track.hasArtworkOverride,
     )
 }.groupBy(AlbumTrack::albumId)
     .map { (albumId, tracks) ->
@@ -199,7 +173,8 @@ private fun List<TrackEntity>.toAlbums(): List<Album> = mapNotNull { track ->
             id = albumId,
             title = album.albumTitle,
             artist = Artist(album.artistId, album.artistName),
-            artworkUri = tracks.firstNotNullOfOrNull(AlbumTrack::artworkUri),
+            artworkUri = tracks.firstOrNull(AlbumTrack::hasArtworkOverride)?.artworkUri
+                ?: tracks.firstNotNullOfOrNull(AlbumTrack::artworkUri),
             trackCount = tracks.size,
         )
     }
@@ -209,7 +184,7 @@ private fun List<TrackEntity>.toArtists(): List<ArtistSummary> = groupBy(TrackEn
     .map { (artistId, tracks) ->
         ArtistSummary(
             artist = Artist(artistId, tracks.first().artistName),
-            artworkUri = tracks.firstNotNullOfOrNull(TrackEntity::artworkUri),
+            artworkUri = tracks.groupArtworkUri(),
             albumCount = tracks.mapNotNull(TrackEntity::albumId).distinct().size,
             trackCount = tracks.size,
         )
@@ -248,7 +223,7 @@ private fun List<TrackEntity>.toAlbumContent(albumId: String): AlbumContent? {
             id = albumId,
             title = albumTitle,
             artist = Artist(firstTrack.artistId, firstTrack.artistName),
-            artworkUri = albumTracks.firstNotNullOfOrNull(TrackEntity::artworkUri),
+            artworkUri = albumTracks.groupArtworkUri(),
             trackCount = albumTracks.size,
         ),
         tracks = albumTracks
@@ -269,6 +244,7 @@ private data class AlbumTrack(
     val artistId: String,
     val artistName: String,
     val artworkUri: String?,
+    val hasArtworkOverride: Boolean,
 )
 
 private fun List<TrackEntity>.toLibraryFolders(

@@ -7,14 +7,13 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import androidx.core.net.toUri
+import com.catlytics.core.data.local.ManagedImageStore
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.StatisticsImportMode
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.File
 import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
@@ -40,6 +39,8 @@ class DataStorePlaylistRepository internal constructor(
 ) : PlaylistRepository {
     @Inject
     constructor(@ApplicationContext context: Context) : this(context.playlistsDataStore, context)
+
+    private val coverStore = ManagedImageStore(context, "playlist_covers")
 
     override fun observePlaylists(): Flow<List<Playlist>> = dataStore.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
@@ -232,40 +233,11 @@ class DataStorePlaylistRepository internal constructor(
         }
     }
 
-    private fun copyCoverToInternalIfPossible(sourceUri: String, playlistId: String): String {
-        val ctx = context ?: return sourceUri
-        val coversDir = ctx.filesDir.resolve("playlist_covers").apply { mkdirs() }
-        val target = File(coversDir, "$playlistId-${UUID.randomUUID()}.cover")
-        return try {
-            val src = sourceUri.toUri()
-            val input = ctx.contentResolver.openInputStream(src) ?: return sourceUri
-            input.use {
-                target.outputStream().use { output ->
-                    it.copyTo(output)
-                }
-            }
-            target.absolutePath
-        } catch (_: Exception) {
-            target.delete()
-            sourceUri
-        }
-    }
+    private fun copyCoverToInternalIfPossible(sourceUri: String, playlistId: String): String =
+        coverStore.copyFrom(sourceUri, playlistId) ?: sourceUri
 
     private fun deleteManagedCover(playlistId: String, artworkUri: String?) {
-        val ctx = context ?: return
-        val value = artworkUri ?: return
-        val uri = value.toUri()
-        val cover = when {
-            uri.scheme == null || File(value).isAbsolute -> File(value)
-            uri.scheme == "file" -> uri.path?.let(::File)
-            else -> null
-        } ?: return
-        val coversDir = ctx.filesDir.resolve("playlist_covers")
-        val isManagedCover = runCatching {
-            cover.parentFile?.canonicalFile == coversDir.canonicalFile &&
-                (cover.name == "$playlistId.cover" || cover.name.startsWith("$playlistId-"))
-        }.getOrDefault(false)
-        if (isManagedCover) cover.delete()
+        coverStore.delete(playlistId, artworkUri)
     }
 
     private companion object {

@@ -101,7 +101,10 @@
     <string name="settings_backup_export_dialog_description">Selecciona qué datos deseas incluir en el archivo de respaldo:</string>
     <string name="settings_backup_export_playlists_option">Listas de reproducción (Playlists)</string>
     <string name="settings_backup_export_playlists_count">%1$d listas (%2$d canciones)</string>
-    <string name="settings_backup_export_statistics_option">Estadísticas de escucha</string>
+    <string name="settings_backup_export_statistics_option">Estadísticas y metadatos editados</string>
+    <string name="settings_backup_statistics_with_metadata">%1$s, %2$d canciones editadas</string>
+    <string name="settings_backup_metadata_summary">✏️ Metadatos: %1$d canciones editadas</string>
+    <string name="settings_backup_import_part_metadata">%1$d canciones editadas</string>
     <string name="settings_backup_export_statistics_count">%1$d reproducciones registradas</string>
     <string name="settings_action_export">Exportar</string>
     <string name="settings_action_cancel">Cancelar</string>

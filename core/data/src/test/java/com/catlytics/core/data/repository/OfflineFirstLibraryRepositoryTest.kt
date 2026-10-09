@@ -5,6 +5,10 @@ import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
+import com.catlytics.core.domain.repository.TrackMetadataRepository
+import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackMetadataEdit
+import com.catlytics.core.model.TrackMetadataOverride
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistViewMode
@@ -12,6 +16,7 @@ import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -21,11 +26,13 @@ class OfflineFirstLibraryRepositoryTest {
     private val localDataSource = InMemoryLocalDataSource()
     private val preferencesRepository = FakeLibraryPreferencesRepository()
     private val artistIdentityRepository = FakeArtistIdentityRepository()
+    private val trackMetadataRepository = FakeTrackMetadataRepository()
     private val repository = OfflineFirstLibraryRepository(
         localDataSource = localDataSource,
         mediator = NoOpDataMediator,
         preferencesRepository = preferencesRepository,
         artistIdentityRepository = artistIdentityRepository,
+        trackMetadataRepository = trackMetadataRepository,
     )
 
     @Test
@@ -42,6 +49,7 @@ class OfflineFirstLibraryRepositoryTest {
             },
             preferencesRepository = preferencesRepository,
             artistIdentityRepository = artistIdentityRepository,
+            trackMetadataRepository = trackMetadataRepository,
         )
 
         assertEquals(1, refreshingRepository.refreshTracks())
@@ -350,6 +358,104 @@ class OfflineFirstLibraryRepositoryTest {
         assertEquals(2, folder.trackCount)
     }
 
+    @Test
+    fun `edited album joins an existing album of the same artist`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("tagged", albumId = "album-1", albumTitle = "Debut", artistName = "Nova"),
+                track("untagged", albumId = "album-unknown", albumTitle = "Álbum desconocido"),
+            ),
+        )
+        trackMetadataRepository.overrides.value = listOf(
+            override("untagged", artistName = "nova", albumTitle = "debut"),
+        )
+
+        val albums = repository.observeAlbums().first()
+        val debut = albums.single { it.id == "album-1" }
+        assertEquals(2, debut.trackCount)
+        assertEquals(listOf("album-1"), albums.map { it.id })
+        val artists = repository.observeArtists().first()
+        assertEquals(listOf("artist-tagged"), artists.map { it.artist.id })
+    }
+
+    @Test
+    fun `edited album without a match gets its own album`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(track("solo", albumId = "album-unknown", albumTitle = "Álbum desconocido")),
+        )
+        trackMetadataRepository.overrides.value = listOf(
+            override("solo", title = "Nueva", artistName = "Nadie", albumTitle = "Demos"),
+        )
+
+        val track = repository.observeTracks().first().single()
+        assertEquals("Nueva", track.title)
+        assertEquals("Nadie", track.artist.name)
+        assertEquals("Demos", track.albumTitle)
+        assertEquals("Demos", repository.observeAlbums().first().single().title)
+    }
+
+    @Test
+    fun `override matches by file key when the MediaStore id changed`() = runTest {
+        localDataSource.replaceTracks(listOf(track("new-id").copy(fileKey = "external:Music/a.mp3")))
+        trackMetadataRepository.overrides.value = listOf(
+            override("old-id", title = "Editada").copy(fileKey = "external:Music/a.mp3"),
+        )
+
+        assertEquals("Editada", repository.observeAllTracks().first().single().title)
+    }
+
+    @Test
+    fun `artist aliases apply on top of edited artists`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(track("a", artistName = "Bad Bunny"), track("b", artistName = "Desconocido")),
+        )
+        trackMetadataRepository.overrides.value = listOf(override("b", artistName = "Benito"))
+        artistIdentityRepository.merge(Artist("x", "Benito"), Artist("artist-a", "Bad Bunny"))
+
+        assertEquals(
+            listOf("Bad Bunny"),
+            repository.observeArtists().first().map { it.artist.name },
+        )
+    }
+
+    @Test
+    fun `edited artwork wins over MediaStore album artwork`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("one", albumId = "album", albumTitle = "A", artworkUri = "content://art/1"),
+                track("two", albumId = "album", albumTitle = "A", artworkUri = "content://art/1"),
+            ),
+        )
+        trackMetadataRepository.overrides.value = listOf(
+            override("two", artworkUri = "/data/track_artwork/two.cover"),
+        )
+
+        assertEquals(
+            "/data/track_artwork/two.cover",
+            repository.observeAlbums().first().single().artworkUri,
+        )
+    }
+
+    private fun override(
+        trackId: String,
+        title: String? = null,
+        artistName: String? = null,
+        albumTitle: String? = null,
+        artworkUri: String? = null,
+    ) = TrackMetadataOverride(
+        trackId = trackId,
+        fileKey = null,
+        title = title,
+        artistName = artistName,
+        albumTitle = albumTitle,
+        artworkUri = artworkUri,
+        originalTitle = "Track $trackId",
+        originalArtistName = "Artist $trackId",
+        originalAlbumTitle = null,
+        durationMillis = 180_000L,
+        updatedAtMillis = 1L,
+    )
+
     private fun track(
         id: String,
         folderId: String? = null,
@@ -410,6 +516,16 @@ private class FakeArtistIdentityRepository : ArtistIdentityRepository {
         this.aliases.value += newAliases
         return newAliases.size
     }
+}
+
+private class FakeTrackMetadataRepository : TrackMetadataRepository {
+    val overrides = MutableStateFlow(emptyList<TrackMetadataOverride>())
+
+    override fun observeOverrides() = overrides
+    override fun observeOriginalTrack(trackId: String) = flowOf<Track?>(null)
+    override suspend fun saveEdit(trackId: String, edit: TrackMetadataEdit) = Unit
+    override suspend fun reset(trackId: String) = Unit
+    override suspend fun writeTagsToFile(trackId: String) = Unit
 }
 
 private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {

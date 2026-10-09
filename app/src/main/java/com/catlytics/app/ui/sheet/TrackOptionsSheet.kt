@@ -45,6 +45,7 @@ internal data class TrackOptionsCallbacks(
     val onGoToAlbum: () -> Unit,
     val onGoToArtist: () -> Unit,
     val onRemoveFromPlaylist: () -> Unit,
+    val onEditMetadata: (() -> Unit)? = null,
 )
 
 internal fun buildTrackOptions(
@@ -103,6 +104,15 @@ internal fun buildTrackOptions(
             onClick = callbacks.onGoToArtist,
         ),
     )
+    callbacks.onEditMetadata?.let { onEditMetadata ->
+        add(
+            TrackOption(
+                textRes = AppR.string.app_track_option_edit_metadata,
+                icon = R.drawable.ic_edit,
+                onClick = onEditMetadata,
+            ),
+        )
+    }
     if (canRemoveFromPlaylist) {
         add(
             TrackOption(
@@ -129,6 +139,7 @@ internal fun TrackOptionsSheet(
     onGoToAlbum: () -> Unit,
     onGoToArtist: () -> Unit,
     onRemoveFromPlaylist: () -> Unit,
+    onEditMetadata: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val options = buildTrackOptions(
@@ -144,6 +155,7 @@ internal fun TrackOptionsSheet(
             onGoToAlbum = onGoToAlbum,
             onGoToArtist = onGoToArtist,
             onRemoveFromPlaylist = onRemoveFromPlaylist,
+            onEditMetadata = onEditMetadata,
         ),
     )
 
@@ -182,6 +194,7 @@ internal fun TrackOptionsDropdownMenu(
     onGoToAlbum: () -> Unit,
     onGoToArtist: () -> Unit,
     modifier: Modifier = Modifier,
+    onEditMetadata: (() -> Unit)? = null,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val options = buildTrackOptions(
@@ -197,6 +210,7 @@ internal fun TrackOptionsDropdownMenu(
             onGoToAlbum = onGoToAlbum,
             onGoToArtist = onGoToArtist,
             onRemoveFromPlaylist = {},
+            onEditMetadata = onEditMetadata,
         ),
     )
 

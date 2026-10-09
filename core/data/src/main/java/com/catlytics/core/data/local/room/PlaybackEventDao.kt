@@ -62,8 +62,8 @@ interface PlaybackEventDao {
                COALESCE(MAX(alias.target_artist_name), MAX(artist_name)) AS artistName,
                artwork_uri AS artworkUri,
                MAX(timestamp) AS lastListenedAtMillis
-        FROM playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = playback_events.artist_key
+        FROM resolved_playback_events
+        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
         GROUP BY track_id
         ORDER BY lastListenedAtMillis DESC
         LIMIT :limit
@@ -77,8 +77,8 @@ interface PlaybackEventDao {
                artwork_uri AS artworkUri, 
                COUNT(*) AS playCount, 
                SUM(duration_listened_millis) AS totalListenedMillis
-        FROM playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = playback_events.artist_key
+        FROM resolved_playback_events
+        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
         GROUP BY track_id
         ORDER BY playCount DESC, totalListenedMillis DESC
@@ -92,8 +92,8 @@ interface PlaybackEventDao {
                MAX(artwork_uri) AS artworkUri, 
                COUNT(*) AS playCount, 
                SUM(duration_listened_millis) AS totalListenedMillis
-        FROM playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = playback_events.artist_key
+        FROM resolved_playback_events
+        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
         GROUP BY COALESCE(alias.target_key, artist_key)
         ORDER BY totalListenedMillis DESC
@@ -108,8 +108,8 @@ interface PlaybackEventDao {
                MAX(artwork_uri) AS artworkUri,
                COUNT(*) AS playCount,
                SUM(duration_listened_millis) AS totalListenedMillis
-        FROM playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = playback_events.artist_key
+        FROM resolved_playback_events
+        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
           AND album_id IS NOT NULL
         GROUP BY album_id
@@ -157,8 +157,8 @@ interface PlaybackEventDao {
         SELECT COUNT(DISTINCT track_id) AS trackCount,
                COUNT(DISTINCT COALESCE(alias.target_key, artist_key)) AS artistCount,
                COUNT(DISTINCT album_id) AS albumCount
-        FROM playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = playback_events.artist_key
+        FROM resolved_playback_events
+        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
     """)
     fun observePeriodUniqueCounts(
@@ -170,8 +170,8 @@ interface PlaybackEventDao {
         SELECT COUNT(DISTINCT track_id) AS trackCount,
                COUNT(DISTINCT COALESCE(alias.target_key, artist_key)) AS artistCount,
                COUNT(DISTINCT album_id) AS albumCount
-        FROM playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = playback_events.artist_key
+        FROM resolved_playback_events
+        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
     """)
     fun observeListeningTotals(): Flow<ListeningTotals>
 

@@ -1,6 +1,8 @@
 package com.catlytics.core.playback
 
 import android.net.Uri
+import androidx.core.net.toUri
+import java.io.File
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -18,11 +20,15 @@ fun Track.toMediaItem(): MediaItem = MediaItem.Builder()
         MediaMetadata.Builder()
             .setTitle(title)
             .setArtist(artist.name)
+            .setAlbumTitle(albumTitle)
             .setDurationMs(durationMillis)
-            .setArtworkUri(artworkUri?.let(Uri::parse))
+            .setArtworkUri(artworkUri?.toArtworkUri())
             .build(),
     )
     .build()
+
+/** Edited covers are stored as absolute paths in app storage; MediaStore ones are content URIs. */
+private fun String.toArtworkUri(): Uri = if (startsWith("/")) Uri.fromFile(File(this)) else toUri()
 
 internal fun Player.toPlaybackState(
     queue: List<Track>,

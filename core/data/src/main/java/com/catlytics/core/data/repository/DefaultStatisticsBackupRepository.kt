@@ -22,6 +22,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
@@ -38,6 +39,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
     private val playbackEventRepository: PlaybackEventRepository,
     private val artistIdentityRepository: ArtistIdentityRepository,
     private val database: CatlyticsDatabase,
+    private val trackMetadataRepository: RoomTrackMetadataRepository,
 ) : StatisticsBackupRepository {
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
@@ -50,13 +52,17 @@ class DefaultStatisticsBackupRepository @Inject constructor(
     override fun observeLocalSummary(): Flow<StatisticsBackupSummary> = combine(
         playbackEventRepository.observeBackupSummary(),
         artistIdentityRepository.observeAliases(),
-    ) { summary, aliases -> summary.copy(artistAliasCount = aliases.size) }
-
-    internal suspend fun exportEventsAndAliases(): Pair<List<PlaybackEventDto>, List<ArtistAliasDto>> {
-        val events = playbackEventRepository.getAllEvents().map { it.toDto() }
-        val aliases = artistIdentityRepository.getAliases().map { it.toDto() }
-        return events to aliases
+        trackMetadataRepository.observeOverrides(),
+    ) { summary, aliases, overrides ->
+        summary.copy(artistAliasCount = aliases.size, metadataEditCount = overrides.size)
     }
+
+    /** Statistics travel with aliases and metadata edits, since both regroup the history. */
+    internal suspend fun exportStatisticsSection(): StatisticsBackupSection = StatisticsBackupSection(
+        events = playbackEventRepository.getAllEvents().map { it.toDto() },
+        artistAliases = artistIdentityRepository.getAliases().map { it.toDto() },
+        trackMetadataOverrides = trackMetadataRepository.exportForBackup(),
+    )
 
     internal fun previewFromDocument(document: StatisticsBackupDocument): StatisticsBackupPreview {
         return StatisticsBackupPreview(
@@ -66,6 +72,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
             firstEventMillis = document.events.minOfOrNull { it.timestamp },
             lastEventMillis = document.events.maxOfOrNull { it.timestamp },
             artistAliasCount = document.artistAliases.size,
+            metadataEditCount = document.trackMetadataOverrides.size,
         )
     }
 
@@ -76,32 +83,44 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         val parsedEvents = document.events.map { it.toDomain() }
         val parsedAliases = document.artistAliases.map { it.toDomain() }
         val totalInFile = parsedEvents.size
+        val overrides = trackMetadataRepository.prepareBackupRestore(document.trackMetadataOverrides)
 
-        return when (mode) {
-            StatisticsImportMode.Replace -> {
-                database.withTransaction {
-                    playbackEventRepository.replaceEvents(parsedEvents)
-                    if (document.schemaVersion >= ALIAS_SCHEMA_VERSION) {
-                        artistIdentityRepository.replaceAliases(parsedAliases)
+        return try {
+            when (mode) {
+                StatisticsImportMode.Replace -> {
+                    database.withTransaction {
+                        playbackEventRepository.replaceEvents(parsedEvents)
+                        if (document.schemaVersion >= ALIAS_SCHEMA_VERSION) {
+                            artistIdentityRepository.replaceAliases(parsedAliases)
+                        }
+                        if (document.schemaVersion >= METADATA_SCHEMA_VERSION) {
+                            trackMetadataRepository.replaceFromBackup(overrides)
+                        }
                     }
+                    StatisticsImportResult(
+                        importedCount = totalInFile,
+                        skippedDuplicateCount = 0,
+                        totalInFile = totalInFile,
+                        importedArtistAliasCount = parsedAliases.size,
+                        importedMetadataEditCount = overrides.size,
+                    )
                 }
-                StatisticsImportResult(
-                    importedCount = totalInFile,
-                    skippedDuplicateCount = 0,
-                    totalInFile = totalInFile,
-                    importedArtistAliasCount = parsedAliases.size,
-                )
+                StatisticsImportMode.Merge -> {
+                    val importedCount = playbackEventRepository.insertEventsIfAbsent(parsedEvents)
+                    val importedAliasCount = artistIdentityRepository.mergeAliases(parsedAliases)
+                    val importedEditCount = trackMetadataRepository.mergeFromBackup(overrides)
+                    StatisticsImportResult(
+                        importedCount = importedCount,
+                        skippedDuplicateCount = totalInFile - importedCount,
+                        totalInFile = totalInFile,
+                        importedArtistAliasCount = importedAliasCount,
+                        importedMetadataEditCount = importedEditCount,
+                    )
+                }
             }
-            StatisticsImportMode.Merge -> {
-                val importedCount = playbackEventRepository.insertEventsIfAbsent(parsedEvents)
-                val importedAliasCount = artistIdentityRepository.mergeAliases(parsedAliases)
-                StatisticsImportResult(
-                    importedCount = importedCount,
-                    skippedDuplicateCount = totalInFile - importedCount,
-                    totalInFile = totalInFile,
-                    importedArtistAliasCount = importedAliasCount,
-                )
-            }
+        } finally {
+            // Drops artwork written for edits that were skipped, rolled back or replaced.
+            withContext(NonCancellable) { trackMetadataRepository.deleteUnreferencedArtwork() }
         }
     }
 
@@ -110,14 +129,15 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         appVersion: String,
     ): Result<StatisticsExportResult> = withContext(ioDispatcher) {
         runSuspendCatching {
-            val (events, aliases) = exportEventsAndAliases()
+            val section = exportStatisticsSection()
             val document = StatisticsBackupDocument(
                 format = BACKUP_FORMAT,
                 schemaVersion = SUPPORTED_SCHEMA_VERSION,
                 exportedAtMillis = System.currentTimeMillis(),
                 appVersion = appVersion,
-                events = events,
-                artistAliases = aliases,
+                events = section.events,
+                artistAliases = section.artistAliases,
+                trackMetadataOverrides = section.trackMetadataOverrides,
             )
             context.contentResolver.openOutputStream(uri.toUri())?.use { output ->
                 writeDocument(
@@ -126,10 +146,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
                 )
                 output.flush()
             } ?: error("No se pudo abrir el archivo de destino para exportar.")
-            StatisticsExportResult(
-                eventCount = events.size,
-                artistAliasCount = aliases.size,
-            )
+            section.toExportResult()
         }
     }
 
@@ -198,6 +215,11 @@ class DefaultStatisticsBackupRepository @Inject constructor(
                 "Fusión $index: origen y principal son iguales."
             }
         }
+        document.trackMetadataOverrides.forEachIndexed { index, override ->
+            require(override.trackId.isNotBlank()) { "Edición $index: trackId vacío." }
+            require(override.originalTitle.isNotBlank()) { "Edición $index: título original vacío." }
+            require(override.hasEdits) { "Edición $index: no contiene cambios." }
+        }
         require(
             document.artistAliases
                 .map { com.catlytics.core.model.artistIdentityKey(it.sourceArtistName) }
@@ -233,9 +255,10 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         const val BACKUP_FORMAT = "catlytics.statistics.backup"
         const val UNIFIED_BACKUP_FORMAT = "catlytics.backup"
         const val PLAYLIST_BACKUP_FORMAT = "catlytics.playlists.backup"
-        const val SUPPORTED_SCHEMA_VERSION = 3
+        const val SUPPORTED_SCHEMA_VERSION = 4
         const val MIN_SUPPORTED_SCHEMA_VERSION = 1
         const val ALIAS_SCHEMA_VERSION = 2
+        const val METADATA_SCHEMA_VERSION = 4
         internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
     }
 }
@@ -253,7 +276,23 @@ internal data class StatisticsBackupDocument(
     val events: List<PlaybackEventDto> = emptyList(),
     val artistAliases: List<ArtistAliasDto> = emptyList(),
     val playlists: List<PlaylistBackupDto> = emptyList(),
-)
+    val trackMetadataOverrides: List<TrackMetadataOverrideDto> = emptyList(),
+) {
+    val hasStatistics: Boolean
+        get() = events.isNotEmpty() || artistAliases.isNotEmpty() || trackMetadataOverrides.isNotEmpty()
+}
+
+internal data class StatisticsBackupSection(
+    val events: List<PlaybackEventDto>,
+    val artistAliases: List<ArtistAliasDto>,
+    val trackMetadataOverrides: List<TrackMetadataOverrideDto>,
+) {
+    fun toExportResult() = StatisticsExportResult(
+        eventCount = events.size,
+        artistAliasCount = artistAliases.size,
+        metadataEditCount = trackMetadataOverrides.size,
+    )
+}
 @OptIn(
     ExperimentalSerializationApi::class,
     InternalSerializationApi::class,

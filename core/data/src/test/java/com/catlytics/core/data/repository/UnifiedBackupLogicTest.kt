@@ -7,6 +7,8 @@ import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtworkEdit
+import com.catlytics.core.model.TrackMetadataEdit
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackEvent
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -39,6 +42,7 @@ class UnifiedBackupLogicTest {
     private lateinit var eventRepository: RoomPlaybackEventRepository
     private lateinit var artistIdentityRepository: RoomArtistIdentityRepository
     private lateinit var localDataSource: InMemoryLocalDataSource
+    private lateinit var metadataRepository: RoomTrackMetadataRepository
     private lateinit var playlistRepository: DataStorePlaylistRepository
     private lateinit var statisticsBackupRepository: DefaultStatisticsBackupRepository
     private lateinit var playlistBackupRepository: DefaultPlaylistBackupRepository
@@ -55,6 +59,7 @@ class UnifiedBackupLogicTest {
         eventRepository = RoomPlaybackEventRepository(database.playbackEventDao())
         artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao())
         localDataSource = InMemoryLocalDataSource()
+        metadataRepository = metadataRepository(context, database, localDataSource)
         val dataStoreFile = temporaryFolder.newFile("playlists_test.preferences_pb")
         playlistRepository = DataStorePlaylistRepository(
             dataStore = PreferenceDataStoreFactory.create(produceFile = { dataStoreFile }),
@@ -65,6 +70,7 @@ class UnifiedBackupLogicTest {
             playbackEventRepository = eventRepository,
             artistIdentityRepository = artistIdentityRepository,
             database = database,
+            trackMetadataRepository = metadataRepository,
         )
         playlistBackupRepository = DefaultPlaylistBackupRepository(
             context = context,
@@ -233,6 +239,96 @@ class UnifiedBackupLogicTest {
         val restored = playlistRepository.observePlaylists().first()
         val mix = restored.first { it.name == "Mix" }
         assertTrue(mix.trackIds.isEmpty())
+    }
+
+    @Test
+    fun `metadata edits round-trip with artwork onto changed MediaStore ids`() = runTest(testDispatcher) {
+        localDataSource.replaceTracks(
+            listOf(track(id = "ms-1", title = "Song A", artist = "Artist A").copy(fileKey = "external:Music/a.mp3")),
+        )
+        val picked = temporaryFolder.newFile("cover.jpg").apply { writeBytes(byteArrayOf(9, 8, 7)) }
+        metadataRepository.saveEdit(
+            "ms-1",
+            TrackMetadataEdit(
+                title = "Canción A",
+                artistName = "Artista A",
+                albumTitle = "",
+                artwork = ArtworkEdit.Replace(picked.toURI().toString()),
+            ),
+        )
+        val backupUri = newBackupUri()
+        val export = unifiedBackupRepository.exportToUri(
+            backupUri,
+            BackupOptions(includeStatistics = true, includePlaylists = false),
+            "1.0.0",
+        ).getOrThrow()
+        assertEquals(1, export.statistics?.metadataEditCount)
+        assertEquals(1, unifiedBackupRepository.previewFromUri(backupUri).getOrThrow().statistics?.metadataEditCount)
+
+        // Another device: the same file got a different MediaStore id and no edits exist yet.
+        metadataRepository.reset("ms-1")
+        localDataSource.replaceTracks(
+            listOf(track(id = "ms-77", title = "Song A", artist = "Artist A").copy(fileKey = "external:Music/a.mp3")),
+        )
+        val result = unifiedBackupRepository.importFromUri(
+            backupUri,
+            BackupOptions(includeStatistics = true, includePlaylists = false),
+            StatisticsImportMode.Replace,
+        ).getOrThrow()
+
+        assertEquals(1, result.statistics?.importedMetadataEditCount)
+        val restored = metadataRepository.observeOverrides().first().single()
+        assertEquals("ms-77", restored.trackId)
+        assertEquals("Canción A", restored.title)
+        assertEquals("Artista A", restored.artistName)
+        assertArrayEquals(byteArrayOf(9, 8, 7), File(restored.artworkUri!!).readBytes())
+    }
+
+    @Test
+    fun `merging metadata edits keeps the most recent version`() = runTest(testDispatcher) {
+        localDataSource.replaceTracks(listOf(track(id = "ms-1", title = "Song A", artist = "Artist A")))
+        var now = 10L
+        val clockedRepository = metadataRepository(context, database, localDataSource) { now }
+        clockedRepository.saveEdit("ms-1", TrackMetadataEdit("Vieja", "Artist A", ""))
+        val backupUri = newBackupUri()
+        unifiedBackupRepository.exportToUri(
+            backupUri,
+            BackupOptions(includeStatistics = true, includePlaylists = false),
+            "1.0.0",
+        ).getOrThrow()
+        now = 20L
+        clockedRepository.saveEdit("ms-1", TrackMetadataEdit("Nueva", "Artist A", ""))
+
+        val result = unifiedBackupRepository.importFromUri(
+            backupUri,
+            BackupOptions(includeStatistics = true, includePlaylists = false),
+            StatisticsImportMode.Merge,
+        ).getOrThrow()
+
+        assertEquals(0, result.statistics?.importedMetadataEditCount)
+        assertEquals("Nueva", metadataRepository.observeOverrides().first().single().title)
+    }
+
+    @Test
+    fun `replacing from a v3 backup keeps local metadata edits`() = runTest(testDispatcher) {
+        localDataSource.replaceTracks(listOf(track(id = "ms-1", title = "Song A", artist = "Artist A")))
+        metadataRepository.saveEdit("ms-1", TrackMetadataEdit("Editada", "Artist A", ""))
+        val file = temporaryFolder.newFile("v3.json").apply {
+            writeText(
+                """{"format":"catlytics.backup","schemaVersion":3,"exportedAtMillis":1000,""" +
+                    """"events":[{"trackId":"ms-1","trackTitle":"Song A","artistId":"a",""" +
+                    """"artistName":"Artist A","durationListenedMillis":1000,"timestamp":5000}]}""",
+            )
+        }
+
+        unifiedBackupRepository.importFromUri(
+            file.toURI().toString(),
+            BackupOptions(includeStatistics = true, includePlaylists = false),
+            StatisticsImportMode.Replace,
+        ).getOrThrow()
+
+        assertEquals("Editada", metadataRepository.observeOverrides().first().single().title)
+        assertEquals(1, eventRepository.getAllEvents().size)
     }
 
     private fun newBackupUri(): String {

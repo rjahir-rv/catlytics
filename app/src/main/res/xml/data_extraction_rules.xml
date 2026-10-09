@@ -6,6 +6,7 @@
         <include domain="file" path="datastore/library_preferences.preferences_pb" />
         <include domain="file" path="datastore/playlists.preferences_pb" />
         <include domain="file" path="playlist_covers/" />
+        <include domain="file" path="track_artwork/" />
         <exclude domain="file" path="datastore/playback_session.preferences_pb" />
     </cloud-backup>
     <device-transfer>
@@ -14,6 +15,7 @@
         <include domain="file" path="datastore/library_preferences.preferences_pb" />
         <include domain="file" path="datastore/playlists.preferences_pb" />
         <include domain="file" path="playlist_covers/" />
+        <include domain="file" path="track_artwork/" />
         <exclude domain="file" path="datastore/playback_session.preferences_pb" />
     </device-transfer>
 </data-extraction-rules>

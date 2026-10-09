@@ -353,7 +353,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
         const val BACKUP_FORMAT = "catlytics.playlists.backup"
         const val UNIFIED_BACKUP_FORMAT = "catlytics.backup"
         const val LEGACY_STATISTICS_FORMAT = "catlytics.statistics.backup"
-        const val SUPPORTED_SCHEMA_VERSION = 3
+        const val SUPPORTED_SCHEMA_VERSION = 4
         const val MIN_SUPPORTED_SCHEMA_VERSION = 1
         internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
         internal const val MAX_COVER_BYTES = 2L * 1024L * 1024L

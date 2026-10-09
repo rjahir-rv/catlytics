@@ -126,6 +126,16 @@ internal fun UnifiedBackupContent(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
+                    if (summary.statistics.metadataEditCount > 0) {
+                        Text(
+                            text = stringResource(
+                                SettingsR.string.settings_backup_metadata_summary,
+                                summary.statistics.metadataEditCount,
+                            ),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
                 SettingsDivider()
                 SettingsValueRow(
@@ -189,6 +199,14 @@ internal fun UnifiedBackupContent(
                                 stringResource(
                                     SettingsR.string.settings_backup_import_part_playlists,
                                     playlists.importedPlaylistsCount,
+                                ),
+                            )
+                        }
+                        if (stats != null && stats.importedMetadataEditCount > 0) {
+                            add(
+                                stringResource(
+                                    SettingsR.string.settings_backup_import_part_metadata,
+                                    stats.importedMetadataEditCount,
                                 ),
                             )
                         }
@@ -332,9 +350,12 @@ private fun ExportSelectionDialog(
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Text(
-                            text = stringResource(
-                                SettingsR.string.settings_backup_export_statistics_count,
-                                summary.statistics.eventCount,
+                            text = statisticsCountText(
+                                stringResource(
+                                    SettingsR.string.settings_backup_export_statistics_count,
+                                    summary.statistics.eventCount,
+                                ),
+                                summary.statistics.metadataEditCount,
                             ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -477,9 +498,12 @@ private fun ImportConfirmDialog(
                             )
                             val s = preview.statistics!!
                             Text(
-                                text = stringResource(
-                                    SettingsR.string.settings_backup_restore_statistics_count,
-                                    s.eventCount,
+                                text = statisticsCountText(
+                                    stringResource(
+                                        SettingsR.string.settings_backup_restore_statistics_count,
+                                        s.eventCount,
+                                    ),
+                                    s.metadataEditCount,
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -690,3 +714,14 @@ private fun StatusMessage(
     }
 }
 
+@Composable
+private fun statisticsCountText(eventsText: String, metadataEditCount: Int): String =
+    if (metadataEditCount > 0) {
+        stringResource(
+            SettingsR.string.settings_backup_statistics_with_metadata,
+            eventsText,
+            metadataEditCount,
+        )
+    } else {
+        eventsText
+    }

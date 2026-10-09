@@ -369,6 +369,7 @@ data class StatisticsBackupSummary(
     val firstEventMillis: Long?,
     val lastEventMillis: Long?,
     val artistAliasCount: Int = 0,
+    val metadataEditCount: Int = 0,
 )
 
 data class StatisticsBackupPreview(
@@ -378,11 +379,13 @@ data class StatisticsBackupPreview(
     val firstEventMillis: Long?,
     val lastEventMillis: Long?,
     val artistAliasCount: Int = 0,
+    val metadataEditCount: Int = 0,
 )
 
 data class StatisticsExportResult(
     val eventCount: Int,
     val artistAliasCount: Int = 0,
+    val metadataEditCount: Int = 0,
 )
 
 data class StatisticsImportResult(
@@ -390,6 +393,7 @@ data class StatisticsImportResult(
     val skippedDuplicateCount: Int,
     val totalInFile: Int,
     val importedArtistAliasCount: Int = 0,
+    val importedMetadataEditCount: Int = 0,
 )
 
 enum class StatisticsImportMode {

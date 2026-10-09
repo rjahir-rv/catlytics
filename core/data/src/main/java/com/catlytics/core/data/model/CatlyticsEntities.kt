@@ -20,4 +20,6 @@ data class TrackEntity(
     val folderId: String? = null,
     val folderName: String? = null,
     val folderPath: String? = null,
+    val fileKey: String? = null,
+    val hasArtworkOverride: Boolean = false,
 )
