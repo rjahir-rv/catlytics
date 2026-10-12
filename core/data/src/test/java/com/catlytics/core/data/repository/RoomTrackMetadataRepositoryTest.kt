@@ -9,6 +9,8 @@ import com.catlytics.core.data.local.ManagedImageStore
 import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.model.ArtworkEdit
+import com.catlytics.core.model.BulkTrackMetadataEdit
+import com.catlytics.core.model.FieldEdit
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.TrackMetadataEdit
 import java.io.File
@@ -157,6 +159,74 @@ class RoomTrackMetadataRepositoryTest {
         assertEquals("Nova", tags.artist)
         assertEquals("Título one", tags.title)
         assertNull(tags.frontCover)
+    }
+
+    @Test
+    fun `bulk edit only touches the fields it sets`() = runTest {
+        localDataSource.replaceTracks(listOf(track("one"), track("two")))
+        repository.saveEdit("one", edit("one", title = "Propio"))
+
+        val result = repository.saveBulkEdit(
+            listOf("one", "two", "missing"),
+            BulkTrackMetadataEdit(albumTitle = FieldEdit.Set("Recopilatorio")),
+        )
+
+        assertEquals(2, result.updated)
+        assertEquals(1, result.skipped)
+        val overrides = repository.observeOverrides().first().associateBy { it.trackId }
+        assertEquals("Propio", overrides.getValue("one").title)
+        assertEquals("Recopilatorio", overrides.getValue("one").albumTitle)
+        assertNull(overrides.getValue("two").title)
+        assertEquals("Recopilatorio", overrides.getValue("two").albumTitle)
+    }
+
+    @Test
+    fun `bulk restore drops the field and empty overrides`() = runTest {
+        localDataSource.replaceTracks(listOf(track("one"), track("two")))
+        repository.saveEdit("one", edit("one", title = "Propio", artist = "Nova"))
+        repository.saveEdit("two", edit("two", artist = "Nova"))
+
+        repository.saveBulkEdit(
+            listOf("one", "two"),
+            BulkTrackMetadataEdit(artistName = FieldEdit.Restore),
+        )
+
+        val override = repository.observeOverrides().first().single()
+        assertEquals("one", override.trackId)
+        assertEquals("Propio", override.title)
+        assertNull(override.artistName)
+    }
+
+    @Test
+    fun `bulk artwork is stored once and kept while any track uses it`() = runTest {
+        localDataSource.replaceTracks(listOf(track("one"), track("two")))
+        val source = File(context.cacheDir, "shared.jpg").apply { writeBytes(byteArrayOf(4, 5)) }
+
+        repository.saveBulkEdit(
+            listOf("one", "two"),
+            BulkTrackMetadataEdit(artwork = ArtworkEdit.Replace(source.toURI().toString())),
+        )
+
+        val paths = repository.observeOverrides().first().map { it.artworkUri!! }.toSet()
+        val shared = paths.single()
+        assertTrue(File(shared).exists())
+
+        repository.reset("one")
+        assertTrue(File(shared).exists())
+
+        repository.resetMany(listOf("two"))
+        assertFalse(File(shared).exists())
+        assertTrue(repository.observeOverrides().first().isEmpty())
+    }
+
+    @Test
+    fun `writing several files reports the failures`() = runTest {
+        localDataSource.replaceTracks(listOf(track("one")))
+
+        val failures = repository.writeTagsToFiles(listOf("one", "missing"))
+
+        assertEquals(1, failures)
+        assertEquals("content://media/one", tagWriter.writes.single().first)
     }
 
     private suspend fun InMemoryLocalDataSource.track(id: String) =

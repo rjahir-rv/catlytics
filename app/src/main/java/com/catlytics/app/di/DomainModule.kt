@@ -9,6 +9,11 @@ import com.catlytics.core.domain.usecase.library.ObserveEditableTrackMetadataUse
 import com.catlytics.core.domain.usecase.library.ResetTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.SaveTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.WriteTrackTagsToFileUseCase
+import com.catlytics.core.domain.usecase.library.WriteTracksTagsToFilesUseCase
+import com.catlytics.core.domain.usecase.library.ObserveTrackMetadataOverridesUseCase
+import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.ObserveTracksWithOverridesUseCase
+import com.catlytics.core.domain.usecase.library.ResetTracksMetadataUseCase
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
@@ -126,6 +131,28 @@ object DomainModule {
     @Provides
     fun provideWriteTrackTagsToFileUseCase(repository: TrackMetadataRepository) =
         WriteTrackTagsToFileUseCase(repository)
+
+    @Provides
+    fun provideObserveTrackMetadataOverridesUseCase(repository: TrackMetadataRepository) =
+        ObserveTrackMetadataOverridesUseCase(repository)
+
+    @Provides
+    fun provideObserveTracksWithOverridesUseCase(
+        metadataRepository: TrackMetadataRepository,
+        libraryRepository: LibraryRepository,
+    ) = ObserveTracksWithOverridesUseCase(metadataRepository, libraryRepository)
+
+    @Provides
+    fun provideSaveBulkTrackMetadataUseCase(repository: TrackMetadataRepository) =
+        SaveBulkTrackMetadataUseCase(repository)
+
+    @Provides
+    fun provideResetTracksMetadataUseCase(repository: TrackMetadataRepository) =
+        ResetTracksMetadataUseCase(repository)
+
+    @Provides
+    fun provideWriteTracksTagsToFilesUseCase(repository: TrackMetadataRepository) =
+        WriteTracksTagsToFilesUseCase(repository)
 
     @Provides
     fun provideGenerateDailyPlaylistUseCase() = GenerateDailyPlaylistUseCase()

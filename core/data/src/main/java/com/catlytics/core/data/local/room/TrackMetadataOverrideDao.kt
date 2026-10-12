@@ -20,6 +20,16 @@ abstract class TrackMetadataOverrideDao {
     @Query("SELECT * FROM track_metadata_overrides WHERE file_key = :fileKey")
     abstract suspend fun getByFileKey(fileKey: String): TrackMetadataOverrideEntity?
 
+    @Query("SELECT * FROM track_metadata_overrides WHERE track_id IN (:trackIds)")
+    abstract suspend fun getByTrackIds(trackIds: List<String>): List<TrackMetadataOverrideEntity>
+
+    /** Stays under SQLite's bound-variable limit for large selections. */
+    suspend fun getByTrackIdsChunked(trackIds: List<String>): List<TrackMetadataOverrideEntity> =
+        trackIds.chunked(500).flatMap { getByTrackIds(it) }
+
+    @Query("SELECT COUNT(*) FROM track_metadata_overrides WHERE artwork_uri = :artworkUri")
+    abstract suspend fun countByArtworkUri(artworkUri: String): Int
+
     @Upsert
     abstract suspend fun upsert(override: TrackMetadataOverrideEntity)
 
@@ -36,6 +46,15 @@ abstract class TrackMetadataOverrideDao {
             ?.takeIf { it.trackId != override.trackId }
             ?.let { delete(it.trackId) }
         upsert(override)
+    }
+
+    @Transaction
+    open suspend fun applyChanges(
+        upserts: List<TrackMetadataOverrideEntity>,
+        deletes: List<String>,
+    ) {
+        deletes.forEach { delete(it) }
+        upserts.forEach { upsertReplacingFileKey(it) }
     }
 
     @Transaction

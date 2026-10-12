@@ -288,19 +288,22 @@ internal fun EditTrackMetadataContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MetadataTextField(
+internal fun MetadataTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    original: String,
+    original: String?,
     onRestore: () -> Unit,
     modifier: Modifier = Modifier,
     suggestions: List<String> = emptyList(),
     isError: Boolean = false,
     errorText: String? = null,
+    placeholder: String? = null,
+    supportingText: String? = null,
+    canRestore: Boolean = original != null && value.trim() != original,
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val isEdited = value.trim() != original
+    val isEdited = original != null && value.trim() != original
     ExposedDropdownMenuBox(
         expanded = expanded && suggestions.isNotEmpty(),
         onExpandedChange = { expanded = it },
@@ -316,6 +319,7 @@ private fun MetadataTextField(
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
             label = { Text(label) },
+            placeholder = placeholder?.let { { Text(it) } },
             singleLine = true,
             isError = isError,
             keyboardOptions = KeyboardOptions(
@@ -326,12 +330,15 @@ private fun MetadataTextField(
                 isError && errorText != null -> {
                     { Text(errorText) }
                 }
+                supportingText != null -> {
+                    { Text(supportingText) }
+                }
                 isEdited -> {
-                    { Text(stringResource(R.string.library_edit_original_value, original.ifEmpty { "—" })) }
+                    { Text(stringResource(R.string.library_edit_original_value, original.orEmpty().ifEmpty { "—" })) }
                 }
                 else -> null
             },
-            trailingIcon = if (isEdited) {
+            trailingIcon = if (canRestore) {
                 {
                     IconButton(onClick = onRestore) {
                         Icon(

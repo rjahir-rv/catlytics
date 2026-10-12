@@ -144,7 +144,7 @@ internal class EditTrackMetadataViewModel @Inject constructor(
         }
     }
 
-    /** Called with the result of the system's MediaStore write-permission dialog. */
+    //Called with the result of the system's MediaStore write-permission dialog. */
     fun onFileWritePermissionResult(granted: Boolean) {
         val id = trackId.value ?: return
         if (!granted) {
@@ -233,7 +233,7 @@ private fun EditableTrackMetadata.toUiState(
     )
 }
 
-private fun List<String>.suggestionsFor(query: String): List<String> {
+internal fun List<String>.suggestionsFor(query: String): List<String> {
     val normalized = query.trim()
     if (normalized.isEmpty()) return emptyList()
     return asSequence()

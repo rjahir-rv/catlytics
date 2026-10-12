@@ -122,6 +122,9 @@ fun TrackSelectionHost(
                 onAddToQueue = {
                     if (queueEnabled) onAction(TrackSelectionAction.AddToQueue(selectedTracks))
                 },
+                onEditMetadata = {
+                    if (actionsEnabled) onAction(TrackSelectionAction.EditMetadata(selectedTracks))
+                },
                 onRemove = onRemove,
                 modifier = Modifier.padding(bottom = bottomInset),
             )
@@ -187,6 +190,7 @@ private fun TrackSelectionActionBar(
     onToggleLiked: () -> Unit,
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
+    onEditMetadata: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -237,6 +241,12 @@ private fun TrackSelectionActionBar(
                 Icon(
                     painter = painterResource(R.drawable.ic_add),
                     contentDescription = stringResource(R.string.ds_selection_add_to_queue),
+                )
+            }
+            IconButton(onClick = onEditMetadata, enabled = enabled) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_edit),
+                    contentDescription = stringResource(R.string.ds_selection_edit_metadata),
                 )
             }
             if (showRemove) {

@@ -166,6 +166,7 @@ fun CatlyticsApp(
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
     var editMetadataTrackId by remember { mutableStateOf<String?>(null) }
+    var bulkEditTrackIds by remember { mutableStateOf<List<String>?>(null) }
     var detailTopBarColors by remember { mutableStateOf<Map<NavKey, Color>>(emptyMap()) }
     var settingsTopBarTitle by remember { mutableStateOf<String?>(null) }
     var settingsTopBarBackAction by remember { mutableStateOf<(() -> Unit)?>(null) }
@@ -401,6 +402,11 @@ fun CatlyticsApp(
                     ),
                     Toast.LENGTH_SHORT,
                 ).show()
+            }
+            is TrackSelectionAction.EditMetadata -> {
+                val trackIds = action.tracks.map(Track::id)
+                // A single track gets the full editor, which also covers its title.
+                if (trackIds.size == 1) editMetadataTrackId = trackIds.single() else bulkEditTrackIds = trackIds
             }
             is TrackSelectionAction.PlayNext -> playbackViewModel.playNextTracks(action.tracks) { added ->
                 Toast.makeText(
@@ -726,8 +732,6 @@ fun CatlyticsApp(
 
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
-                // El fondo va dentro de la fuente del blur: las pantallas son transparentes y,
-                // sin él, el minirreproductor dejaría ver el contenido nítido por debajo.
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState)
@@ -983,6 +987,8 @@ fun CatlyticsApp(
             },
             editMetadataTrackId = editMetadataTrackId,
             onDismissEditMetadata = { editMetadataTrackId = null },
+            bulkEditTrackIds = bulkEditTrackIds,
+            onDismissBulkEdit = { bulkEditTrackIds = null },
             playlistSource = playlistSource,
             playlistSheetSession = playlistSheetSession,
             onDismissPlaylistSheet = { playlistSource = null },

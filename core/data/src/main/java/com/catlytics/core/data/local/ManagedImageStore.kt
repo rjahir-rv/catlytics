@@ -50,6 +50,11 @@ internal class ManagedImageStore(
         if (isOwned) file.delete()
     }
 
+    /** Deletes [path] whoever created it, as long as it lives in this store's directory. */
+    fun deleteManaged(path: String) {
+        managedFile(path)?.delete()
+    }
+
     fun deleteAllExcept(keepPaths: Set<String>) {
         val keep = keepPaths.mapNotNullTo(HashSet()) { path ->
             managedFile(path)?.let { runCatching { it.canonicalPath }.getOrNull() }

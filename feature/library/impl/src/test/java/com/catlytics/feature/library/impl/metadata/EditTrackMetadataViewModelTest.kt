@@ -220,10 +220,11 @@ class EditTrackMetadataViewModelTest {
     }
 }
 
-private class FakeTrackMetadataRepository : TrackMetadataRepository {
+internal class FakeTrackMetadataRepository : TrackMetadataRepository {
     val original = MutableStateFlow<Track?>(null)
     val overrides = MutableStateFlow(emptyList<TrackMetadataOverride>())
     var savedEdit: TrackMetadataEdit? = null
+    var savedBulkEdit: Pair<List<String>, com.catlytics.core.model.BulkTrackMetadataEdit>? = null
     var wroteFile = false
 
     override fun observeOverrides() = overrides
@@ -231,11 +232,25 @@ private class FakeTrackMetadataRepository : TrackMetadataRepository {
     override suspend fun saveEdit(trackId: String, edit: TrackMetadataEdit) {
         savedEdit = edit
     }
+    override suspend fun saveBulkEdit(
+        trackIds: List<String>,
+        edit: com.catlytics.core.model.BulkTrackMetadataEdit,
+    ): com.catlytics.core.model.BulkEditResult {
+        savedBulkEdit = trackIds to edit
+        return com.catlytics.core.model.BulkEditResult(updated = trackIds.size, skipped = 0)
+    }
     override suspend fun reset(trackId: String) {
+        overrides.value = emptyList()
+    }
+    override suspend fun resetMany(trackIds: List<String>) {
         overrides.value = emptyList()
     }
     override suspend fun writeTagsToFile(trackId: String) {
         wroteFile = true
+    }
+    override suspend fun writeTagsToFiles(trackIds: List<String>): Int {
+        wroteFile = true
+        return 0
     }
 }
 
@@ -251,15 +266,16 @@ private class MetadataFakeArtistIdentityRepository : ArtistIdentityRepository {
     override suspend fun mergeAliases(aliases: List<ArtistAlias>) = 0
 }
 
-private class MetadataFakeLibraryRepository : LibraryRepository {
+internal class MetadataFakeLibraryRepository : LibraryRepository {
     val artists = MutableStateFlow(emptyList<ArtistSummary>())
+    val allTracks = MutableStateFlow(emptyList<Track>())
 
     override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
     override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
     override fun observeArtists() = artists
     override fun observeArtistContent(artistId: String) = MutableStateFlow<ArtistContent?>(null)
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
-    override fun observeAllTracks() = MutableStateFlow(emptyList<Track>())
+    override fun observeAllTracks() = allTracks
     override fun observeFolders() = MutableStateFlow(emptyList<LibraryFolder>())
     override fun observeFolderContent(folderId: String) = MutableStateFlow<LibraryFolderContent?>(null)
     override suspend fun resolvePlaylistSource(source: PlaylistSource) = emptyList<Track>()

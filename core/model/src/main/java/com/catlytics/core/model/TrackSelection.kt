@@ -32,4 +32,5 @@ sealed interface TrackSelectionAction {
     data class Unlike(override val tracks: List<Track>) : TrackSelectionAction
     data class AddToQueue(override val tracks: List<Track>) : TrackSelectionAction
     data class PlayNext(override val tracks: List<Track>) : TrackSelectionAction
+    data class EditMetadata(override val tracks: List<Track>) : TrackSelectionAction
 }

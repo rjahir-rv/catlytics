@@ -5,6 +5,7 @@ import androidx.compose.runtime.key
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.feature.library.impl.metadata.EditTrackMetadataSheet
+import com.catlytics.feature.library.impl.metadata.EditTracksMetadataSheet
 import com.catlytics.feature.playlists.impl.AddToPlaylistSheet
 
 @Composable
@@ -22,6 +23,8 @@ internal fun CatlyticsAppSheets(
     onEditTrackMetadata: (Track) -> Unit,
     editMetadataTrackId: String?,
     onDismissEditMetadata: () -> Unit,
+    bulkEditTrackIds: List<String>?,
+    onDismissBulkEdit: () -> Unit,
     playlistSource: PlaylistSource?,
     playlistSheetSession: Int,
     onDismissPlaylistSheet: () -> Unit,
@@ -52,6 +55,13 @@ internal fun CatlyticsAppSheets(
         EditTrackMetadataSheet(
             trackId = trackId,
             onDismiss = onDismissEditMetadata,
+        )
+    }
+
+    bulkEditTrackIds?.let { trackIds ->
+        EditTracksMetadataSheet(
+            trackIds = trackIds,
+            onDismiss = onDismissBulkEdit,
         )
     }
 

@@ -524,8 +524,14 @@ private class FakeTrackMetadataRepository : TrackMetadataRepository {
     override fun observeOverrides() = overrides
     override fun observeOriginalTrack(trackId: String) = flowOf<Track?>(null)
     override suspend fun saveEdit(trackId: String, edit: TrackMetadataEdit) = Unit
+    override suspend fun saveBulkEdit(
+        trackIds: List<String>,
+        edit: com.catlytics.core.model.BulkTrackMetadataEdit,
+    ) = com.catlytics.core.model.BulkEditResult(updated = trackIds.size, skipped = 0)
     override suspend fun reset(trackId: String) = Unit
+    override suspend fun resetMany(trackIds: List<String>) = Unit
     override suspend fun writeTagsToFile(trackId: String) = Unit
+    override suspend fun writeTagsToFiles(trackIds: List<String>) = 0
 }
 
 private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {

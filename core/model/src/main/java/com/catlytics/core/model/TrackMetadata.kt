@@ -39,3 +39,27 @@ sealed interface ArtworkEdit {
 
     data class Replace(val sourceUri: String) : ArtworkEdit
 }
+
+/** What a bulk edit does to one text field of every selected track. */
+sealed interface FieldEdit {
+    data object Keep : FieldEdit
+    data object Restore : FieldEdit
+    data class Set(val value: String) : FieldEdit
+}
+
+data class BulkTrackMetadataEdit(
+    val title: FieldEdit = FieldEdit.Keep,
+    val artistName: FieldEdit = FieldEdit.Keep,
+    val albumTitle: FieldEdit = FieldEdit.Keep,
+    val artwork: ArtworkEdit = ArtworkEdit.Keep,
+)
+
+data class BulkEditResult(
+    val updated: Int,
+    val skipped: Int,
+)
+
+data class TrackWithOverride(
+    val track: Track,
+    val override: TrackMetadataOverride?,
+)
