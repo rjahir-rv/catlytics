@@ -51,6 +51,7 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.CatlyticsPlayingBarsOverlay
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.TrackSelectionHost
@@ -72,6 +73,7 @@ internal fun LibraryAlbumScreen(
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     currentTrackId: String? = null,
+    isCurrentTrackPlaying: Boolean = false,
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
@@ -166,6 +168,8 @@ internal fun LibraryAlbumScreen(
                             AlbumTrackRow(
                                 position = index + 1,
                                 track = track,
+                                isCurrent = track.id == currentTrackId,
+                                isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
                                 selected = track.id in selection.selectedIds,
                                 selectionActive = selection.active,
                                 onClick = {
@@ -285,6 +289,8 @@ private fun AlbumHeader(
 private fun AlbumTrackRow(
     position: Int,
     track: Track,
+    isCurrent: Boolean,
+    isPlaying: Boolean,
     onClick: () -> Unit,
     onTrackOptions: () -> Unit,
     selected: Boolean = false,
@@ -315,11 +321,25 @@ private fun AlbumTrackRow(
                         .background(MaterialTheme.colorScheme.primary, CircleShape)
                         .padding(3.dp),
                 )
+            } else if (isCurrent && isPlaying && !selectionActive) {
+                CatlyticsPlayingBarsOverlay(
+                    contentDescription = stringResource(
+                        R.string.ds_track_row_playing_content_description,
+                        track.title,
+                    ),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
+                )
             } else {
                 Text(
                     text = position.toString(),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isCurrent && !selectionActive) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
             }
         }
@@ -327,6 +347,11 @@ private fun AlbumTrackRow(
             Text(
                 text = track.title,
                 style = MaterialTheme.typography.titleMedium,
+                color = if (isCurrent && !selectionActive) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onBackground
+                },
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

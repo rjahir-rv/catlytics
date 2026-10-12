@@ -785,6 +785,9 @@ fun CatlyticsApp(
                         onTrackOptions = { track -> openTrackOptions(track) },
                         likedTrackIds = { likedTrackIds },
                         currentTrackId = { playbackState.currentTrack?.id },
+                        isCurrentTrackPlaying = {
+                            playbackState.status == PlaybackStatus.Playing
+                        },
                         onTrackSelectionAction = ::handleTrackSelectionAction,
                         onLibraryDetailTopBarColorChange = { route, color ->
                             detailTopBarColors = detailTopBarColors + (route to color)

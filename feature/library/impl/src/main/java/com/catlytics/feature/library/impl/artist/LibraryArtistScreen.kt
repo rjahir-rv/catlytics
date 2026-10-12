@@ -2,12 +2,9 @@ package com.catlytics.feature.library.impl.artist
 
 import android.graphics.Bitmap
 import androidx.annotation.StringRes
-import androidx.compose.foundation.background
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +13,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,7 +25,6 @@ import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -58,8 +53,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -78,8 +71,8 @@ import coil3.request.allowHardware
 import coil3.toBitmap
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.component.TrackSelectionHost
-import com.catlytics.core.designsystem.component.TrackSelectionMark
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
@@ -111,6 +104,7 @@ internal fun LibraryArtistScreen(
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     currentTrackId: String? = null,
+    isCurrentTrackPlaying: Boolean = false,
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
@@ -145,6 +139,7 @@ internal fun LibraryArtistScreen(
             onTrackOptions = onTrackOptions,
             likedTrackIds = likedTrackIds,
             currentTrackId = currentTrackId,
+            isCurrentTrackPlaying = isCurrentTrackPlaying,
             onTrackSelectionAction = onTrackSelectionAction,
             onTopBarColorChange = onTopBarColorChange,
             bottomPadding = bottomPadding,
@@ -178,6 +173,7 @@ private fun ArtistContent(
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String>,
     currentTrackId: String?,
+    isCurrentTrackPlaying: Boolean,
     onTrackSelectionAction: (TrackSelectionAction) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
     bottomPadding: () -> Dp,
@@ -289,6 +285,8 @@ private fun ArtistContent(
                         },
                         onTrackOptions = onTrackOptions,
                         bottomPadding = bottomPadding,
+                        currentTrackId = currentTrackId,
+                        isCurrentTrackPlaying = isCurrentTrackPlaying,
                         selection = selection,
                         onTrackLongClick = { track ->
                             selectionState.value = selection.onTrackLongClick(track.id)
@@ -561,6 +559,8 @@ private fun ArtistSongsPage(
     onTrackSelected: (Track) -> Unit,
     onTrackOptions: (Track) -> Unit,
     bottomPadding: () -> Dp,
+    currentTrackId: String?,
+    isCurrentTrackPlaying: Boolean,
     selection: TrackSelectionSnapshot = TrackSelectionSnapshot(),
     onTrackLongClick: (Track) -> Unit = {},
 ) {
@@ -577,6 +577,8 @@ private fun ArtistSongsPage(
         items(items = tracks, key = Track::id) { track ->
             ArtistTrackRow(
                 track = track,
+                isCurrent = track.id == currentTrackId,
+                isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
                 onClick = { onTrackSelected(track) },
                 onTrackOptions = { onTrackOptions(track) },
                 selected = track.id in selection.selectedIds,
@@ -693,50 +695,32 @@ private fun ArtistAlbumCard(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ArtistTrackRow(
     track: Track,
+    isCurrent: Boolean,
+    isPlaying: Boolean,
     onClick: () -> Unit,
     onTrackOptions: () -> Unit,
     selected: Boolean = false,
     selectionActive: Boolean = false,
     onLongClick: (() -> Unit)? = null,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 64.dp)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        ArtistTrackArtwork(track = track, selected = selected, selectionActive = selectionActive)
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            Text(
-                text = track.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = stringResource(
-                    LibraryR.string.library_track_metadata,
-                    track.artist.name,
-                    TrackDurationFormat.formatMinutesSeconds(track.durationMillis),
-                ),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        if (!selectionActive) {
+    CatlyticsTrackRow(
+        title = track.title,
+        subtitle = stringResource(
+            LibraryR.string.library_track_metadata,
+            track.artist.name,
+            TrackDurationFormat.formatMinutesSeconds(track.durationMillis),
+        ),
+        artworkUri = track.artworkUri,
+        isCurrent = isCurrent,
+        isPlaying = isPlaying,
+        onClick = onClick,
+        selected = selected,
+        selectionActive = selectionActive,
+        onLongClick = onLongClick,
+        trailing = {
             IconButton(onClick = onTrackOptions) {
                 Icon(
                     painter = painterResource(R.drawable.ic_options),
@@ -746,54 +730,8 @@ private fun ArtistTrackRow(
                     ),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun ArtistTrackArtwork(
-    modifier: Modifier = Modifier,
-    track: Track,
-    selected: Boolean = false,
-    selectionActive: Boolean = false,
-) {
-    val artworkShape = RoundedCornerShape(10.dp)
-
-    Box(
-        modifier = modifier.size(56.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .blur(
-                    radius = 8.dp,
-                    edgeTreatment = BlurredEdgeTreatment.Unbounded,
-                )
-                .background(
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                    shape = artworkShape,
-                ),
-        )
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(artworkShape),
-        ) {
-            AsyncImage(
-                model = track.artworkUri,
-                contentDescription = null,
-                placeholder = painterResource(R.drawable.placeholder_track),
-                error = painterResource(R.drawable.placeholder_track),
-                fallback = painterResource(R.drawable.placeholder_track),
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            if (selectionActive) {
-                TrackSelectionMark(selected = selected)
-            }
-        }
-    }
+        },
+    )
 }
 
 @Composable

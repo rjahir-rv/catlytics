@@ -27,6 +27,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: () -> Set<String> = { emptySet() },
     currentTrackId: () -> String? = { null },
+    isCurrentTrackPlaying: () -> Boolean = { false },
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onLibraryDetailTopBarColorChange: (NavKey, Color) -> Unit,
     hasAudioPermission: () -> Boolean,
@@ -63,6 +64,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onTrackOptions = onTrackOptions,
             likedTrackIds = likedTrackIds(),
             currentTrackId = currentTrackId(),
+            isCurrentTrackPlaying = isCurrentTrackPlaying(),
             onTrackSelectionAction = onTrackSelectionAction,
             onTopBarColorChange = { color ->
                 onLibraryDetailTopBarColorChange(route, color)
@@ -81,6 +83,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onTrackOptions = onTrackOptions,
             likedTrackIds = likedTrackIds(),
             currentTrackId = currentTrackId(),
+            isCurrentTrackPlaying = isCurrentTrackPlaying(),
             onTrackSelectionAction = onTrackSelectionAction,
             onTopBarColorChange = { color ->
                 onLibraryDetailTopBarColorChange(route, color)
@@ -101,6 +104,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onTrackOptions = onTrackOptions,
             likedTrackIds = likedTrackIds(),
             currentTrackId = currentTrackId(),
+            isCurrentTrackPlaying = isCurrentTrackPlaying(),
             onTrackSelectionAction = onTrackSelectionAction,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding(),

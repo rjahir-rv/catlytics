@@ -59,6 +59,7 @@ internal fun LibraryFolderScreen(
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     currentTrackId: String? = null,
+    isCurrentTrackPlaying: Boolean = false,
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
@@ -136,7 +137,7 @@ internal fun LibraryFolderScreen(
                                 ),
                                 artworkUri = track.artworkUri,
                                 isCurrent = isCurrent,
-                                isPlaying = false,
+                                isPlaying = isCurrent && isCurrentTrackPlaying,
                                 onClick = {
                                     if (selection.active) {
                                         selectionState.value = selection.onTrackLongClick(track.id)
