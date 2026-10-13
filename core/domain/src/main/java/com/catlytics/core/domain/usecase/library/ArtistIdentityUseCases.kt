@@ -20,3 +20,12 @@ class UnmergeArtistUseCase(
 ) {
     suspend operator fun invoke(source: Artist) = repository.unmerge(source)
 }
+
+class RenameArtistUseCase(
+    private val repository: ArtistIdentityRepository,
+) {
+    suspend operator fun invoke(source: Artist, newName: String) {
+        require(newName.isNotBlank()) { "El nombre no puede estar vacío." }
+        repository.rename(source, newName)
+    }
+}

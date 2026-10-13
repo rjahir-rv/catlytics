@@ -3,6 +3,7 @@ package com.catlytics.feature.library.impl.album
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryTrackUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
@@ -21,6 +22,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -44,6 +46,54 @@ class LibraryAlbumViewModelTest {
         advanceUntilIdle()
 
         assertEquals(LibraryAlbumUiState.Success(content), viewModel.uiState.value)
+    }
+
+    @Test
+    fun `an edit that gives the album a new id keeps showing its tracks under the new album`() = runTest {
+        val repository = AlbumFakeLibraryRepository()
+        val movedContent = AlbumContent(
+            album = Album("album-2", "Nuevo título", Artist("artist", "Artist"), trackCount = 1),
+            tracks = listOf(track("one").copy(albumId = "album-2")),
+        )
+        repository.contentById[ALBUM_ID] = MutableStateFlow(albumContent())
+        repository.contentById["album-2"] = MutableStateFlow(movedContent)
+        val viewModel = viewModel(repository, AlbumFakePlaybackController())
+        val states = mutableListOf<LibraryAlbumUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect(states::add)
+        }
+        viewModel.openAlbum(ALBUM_ID)
+        advanceUntilIdle()
+
+        repository.allTracks.value = movedContent.tracks
+        repository.contentById.getValue(ALBUM_ID).value = null
+        advanceUntilIdle()
+
+        assertEquals(LibraryAlbumUiState.Success(movedContent), viewModel.uiState.value)
+        // No "not found" or loading state flashes in between.
+        assertEquals(
+            listOf(
+                LibraryAlbumUiState.Loading,
+                LibraryAlbumUiState.Success(albumContent()),
+                LibraryAlbumUiState.Success(movedContent),
+            ),
+            states,
+        )
+    }
+
+    @Test
+    fun `an album whose tracks are gone is not found`() = runTest {
+        val repository = AlbumFakeLibraryRepository()
+        repository.contentById[ALBUM_ID] = MutableStateFlow(albumContent())
+        val viewModel = viewModel(repository, AlbumFakePlaybackController())
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        viewModel.openAlbum(ALBUM_ID)
+        advanceUntilIdle()
+
+        repository.contentById.getValue(ALBUM_ID).value = null
+        advanceUntilIdle()
+
+        assertEquals(LibraryAlbumUiState.NotFound, viewModel.uiState.value)
     }
 
     @Test
@@ -83,6 +133,7 @@ class LibraryAlbumViewModelTest {
         observeAlbumContentUseCase = ObserveAlbumContentUseCase(repository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
         playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),
+        observeLibraryTrack = ObserveLibraryTrackUseCase(repository),
     )
 
     private fun albumContent() = AlbumContent(
@@ -105,13 +156,15 @@ class LibraryAlbumViewModelTest {
 
 private class AlbumFakeLibraryRepository : LibraryRepository {
     val content = MutableStateFlow<AlbumContent?>(null)
+    val contentById = mutableMapOf<String, MutableStateFlow<AlbumContent?>>()
+    val allTracks = MutableStateFlow(emptyList<Track>())
 
     override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
-    override fun observeAlbumContent(albumId: String) = content
+    override fun observeAlbumContent(albumId: String) = contentById[albumId] ?: content
     override fun observeArtists() = MutableStateFlow(emptyList<ArtistSummary>())
     override fun observeArtistContent(artistId: String) = MutableStateFlow<ArtistContent?>(null)
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
-    override fun observeAllTracks() = MutableStateFlow(emptyList<Track>())
+    override fun observeAllTracks() = allTracks
     override fun observeFolders() = MutableStateFlow(emptyList<LibraryFolder>())
     override fun observeFolderContent(folderId: String) =
         MutableStateFlow<LibraryFolderContent?>(null)

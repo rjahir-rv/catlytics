@@ -4,14 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTracksWithOverridesUseCase
 import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.library.WriteTracksTagsToFilesUseCase
 import com.catlytics.core.model.Album
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtworkEdit
 import com.catlytics.core.model.BulkTrackMetadataEdit
+import com.catlytics.core.model.FieldEdit
 import com.catlytics.core.model.TrackWithOverride
 import com.catlytics.core.model.artistIdentityKey
 import com.catlytics.feature.library.impl.R
@@ -33,7 +37,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Edits the artist, album and artwork of several tracks at once. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 internal class EditTracksMetadataViewModel @Inject constructor(
@@ -42,6 +45,8 @@ internal class EditTracksMetadataViewModel @Inject constructor(
     observeAlbums: ObserveAlbumsUseCase,
     private val saveBulkTrackMetadata: SaveBulkTrackMetadataUseCase,
     private val writeTracksTagsToFiles: WriteTracksTagsToFilesUseCase,
+    observeArtistAliases: ObserveArtistAliasesUseCase,
+    private val unmergeArtist: UnmergeArtistUseCase,
 ) : ViewModel() {
     private val trackIds = MutableStateFlow<List<String>?>(null)
     private val form = MutableStateFlow<EditTracksMetadataForm?>(null)
@@ -51,17 +56,25 @@ internal class EditTracksMetadataViewModel @Inject constructor(
 
     private val tracks = trackIds.filterNotNull().flatMapLatest(observeTracksWithOverrides::invoke)
 
+    private val artistsWithAliases = combine(
+        observeArtists().catch { emit(emptyList()) },
+        observeArtistAliases().catch { emit(emptyList()) },
+        ::Pair,
+    )
+
     val uiState: StateFlow<EditTracksMetadataUiState> = combine(
         tracks,
         form,
         isSaving,
-        observeArtists().catch { emit(emptyList()) },
+        artistsWithAliases,
         observeAlbums().catch { emit(emptyList()) },
-    ) { items, form, saving, artists, albums ->
+    ) { items, form, saving, (artists, aliases), albums ->
         when {
             items.isEmpty() -> EditTracksMetadataUiState.NotFound
             form == null -> EditTracksMetadataUiState.Loading
-            else -> items.toUiState(form, saving, artists, albums)
+            else -> items.toUiState(form, saving, artists, albums).copy(
+                mergedArtistAlias = (form.artist.edit as? FieldEdit.Set)?.let { aliases.aliasFor(it.value) },
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EditTracksMetadataUiState.Loading)
 
@@ -86,6 +99,8 @@ internal class EditTracksMetadataViewModel @Inject constructor(
         copy(artwork = ArtworkEdit.Replace(uri), artworkPreviewUri = uri)
     }
 
+    fun onSeparateArtistChange(value: Boolean) = updateForm { copy(separateArtist = value) }
+
     fun onWriteToFileChange(value: Boolean) = updateForm { copy(writeToFile = value) }
 
     fun onRestoreArtwork() = updateForm { copy(artwork = ArtworkEdit.Restore, artworkPreviewUri = null) }
@@ -95,6 +110,8 @@ internal class EditTracksMetadataViewModel @Inject constructor(
         val ids = trackIds.value ?: return
         if (!state.canSave) return
         runSaving {
+            val separated = state.mergedArtistAlias?.takeIf { state.form.separateArtist }
+            if (separated != null) unmergeArtist(separated.source)
             val result = saveBulkTrackMetadata(
                 ids,
                 BulkTrackMetadataEdit(
@@ -106,11 +123,7 @@ internal class EditTracksMetadataViewModel @Inject constructor(
             if (state.form.writeToFile) {
                 _events.emit(EditTracksMetadataEvent.RequestFileWrite(state.mediaUris))
             } else {
-                _events.emit(
-                    EditTracksMetadataEvent.Message(
-                        UiText.Plural(R.plurals.library_bulk_edit_saved, result.updated),
-                    ),
-                )
+                _events.emit(EditTracksMetadataEvent.Message(savedMessage(result.updated, separated)))
                 _events.emit(EditTracksMetadataEvent.Close)
             }
         }
@@ -169,6 +182,15 @@ internal class EditTracksMetadataViewModel @Inject constructor(
     }
 }
 
+private fun savedMessage(updated: Int, separated: ArtistAlias?): UiText = when {
+    updated > 0 -> UiText.Plural(R.plurals.library_bulk_edit_saved, updated)
+    separated != null -> UiText.Resource(
+        R.string.library_edit_artist_separated,
+        listOf(separated.source.name, separated.target.name),
+    )
+    else -> UiText.Resource(R.string.library_bulk_edit_no_changes)
+}
+
 private fun List<TrackWithOverride>.initialForm() = EditTracksMetadataForm(
     artist = BulkFieldForm(initial = commonValue { it.track.artist.name }.orEmpty()),
     album = BulkFieldForm(initial = commonValue { it.track.albumTitle.orEmpty() }.orEmpty()),
@@ -200,6 +222,5 @@ private fun List<TrackWithOverride>.toUiState(
     )
 }
 
-/** The value every track shares, or null when they differ. */
 private fun <T> List<TrackWithOverride>.commonValue(selector: (TrackWithOverride) -> T?): T? =
     map(selector).distinct().singleOrNull()

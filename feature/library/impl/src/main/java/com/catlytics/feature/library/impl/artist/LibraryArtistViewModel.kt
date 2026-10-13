@@ -7,6 +7,8 @@ import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
 import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryTrackUseCase
+import com.catlytics.core.domain.usecase.library.RenameArtistUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
@@ -25,7 +27,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
@@ -39,6 +43,8 @@ internal class LibraryArtistViewModel @Inject constructor(
     private val mergeArtistsUseCase: MergeArtistsUseCase,
     private val unmergeArtistUseCase: UnmergeArtistUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
+    private val renameArtistUseCase: RenameArtistUseCase,
+    private val observeLibraryTrack: ObserveLibraryTrackUseCase,
 ) : ViewModel() {
     private val artistId = MutableStateFlow<String?>(null)
     private val searchQuery = MutableStateFlow("")
@@ -47,10 +53,26 @@ internal class LibraryArtistViewModel @Inject constructor(
     private val _messages = MutableSharedFlow<UiText>(extraBufferCapacity = 1)
     val messages: SharedFlow<UiText> = _messages.asSharedFlow()
 
+    private var lastTrackIds: List<String> = emptyList()
+
+    private val content = artistId
+        .filterNotNull()
+        .flatMapLatest { id ->
+            observeArtistContentUseCase(id).transformLatest { content ->
+                if (content != null) {
+                    lastTrackIds = content.tracks.map(Track::id)
+                    emit(content)
+                    return@transformLatest
+                }
+                val newArtistId = lastTrackIds.firstNotNullOfOrNull { trackId ->
+                    observeLibraryTrack(trackId).first()?.artist?.id?.takeIf { it != id }
+                }
+                if (newArtistId != null) artistId.value = newArtistId else emit(null)
+            }
+        }
+
     private val artistData = combine(
-        artistId
-            .filterNotNull()
-            .flatMapLatest(observeArtistContentUseCase::invoke),
+        content,
         searchQuery,
         observeArtistsUseCase().catch { emit(emptyList()) },
         observeArtistAliasesUseCase().catch { emit(emptyList()) },
@@ -107,7 +129,7 @@ internal class LibraryArtistViewModel @Inject constructor(
         )
 
     fun openArtist(id: String) {
-        artistId.value = id
+        if (artistId.value == null) artistId.value = id
     }
 
     fun onSearchQueryChanged(query: String) {
@@ -132,6 +154,34 @@ internal class LibraryArtistViewModel @Inject constructor(
 
     fun requestUnmerge(alias: com.catlytics.core.model.ArtistAlias) {
         mergeDialog.value = ArtistMergeDialog.ConfirmUnmerge(alias)
+    }
+
+    fun showRename() {
+        val state = uiState.value as? LibraryArtistUiState.Success ?: return
+        if (state.canRename) mergeDialog.value = ArtistMergeDialog.Rename(state.content.summary.artist.name)
+    }
+
+    fun updateRenameName(name: String) {
+        if (mergeDialog.value is ArtistMergeDialog.Rename) mergeDialog.value = ArtistMergeDialog.Rename(name)
+    }
+
+    fun confirmRename() {
+        val state = uiState.value as? LibraryArtistUiState.Success ?: return
+        val name = (mergeDialog.value as? ArtistMergeDialog.Rename)?.name?.trim() ?: return
+        val artist = state.content.summary.artist
+        if (name.isEmpty() || !state.canRename) return
+        if (name == artist.name) {
+            mergeDialog.value = ArtistMergeDialog.Hidden
+            return
+        }
+        // An existing artist's name is a merge, which the usual confirmation explains.
+        state.renameMergeTarget?.let { target ->
+            mergeDialog.value = ArtistMergeDialog.ConfirmMerge(target)
+            return
+        }
+        runMergeAction(UiText.Resource(R.string.library_artist_rename_success)) {
+            renameArtistUseCase(artist, name)
+        }
     }
 
     fun dismissMergeDialog() {

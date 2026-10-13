@@ -51,12 +51,14 @@ import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.ArtworkEdit
 import com.catlytics.feature.library.impl.R
 
-/** Bottom sheet that sets the artist, album or artwork of several tracks at once. */
+enum class BulkEditMode { Tracks, Album }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditTracksMetadataSheet(
     trackIds: List<String>,
     onDismiss: () -> Unit,
+    mode: BulkEditMode = BulkEditMode.Tracks,
 ) {
     val viewModel: EditTracksMetadataViewModel = hiltViewModel(key = "edit-tracks-metadata")
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -98,6 +100,7 @@ fun EditTracksMetadataSheet(
         when (val state = uiState) {
             is EditTracksMetadataUiState.Editing -> EditTracksMetadataContent(
                 state = state,
+                mode = mode,
                 onArtistChange = viewModel::onArtistChange,
                 onAlbumChange = viewModel::onAlbumChange,
                 onRestoreArtist = viewModel::onRestoreArtist,
@@ -108,6 +111,7 @@ fun EditTracksMetadataSheet(
                     )
                 },
                 onRestoreArtwork = viewModel::onRestoreArtwork,
+                onSeparateArtistChange = viewModel::onSeparateArtistChange,
                 canWriteToFile = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R,
                 onWriteToFileChange = viewModel::onWriteToFileChange,
                 onDismiss = onDismiss,
@@ -130,12 +134,14 @@ fun EditTracksMetadataSheet(
 @Composable
 internal fun EditTracksMetadataContent(
     state: EditTracksMetadataUiState.Editing,
+    mode: BulkEditMode,
     onArtistChange: (String) -> Unit,
     onAlbumChange: (String) -> Unit,
     onRestoreArtist: () -> Unit,
     onRestoreAlbum: () -> Unit,
     onChooseArtwork: () -> Unit,
     onRestoreArtwork: () -> Unit,
+    onSeparateArtistChange: (Boolean) -> Unit,
     canWriteToFile: Boolean,
     onWriteToFileChange: (Boolean) -> Unit,
     onDismiss: () -> Unit,
@@ -153,9 +159,24 @@ internal fun EditTracksMetadataContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(
-            text = pluralStringResource(R.plurals.library_bulk_edit_title, state.trackCount, state.trackCount),
+            text = when (mode) {
+                BulkEditMode.Tracks ->
+                    pluralStringResource(R.plurals.library_bulk_edit_title, state.trackCount, state.trackCount)
+                BulkEditMode.Album -> stringResource(R.string.library_album_edit_title)
+            },
             style = MaterialTheme.typography.titleLarge,
         )
+        if (mode == BulkEditMode.Album) {
+            Text(
+                text = pluralStringResource(
+                    R.plurals.library_album_edit_supporting,
+                    state.trackCount,
+                    state.trackCount,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         AsyncImage(
             model = form.artworkPreviewUri,
             contentDescription = stringResource(R.string.library_bulk_edit_artwork_content_description),
@@ -189,28 +210,52 @@ internal fun EditTracksMetadataContent(
                 }
             }
         }
-        MetadataTextField(
-            value = form.artist.value,
-            onValueChange = onArtistChange,
-            label = stringResource(R.string.library_edit_field_artist),
-            original = null,
-            onRestore = onRestoreArtist,
-            suggestions = state.artistSuggestions,
-            placeholder = mixed.takeIf { state.artistIsMixed },
-            supportingText = restoring.takeIf { form.artist.restore },
-            canRestore = state.artistHasEdits && !form.artist.restore,
-        )
-        MetadataTextField(
-            value = form.album.value,
-            onValueChange = onAlbumChange,
-            label = stringResource(R.string.library_edit_field_album),
-            original = null,
-            onRestore = onRestoreAlbum,
-            suggestions = state.albumSuggestions,
-            placeholder = mixed.takeIf { state.albumIsMixed },
-            supportingText = restoring.takeIf { form.album.restore },
-            canRestore = state.albumHasEdits && !form.album.restore,
-        )
+        val artistField: @Composable () -> Unit = {
+            MetadataTextField(
+                value = form.artist.value,
+                onValueChange = onArtistChange,
+                label = stringResource(R.string.library_edit_field_artist),
+                original = null,
+                onRestore = onRestoreArtist,
+                suggestions = state.artistSuggestions,
+                placeholder = mixed.takeIf { state.artistIsMixed },
+                supportingText = restoring.takeIf { form.artist.restore },
+                canRestore = state.artistHasEdits && !form.artist.restore,
+            )
+            state.mergedArtistAlias?.let { alias ->
+                SeparateArtistRow(
+                    alias = alias,
+                    checked = form.separateArtist,
+                    onCheckedChange = onSeparateArtistChange,
+                )
+            }
+        }
+        val albumField: @Composable () -> Unit = {
+            MetadataTextField(
+                value = form.album.value,
+                onValueChange = onAlbumChange,
+                label = stringResource(
+                    if (mode == BulkEditMode.Album) {
+                        R.string.library_album_edit_field_title
+                    } else {
+                        R.string.library_edit_field_album
+                    },
+                ),
+                original = null,
+                onRestore = onRestoreAlbum,
+                suggestions = state.albumSuggestions,
+                placeholder = mixed.takeIf { state.albumIsMixed },
+                supportingText = restoring.takeIf { form.album.restore },
+                canRestore = state.albumHasEdits && !form.album.restore,
+            )
+        }
+        if (mode == BulkEditMode.Album) {
+            albumField()
+            artistField()
+        } else {
+            artistField()
+            albumField()
+        }
         if (canWriteToFile) {
             Row(
                 modifier = Modifier.fillMaxWidth(),

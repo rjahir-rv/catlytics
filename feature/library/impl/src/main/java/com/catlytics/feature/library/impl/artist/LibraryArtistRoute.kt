@@ -75,5 +75,8 @@ internal fun LibraryArtistRoute(
         onDismissMergeDialog = viewModel::dismissMergeDialog,
         onConfirmMerge = viewModel::confirmMerge,
         onConfirmUnmerge = viewModel::confirmUnmerge,
+        onShowRename = viewModel::showRename,
+        onRenameNameChange = viewModel::updateRenameName,
+        onConfirmRename = viewModel::confirmRename,
     )
 }

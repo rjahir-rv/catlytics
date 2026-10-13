@@ -2,6 +2,7 @@ package com.catlytics.feature.library.impl.metadata
 
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtworkEdit
 import com.catlytics.core.model.Track
 
@@ -12,6 +13,8 @@ internal data class EditTrackMetadataForm(
     val artwork: ArtworkEdit = ArtworkEdit.Keep,
     val artworkPreviewUri: String?,
     val unifyArtist: Boolean = false,
+    val applyArtworkToAlbum: Boolean = false,
+    val separateArtist: Boolean = false,
     val writeToFile: Boolean = false,
 )
 
@@ -29,7 +32,12 @@ internal sealed interface EditTrackMetadataUiState {
         val hasArtworkEdit: Boolean,
         val hasOverride: Boolean,
         val isSaving: Boolean,
+        val albumTrackIds: List<String> = emptyList(),
+        val mergedArtistAlias: ArtistAlias? = null,
     ) : EditTrackMetadataUiState {
+        val canApplyArtworkToAlbum: Boolean
+            get() = form.artwork is ArtworkEdit.Replace && albumTrackIds.size > 1
+
         val canSave: Boolean get() = form.title.isNotBlank() && !isSaving
     }
 }

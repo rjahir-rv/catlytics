@@ -51,7 +51,9 @@ abstract class ArtistAliasDao {
     open suspend fun replaceAll(aliases: List<ArtistAliasEntity>) {
         deleteAll()
         aliases.forEach { alias ->
-            if (alias.sourceKey != alias.targetKey) upsert(alias)
+            if (alias.sourceKey != alias.targetKey || alias.sourceArtistName != alias.targetArtistName) {
+                upsert(alias)
+            }
         }
     }
 }

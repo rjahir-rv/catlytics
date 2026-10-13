@@ -7,6 +7,8 @@ import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
 import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryTrackUseCase
+import com.catlytics.core.domain.usecase.library.RenameArtistUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
@@ -147,6 +149,79 @@ class LibraryArtistViewModelTest {
         assertEquals(target.artist, identityRepository.getAliases().single().target)
     }
 
+    @Test
+    fun `renaming to a new name renames the artist`() = runTest {
+        val repository = ArtistFakeLibraryRepository()
+        repository.content.value = artistContent()
+        val identityRepository = FakeArtistIdentityRepository()
+        val viewModel = viewModel(repository, ArtistFakePlaybackController(), identityRepository)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        viewModel.openArtist(ARTIST_ID)
+        advanceUntilIdle()
+
+        viewModel.showRename()
+        viewModel.updateRenameName(" Nuevo Nombre ")
+        advanceUntilIdle()
+        viewModel.confirmRename()
+        advanceUntilIdle()
+
+        assertEquals(Artist(ARTIST_ID, "Artist") to "Nuevo Nombre", identityRepository.renamed)
+        assertEquals(ArtistMergeDialog.Hidden, (viewModel.uiState.value as LibraryArtistUiState.Success).mergeDialog)
+    }
+
+    @Test
+    fun `renaming to an existing artist asks to merge instead`() = runTest {
+        val repository = ArtistFakeLibraryRepository()
+        repository.content.value = artistContent()
+        val existing = Artist("artist-nova", "Nova")
+        repository.artists.value = listOf(ArtistSummary(existing, albumCount = 1, trackCount = 1))
+        val identityRepository = FakeArtistIdentityRepository()
+        val viewModel = viewModel(repository, ArtistFakePlaybackController(), identityRepository)
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        viewModel.openArtist(ARTIST_ID)
+        advanceUntilIdle()
+
+        viewModel.showRename()
+        viewModel.updateRenameName("nova")
+        advanceUntilIdle()
+        assertEquals(existing, (viewModel.uiState.value as LibraryArtistUiState.Success).renameMergeTarget)
+        viewModel.confirmRename()
+        advanceUntilIdle()
+
+        assertEquals(null, identityRepository.renamed)
+        assertEquals(
+            ArtistMergeDialog.ConfirmMerge(existing),
+            (viewModel.uiState.value as LibraryArtistUiState.Success).mergeDialog,
+        )
+    }
+
+    @Test
+    fun `an artist that gets a new id is followed through its tracks`() = runTest {
+        val repository = ArtistFakeLibraryRepository()
+        val renamed = Artist("renamed-artist-nuevo", "Nuevo")
+        val renamedContent = artistContent().let { content ->
+            content.copy(
+                summary = content.summary.copy(artist = renamed),
+                tracks = content.tracks.map { it.copy(artist = renamed) },
+            )
+        }
+        repository.contentById[ARTIST_ID] = MutableStateFlow(artistContent())
+        repository.contentById[renamed.id] = MutableStateFlow(renamedContent)
+        val viewModel = viewModel(repository, ArtistFakePlaybackController())
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        viewModel.openArtist(ARTIST_ID)
+        advanceUntilIdle()
+
+        repository.allTracks.value = renamedContent.tracks
+        repository.contentById.getValue(ARTIST_ID).value = null
+        advanceUntilIdle()
+
+        assertEquals(
+            renamed,
+            (viewModel.uiState.value as LibraryArtistUiState.Success).content.summary.artist,
+        )
+    }
+
     private fun viewModel(
         repository: ArtistFakeLibraryRepository,
         playbackController: ArtistFakePlaybackController,
@@ -158,6 +233,8 @@ class LibraryArtistViewModelTest {
         mergeArtistsUseCase = MergeArtistsUseCase(identityRepository),
         unmergeArtistUseCase = UnmergeArtistUseCase(identityRepository),
         playTrackUseCase = PlayTrackUseCase(playbackController),
+        renameArtistUseCase = RenameArtistUseCase(identityRepository),
+        observeLibraryTrack = ObserveLibraryTrackUseCase(repository),
     )
 
     private fun artistContent(): ArtistContent {
@@ -183,6 +260,10 @@ class LibraryArtistViewModelTest {
 }
 
 private class FakeArtistIdentityRepository : ArtistIdentityRepository {
+    var renamed: Pair<Artist, String>? = null
+    override suspend fun rename(source: Artist, newName: String) {
+        renamed = source to newName
+    }
     private val aliases = MutableStateFlow(emptyList<ArtistAlias>())
     override fun observeAliases() = aliases
     override suspend fun getAliases() = aliases.value
@@ -203,14 +284,16 @@ private class FakeArtistIdentityRepository : ArtistIdentityRepository {
 
 private class ArtistFakeLibraryRepository : LibraryRepository {
     val content = MutableStateFlow<ArtistContent?>(null)
+    val contentById = mutableMapOf<String, MutableStateFlow<ArtistContent?>>()
     val artists = MutableStateFlow(emptyList<ArtistSummary>())
+    val allTracks = MutableStateFlow(emptyList<Track>())
 
     override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
     override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
     override fun observeArtists() = artists
-    override fun observeArtistContent(artistId: String) = content
+    override fun observeArtistContent(artistId: String) = contentById[artistId] ?: content
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())
-    override fun observeAllTracks() = MutableStateFlow(emptyList<Track>())
+    override fun observeAllTracks() = allTracks
     override fun observeFolders() = MutableStateFlow(emptyList<LibraryFolder>())
     override fun observeFolderContent(folderId: String) =
         MutableStateFlow<LibraryFolderContent?>(null)

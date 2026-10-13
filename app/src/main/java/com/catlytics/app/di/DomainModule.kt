@@ -13,6 +13,7 @@ import com.catlytics.core.domain.usecase.library.WriteTracksTagsToFilesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTrackMetadataOverridesUseCase
 import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTracksWithOverridesUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryTrackUseCase
 import com.catlytics.core.domain.usecase.library.ResetTracksMetadataUseCase
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.StatisticsRepository
@@ -88,6 +89,7 @@ import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
+import com.catlytics.core.domain.usecase.library.RenameArtistUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
@@ -109,6 +111,10 @@ object DomainModule {
     @Provides
     fun provideMergeArtistsUseCase(repository: ArtistIdentityRepository) =
         MergeArtistsUseCase(repository)
+
+    @Provides
+    fun provideRenameArtistUseCase(repository: ArtistIdentityRepository) =
+        RenameArtistUseCase(repository)
 
     @Provides
     fun provideUnmergeArtistUseCase(repository: ArtistIdentityRepository) =
@@ -141,6 +147,10 @@ object DomainModule {
         metadataRepository: TrackMetadataRepository,
         libraryRepository: LibraryRepository,
     ) = ObserveTracksWithOverridesUseCase(metadataRepository, libraryRepository)
+
+    @Provides
+    fun provideObserveLibraryTrackUseCase(libraryRepository: LibraryRepository) =
+        ObserveLibraryTrackUseCase(libraryRepository)
 
     @Provides
     fun provideSaveBulkTrackMetadataUseCase(repository: TrackMetadataRepository) =

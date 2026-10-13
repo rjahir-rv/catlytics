@@ -34,13 +34,11 @@ sealed interface ArtworkEdit {
     /** Keep whatever artwork override is currently stored. */
     data object Keep : ArtworkEdit
 
-    /** Drop the artwork override and go back to the scanned artwork. */
     data object Restore : ArtworkEdit
 
     data class Replace(val sourceUri: String) : ArtworkEdit
 }
 
-/** What a bulk edit does to one text field of every selected track. */
 sealed interface FieldEdit {
     data object Keep : FieldEdit
     data object Restore : FieldEdit

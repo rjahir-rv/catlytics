@@ -4,17 +4,24 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveEditableTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.ResetTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.SaveTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.library.WriteTrackTagsToFileUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtworkEdit
+import com.catlytics.core.model.BulkTrackMetadataEdit
 import com.catlytics.core.model.EditableTrackMetadata
+import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackMetadataEdit
 import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
 import com.catlytics.core.model.artistIdentityKey
@@ -34,6 +41,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -47,6 +56,10 @@ internal class EditTrackMetadataViewModel @Inject constructor(
     private val resetTrackMetadata: ResetTrackMetadataUseCase,
     private val writeTrackTagsToFile: WriteTrackTagsToFileUseCase,
     private val mergeArtists: MergeArtistsUseCase,
+    private val observeAlbumContent: ObserveAlbumContentUseCase,
+    private val saveBulkTrackMetadata: SaveBulkTrackMetadataUseCase,
+    observeArtistAliases: ObserveArtistAliasesUseCase,
+    private val unmergeArtist: UnmergeArtistUseCase,
 ) : ViewModel() {
     private val trackId = MutableStateFlow<String?>(null)
     private val form = MutableStateFlow<EditTrackMetadataForm?>(null)
@@ -56,17 +69,35 @@ internal class EditTrackMetadataViewModel @Inject constructor(
 
     private val editable = trackId.filterNotNull().flatMapLatest(observeEditableTrackMetadata::invoke)
 
+    private val editableWithAlbum = editable.flatMapLatest { metadata ->
+        val albumId = metadata?.current?.albumId ?: return@flatMapLatest flowOf(metadata to emptyList())
+        observeAlbumContent(albumId)
+            .map { content -> metadata to content?.tracks?.map(Track::id).orEmpty() }
+            .catch { emit(metadata to emptyList()) }
+    }
+
+    private val artistsWithAliases = combine(
+        observeArtists().catch { emit(emptyList()) },
+        observeArtistAliases().catch { emit(emptyList()) },
+        ::Pair,
+    )
+
     val uiState: StateFlow<EditTrackMetadataUiState> = combine(
-        editable,
+        editableWithAlbum,
         form,
         isSaving,
-        observeArtists().catch { emit(emptyList()) },
+        artistsWithAliases,
         observeAlbums().catch { emit(emptyList()) },
-    ) { metadata, form, saving, artists, albums ->
+    ) { (metadata, albumTrackIds), form, saving, (artists, aliases), albums ->
         when {
             metadata == null -> EditTrackMetadataUiState.NotFound
             form == null -> EditTrackMetadataUiState.Loading
-            else -> metadata.toUiState(form, saving, artists, albums)
+            else -> metadata.toUiState(form, saving, artists, albums).copy(
+                albumTrackIds = albumTrackIds,
+                // Only worth offering when the merge hides the typed name behind another one.
+                mergedArtistAlias = aliases.aliasFor(form.artistName)
+                    ?.takeIf { artistIdentityKey(it.target.name) == artistIdentityKey(metadata.current.artist.name) },
+            )
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EditTrackMetadataUiState.Loading)
 
@@ -86,6 +117,10 @@ internal class EditTrackMetadataViewModel @Inject constructor(
     fun onAlbumChange(value: String) = updateForm { copy(albumTitle = value) }
 
     fun onUnifyArtistChange(value: Boolean) = updateForm { copy(unifyArtist = value) }
+
+    fun onApplyArtworkToAlbumChange(value: Boolean) = updateForm { copy(applyArtworkToAlbum = value) }
+
+    fun onSeparateArtistChange(value: Boolean) = updateForm { copy(separateArtist = value) }
 
     fun onWriteToFileChange(value: Boolean) = updateForm { copy(writeToFile = value) }
 
@@ -116,16 +151,20 @@ internal class EditTrackMetadataViewModel @Inject constructor(
             val form = state.form
             val unifyTarget = state.unifyTarget?.takeIf { form.unifyArtist }
             if (unifyTarget != null) mergeArtists(state.original.artist, unifyTarget)
+            state.mergedArtistAlias?.takeIf { form.separateArtist }?.let { unmergeArtist(it.source) }
+            val artworkForAlbum = form.artwork.takeIf { form.applyArtworkToAlbum && state.canApplyArtworkToAlbum }
             saveTrackMetadata(
                 state.original.id,
                 TrackMetadataEdit(
                     title = form.title,
-                    // A merge already moves this track, so no per-track artist edit is needed.
                     artistName = if (unifyTarget != null) state.original.artist.name else form.artistName,
                     albumTitle = form.albumTitle,
-                    artwork = form.artwork,
+                    artwork = if (artworkForAlbum != null) ArtworkEdit.Keep else form.artwork,
                 ),
             )
+            if (artworkForAlbum != null) {
+                saveBulkTrackMetadata(state.albumTrackIds, BulkTrackMetadataEdit(artwork = artworkForAlbum))
+            }
             if (form.writeToFile) {
                 _events.emit(EditTrackMetadataEvent.RequestFileWrite(state.original.mediaUri))
             } else {
@@ -144,7 +183,6 @@ internal class EditTrackMetadataViewModel @Inject constructor(
         }
     }
 
-    //Called with the result of the system's MediaStore write-permission dialog. */
     fun onFileWritePermissionResult(granted: Boolean) {
         val id = trackId.value ?: return
         if (!granted) {
@@ -154,7 +192,6 @@ internal class EditTrackMetadataViewModel @Inject constructor(
             }
             return
         }
-        // The edit itself is already saved, so a failed file write still closes the editor.
         runSaving(
             errorMessage = UiText.Resource(R.string.library_edit_file_error),
             closeOnError = true,
@@ -231,6 +268,12 @@ private fun EditableTrackMetadata.toUiState(
         hasOverride = override != null,
         isSaving = saving,
     )
+}
+
+internal fun List<ArtistAlias>.aliasFor(name: String): ArtistAlias? {
+    if (name.isBlank()) return null
+    val key = artistIdentityKey(name)
+    return firstOrNull { !it.isDisplayRename && artistIdentityKey(it.source.name) == key }
 }
 
 internal fun List<String>.suggestionsFor(query: String): List<String> {

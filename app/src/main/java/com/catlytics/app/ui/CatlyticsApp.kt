@@ -168,6 +168,7 @@ fun CatlyticsApp(
     var editMetadataTrackId by remember { mutableStateOf<String?>(null) }
     var bulkEditTrackIds by remember { mutableStateOf<List<String>?>(null) }
     var detailTopBarColors by remember { mutableStateOf<Map<NavKey, Color>>(emptyMap()) }
+    var detailTopBarTitles by remember { mutableStateOf<Map<NavKey, String>>(emptyMap()) }
     var settingsTopBarTitle by remember { mutableStateOf<String?>(null) }
     var settingsTopBarBackAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val hazeState = rememberHazeState()
@@ -502,7 +503,7 @@ fun CatlyticsApp(
                 isCreatePlaylistVisible -> Unit
                 currentRoute is LibraryAlbumRoute -> {
                     LibraryDetailTopAppBar(
-                        title = currentRoute.albumTitle,
+                        title = detailTopBarTitles[currentRoute] ?: currentRoute.albumTitle,
                         onBack = ::closeCurrentDestination,
                         containerColor = Color.Transparent,
                         scrollBehavior = topBarScrollBehavior,
@@ -795,6 +796,9 @@ fun CatlyticsApp(
                         onTrackSelectionAction = ::handleTrackSelectionAction,
                         onLibraryDetailTopBarColorChange = { route, color ->
                             detailTopBarColors = detailTopBarColors + (route to color)
+                        },
+                        onLibraryDetailTitleChange = { route, title ->
+                            detailTopBarTitles = detailTopBarTitles + (route to title)
                         },
                         hasAudioPermission = { hasAudioPermission },
                         onRequestAudioPermission = {

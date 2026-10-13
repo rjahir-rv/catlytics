@@ -30,6 +30,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     isCurrentTrackPlaying: () -> Boolean = { false },
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onLibraryDetailTopBarColorChange: (NavKey, Color) -> Unit,
+    onLibraryDetailTitleChange: (NavKey, String) -> Unit = { _, _ -> },
     hasAudioPermission: () -> Boolean,
     onRequestAudioPermission: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
@@ -69,6 +70,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             onTopBarColorChange = { color ->
                 onLibraryDetailTopBarColorChange(route, color)
             },
+            onTitleChange = { title -> onLibraryDetailTitleChange(route, title) },
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding(),
         )

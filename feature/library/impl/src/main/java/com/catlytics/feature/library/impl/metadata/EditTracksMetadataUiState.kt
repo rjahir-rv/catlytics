@@ -1,6 +1,7 @@
 package com.catlytics.feature.library.impl.metadata
 
 import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtworkEdit
 import com.catlytics.core.model.FieldEdit
 
@@ -26,6 +27,7 @@ internal data class EditTracksMetadataForm(
     val artwork: ArtworkEdit = ArtworkEdit.Keep,
     val artworkPreviewUri: String?,
     val writeToFile: Boolean = false,
+    val separateArtist: Boolean = true,
 )
 
 internal sealed interface EditTracksMetadataUiState {
@@ -46,13 +48,13 @@ internal sealed interface EditTracksMetadataUiState {
         val artistSuggestions: List<String>,
         val albumSuggestions: List<String>,
         val isSaving: Boolean,
+        val mergedArtistAlias: ArtistAlias? = null,
     ) : EditTracksMetadataUiState {
         val hasChanges: Boolean
             get() = form.artist.edit != FieldEdit.Keep ||
                 form.album.edit != FieldEdit.Keep ||
                 form.artwork != ArtworkEdit.Keep
 
-        /** Writing to the files alone is a valid save, e.g. to persist earlier edits. */
         val canSave: Boolean get() = (hasChanges || form.writeToFile) && !isSaving
     }
 }

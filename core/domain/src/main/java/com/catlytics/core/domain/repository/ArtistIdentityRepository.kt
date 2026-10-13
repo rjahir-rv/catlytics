@@ -12,6 +12,8 @@ interface ArtistIdentityRepository {
     /** Moves the complete source group under target and keeps the graph flat. */
     suspend fun merge(source: Artist, target: Artist)
 
+    suspend fun rename(source: Artist, newName: String)
+
     suspend fun unmerge(source: Artist)
 
     suspend fun replaceAliases(aliases: List<ArtistAlias>)

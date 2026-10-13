@@ -11,7 +11,17 @@ data class Artist(
 data class ArtistAlias(
     val source: Artist,
     val target: Artist,
-)
+) {
+    val isDisplayRename: Boolean
+        get() = artistIdentityKey(source.name) == artistIdentityKey(target.name)
+}
+
+fun renamedArtistId(name: String): String = "$RENAMED_ARTIST_ID_PREFIX${artistIdentityKey(name)}"
+
+val Artist.isRenamed: Boolean
+    get() = id.startsWith(RENAMED_ARTIST_ID_PREFIX)
+
+private const val RENAMED_ARTIST_ID_PREFIX = "renamed-artist-"
 
 fun artistIdentityKey(name: String): String = Normalizer
     .normalize(name.trim(), Normalizer.Form.NFKC)

@@ -117,6 +117,9 @@ internal fun LibraryArtistScreen(
     onDismissMergeDialog: () -> Unit = {},
     onConfirmMerge: () -> Unit = {},
     onConfirmUnmerge: () -> Unit = {},
+    onShowRename: () -> Unit = {},
+    onRenameNameChange: (String) -> Unit = {},
+    onConfirmRename: () -> Unit = {},
 ) {
     when (uiState) {
         LibraryArtistUiState.Loading -> Box(
@@ -146,8 +149,10 @@ internal fun LibraryArtistScreen(
             scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
             aliases = uiState.aliases,
+            canRename = uiState.canRename,
             onShowMergePicker = onShowMergePicker,
             onShowAliasManager = onShowAliasManager,
+            onShowRename = onShowRename,
         )
     }
     if (uiState is LibraryArtistUiState.Success) {
@@ -159,6 +164,8 @@ internal fun LibraryArtistScreen(
             onDismiss = onDismissMergeDialog,
             onConfirmMerge = onConfirmMerge,
             onConfirmUnmerge = onConfirmUnmerge,
+            onRenameNameChange = onRenameNameChange,
+            onConfirmRename = onConfirmRename,
         )
     }
 }
@@ -180,8 +187,10 @@ private fun ArtistContent(
     scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
     aliases: List<ArtistAlias>,
+    canRename: Boolean,
     onShowMergePicker: () -> Unit,
     onShowAliasManager: () -> Unit,
+    onShowRename: () -> Unit,
 ) {
     val selectedSectionIndex = rememberSaveable(content.summary.artist.id) { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(
@@ -250,6 +259,8 @@ private fun ArtistContent(
                 artworkModel = artworkRequest,
                 onArtworkLoaded = { artworkBitmap = it },
                 aliasCount = aliases.size,
+                canRename = canRename,
+                onShowRename = onShowRename,
                 onShowMergePicker = onShowMergePicker,
                 onShowAliasManager = onShowAliasManager,
                 modifier = Modifier.padding(
@@ -314,6 +325,8 @@ private fun ArtistHeader(
     artworkModel: Any?,
     onArtworkLoaded: (Bitmap) -> Unit,
     aliasCount: Int,
+    canRename: Boolean,
+    onShowRename: () -> Unit,
     onShowMergePicker: () -> Unit,
     onShowAliasManager: () -> Unit,
     modifier: Modifier = Modifier,
@@ -366,8 +379,15 @@ private fun ArtistHeader(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        FilledTonalButton(onClick = onShowMergePicker) {
-            Text(stringResource(LibraryR.string.library_artist_merge_open))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (canRename) {
+                FilledTonalButton(onClick = onShowRename) {
+                    Text(stringResource(LibraryR.string.library_artist_rename_open))
+                }
+            }
+            FilledTonalButton(onClick = onShowMergePicker) {
+                Text(stringResource(LibraryR.string.library_artist_merge_open))
+            }
         }
         if (aliasCount > 0) {
             TextButton(onClick = onShowAliasManager) {
@@ -387,6 +407,8 @@ private fun ArtistMergeDialogs(
     onDismiss: () -> Unit,
     onConfirmMerge: () -> Unit,
     onConfirmUnmerge: () -> Unit,
+    onRenameNameChange: (String) -> Unit,
+    onConfirmRename: () -> Unit,
 ) {
     when (val dialog = state.mergeDialog) {
         ArtistMergeDialog.Hidden -> Unit
@@ -473,21 +495,68 @@ private fun ArtistMergeDialogs(
                     headlineContent = { Text(alias.source.name) },
                     supportingContent = {
                         Text(
-                            stringResource(
-                                LibraryR.string.library_artist_alias_target,
-                                alias.target.name,
-                            ),
+                            if (alias.isDisplayRename) {
+                                stringResource(LibraryR.string.library_artist_alias_original_name)
+                            } else {
+                                stringResource(LibraryR.string.library_artist_alias_target, alias.target.name)
+                            },
                         )
                     },
                     trailingContent = {
                         TextButton(onClick = { onUnmergeRequested(alias) }) {
-                            Text(stringResource(LibraryR.string.library_action_unmerge))
+                            Text(
+                                stringResource(
+                                    if (alias.isDisplayRename) {
+                                        LibraryR.string.library_action_restore_name
+                                    } else {
+                                        LibraryR.string.library_action_unmerge
+                                    },
+                                ),
+                            )
                         }
                     },
                 )
                 if (index < state.aliases.lastIndex) HorizontalDivider()
             }
         }
+        is ArtistMergeDialog.Rename -> AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text(stringResource(LibraryR.string.library_artist_rename_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(LibraryR.string.library_artist_rename_description))
+                    OutlinedTextField(
+                        value = dialog.name,
+                        onValueChange = onRenameNameChange,
+                        label = { Text(stringResource(LibraryR.string.library_artist_rename_field)) },
+                        singleLine = true,
+                        supportingText = state.renameMergeTarget?.let { target ->
+                            { Text(stringResource(LibraryR.string.library_artist_rename_existing, target.name)) }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = onConfirmRename,
+                    enabled = dialog.name.isNotBlank() && !state.isMergeBusy,
+                ) {
+                    Text(
+                        if (state.isMergeBusy) {
+                            stringResource(LibraryR.string.library_action_renaming)
+                        } else {
+                            stringResource(LibraryR.string.library_action_rename)
+                        },
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss, enabled = !state.isMergeBusy) {
+                    Text(stringResource(LibraryR.string.library_action_cancel))
+                }
+            },
+        )
         is ArtistMergeDialog.ConfirmUnmerge -> AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(LibraryR.string.library_artist_unmerge_dialog_title)) },

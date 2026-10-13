@@ -71,6 +71,7 @@ internal fun LibraryAlbumScreen(
     onTrackSelected: (Track, List<Track>) -> Unit,
     onPlayShuffled: (List<Track>) -> Unit = {},
     onTrackOptions: (Track) -> Unit,
+    onEditAlbum: (List<Track>) -> Unit = {},
     likedTrackIds: Set<String> = emptySet(),
     currentTrackId: String? = null,
     isCurrentTrackPlaying: Boolean = false,
@@ -159,6 +160,7 @@ internal fun LibraryAlbumScreen(
                                 onPlayAll = { tracks ->
                                     tracks.firstOrNull()?.let { onTrackSelected(it, tracks) }
                                 },
+                                onEditAlbum = onEditAlbum,
                             )
                         }
                         itemsIndexed(
@@ -201,6 +203,7 @@ private fun AlbumHeader(
     onArtworkLoaded: (Bitmap) -> Unit,
     onPlayShuffled: (List<Track>) -> Unit,
     onPlayAll: (List<Track>) -> Unit,
+    onEditAlbum: (List<Track>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -264,6 +267,17 @@ private fun AlbumHeader(
                     contentDescription = stringResource(
                         LibraryR.string.library_album_play_shuffled_content_description,
                     ),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            FilledTonalIconButton(
+                onClick = { onEditAlbum(tracks) },
+                enabled = tracks.isNotEmpty(),
+                modifier = Modifier.size(48.dp),
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_edit),
+                    contentDescription = stringResource(LibraryR.string.library_album_edit_content_description),
                     modifier = Modifier.size(24.dp),
                 )
             }

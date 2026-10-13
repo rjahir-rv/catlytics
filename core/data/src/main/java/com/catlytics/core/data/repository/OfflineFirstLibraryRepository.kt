@@ -133,15 +133,22 @@ private fun List<TrackEntity>.canonicalizeArtists(
     aliases: List<ArtistAlias>,
 ): List<TrackEntity> {
     if (aliases.isEmpty()) return this
-    val aliasesBySourceKey = aliases.associateBy { artistIdentityKey(it.source.name) }
+    val (displayRenames, merges) = aliases.partition(ArtistAlias::isDisplayRename)
+    val aliasesBySourceKey = merges.associateBy { artistIdentityKey(it.source.name) }
+    val displayNamesByKey = displayRenames.associate { artistIdentityKey(it.target.name) to it.target.name }
     val currentArtistsByKey = associate { track ->
         artistIdentityKey(track.artistName) to Artist(track.artistId, track.artistName)
     }
     return map { track ->
-        aliasesBySourceKey[artistIdentityKey(track.artistName)]?.let { alias ->
-            val target = currentArtistsByKey[artistIdentityKey(alias.target.name)] ?: alias.target
-            track.copy(artistId = target.id, artistName = target.name)
-        } ?: track
+        val merged = aliasesBySourceKey[artistIdentityKey(track.artistName)]?.let { alias ->
+            currentArtistsByKey[artistIdentityKey(alias.target.name)] ?: alias.target
+        } ?: Artist(track.artistId, track.artistName)
+        val name = displayNamesByKey[artistIdentityKey(merged.name)] ?: merged.name
+        if (merged.id == track.artistId && name == track.artistName) {
+            track
+        } else {
+            track.copy(artistId = merged.id, artistName = name)
+        }
     }
 }
 

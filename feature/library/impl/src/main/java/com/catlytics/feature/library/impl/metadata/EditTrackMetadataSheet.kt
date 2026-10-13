@@ -51,6 +51,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.ImeAction
@@ -62,6 +63,7 @@ import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R as DesignR
 import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.feature.library.impl.R
 
 /** Bottom sheet that edits the title, artist, album and artwork of one track. */
@@ -117,6 +119,8 @@ fun EditTrackMetadataSheet(
                 onAlbumChange = viewModel::onAlbumChange,
                 onRestoreField = viewModel::restoreField,
                 onUnifyArtistChange = viewModel::onUnifyArtistChange,
+                onApplyArtworkToAlbumChange = viewModel::onApplyArtworkToAlbumChange,
+                onSeparateArtistChange = viewModel::onSeparateArtistChange,
                 onWriteToFileChange = viewModel::onWriteToFileChange,
                 onChooseArtwork = {
                     artworkPicker.launch(
@@ -151,6 +155,8 @@ internal fun EditTrackMetadataContent(
     onAlbumChange: (String) -> Unit,
     onRestoreField: (MetadataField) -> Unit,
     onUnifyArtistChange: (Boolean) -> Unit,
+    onApplyArtworkToAlbumChange: (Boolean) -> Unit,
+    onSeparateArtistChange: (Boolean) -> Unit,
     onWriteToFileChange: (Boolean) -> Unit,
     onChooseArtwork: () -> Unit,
     onRestoreArtwork: () -> Unit,
@@ -197,6 +203,25 @@ internal fun EditTrackMetadataContent(
                 }
             }
         }
+        if (state.canApplyArtworkToAlbum) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(CatlyticsCorners.Medium)
+                    .clickable { onApplyArtworkToAlbumChange(!form.applyArtworkToAlbum) },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = form.applyArtworkToAlbum, onCheckedChange = onApplyArtworkToAlbumChange)
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.library_edit_apply_artwork_to_album,
+                        state.albumTrackIds.size,
+                        state.albumTrackIds.size,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
         MetadataTextField(
             value = form.title,
             onValueChange = onTitleChange,
@@ -232,6 +257,13 @@ internal fun EditTrackMetadataContent(
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+        }
+        state.mergedArtistAlias?.let { alias ->
+            SeparateArtistRow(
+                alias = alias,
+                checked = form.separateArtist,
+                onCheckedChange = onSeparateArtistChange,
+            )
         }
         MetadataTextField(
             value = form.albumTitle,
@@ -286,6 +318,33 @@ internal fun EditTrackMetadataContent(
     }
 }
 
+/** Offers undoing the merge that would keep showing the typed artist as another one. */
+@Composable
+internal fun SeparateArtistRow(
+    alias: ArtistAlias,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(CatlyticsCorners.Medium)
+            .clickable { onCheckedChange(!checked) },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+        Text(
+            text = stringResource(R.string.library_edit_separate_artist, alias.source.name, alias.target.name),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+    }
+}
+
+/**
+ * Text field with name suggestions. With an [original], an edited value shows it and offers to
+ * restore it; without one (bulk edits), [supportingText] and [canRestore] drive that instead.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MetadataTextField(

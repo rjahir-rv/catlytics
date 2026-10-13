@@ -5,7 +5,11 @@ import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
+import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
+import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveEditableTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.ResetTrackMetadataUseCase
@@ -125,6 +129,53 @@ class EditTrackMetadataViewModelTest {
     }
 
     @Test
+    fun `a new cover can be applied to the whole album as one shared edit`() = runTest {
+        libraryRepository.albumContent.value = AlbumContent(
+            album = Album("album-unknown", "Álbum desconocido", Artist("unknown", "Artista desconocido"), trackCount = 2),
+            tracks = listOf(track(), track().copy(id = "track-2")),
+        )
+        val viewModel = openedViewModel()
+        assertFalse(viewModel.editing().canApplyArtworkToAlbum)
+
+        viewModel.onArtworkPicked("content://picked")
+        advanceUntilIdle()
+        assertTrue(viewModel.editing().canApplyArtworkToAlbum)
+        viewModel.onApplyArtworkToAlbumChange(true)
+        advanceUntilIdle()
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertEquals(ArtworkEdit.Keep, metadataRepository.savedEdit?.artwork)
+        assertEquals(
+            listOf(TRACK_ID, "track-2") to
+                com.catlytics.core.model.BulkTrackMetadataEdit(artwork = ArtworkEdit.Replace("content://picked")),
+            metadataRepository.savedBulkEdit,
+        )
+    }
+
+    @Test
+    fun `a merged original artist can be separated again`() = runTest {
+        val mendelssohn = Artist("artist-felix", "Felix Mendelssohn")
+        identityRepository.aliases.value = listOf(ArtistAlias(mendelssohn, NOVA))
+        metadataRepository.original.value = track(artist = mendelssohn)
+        libraryRepository.allTracks.value = listOf(track(artist = NOVA))
+        val viewModel = openedViewModel(original = track(artist = mendelssohn))
+
+        val state = viewModel.editing()
+        assertEquals("Felix Mendelssohn", state.form.artistName)
+        assertEquals(ArtistAlias(mendelssohn, NOVA), state.mergedArtistAlias)
+        // Opening the editor alone never undoes the merge.
+        assertFalse(state.form.separateArtist)
+
+        viewModel.onSeparateArtistChange(true)
+        advanceUntilIdle()
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertTrue(identityRepository.aliases.value.isEmpty())
+    }
+
+    @Test
     fun `unknown artist is never offered for unification`() = runTest {
         libraryRepository.artists.value = listOf(ArtistSummary(NOVA, albumCount = 1, trackCount = 3))
         val viewModel = openedViewModel()
@@ -182,6 +233,10 @@ class EditTrackMetadataViewModelTest {
             resetTrackMetadata = ResetTrackMetadataUseCase(metadataRepository),
             writeTrackTagsToFile = WriteTrackTagsToFileUseCase(metadataRepository),
             mergeArtists = MergeArtistsUseCase(identityRepository),
+            observeAlbumContent = ObserveAlbumContentUseCase(libraryRepository),
+            saveBulkTrackMetadata = SaveBulkTrackMetadataUseCase(metadataRepository),
+            observeArtistAliases = ObserveArtistAliasesUseCase(identityRepository),
+            unmergeArtist = UnmergeArtistUseCase(identityRepository),
         )
         backgroundScope.launch { viewModel.uiState.collect {} }
         viewModel.open(TRACK_ID)
@@ -225,6 +280,7 @@ internal class FakeTrackMetadataRepository : TrackMetadataRepository {
     val overrides = MutableStateFlow(emptyList<TrackMetadataOverride>())
     var savedEdit: TrackMetadataEdit? = null
     var savedBulkEdit: Pair<List<String>, com.catlytics.core.model.BulkTrackMetadataEdit>? = null
+    var bulkResult: com.catlytics.core.model.BulkEditResult? = null
     var wroteFile = false
 
     override fun observeOverrides() = overrides
@@ -237,7 +293,7 @@ internal class FakeTrackMetadataRepository : TrackMetadataRepository {
         edit: com.catlytics.core.model.BulkTrackMetadataEdit,
     ): com.catlytics.core.model.BulkEditResult {
         savedBulkEdit = trackIds to edit
-        return com.catlytics.core.model.BulkEditResult(updated = trackIds.size, skipped = 0)
+        return bulkResult ?: com.catlytics.core.model.BulkEditResult(updated = trackIds.size, skipped = 0)
     }
     override suspend fun reset(trackId: String) {
         overrides.value = emptyList()
@@ -254,14 +310,20 @@ internal class FakeTrackMetadataRepository : TrackMetadataRepository {
     }
 }
 
-private class MetadataFakeArtistIdentityRepository : ArtistIdentityRepository {
+internal class MetadataFakeArtistIdentityRepository : ArtistIdentityRepository {
+    var renamed: Pair<Artist, String>? = null
+    override suspend fun rename(source: Artist, newName: String) {
+        renamed = source to newName
+    }
     val aliases = MutableStateFlow(emptyList<ArtistAlias>())
     override fun observeAliases() = aliases
     override suspend fun getAliases() = aliases.value
     override suspend fun merge(source: Artist, target: Artist) {
         aliases.value += ArtistAlias(source, target)
     }
-    override suspend fun unmerge(source: Artist) = Unit
+    override suspend fun unmerge(source: Artist) {
+        aliases.value = aliases.value.filterNot { it.source.name == source.name }
+    }
     override suspend fun replaceAliases(aliases: List<ArtistAlias>) = Unit
     override suspend fun mergeAliases(aliases: List<ArtistAlias>) = 0
 }
@@ -269,9 +331,10 @@ private class MetadataFakeArtistIdentityRepository : ArtistIdentityRepository {
 internal class MetadataFakeLibraryRepository : LibraryRepository {
     val artists = MutableStateFlow(emptyList<ArtistSummary>())
     val allTracks = MutableStateFlow(emptyList<Track>())
+    val albumContent = MutableStateFlow<AlbumContent?>(null)
 
     override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
-    override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
+    override fun observeAlbumContent(albumId: String) = albumContent
     override fun observeArtists() = artists
     override fun observeArtistContent(artistId: String) = MutableStateFlow<ArtistContent?>(null)
     override fun observeTracks() = MutableStateFlow(emptyList<Track>())

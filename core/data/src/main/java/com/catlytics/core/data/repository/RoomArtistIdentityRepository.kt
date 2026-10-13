@@ -8,6 +8,8 @@ import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.artistIdentityKey
+import com.catlytics.core.model.isRenamed
+import com.catlytics.core.model.renamedArtistId
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -57,6 +59,43 @@ class RoomArtistIdentityRepository @Inject constructor(
         }
     }
 
+    override suspend fun rename(source: Artist, newName: String) = withContext(Dispatchers.IO) {
+        val name = newName.trim()
+        require(name.isNotEmpty()) { "El nombre no puede estar vacío." }
+        val sourceKey = artistIdentityKey(source.name)
+        val newKey = artistIdentityKey(name)
+
+        database.withTransaction {
+            val ownAlias = dao.getBySourceKey(sourceKey)?.takeIf { it.targetKey == sourceKey }
+            val sourceName = ownAlias?.sourceArtistName ?: source.name
+            if (newKey == sourceKey) {
+                val targetId = ownAlias?.targetArtistId ?: source.id
+                dao.moveGroup(sourceKey, sourceKey, targetId, name)
+                when {
+                    source.isRenamed -> Unit
+                    name == sourceName -> dao.deleteBySourceKey(sourceKey)
+                    else -> dao.upsert(
+                        ArtistAliasEntity(sourceKey, source.id, sourceName, sourceKey, targetId, name),
+                    )
+                }
+                return@withTransaction
+            }
+
+            val target = dao.getBySourceKey(newKey)
+                ?.takeIf { it.targetKey != newKey }
+                ?.let { Artist(it.targetArtistId, it.targetArtistName) }
+                ?: Artist(renamedArtistId(name), name)
+            val targetKey = artistIdentityKey(target.name)
+            require(targetKey != sourceKey) { "El nombre nuevo es el mismo artista." }
+            dao.moveGroup(sourceKey, targetKey, target.id, target.name)
+            if (!source.isRenamed) {
+                dao.upsert(
+                    ArtistAliasEntity(sourceKey, source.id, sourceName, targetKey, target.id, target.name),
+                )
+            }
+        }
+    }
+
     override suspend fun unmerge(source: Artist) = withContext(Dispatchers.IO) {
         dao.deleteBySourceKey(artistIdentityKey(source.name))
     }
@@ -76,6 +115,7 @@ class RoomArtistIdentityRepository @Inject constructor(
 private fun List<ArtistAlias>.flattened(): List<ArtistAlias> {
     val bySource = associateBy { artistIdentityKey(it.source.name) }
     return mapNotNull { alias ->
+        if (alias.isDisplayRename) return@mapNotNull alias.takeIf { it.source.name != it.target.name }
         var target = alias.target
         val visited = mutableSetOf(artistIdentityKey(alias.source.name))
         while (true) {
@@ -83,6 +123,8 @@ private fun List<ArtistAlias>.flattened(): List<ArtistAlias> {
             if (!visited.add(targetKey)) return@mapNotNull null
             val next = bySource[targetKey] ?: break
             target = next.target
+            // A display rename ends the chain with the target's new spelling.
+            if (next.isDisplayRename) break
         }
         alias.copy(target = target).takeIf {
             artistIdentityKey(it.source.name) != artistIdentityKey(it.target.name)

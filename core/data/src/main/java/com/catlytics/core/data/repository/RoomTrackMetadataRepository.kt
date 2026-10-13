@@ -63,7 +63,7 @@ class RoomTrackMetadataRepository internal constructor(
                 artwork = edit.artwork,
             ),
         )
-        check(result.updated == 1) { "La canción ya no está en la biblioteca." }
+        check(result.skipped == 0) { "La canción ya no está en la biblioteca." }
     }
 
     override suspend fun saveBulkEdit(
@@ -73,7 +73,9 @@ class RoomTrackMetadataRepository internal constructor(
         val tracks = localDataSource.observeTracks().first()
         val tracksById = tracks.associateBy(TrackEntity::id)
         val targets = trackIds.distinct().mapNotNull(tracksById::get)
-        if (targets.isEmpty()) return@withContext BulkEditResult(updated = 0, skipped = trackIds.distinct().size)
+        if (targets.isEmpty()) {
+            return@withContext BulkEditResult(updated = 0, skipped = trackIds.distinct().size)
+        }
 
         // A replaced cover is copied once and shared by every track of the batch.
         val replacedArtwork = (edit.artwork as? ArtworkEdit.Replace)?.let { artwork ->
@@ -109,15 +111,18 @@ class RoomTrackMetadataRepository internal constructor(
                 durationMillis = original.durationMillis,
                 updatedAtMillis = clock(),
             )
-            if (override.isEmpty) {
-                if (existing != null) deletes += original.id
-            } else {
-                upserts += override.toEntity(resolver, original)
+            when {
+                override.isEmpty -> if (existing != null) deletes += original.id
+                override.copy(updatedAtMillis = existing?.updatedAtMillis ?: 0L) == existing?.toDomain() -> Unit
+                else -> upserts += override.toEntity(resolver, original)
             }
         }
         dao.applyChanges(upserts = upserts, deletes = deletes)
         releasedArtwork.forEach { releaseArtwork(it) }
-        BulkEditResult(updated = targets.size, skipped = trackIds.distinct().size - targets.size)
+        BulkEditResult(
+            updated = upserts.size + deletes.size,
+            skipped = trackIds.distinct().size - targets.size,
+        )
     }
 
     override suspend fun reset(trackId: String) = resetMany(listOf(trackId))
@@ -236,7 +241,6 @@ class RoomTrackMetadataRepository internal constructor(
         }.distinctBy(TrackMetadataOverrideEntity::trackId)
     }
 
-    /** Must run after the restore's database transaction, never inside it, since it deletes files. */
     internal suspend fun deleteUnreferencedArtwork() = withContext(Dispatchers.IO) {
         val referenced = dao.getAll().mapNotNullTo(HashSet(), TrackMetadataOverrideEntity::artworkUri)
         artworkStore.deleteAllExcept(referenced)
@@ -246,7 +250,6 @@ class RoomTrackMetadataRepository internal constructor(
         dao.replaceAll(overrides)
     }
 
-    /** Keeps the most recently edited version of each track; returns how many were written. */
     internal suspend fun mergeFromBackup(overrides: List<TrackMetadataOverrideEntity>): Int {
         var imported = 0
         overrides.forEach { incoming ->

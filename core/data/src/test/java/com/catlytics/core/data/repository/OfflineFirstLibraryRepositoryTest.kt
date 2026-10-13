@@ -304,6 +304,33 @@ class OfflineFirstLibraryRepositoryTest {
     }
 
     @Test
+    fun `renamed artists show the new name with their merged group`() = runTest {
+        val main = Artist("artist-main", "artista")
+        val collaboration = Artist("artist-collab", "Artista feat. Invitado")
+        val renamed = Artist(com.catlytics.core.model.renamedArtistId("Nuevo"), "Nuevo")
+        localDataSource.replaceTracks(
+            listOf(
+                track("main", artistId = main.id, artistName = main.name),
+                track("collab", artistId = collaboration.id, artistName = collaboration.name),
+            ),
+        )
+
+        // Display rename: same artist, new spelling, merged tracks included.
+        artistIdentityRepository.replaceAliases(
+            listOf(ArtistAlias(main, Artist(main.id, "Artista")), ArtistAlias(collaboration, Artist(main.id, "Artista"))),
+        )
+        assertEquals(Artist(main.id, "Artista"), repository.observeArtists().first().single().artist)
+        assertEquals(setOf("Artista"), repository.observeTracks().first().map { it.artist.name }.toSet())
+
+        // Rename to a new name: the artist page opened with the old id follows it.
+        artistIdentityRepository.replaceAliases(
+            listOf(ArtistAlias(main, renamed), ArtistAlias(collaboration, renamed)),
+        )
+        assertEquals(renamed, repository.observeArtists().first().single().artist)
+        assertEquals(2, repository.observeArtistContent(main.id).first()?.tracks?.size)
+    }
+
+    @Test
     fun `artist content includes ordered albums and tracks`() = runTest {
         localDataSource.replaceTracks(
             listOf(
@@ -492,11 +519,15 @@ class OfflineFirstLibraryRepositoryTest {
     }
 }
 
-private object NoOpDataMediator : DataMediator {
+internal object NoOpDataMediator : DataMediator {
     override suspend fun syncLibrary() = Unit
 }
 
 private class FakeArtistIdentityRepository : ArtistIdentityRepository {
+    var renamed: Pair<Artist, String>? = null
+    override suspend fun rename(source: Artist, newName: String) {
+        renamed = source to newName
+    }
     private val aliases = MutableStateFlow(emptyList<ArtistAlias>())
 
     override fun observeAliases() = aliases
@@ -534,7 +565,7 @@ private class FakeTrackMetadataRepository : TrackMetadataRepository {
     override suspend fun writeTagsToFiles(trackIds: List<String>) = 0
 }
 
-private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
+internal class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
     private val hiddenFolderIds = MutableStateFlow(emptySet<String>())
     private val artistViewMode = MutableStateFlow(ArtistViewMode.List)
     private val playlistViewMode = MutableStateFlow(PlaylistViewMode.List)

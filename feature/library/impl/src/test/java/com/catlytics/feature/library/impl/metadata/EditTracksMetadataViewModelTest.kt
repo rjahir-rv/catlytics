@@ -2,11 +2,14 @@ package com.catlytics.feature.library.impl.metadata
 
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
+import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTracksWithOverridesUseCase
 import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.WriteTracksTagsToFilesUseCase
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtworkEdit
 import com.catlytics.core.model.BulkTrackMetadataEdit
 import com.catlytics.core.model.FieldEdit
@@ -34,6 +37,7 @@ class EditTracksMetadataViewModelTest {
 
     private val metadataRepository = FakeTrackMetadataRepository()
     private val libraryRepository = MetadataFakeLibraryRepository()
+    private val identityRepository = MetadataFakeArtistIdentityRepository()
 
     @Test
     fun `shared values are prefilled and differing ones are marked as mixed`() = runTest {
@@ -154,6 +158,54 @@ class EditTracksMetadataViewModelTest {
     }
 
     @Test
+    fun `typing a merged artist offers separating it and reports it`() = runTest {
+        val mendelssohn = Artist("artist-felix", "Felix Mendelssohn")
+        val postMalone = Artist("artist-Post Malone", "Post Malone")
+        identityRepository.aliases.value = listOf(ArtistAlias(mendelssohn, postMalone))
+        metadataRepository.bulkResult = com.catlytics.core.model.BulkEditResult(updated = 0, skipped = 0)
+        val viewModel = openedViewModel(track("1", artist = "Post Malone"), track("2", artist = "Post Malone"))
+        val events = mutableListOf<EditTracksMetadataEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.events.collect(events::add)
+        }
+        assertNull(viewModel.editing().mergedArtistAlias)
+
+        viewModel.onArtistChange("Felix Mendelssohn")
+        advanceUntilIdle()
+        assertEquals(ArtistAlias(mendelssohn, postMalone), viewModel.editing().mergedArtistAlias)
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertTrue(identityRepository.aliases.value.isEmpty())
+        assertEquals(
+            EditTracksMetadataEvent.Message(
+                UiText.Resource(R.string.library_edit_artist_separated, listOf("Felix Mendelssohn", "Post Malone")),
+            ),
+            events.first(),
+        )
+    }
+
+    @Test
+    fun `a save that changes nothing says so`() = runTest {
+        metadataRepository.bulkResult = com.catlytics.core.model.BulkEditResult(updated = 0, skipped = 0)
+        val viewModel = openedViewModel(track("1"), track("2"))
+        val events = mutableListOf<EditTracksMetadataEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.events.collect(events::add)
+        }
+
+        viewModel.onAlbumChange("Otro")
+        advanceUntilIdle()
+        viewModel.save()
+        advanceUntilIdle()
+
+        assertEquals(
+            EditTracksMetadataEvent.Message(UiText.Resource(R.string.library_bulk_edit_no_changes)),
+            events.first(),
+        )
+    }
+
+    @Test
     fun `tracks missing from the library are not editable`() = runTest {
         val viewModel = openedViewModel()
 
@@ -172,6 +224,8 @@ class EditTracksMetadataViewModelTest {
             observeAlbums = ObserveAlbumsUseCase(libraryRepository),
             saveBulkTrackMetadata = SaveBulkTrackMetadataUseCase(metadataRepository),
             writeTracksTagsToFiles = WriteTracksTagsToFilesUseCase(metadataRepository),
+            observeArtistAliases = ObserveArtistAliasesUseCase(identityRepository),
+            unmergeArtist = UnmergeArtistUseCase(identityRepository),
         )
         backgroundScope.launch { viewModel.uiState.collect {} }
         viewModel.open(listOf("1", "2"))

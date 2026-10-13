@@ -229,6 +229,72 @@ class RoomTrackMetadataRepositoryTest {
         assertEquals("content://media/one", tagWriter.writes.single().first)
     }
 
+    @Test
+    fun `editing only the artist of a whole album shows the new artist in the library`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("one", artist = "Nova", album = "Debut", albumId = "album-debut"),
+                track("two", artist = "Nova", album = "Debut", albumId = "album-debut"),
+            ),
+        )
+        val library = OfflineFirstLibraryRepository(
+            localDataSource = localDataSource,
+            mediator = NoOpDataMediator,
+            preferencesRepository = FakeLibraryPreferencesRepository(),
+            artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao()),
+            trackMetadataRepository = repository,
+        )
+
+        repository.saveBulkEdit(
+            listOf("one", "two"),
+            BulkTrackMetadataEdit(artistName = FieldEdit.Set("Luz")),
+        )
+
+        val content = library.observeAlbumContent("album-debut").first()!!
+        assertEquals("Luz", content.album.artist.name)
+        assertEquals(listOf("Luz", "Luz"), content.tracks.map { it.artist.name })
+    }
+
+    @Test
+    fun `album with a shared cover can then change only its artist`() = runTest {
+        localDataSource.replaceTracks(listOf(track("one"), track("two")))
+        val source = File(context.cacheDir, "cover.jpg").apply { writeBytes(byteArrayOf(7)) }
+        repository.saveBulkEdit(
+            listOf("one", "two"),
+            BulkTrackMetadataEdit(artwork = ArtworkEdit.Replace(source.toURI().toString())),
+        )
+
+        val result = repository.saveBulkEdit(
+            listOf("one", "two"),
+            BulkTrackMetadataEdit(artistName = FieldEdit.Set("Luz")),
+        )
+
+        assertEquals(2, result.updated)
+        val overrides = repository.observeOverrides().first()
+        assertEquals(listOf("Luz", "Luz"), overrides.map { it.artistName })
+        assertEquals(1, overrides.map { it.artworkUri }.distinct().size)
+    }
+
+    @Test
+    fun `bulk edit only counts and touches tracks that change`() = runTest {
+        localDataSource.replaceTracks(listOf(track("one"), track("two")))
+        repository.saveEdit("one", edit("one", artist = "Luz"))
+        val stored = repository.observeOverrides().first().single()
+
+        val unchanged = repository.saveBulkEdit(
+            listOf("one"),
+            BulkTrackMetadataEdit(artistName = FieldEdit.Set("Luz")),
+        )
+        val changed = repository.saveBulkEdit(
+            listOf("one", "two"),
+            BulkTrackMetadataEdit(artistName = FieldEdit.Set("Luz")),
+        )
+
+        assertEquals(0, unchanged.updated)
+        assertEquals(1, changed.updated)
+        assertEquals(stored, repository.observeOverrides().first().single { it.trackId == "one" })
+    }
+
     private suspend fun InMemoryLocalDataSource.track(id: String) =
         observeTracks().first().single { it.id == id }
 
