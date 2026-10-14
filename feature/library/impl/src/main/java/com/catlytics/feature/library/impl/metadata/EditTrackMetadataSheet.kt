@@ -97,7 +97,7 @@ fun EditTrackMetadataSheet(
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                         val request = MediaStore.createWriteRequest(
                             context.contentResolver,
-                            listOf(event.mediaUri.toUri()),
+                            event.mediaUris.map(String::toUri),
                         )
                         fileWritePermission.launch(IntentSenderRequest.Builder(request.intentSender).build())
                     } else {

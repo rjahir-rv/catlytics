@@ -67,6 +67,7 @@ internal fun UnifiedBackupContent(
     bottomPadding: () -> Dp,
     scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
+    onViewMetadataEdits: () -> Unit = {},
 ) {
     val isBusy = operationStatus is UnifiedBackupStatus.Exporting ||
         operationStatus is UnifiedBackupStatus.Importing ||
@@ -135,6 +136,14 @@ internal fun UnifiedBackupContent(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
+                    }
+                    if (summary.statistics.metadataEditCount > 0 || summary.statistics.artistAliasCount > 0) {
+                        TextButton(
+                            onClick = onViewMetadataEdits,
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            Text(stringResource(SettingsR.string.settings_backup_view_edits))
+                        }
                     }
                 }
                 SettingsDivider()

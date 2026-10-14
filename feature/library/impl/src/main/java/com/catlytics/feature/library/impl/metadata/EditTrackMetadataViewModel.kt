@@ -14,6 +14,7 @@ import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.SaveTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.library.WriteTrackTagsToFileUseCase
+import com.catlytics.core.domain.usecase.library.WriteTracksTagsToFilesUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
@@ -55,6 +56,7 @@ internal class EditTrackMetadataViewModel @Inject constructor(
     private val saveTrackMetadata: SaveTrackMetadataUseCase,
     private val resetTrackMetadata: ResetTrackMetadataUseCase,
     private val writeTrackTagsToFile: WriteTrackTagsToFileUseCase,
+    private val writeTracksTagsToFiles: WriteTracksTagsToFilesUseCase,
     private val mergeArtists: MergeArtistsUseCase,
     private val observeAlbumContent: ObserveAlbumContentUseCase,
     private val saveBulkTrackMetadata: SaveBulkTrackMetadataUseCase,
@@ -64,6 +66,7 @@ internal class EditTrackMetadataViewModel @Inject constructor(
     private val trackId = MutableStateFlow<String?>(null)
     private val form = MutableStateFlow<EditTrackMetadataForm?>(null)
     private val isSaving = MutableStateFlow(false)
+    private var fileWriteTrackIds: List<String> = emptyList()
     private val _events = MutableSharedFlow<EditTrackMetadataEvent>(extraBufferCapacity = 4)
     val events: SharedFlow<EditTrackMetadataEvent> = _events.asSharedFlow()
 
@@ -72,7 +75,7 @@ internal class EditTrackMetadataViewModel @Inject constructor(
     private val editableWithAlbum = editable.flatMapLatest { metadata ->
         val albumId = metadata?.current?.albumId ?: return@flatMapLatest flowOf(metadata to emptyList())
         observeAlbumContent(albumId)
-            .map { content -> metadata to content?.tracks?.map(Track::id).orEmpty() }
+            .map { content -> metadata to content?.tracks.orEmpty() }
             .catch { emit(metadata to emptyList()) }
     }
 
@@ -88,13 +91,12 @@ internal class EditTrackMetadataViewModel @Inject constructor(
         isSaving,
         artistsWithAliases,
         observeAlbums().catch { emit(emptyList()) },
-    ) { (metadata, albumTrackIds), form, saving, (artists, aliases), albums ->
+    ) { (metadata, albumTracks), form, saving, (artists, aliases), albums ->
         when {
             metadata == null -> EditTrackMetadataUiState.NotFound
             form == null -> EditTrackMetadataUiState.Loading
             else -> metadata.toUiState(form, saving, artists, albums).copy(
-                albumTrackIds = albumTrackIds,
-                // Only worth offering when the merge hides the typed name behind another one.
+                albumTracks = albumTracks,
                 mergedArtistAlias = aliases.aliasFor(form.artistName)
                     ?.takeIf { artistIdentityKey(it.target.name) == artistIdentityKey(metadata.current.artist.name) },
             )
@@ -166,7 +168,10 @@ internal class EditTrackMetadataViewModel @Inject constructor(
                 saveBulkTrackMetadata(state.albumTrackIds, BulkTrackMetadataEdit(artwork = artworkForAlbum))
             }
             if (form.writeToFile) {
-                _events.emit(EditTrackMetadataEvent.RequestFileWrite(state.original.mediaUri))
+                // A cover applied to the album changed every album file, not only this one.
+                val tracksToWrite = if (artworkForAlbum != null) state.albumTracks else listOf(state.original)
+                fileWriteTrackIds = tracksToWrite.map(Track::id)
+                _events.emit(EditTrackMetadataEvent.RequestFileWrite(tracksToWrite.map(Track::mediaUri)))
             } else {
                 _events.emit(EditTrackMetadataEvent.Message(UiText.Resource(R.string.library_edit_saved)))
                 _events.emit(EditTrackMetadataEvent.Close)
@@ -192,12 +197,23 @@ internal class EditTrackMetadataViewModel @Inject constructor(
             }
             return
         }
+        val trackIds = fileWriteTrackIds.ifEmpty { listOf(id) }
         runSaving(
             errorMessage = UiText.Resource(R.string.library_edit_file_error),
             closeOnError = true,
         ) {
-            writeTrackTagsToFile(id)
-            _events.emit(EditTrackMetadataEvent.Message(UiText.Resource(R.string.library_edit_file_saved)))
+            val message = if (trackIds.size == 1) {
+                writeTrackTagsToFile(trackIds.single())
+                UiText.Resource(R.string.library_edit_file_saved)
+            } else {
+                val failed = writeTracksTagsToFiles(trackIds)
+                if (failed == 0) {
+                    UiText.Plural(R.plurals.library_bulk_edit_files_saved, trackIds.size)
+                } else {
+                    UiText.Plural(R.plurals.library_bulk_edit_files_failed, failed)
+                }
+            }
+            _events.emit(EditTrackMetadataEvent.Message(message))
             _events.emit(EditTrackMetadataEvent.Close)
         }
     }

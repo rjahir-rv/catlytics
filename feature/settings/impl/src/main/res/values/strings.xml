@@ -185,4 +185,75 @@
     <!-- Cabecera de Ajustes -->
     <string name="settings_profile_title">Catlytics</string>
     <string name="settings_profile_version">Versión %1$s</string>
+    <!-- Ediciones de metadatos -->
+    <string name="settings_edits_title">Ediciones de metadatos</string>
+    <string name="settings_edits_supporting">Revisa y revierte los cambios en canciones y artistas</string>
+    <string name="settings_edits_description">Los cambios se aplican solo dentro de Catlytics (salvo los guardados también en los archivos) y reagrupan tu historial de estadísticas. Revertirlos devuelve los datos originales.</string>
+    <string name="settings_edits_search">Buscar en las ediciones</string>
+    <string name="settings_edits_filter_all">Todas</string>
+    <string name="settings_edits_filter_missing">Sin canción</string>
+    <string name="settings_edits_filter_artists">Artistas</string>
+    <string name="settings_edits_field_title">Título</string>
+    <string name="settings_edits_field_artist">Artista</string>
+    <string name="settings_edits_field_album">Álbum</string>
+    <string name="settings_edits_field_artwork">Carátula</string>
+    <string name="settings_edits_change">%1$s → %2$s</string>
+    <string name="settings_edits_artwork_changed">personalizada</string>
+    <string name="settings_edits_updated_at">Editada el %1$s</string>
+    <string name="settings_edits_missing_track">%1$s · No está en la biblioteca</string>
+    <string name="settings_edits_options_content_description">Opciones de la edición de %1$s</string>
+    <string name="settings_edits_restore_title">Restaurar título</string>
+    <string name="settings_edits_restore_artist">Restaurar artista</string>
+    <string name="settings_edits_restore_album">Restaurar álbum</string>
+    <string name="settings_edits_restore_artwork">Restaurar carátula</string>
+    <string name="settings_edits_restore_track">Restaurar toda la canción</string>
+    <string name="settings_edits_artist_merged">Unificado con %1$s</string>
+    <string name="settings_edits_artist_renamed">Renombrado a %1$s</string>
+    <string name="settings_edits_artist_spelling">Se escribe %1$s</string>
+    <string name="settings_edits_separate">Separar</string>
+    <string name="settings_edits_restore_name">Restaurar</string>
+    <string name="settings_edits_selection_hint">Mantén pulsada una canción para seleccionar varias</string>
+    <string name="settings_edits_select_all">Todas</string>
+    <string name="settings_edits_cancel">Cancelar</string>
+    <string name="settings_edits_revert">Revertir</string>
+    <string name="settings_edits_revert_filtered">Revertir todo</string>
+    <string name="settings_edits_no_results">Ninguna edición coincide con la búsqueda o el filtro.</string>
+    <string name="settings_edits_empty_title">Sin ediciones</string>
+    <string name="settings_edits_empty_message">Aquí aparecerán las canciones que edites y los artistas que unifiques o renombres.</string>
+    <string name="settings_edits_confirm_title">¿Revertir ediciones?</string>
+    <string name="settings_edits_confirm_filtered_one">Se revertirán las ediciones de %1$s que se muestran ahora. Esta acción no se puede deshacer.</string>
+    <string name="settings_edits_confirm_filtered">Se revertirán %1$s y %2$s que se muestran ahora. Esta acción no se puede deshacer.</string>
+    <string name="settings_edits_field_reverted">Campo restaurado</string>
+    <string name="settings_edits_artist_reverted">«%1$s» vuelve a aparecer con su nombre original</string>
+    <string name="settings_edits_filtered_reverted">Ediciones revertidas</string>
+    <string name="settings_edits_error">No se pudieron revertir las ediciones.</string>
+    <string name="settings_backup_view_edits">Ver y revertir ediciones</string>
+    <plurals name="settings_edits_tracks_section">
+        <item quantity="one">%1$d canción editada</item>
+        <item quantity="other">%1$d canciones editadas</item>
+    </plurals>
+    <plurals name="settings_edits_artists_section">
+        <item quantity="one">%1$d artista unificado o renombrado</item>
+        <item quantity="other">%1$d artistas unificados o renombrados</item>
+    </plurals>
+    <plurals name="settings_edits_selected">
+        <item quantity="one">%1$d seleccionada</item>
+        <item quantity="other">%1$d seleccionadas</item>
+    </plurals>
+    <plurals name="settings_edits_confirm_selected">
+        <item quantity="one">Se restaurará la información original de %1$d canción. Esta acción no se puede deshacer.</item>
+        <item quantity="other">Se restaurará la información original de %1$d canciones. Esta acción no se puede deshacer.</item>
+    </plurals>
+    <plurals name="settings_edits_track_count">
+        <item quantity="one">%1$d canción</item>
+        <item quantity="other">%1$d canciones</item>
+    </plurals>
+    <plurals name="settings_edits_artist_count">
+        <item quantity="one">%1$d artista</item>
+        <item quantity="other">%1$d artistas</item>
+    </plurals>
+    <plurals name="settings_edits_tracks_reverted">
+        <item quantity="one">Se restauró %1$d canción</item>
+        <item quantity="other">Se restauraron %1$d canciones</item>
+    </plurals>
 </resources>

@@ -15,6 +15,7 @@ import com.catlytics.core.domain.usecase.library.ObserveEditableTrackMetadataUse
 import com.catlytics.core.domain.usecase.library.ResetTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.SaveTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.WriteTrackTagsToFileUseCase
+import com.catlytics.core.domain.usecase.library.WriteTracksTagsToFilesUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
@@ -176,6 +177,40 @@ class EditTrackMetadataViewModelTest {
     }
 
     @Test
+    fun `a cover applied to the album writes every album file`() = runTest {
+        val second = track().copy(id = "track-2", mediaUri = "content://media/2")
+        libraryRepository.albumContent.value = AlbumContent(
+            album = Album("album-unknown", "Álbum desconocido", Artist("unknown", "Artista desconocido"), trackCount = 2),
+            tracks = listOf(track(), second),
+        )
+        val viewModel = openedViewModel()
+        val events = mutableListOf<EditTrackMetadataEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.events.collect(events::add)
+        }
+
+        viewModel.onArtworkPicked("content://picked")
+        viewModel.onApplyArtworkToAlbumChange(true)
+        viewModel.onWriteToFileChange(true)
+        advanceUntilIdle()
+        viewModel.save()
+        advanceUntilIdle()
+        assertEquals(
+            EditTrackMetadataEvent.RequestFileWrite(listOf("content://media/1", "content://media/2")),
+            events.single(),
+        )
+
+        viewModel.onFileWritePermissionResult(granted = true)
+        advanceUntilIdle()
+
+        assertEquals(listOf(TRACK_ID, "track-2"), metadataRepository.wroteFiles)
+        assertEquals(
+            EditTrackMetadataEvent.Message(UiText.Plural(R.plurals.library_bulk_edit_files_saved, 2)),
+            events[1],
+        )
+    }
+
+    @Test
     fun `unknown artist is never offered for unification`() = runTest {
         libraryRepository.artists.value = listOf(ArtistSummary(NOVA, albumCount = 1, trackCount = 3))
         val viewModel = openedViewModel()
@@ -198,7 +233,7 @@ class EditTrackMetadataViewModelTest {
         advanceUntilIdle()
         viewModel.save()
         advanceUntilIdle()
-        assertEquals(EditTrackMetadataEvent.RequestFileWrite("content://media/1"), events.single())
+        assertEquals(EditTrackMetadataEvent.RequestFileWrite(listOf("content://media/1")), events.single())
 
         viewModel.onFileWritePermissionResult(granted = false)
         advanceUntilIdle()
@@ -232,6 +267,7 @@ class EditTrackMetadataViewModelTest {
             saveTrackMetadata = SaveTrackMetadataUseCase(metadataRepository),
             resetTrackMetadata = ResetTrackMetadataUseCase(metadataRepository),
             writeTrackTagsToFile = WriteTrackTagsToFileUseCase(metadataRepository),
+            writeTracksTagsToFiles = WriteTracksTagsToFilesUseCase(metadataRepository),
             mergeArtists = MergeArtistsUseCase(identityRepository),
             observeAlbumContent = ObserveAlbumContentUseCase(libraryRepository),
             saveBulkTrackMetadata = SaveBulkTrackMetadataUseCase(metadataRepository),
@@ -282,6 +318,7 @@ internal class FakeTrackMetadataRepository : TrackMetadataRepository {
     var savedBulkEdit: Pair<List<String>, com.catlytics.core.model.BulkTrackMetadataEdit>? = null
     var bulkResult: com.catlytics.core.model.BulkEditResult? = null
     var wroteFile = false
+    var wroteFiles: List<String>? = null
 
     override fun observeOverrides() = overrides
     override fun observeOriginalTrack(trackId: String) = original.map { it?.takeIf { track -> track.id == trackId } }
@@ -305,6 +342,7 @@ internal class FakeTrackMetadataRepository : TrackMetadataRepository {
         wroteFile = true
     }
     override suspend fun writeTagsToFiles(trackIds: List<String>): Int {
+        wroteFiles = trackIds
         wroteFile = true
         return 0
     }

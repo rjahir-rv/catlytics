@@ -64,6 +64,7 @@ import com.catlytics.feature.settings.impl.components.SettingsRowText
 import com.catlytics.feature.settings.impl.components.SettingsSection
 import com.catlytics.feature.settings.impl.components.SettingsToggleRow
 import com.catlytics.feature.settings.impl.components.SettingsValueRow
+import com.catlytics.feature.settings.impl.edits.MetadataEditsRoute
 import com.catlytics.feature.settings.impl.equalizer.EqualizerSettingsContent
 
 @Composable
@@ -118,7 +119,8 @@ internal fun SettingsScreen(
             SettingsDestination.About,
             SettingsDestination.Equalizer,
             SettingsDestination.MusicScan,
-            SettingsDestination.Backup -> SettingsDestination.Main
+            SettingsDestination.Backup,
+            SettingsDestination.MetadataEdits -> SettingsDestination.Main
             SettingsDestination.Main -> SettingsDestination.Main
         }
     }
@@ -131,6 +133,7 @@ internal fun SettingsScreen(
     val musicScanTitle = stringResource(SettingsR.string.settings_music_scan_title)
     val foldersTitle = stringResource(SettingsR.string.settings_folders_title)
     val backupTitle = stringResource(SettingsR.string.settings_backup_title)
+    val metadataEditsTitle = stringResource(SettingsR.string.settings_edits_title)
 
     LaunchedEffect(destination) {
         when (destination) {
@@ -156,6 +159,10 @@ internal fun SettingsScreen(
             }
             SettingsDestination.Backup -> {
                 onTopBarTitleChange(backupTitle)
+                onTopBarBackActionChange(::navigateBack)
+            }
+            SettingsDestination.MetadataEdits -> {
+                onTopBarTitleChange(metadataEditsTitle)
                 onTopBarBackActionChange(::navigateBack)
             }
         }
@@ -191,6 +198,7 @@ internal fun SettingsScreen(
             onEqualizerClick = { destination = SettingsDestination.Equalizer },
             onMusicScanClick = { destination = SettingsDestination.MusicScan },
             onBackupClick = { destination = SettingsDestination.Backup },
+            onMetadataEditsClick = { destination = SettingsDestination.MetadataEdits },
             onAboutClick = { destination = SettingsDestination.About },
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding,
@@ -242,6 +250,12 @@ internal fun SettingsScreen(
             onConfirmImport = onConfirmImport,
             onDismissImportPreview = onDismissImportPreview,
             onDismissStatus = onDismissBackupStatus,
+            onViewMetadataEdits = { destination = SettingsDestination.MetadataEdits },
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
+            modifier = modifier,
+        )
+        SettingsDestination.MetadataEdits -> MetadataEditsRoute(
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
@@ -284,6 +298,7 @@ private fun SettingsMainContent(
     onEqualizerClick: () -> Unit,
     onMusicScanClick: () -> Unit,
     onBackupClick: () -> Unit,
+    onMetadataEditsClick: () -> Unit,
     onAboutClick: () -> Unit,
     bottomPadding: () -> Dp,
     scaffoldContentPadding: PaddingValues,
@@ -399,6 +414,12 @@ private fun SettingsMainContent(
                     title = stringResource(SettingsR.string.settings_backup_title),
                     supportingText = stringResource(SettingsR.string.settings_backup_supporting),
                     onClick = onBackupClick,
+                )
+                SettingsDivider()
+                SettingsValueRow(
+                    title = stringResource(SettingsR.string.settings_edits_title),
+                    supportingText = stringResource(SettingsR.string.settings_edits_supporting),
+                    onClick = onMetadataEditsClick,
                 )
             }
         }
@@ -594,4 +615,5 @@ private enum class SettingsDestination(val depth: Int) {
     MusicScan(1),
     ScanFolders(2),
     Backup(1),
+    MetadataEdits(1),
 }
