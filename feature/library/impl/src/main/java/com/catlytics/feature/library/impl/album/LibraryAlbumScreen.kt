@@ -43,13 +43,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
-import coil3.toBitmap
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsPlayingBarsOverlay
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
@@ -244,8 +243,10 @@ private fun AlbumHeader(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AsyncImage(
+        CatlyticsArtwork(
             model = artworkModel,
+            seed = album.title,
+            placeholderIcon = R.drawable.ic_album,
             contentDescription = stringResource(
                 LibraryR.string.library_album_cover_content_description,
                 album.title,
@@ -254,12 +255,7 @@ private fun AlbumHeader(
                 .fillMaxWidth(0.72f)
                 .aspectRatio(1f)
                 .clip(RoundedCornerShape(24.dp)),
-            placeholder = painterResource(R.drawable.placeholder_album),
-            error = painterResource(R.drawable.placeholder_album),
-            fallback = painterResource(R.drawable.placeholder_album),
-            onSuccess = { state ->
-                onArtworkLoaded(state.result.image.toBitmap())
-            },
+            onSuccess = onArtworkLoaded,
             contentScale = ContentScale.Crop,
         )
         Text(

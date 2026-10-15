@@ -33,7 +33,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
@@ -110,8 +110,10 @@ private fun AlbumCard(
             ),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        AsyncImage(
+        CatlyticsArtwork(
             model = album.artworkUri,
+            seed = album.title,
+            placeholderIcon = R.drawable.ic_album,
             contentDescription = stringResource(
                 LibraryR.string.library_album_cover_content_description,
                 album.title,
@@ -120,9 +122,6 @@ private fun AlbumCard(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(LibraryDimens.ArtworkShape),
-            placeholder = painterResource(R.drawable.placeholder_album),
-            error = painterResource(R.drawable.placeholder_album),
-            fallback = painterResource(R.drawable.placeholder_album),
             contentScale = ContentScale.Crop,
         )
         Row(

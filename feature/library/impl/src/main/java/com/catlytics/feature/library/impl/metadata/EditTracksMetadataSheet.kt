@@ -37,14 +37,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.R as DesignR
 import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
@@ -177,12 +176,11 @@ internal fun EditTracksMetadataContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        AsyncImage(
+        CatlyticsArtwork(
             model = form.artworkPreviewUri,
+            seed = form.album.value,
+            placeholderIcon = if (mode == BulkEditMode.Album) DesignR.drawable.ic_album else DesignR.drawable.ic_audio,
             contentDescription = stringResource(R.string.library_bulk_edit_artwork_content_description),
-            placeholder = painterResource(DesignR.drawable.placeholder_track),
-            error = painterResource(DesignR.drawable.placeholder_track),
-            fallback = painterResource(DesignR.drawable.placeholder_track),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(144.dp)

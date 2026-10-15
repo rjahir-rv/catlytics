@@ -91,10 +91,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import coil3.compose.AsyncImage
 import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.model.Track
 import kotlin.math.abs
 import kotlin.math.sign
@@ -128,11 +128,7 @@ internal fun PlaybackQueueBottomSheet(
     var settlingTrackId by remember { mutableStateOf<String?>(null) }
     var originalIndex by remember { mutableIntStateOf(-1) }
     var dragOffsetSync by remember { mutableFloatStateOf(0f) }
-    // Posición visual del track arrastrado dentro del viewport; deriva solo del gesto para no
-    // depender de un layout que puede ir un frame atrasado tras un intercambio.
     var dragVisualTop by remember { mutableFloatStateOf(0f) }
-    // Último sentido del gesto (-1 arriba, 1 abajo, 0 sin mover): el auto-scroll solo avanza hacia
-    // donde el usuario arrastró, así tomar un track que ya está en el borde no desplaza la lista.
     var dragDirection by remember { mutableIntStateOf(0) }
     val dragOffset = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
@@ -243,16 +239,12 @@ internal fun PlaybackQueueBottomSheet(
                     return Offset.Zero
                 }
                 isSheetFullyOpen = true
-                // La hoja absorbe este primer gesto para que la lista no salte mientras crece.
                 return available
             }
         }
     }
     val latestCurrentTrackId by rememberUpdatedState(currentTrackId)
 
-    // Intercambia el track arrastrado con sus vecinos mientras su desplazamiento supere el umbral;
-    // puede encadenar varios pasos si el auto-scroll avanzó más de una fila. Ningún track cruza la
-    // canción en reproducción: lo que viene después no pasa al historial y viceversa.
     fun applyDragSwaps(trackId: String) {
         val swapThreshold = itemHeightPx * QueueSwapThresholdFraction
         while (true) {
@@ -270,15 +262,11 @@ internal fun PlaybackQueueBottomSheet(
             )
             val toIndex = fromIndex + direction
             if (toIndex !in allowedRange) {
-                // Tope: el track se queda en su posición límite en lugar de seguir al dedo.
                 val limitedOffset = dragOffsetSync.coerceIn(-swapThreshold, swapThreshold)
                 dragVisualTop += limitedOffset - dragOffsetSync
                 dragOffsetSync = limitedOffset
                 return
             }
-            // La lista ancla su posición a la key del primer elemento visible; si ese elemento
-            // participa en el intercambio, la lista saltaría y el track arrastrado quedaría fuera
-            // de la vista. Se fija la posición por índice para que el intercambio no desplace nada.
             val firstVisibleKey = listState.layoutInfo.visibleItemsInfo.firstOrNull()?.key
             val swapsFirstVisible = firstVisibleKey == trackId ||
                 firstVisibleKey == visibleQueue[toIndex].id
@@ -292,8 +280,6 @@ internal fun PlaybackQueueBottomSheet(
         }
     }
 
-    // Mientras el track arrastrado está en un borde, la lista sigue avanzando por debajo de él
-    // aunque el dedo no se mueva.
     LaunchedEffect(draggedTrackId) {
         val trackId = draggedTrackId ?: return@LaunchedEffect
         val maxStepPx = itemHeightPx * QueueAutoScrollMaxStepFraction
@@ -309,7 +295,6 @@ internal fun PlaybackQueueBottomSheet(
                 maxStepPx = maxStepPx,
             )
             if (delta == 0f || sign(delta).toInt() != dragDirection) continue
-            // No se desplaza hacia un lado en el que el track ya está en su límite.
             val draggedIndex = visibleQueue.indexOfFirst { it.id == trackId }
             val allowedRange = queueDragIndexRange(
                 draggedIndex = draggedIndex,
@@ -320,7 +305,6 @@ internal fun PlaybackQueueBottomSheet(
             if (draggedIndex == allowedRange.last && delta > 0f) continue
             val consumed = listState.dispatchRawDelta(delta)
             if (consumed != 0f) {
-                // La fila del track sube/baja con el scroll; el offset lo mantiene bajo el dedo.
                 dragOffsetSync += consumed
                 applyDragSwaps(trackId)
             }
@@ -528,8 +512,6 @@ internal fun PlaybackQueueBottomSheet(
                                     onVerticalDrag = { change, amount ->
                                         change.consume()
                                         if (amount != 0f) dragDirection = sign(amount).toInt()
-                                        // El track no sale del viewport: se queda pegado al borde y el
-                                        // auto-scroll hace pasar la lista por debajo.
                                         val layoutInfo = listState.layoutInfo
                                         val minTop = layoutInfo.viewportStartOffset.toFloat()
                                         val maxTop = (layoutInfo.viewportEndOffset - itemHeightPx)
@@ -756,12 +738,11 @@ private fun QueueTrackRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AsyncImage(
+        CatlyticsArtwork(
             model = track.artworkUri,
+            seed = track.title,
+            placeholderIcon = R.drawable.ic_audio,
             contentDescription = null,
-            placeholder = painterResource(id = R.drawable.placeholder_track),
-            error = painterResource(id = R.drawable.placeholder_track),
-            fallback = painterResource(id = R.drawable.placeholder_track),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(QueueArtworkSize)
@@ -874,22 +855,12 @@ private const val QueueAutoScrollMaxStepFraction = 0.2f
 private const val QueueSwapThresholdFraction = 0.55f
 private const val QueueDragLiftScale = 0.02f
 
-/**
- * Índice de la lista al que desplazarse para mostrar la canción actual. Con historial, la cabecera
- * ocupa el primer lugar: contraída se muestra junto a la canción actual; desplegada, la canción
- * actual va después de la cabecera y de las canciones que ya sonaron.
- */
 internal fun queueCurrentScrollIndex(currentIndex: Int, isHistoryCollapsed: Boolean): Int = when {
     currentIndex <= 0 -> 0
     isHistoryCollapsed -> 0
     else -> currentIndex + 1
 }
 
-/**
- * Avance (0..1) de la entrada de una fila tras mezclar la fila: cada fila empieza un poco después
- * que la anterior según su [distance] a la canción actual, con un tope para que las lejanas no
- * esperen de más.
- */
 internal fun queueRevealFraction(progress: Float, distance: Int): Float {
     val start = distance.coerceIn(0, ReshuffleMaxStaggerSteps) * ReshuffleStaggerFraction
     val raw = ((progress - start) / ReshuffleRowRevealFraction).coerceIn(0f, 1f)
@@ -940,12 +911,6 @@ private fun QueueHistoryHeader(
 internal fun queueUpNextLabel(count: Int): String =
     pluralStringResource(AppR.plurals.app_queue_up_next_count, count, count)
 
-/**
- * Posiciones a las que puede moverse un track arrastrado: los que vienen después de la canción en
- * reproducción no pueden subir por encima de ella y los del historial no pueden bajar. La canción
- * en reproducción se queda en su sitio (moverla cambiaría qué pertenece al historial); sin canción
- * actual, cualquier track se mueve libremente.
- */
 internal fun queueDragIndexRange(draggedIndex: Int, currentIndex: Int, size: Int): IntRange = when {
     size <= 0 -> IntRange.EMPTY
     currentIndex !in 0 until size -> 0 until size
@@ -954,11 +919,6 @@ internal fun queueDragIndexRange(draggedIndex: Int, currentIndex: Int, size: Int
     else -> 0 until currentIndex
 }
 
-/**
- * Desplazamiento de la lista por frame mientras se arrastra un track: crece a medida que el track
- * se adentra en la zona de borde ([edgePx]) hasta [maxStepPx]. Negativo hacia arriba, positivo hacia
- * abajo y 0 fuera de los bordes.
- */
 internal fun queueAutoScrollDelta(
     itemTopPx: Float,
     itemBottomPx: Float,

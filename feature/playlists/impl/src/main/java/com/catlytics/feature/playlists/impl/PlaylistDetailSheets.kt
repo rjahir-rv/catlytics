@@ -41,7 +41,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.Track
@@ -140,15 +140,14 @@ internal fun AddTracksToPlaylistSheet(
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            AsyncImage(
+                            CatlyticsArtwork(
                                 model = track.artworkUri,
+                                seed = track.title,
+                                placeholderIcon = R.drawable.ic_audio,
                                 contentDescription = null,
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(CatlyticsCorners.Small),
-                                placeholder = painterResource(R.drawable.placeholder_track),
-                                error = painterResource(R.drawable.placeholder_track),
-                                fallback = painterResource(R.drawable.placeholder_track),
                                 contentScale = ContentScale.Crop,
                             )
                             Column(Modifier.weight(1f)) {

@@ -64,13 +64,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
-import coil3.toBitmap
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
@@ -394,8 +393,10 @@ private fun ArtistHeader(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        AsyncImage(
+        CatlyticsArtwork(
             model = artworkModel,
+            seed = content.summary.artist.name,
+            placeholderIcon = R.drawable.ic_artist,
             contentDescription = stringResource(
                 LibraryR.string.library_artist_image_content_description,
                 content.summary.artist.name,
@@ -404,12 +405,7 @@ private fun ArtistHeader(
                 .fillMaxWidth(0.52f)
                 .aspectRatio(1f)
                 .clip(CircleShape),
-            placeholder = painterResource(R.drawable.placeholder_artist),
-            error = painterResource(R.drawable.placeholder_artist),
-            fallback = painterResource(R.drawable.placeholder_artist),
-            onSuccess = { state ->
-                onArtworkLoaded(state.result.image.toBitmap())
-            },
+            onSuccess = onArtworkLoaded,
             contentScale = ContentScale.Crop,
         )
         Text(
@@ -866,8 +862,10 @@ private fun ArtistAlbumCard(
             ),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        AsyncImage(
+        CatlyticsArtwork(
             model = album.artworkUri,
+            seed = album.title,
+            placeholderIcon = R.drawable.ic_album,
             contentDescription = stringResource(
                 LibraryR.string.library_album_cover_content_description,
                 album.title,
@@ -876,9 +874,6 @@ private fun ArtistAlbumCard(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clip(LibraryDimens.ArtworkShape),
-            placeholder = painterResource(R.drawable.placeholder_album),
-            error = painterResource(R.drawable.placeholder_album),
-            fallback = painterResource(R.drawable.placeholder_album),
             contentScale = ContentScale.Crop,
         )
         Row(

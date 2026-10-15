@@ -169,6 +169,7 @@ internal fun NowPlayingArtwork(
         )
         PlaybackArtwork(
             artworkUri = track?.artworkUri,
+            seed = track?.title.orEmpty(),
             contentDescription = track?.let {
                 stringResource(AppR.string.app_content_description_artwork, it.title)
             },

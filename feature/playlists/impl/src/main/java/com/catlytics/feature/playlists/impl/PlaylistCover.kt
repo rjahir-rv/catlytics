@@ -1,14 +1,12 @@
 package com.catlytics.feature.playlists.impl
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,17 +16,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.toBitmap
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
+import com.catlytics.core.designsystem.component.ArtworkPlaceholder
 import com.catlytics.core.designsystem.component.nameSeededGradient
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
@@ -101,7 +98,6 @@ private fun CoverImage(
     )
 }
 
-/** 2 imágenes: mitades; 3: una alta y dos apiladas; 4 o más: cuadrícula 2×2. */
 @Composable
 private fun PlaylistCoverMosaic(
     artworkUris: List<String>,
@@ -189,26 +185,17 @@ private fun PlaylistCoverPlaceholder(
     val gradient = remember(isLiked, seed, isDark, surface) {
         playlistFallbackGradient(isLiked, seed, isDark, surface)
     }
-    val iconTint = if (isLiked) {
-        if (isDark) Color.White.copy(alpha = 0.92f) else Color.hsl(340f, 0.6f, 0.38f)
-    } else {
-        colorScheme.onSurface.copy(alpha = 0.55f)
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Brush.linearGradient(listOf(gradient.start, gradient.center))),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(
-                if (isLiked) R.drawable.ic_favorite_fill else R.drawable.ic_playlist,
-            ),
-            contentDescription = null,
-            tint = iconTint,
-            modifier = Modifier.fillMaxSize(PLACEHOLDER_ICON_FRACTION),
-        )
-    }
+    ArtworkPlaceholder(
+        seed = seed,
+        icon = if (isLiked) R.drawable.ic_favorite_fill else R.drawable.ic_playlist,
+        gradient = gradient,
+        iconTint = if (isLiked) {
+            if (isDark) Color.White.copy(alpha = 0.92f) else Color.hsl(340f, 0.6f, 0.38f)
+        } else {
+            colorScheme.onSurface.copy(alpha = 0.55f)
+        },
+        modifier = Modifier.fillMaxSize(),
+    )
 }
 
 internal fun playlistFallbackGradient(
@@ -231,5 +218,3 @@ internal fun playlistFallbackGradient(
 
     else -> nameSeededGradient(seed, isDark, surface)
 }
-
-private const val PLACEHOLDER_ICON_FRACTION = 0.4f

@@ -2,8 +2,8 @@ package com.catlytics.feature.playlists.impl
 
 import android.content.res.Resources
 import android.widget.Toast
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -22,7 +22,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -36,7 +35,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
@@ -48,8 +46,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
@@ -296,26 +294,17 @@ private fun PlaylistCoverImage(
     name: String,
     modifier: Modifier = Modifier,
 ) {
-    val coverPlaceholder = painterResource(
-        if (playlistId == LIKED_PLAYLIST_ID) {
-            R.drawable.placeholder_favorites
-        } else {
-            R.drawable.placeholder_playlist
-        },
-    )
-    AsyncImage(
-        model = artworkUri,
+    PlaylistCover(
+        playlistId = playlistId,
+        name = name,
+        artworkModel = artworkUri,
+        mosaicArtworkUris = emptyList(),
+        shape = RoundedCornerShape(12.dp),
         contentDescription = stringResource(
             PlaylistsR.string.playlists_artwork_content_description,
             name,
         ),
-        modifier = modifier
-            .size(48.dp)
-            .clip(RoundedCornerShape(12.dp)),
-        placeholder = coverPlaceholder,
-        error = coverPlaceholder,
-        fallback = coverPlaceholder,
-        contentScale = ContentScale.Crop,
+        modifier = modifier.size(48.dp),
     )
 }
 
@@ -323,34 +312,28 @@ private fun PlaylistCoverImage(
 private fun SourceCoverImage(
     artworkUri: String?,
     title: String?,
+    kind: PlaylistSourceKind?,
     modifier: Modifier = Modifier,
 ) {
-    val imageModifier = modifier
-        .size(72.dp)
-        .clip(RoundedCornerShape(16.dp))
+    CatlyticsArtwork(
+        model = artworkUri,
+        seed = title.orEmpty(),
+        placeholderIcon = kind.placeholderIconRes(),
+        contentDescription = title?.let {
+            stringResource(PlaylistsR.string.playlists_artwork_content_description, it)
+        },
+        modifier = modifier
+            .size(72.dp)
+            .clip(RoundedCornerShape(16.dp)),
+    )
+}
 
-    if (artworkUri == null) {
-        Image(
-            painter = painterResource(R.drawable.placeholder_album),
-            contentDescription = title?.let {
-                stringResource(PlaylistsR.string.playlists_artwork_content_description, it)
-            },
-            modifier = imageModifier,
-            contentScale = ContentScale.Crop,
-        )
-    } else {
-        AsyncImage(
-            model = artworkUri,
-            contentDescription = title?.let {
-                stringResource(PlaylistsR.string.playlists_artwork_content_description, it)
-            },
-            modifier = imageModifier,
-            placeholder = painterResource(R.drawable.placeholder_album),
-            error = painterResource(R.drawable.placeholder_album),
-            fallback = painterResource(R.drawable.placeholder_album),
-            contentScale = ContentScale.Crop,
-        )
-    }
+@DrawableRes
+private fun PlaylistSourceKind?.placeholderIconRes(): Int = when (this) {
+    PlaylistSourceKind.Track -> R.drawable.ic_audio
+    PlaylistSourceKind.Artist -> R.drawable.ic_artist
+    PlaylistSourceKind.Folder -> R.drawable.ic_folder
+    PlaylistSourceKind.Album, PlaylistSourceKind.Collection, null -> R.drawable.ic_album
 }
 
 @StringRes
@@ -381,6 +364,7 @@ private fun AddToPlaylistHeader(
         SourceCoverImage(
             artworkUri = preview?.artworkUri,
             title = title,
+            kind = preview?.kind,
         )
         Column(
             modifier = Modifier.weight(1f),

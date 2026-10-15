@@ -19,7 +19,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -85,6 +84,7 @@ import coil3.toBitmap
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
+import com.catlytics.core.designsystem.component.ArtworkPlaceholder
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.nameSeededGradient
@@ -186,6 +186,7 @@ internal fun CreatePlaylistScreen(
 
             CreatePlaylistCover(
                 artworkUri = artworkUri,
+                seed = effectiveName,
                 onPick = ::pickCover,
                 onRemove = { artworkUri = null },
                 modifier = Modifier.graphicsLayer {
@@ -268,6 +269,7 @@ internal fun CreatePlaylistScreen(
 @Composable
 private fun CreatePlaylistCover(
     artworkUri: String?,
+    seed: String,
     onPick: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
@@ -312,12 +314,10 @@ private fun CreatePlaylistCover(
                     )
                 } else {
                     Box(modifier = Modifier.fillMaxSize()) {
-                        Image(
-                            painter = painterResource(R.drawable.placeholder_playlist),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
+                        ArtworkPlaceholder(
+                            seed = seed,
+                            icon = null,
                             modifier = Modifier.fillMaxSize(),
-                            alpha = 0.55f,
                         )
                         Column(
                             modifier = Modifier.align(Alignment.Center),

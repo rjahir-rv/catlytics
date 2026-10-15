@@ -34,13 +34,11 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -184,12 +182,11 @@ private fun TrackArtwork(
             )
         }
         Box(modifier = Modifier.size(48.dp).clip(artworkShape)) {
-            AsyncImage(
+            CatlyticsArtwork(
                 model = artworkUri,
+                seed = title,
+                placeholderIcon = R.drawable.ic_audio,
                 contentDescription = null,
-                placeholder = painterResource(R.drawable.placeholder_track),
-                error = painterResource(R.drawable.placeholder_track),
-                fallback = painterResource(R.drawable.placeholder_track),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.matchParentSize(),
             )
@@ -240,7 +237,6 @@ fun TrackSelectionMark(
     }
 }
 
-/** Velo oscuro con las barras animadas de "sonando"; se coloca encima de una portada. */
 @Composable
 fun CatlyticsPlayingBarsOverlay(
     contentDescription: String,

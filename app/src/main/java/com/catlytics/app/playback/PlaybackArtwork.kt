@@ -1,6 +1,8 @@
 package com.catlytics.app.playback
 
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -12,7 +14,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.imageLoader
@@ -20,18 +21,20 @@ import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import coil3.toBitmap
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.ArtworkPlaceholder
+import com.catlytics.core.designsystem.component.artworkSemantics
 import com.catlytics.core.model.Track
 
 @Composable
 fun PlaybackArtwork(
     artworkUri: String?,
+    seed: String,
     contentDescription: String?,
     modifier: Modifier = Modifier,
     allowHardware: Boolean = true,
     onSuccess: ((Bitmap) -> Unit)? = null,
 ) {
     val context = LocalPlatformContext.current
-    val fallback = painterResource(id = R.drawable.placeholder_track)
     var lastSuccessPainter by remember { mutableStateOf<Painter?>(null) }
 
     LaunchedEffect(artworkUri) {
@@ -47,20 +50,27 @@ fun PlaybackArtwork(
             .build()
     }
 
-    AsyncImage(
-        model = request,
-        contentDescription = contentDescription,
-        placeholder = lastSuccessPainter ?: fallback.takeIf { artworkUri != null },
-        error = fallback,
-        fallback = fallback,
-        onSuccess = { state ->
-            val bitmap = state.result.image.toBitmap()
-            lastSuccessPainter = BitmapPainter(bitmap.asImageBitmap())
-            onSuccess?.invoke(bitmap.asSoftwareBitmap())
-        },
-        contentScale = ContentScale.Crop,
-        modifier = modifier,
-    )
+    Box(modifier = modifier.artworkSemantics(contentDescription)) {
+        ArtworkPlaceholder(
+            seed = seed,
+            icon = R.drawable.ic_audio,
+            modifier = Modifier.fillMaxSize(),
+        )
+        if (artworkUri != null) {
+            AsyncImage(
+                model = request,
+                contentDescription = null,
+                placeholder = lastSuccessPainter,
+                onSuccess = { state ->
+                    val bitmap = state.result.image.toBitmap()
+                    lastSuccessPainter = BitmapPainter(bitmap.asImageBitmap())
+                    onSuccess?.invoke(bitmap.asSoftwareBitmap())
+                },
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
 }
 
 @Composable

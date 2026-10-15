@@ -60,9 +60,9 @@ import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R as DesignR
 import com.catlytics.core.designsystem.text.resolve
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CollapsibleHint
 import com.catlytics.core.designsystem.component.InfoToggleButton
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
@@ -181,12 +181,11 @@ internal fun EditTrackMetadataContent(
             text = stringResource(R.string.library_edit_title),
             style = MaterialTheme.typography.titleLarge,
         )
-        AsyncImage(
+        CatlyticsArtwork(
             model = form.artworkPreviewUri,
+            seed = form.title,
+            placeholderIcon = DesignR.drawable.ic_audio,
             contentDescription = stringResource(R.string.library_edit_artwork_content_description),
-            placeholder = painterResource(DesignR.drawable.placeholder_track),
-            error = painterResource(DesignR.drawable.placeholder_track),
-            fallback = painterResource(DesignR.drawable.placeholder_track),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(144.dp)

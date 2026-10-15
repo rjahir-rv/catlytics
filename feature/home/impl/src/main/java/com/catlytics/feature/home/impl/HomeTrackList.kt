@@ -63,8 +63,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.sectionLetter
 import com.catlytics.core.designsystem.modifier.pressScale
@@ -575,15 +575,14 @@ private fun RecentlyPlayedTrackCard(
         shape = HomeDimens.CardShape,
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
-            AsyncImage(
+            CatlyticsArtwork(
                 model = track.artworkUri,
+                seed = track.title,
+                placeholderIcon = R.drawable.ic_audio,
                 contentDescription = stringResource(
                     HomeR.string.home_play_recently_played_content_description,
                     track.title,
                 ),
-                placeholder = painterResource(R.drawable.placeholder_track),
-                error = painterResource(R.drawable.placeholder_track),
-                fallback = painterResource(R.drawable.placeholder_track),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -646,12 +645,11 @@ private fun TopTrackRow(
             modifier = Modifier.width(20.dp),
             textAlign = TextAlign.Center,
         )
-        AsyncImage(
+        CatlyticsArtwork(
             model = track.artworkUri,
+            seed = track.title,
+            placeholderIcon = R.drawable.ic_audio,
             contentDescription = null,
-            placeholder = painterResource(R.drawable.placeholder_track),
-            error = painterResource(R.drawable.placeholder_track),
-            fallback = painterResource(R.drawable.placeholder_track),
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(44.dp)

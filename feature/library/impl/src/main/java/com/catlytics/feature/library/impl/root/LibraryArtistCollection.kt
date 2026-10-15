@@ -45,8 +45,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.sectionLetter
 import com.catlytics.core.designsystem.modifier.pressScale
@@ -313,16 +313,15 @@ private fun ArtistImage(
     artist: ArtistSummary,
     modifier: Modifier = Modifier,
 ) {
-    AsyncImage(
+    CatlyticsArtwork(
         model = artist.artworkUri,
+        seed = artist.artist.name,
+        placeholderIcon = R.drawable.ic_artist,
         contentDescription = stringResource(
             LibraryR.string.library_artist_image_content_description,
             artist.artist.name,
         ),
         modifier = modifier.clip(CircleShape),
-        placeholder = painterResource(R.drawable.placeholder_artist),
-        error = painterResource(R.drawable.placeholder_artist),
-        fallback = painterResource(R.drawable.placeholder_artist),
         contentScale = ContentScale.Crop,
     )
 }

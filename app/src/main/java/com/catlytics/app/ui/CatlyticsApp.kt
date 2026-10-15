@@ -675,6 +675,7 @@ fun CatlyticsApp(
                             artwork = { artworkModifier ->
                                 PlaybackArtwork(
                                     artworkUri = track.artworkUri,
+                                    seed = track.title,
                                     contentDescription = stringResource(
                                         R.string.app_content_description_artwork,
                                         track.title,

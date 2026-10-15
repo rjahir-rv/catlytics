@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,7 +32,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -62,11 +60,10 @@ fun CatlyticsMiniPlayer(
     hazeState: HazeState? = null,
     accentColor: Color = Color.Unspecified,
     artwork: @Composable (Modifier) -> Unit = { artworkModifier ->
-        Image(
-            painter = painterResource(id = R.drawable.placeholder_track),
-            contentDescription = null,
+        ArtworkPlaceholder(
+            seed = title,
+            icon = R.drawable.ic_audio,
             modifier = artworkModifier,
-            contentScale = ContentScale.Crop,
         )
     },
 ) {
