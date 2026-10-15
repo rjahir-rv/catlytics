@@ -83,7 +83,18 @@ import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
+import com.catlytics.core.designsystem.component.CatlyticsMenuDivider
+import com.catlytics.core.designsystem.component.CollapsibleHint
+import com.catlytics.core.designsystem.component.InfoToggleButton
+import com.catlytics.core.designsystem.component.CatlyticsMenuEntry
+import com.catlytics.core.designsystem.component.CatlyticsMenuItem
+import com.catlytics.core.model.ArtistAlbumSort
 import com.catlytics.core.model.ArtistContent
+import com.catlytics.core.model.ArtistTrackSort
+import com.catlytics.feature.library.impl.collection.CollectionPlaybackRow
+import com.catlytics.feature.library.impl.collection.SortOption
+import com.catlytics.feature.library.impl.collection.SortOptionsSheet
+import com.catlytics.feature.library.impl.collection.collectionMenuEntries
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.PlaylistSource
@@ -120,6 +131,9 @@ internal fun LibraryArtistScreen(
     onShowRename: () -> Unit = {},
     onRenameNameChange: (String) -> Unit = {},
     onConfirmRename: () -> Unit = {},
+    onPlayShuffled: (List<Track>) -> Unit = {},
+    onTrackSortChange: (ArtistTrackSort) -> Unit = {},
+    onAlbumSortChange: (ArtistAlbumSort) -> Unit = {},
 ) {
     when (uiState) {
         LibraryArtistUiState.Loading -> Box(
@@ -153,6 +167,11 @@ internal fun LibraryArtistScreen(
             onShowMergePicker = onShowMergePicker,
             onShowAliasManager = onShowAliasManager,
             onShowRename = onShowRename,
+            onPlayShuffled = onPlayShuffled,
+            trackSort = uiState.trackSort,
+            albumSort = uiState.albumSort,
+            onTrackSortChange = onTrackSortChange,
+            onAlbumSortChange = onAlbumSortChange,
         )
     }
     if (uiState is LibraryArtistUiState.Success) {
@@ -191,7 +210,30 @@ private fun ArtistContent(
     onShowMergePicker: () -> Unit,
     onShowAliasManager: () -> Unit,
     onShowRename: () -> Unit,
+    onPlayShuffled: (List<Track>) -> Unit,
+    trackSort: ArtistTrackSort,
+    albumSort: ArtistAlbumSort,
+    onTrackSortChange: (ArtistTrackSort) -> Unit,
+    onAlbumSortChange: (ArtistAlbumSort) -> Unit,
 ) {
+    var sortSheet by rememberSaveable { mutableStateOf<ArtistDetailSection?>(null) }
+    when (sortSheet) {
+        ArtistDetailSection.Songs -> SortOptionsSheet(
+            title = stringResource(LibraryR.string.library_collection_sort_tracks),
+            options = ArtistTrackSort.entries.map { SortOption(it, it.label()) },
+            selected = trackSort,
+            onSelect = onTrackSortChange,
+            onDismiss = { sortSheet = null },
+        )
+        ArtistDetailSection.Albums -> SortOptionsSheet(
+            title = stringResource(LibraryR.string.library_collection_sort_albums),
+            options = ArtistAlbumSort.entries.map { SortOption(it, it.label()) },
+            selected = albumSort,
+            onSelect = onAlbumSortChange,
+            onDismiss = { sortSheet = null },
+        )
+        null -> Unit
+    }
     val selectedSectionIndex = rememberSaveable(content.summary.artist.id) { mutableIntStateOf(0) }
     val pagerState = rememberPagerState(
         initialPage = selectedSectionIndex.intValue,
@@ -258,11 +300,27 @@ private fun ArtistContent(
                 content = content,
                 artworkModel = artworkRequest,
                 onArtworkLoaded = { artworkBitmap = it },
-                aliasCount = aliases.size,
-                canRename = canRename,
-                onShowRename = onShowRename,
-                onShowMergePicker = onShowMergePicker,
-                onShowAliasManager = onShowAliasManager,
+                sortLabel = when (ArtistDetailSection.entries[pagerState.currentPage]) {
+                    ArtistDetailSection.Songs -> trackSort.takeIf { it != ArtistTrackSort.Album }?.label()
+                    ArtistDetailSection.Albums -> albumSort.takeIf { it != ArtistAlbumSort.Title }?.label()
+                },
+                playbackQueue = playbackQueue,
+                onPlayAll = { playbackQueue.firstOrNull()?.let { onTrackSelected(it, playbackQueue) } },
+                onPlayShuffled = { onPlayShuffled(playbackQueue) },
+                menuEntries = artistMenuEntries(
+                    content = content,
+                    tracks = playbackQueue,
+                    likedTrackIds = likedTrackIds,
+                    section = ArtistDetailSection.entries[pagerState.currentPage],
+                    aliasCount = aliases.size,
+                    canRename = canRename,
+                    onTrackSelectionAction = onTrackSelectionAction,
+                    onAddToPlaylist = onAddToPlaylist,
+                    onSort = { section -> sortSheet = section },
+                    onShowRename = onShowRename,
+                    onShowMergePicker = onShowMergePicker,
+                    onShowAliasManager = onShowAliasManager,
+                ),
                 modifier = Modifier.padding(
                     start = 20.dp,
                     top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
@@ -324,11 +382,11 @@ private fun ArtistHeader(
     content: ArtistContent,
     artworkModel: Any?,
     onArtworkLoaded: (Bitmap) -> Unit,
-    aliasCount: Int,
-    canRename: Boolean,
-    onShowRename: () -> Unit,
-    onShowMergePicker: () -> Unit,
-    onShowAliasManager: () -> Unit,
+    sortLabel: String?,
+    playbackQueue: List<Track>,
+    onPlayAll: () -> Unit,
+    onPlayShuffled: () -> Unit,
+    menuEntries: List<CatlyticsMenuEntry>,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -379,23 +437,107 @@ private fun ArtistHeader(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            if (canRename) {
-                FilledTonalButton(onClick = onShowRename) {
-                    Text(stringResource(LibraryR.string.library_artist_rename_open))
-                }
-            }
-            FilledTonalButton(onClick = onShowMergePicker) {
-                Text(stringResource(LibraryR.string.library_artist_merge_open))
-            }
+        sortLabel?.let { label ->
+            Text(
+                text = stringResource(LibraryR.string.library_collection_sorted_by, label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
-        if (aliasCount > 0) {
-            TextButton(onClick = onShowAliasManager) {
-                Text(stringResource(LibraryR.string.library_artist_merge_manage, aliasCount))
-            }
-        }
+        CollectionPlaybackRow(
+            tracks = playbackQueue,
+            onPlayShuffled = onPlayShuffled,
+            onPlayAll = onPlayAll,
+            menuEntries = menuEntries,
+            menuContentDescription = stringResource(
+                LibraryR.string.library_artist_options_content_description,
+                content.summary.artist.name,
+            ),
+        )
     }
 }
+
+@Composable
+private fun artistMenuEntries(
+    content: ArtistContent,
+    tracks: List<Track>,
+    likedTrackIds: Set<String>,
+    section: ArtistDetailSection,
+    aliasCount: Int,
+    canRename: Boolean,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onSort: (ArtistDetailSection) -> Unit,
+    onShowRename: () -> Unit,
+    onShowMergePicker: () -> Unit,
+    onShowAliasManager: () -> Unit,
+): List<CatlyticsMenuEntry> = buildList {
+    addAll(
+        collectionMenuEntries(
+            tracks = tracks,
+            likedTrackIds = likedTrackIds,
+            onTrackSelectionAction = onTrackSelectionAction,
+            onAddToPlaylist = { onAddToPlaylist(PlaylistSource.ArtistSource(content.summary.artist.id)) },
+        ),
+    )
+    // Sorting follows the visible tab, so the menu offers the list the user is looking at.
+    add(
+        CatlyticsMenuItem(
+            text = stringResource(
+                when (section) {
+                    ArtistDetailSection.Songs -> LibraryR.string.library_collection_sort_tracks
+                    ArtistDetailSection.Albums -> LibraryR.string.library_collection_sort_albums
+                },
+            ),
+            icon = R.drawable.ic_filter,
+            onClick = { onSort(section) },
+        ),
+    )
+    add(CatlyticsMenuDivider)
+    if (canRename) {
+        add(
+            CatlyticsMenuItem(
+                text = stringResource(LibraryR.string.library_artist_rename_open),
+                icon = R.drawable.ic_edit,
+                onClick = onShowRename,
+            ),
+        )
+    }
+    add(
+        CatlyticsMenuItem(
+            text = stringResource(LibraryR.string.library_artist_merge_open),
+            icon = R.drawable.ic_artist,
+            onClick = onShowMergePicker,
+        ),
+    )
+    if (aliasCount > 0) {
+        add(
+            CatlyticsMenuItem(
+                text = stringResource(LibraryR.string.library_artist_merge_manage, aliasCount),
+                icon = R.drawable.ic_list,
+                onClick = onShowAliasManager,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun ArtistTrackSort.label(): String = stringResource(
+    when (this) {
+        ArtistTrackSort.Album -> LibraryR.string.library_sort_album
+        ArtistTrackSort.Title -> LibraryR.string.library_sort_title
+        ArtistTrackSort.Duration -> LibraryR.string.library_sort_duration
+        ArtistTrackSort.MostPlayed -> LibraryR.string.library_sort_most_played
+    },
+)
+
+@Composable
+private fun ArtistAlbumSort.label(): String = stringResource(
+    when (this) {
+        ArtistAlbumSort.Title -> LibraryR.string.library_sort_title
+        ArtistAlbumSort.TrackCount -> LibraryR.string.library_sort_track_count
+    },
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -519,44 +661,59 @@ private fun ArtistMergeDialogs(
                 if (index < state.aliases.lastIndex) HorizontalDivider()
             }
         }
-        is ArtistMergeDialog.Rename -> AlertDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(LibraryR.string.library_artist_rename_title)) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(stringResource(LibraryR.string.library_artist_rename_description))
-                    OutlinedTextField(
-                        value = dialog.name,
-                        onValueChange = onRenameNameChange,
-                        label = { Text(stringResource(LibraryR.string.library_artist_rename_field)) },
-                        singleLine = true,
-                        supportingText = state.renameMergeTarget?.let { target ->
-                            { Text(stringResource(LibraryR.string.library_artist_rename_existing, target.name)) }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = onConfirmRename,
-                    enabled = dialog.name.isNotBlank() && !state.isMergeBusy,
-                ) {
-                    Text(
-                        if (state.isMergeBusy) {
-                            stringResource(LibraryR.string.library_action_renaming)
-                        } else {
-                            stringResource(LibraryR.string.library_action_rename)
-                        },
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss, enabled = !state.isMergeBusy) {
-                    Text(stringResource(LibraryR.string.library_action_cancel))
-                }
-            },
-        )
+        is ArtistMergeDialog.Rename -> {
+            var showDetails by rememberSaveable { mutableStateOf(false) }
+            AlertDialog(
+                onDismissRequest = onDismiss,
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(LibraryR.string.library_artist_rename_title),
+                            modifier = Modifier.weight(1f),
+                        )
+                        InfoToggleButton(expanded = showDetails, onExpandedChange = { showDetails = it })
+                    }
+                },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(stringResource(LibraryR.string.library_artist_rename_description))
+                        CollapsibleHint(
+                            visible = showDetails,
+                            text = stringResource(LibraryR.string.library_artist_rename_details),
+                        )
+                        OutlinedTextField(
+                            value = dialog.name,
+                            onValueChange = onRenameNameChange,
+                            label = { Text(stringResource(LibraryR.string.library_artist_rename_field)) },
+                            singleLine = true,
+                            supportingText = state.renameMergeTarget?.let { target ->
+                                { Text(stringResource(LibraryR.string.library_artist_rename_existing, target.name)) }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = onConfirmRename,
+                        enabled = dialog.name.isNotBlank() && !state.isMergeBusy,
+                    ) {
+                        Text(
+                            if (state.isMergeBusy) {
+                                stringResource(LibraryR.string.library_action_renaming)
+                            } else {
+                                stringResource(LibraryR.string.library_action_rename)
+                            },
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = onDismiss, enabled = !state.isMergeBusy) {
+                        Text(stringResource(LibraryR.string.library_action_cancel))
+                    }
+                },
+            )
+        }
         is ArtistMergeDialog.ConfirmUnmerge -> AlertDialog(
             onDismissRequest = onDismiss,
             title = { Text(stringResource(LibraryR.string.library_artist_unmerge_dialog_title)) },

@@ -43,6 +43,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +63,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.catlytics.core.designsystem.R as DesignR
 import com.catlytics.core.designsystem.text.resolve
+import com.catlytics.core.designsystem.component.CollapsibleHint
+import com.catlytics.core.designsystem.component.InfoToggleButton
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.feature.library.impl.R
@@ -240,23 +243,12 @@ internal fun EditTrackMetadataContent(
             suggestions = state.artistSuggestions,
         )
         state.unifyTarget?.let { target ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(CatlyticsCorners.Medium)
-                    .clickable { onUnifyArtistChange(!form.unifyArtist) },
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(checked = form.unifyArtist, onCheckedChange = onUnifyArtistChange)
-                Text(
-                    text = stringResource(
-                        R.string.library_edit_unify_artist,
-                        original.artist.name,
-                        target.name,
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+            CheckboxWithHint(
+                checked = form.unifyArtist,
+                onCheckedChange = onUnifyArtistChange,
+                label = stringResource(R.string.library_edit_unify_artist, target.name),
+                hint = stringResource(R.string.library_edit_unify_artist_hint, original.artist.name, target.name),
+            )
         }
         state.mergedArtistAlias?.let { alias ->
             SeparateArtistRow(
@@ -318,7 +310,6 @@ internal fun EditTrackMetadataContent(
     }
 }
 
-/** Offers undoing the merge that would keep showing the typed artist as another one. */
 @Composable
 internal fun SeparateArtistRow(
     alias: ArtistAlias,
@@ -326,25 +317,40 @@ internal fun SeparateArtistRow(
     onCheckedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(CatlyticsCorners.Medium)
-            .clickable { onCheckedChange(!checked) },
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Text(
-            text = stringResource(R.string.library_edit_separate_artist, alias.source.name, alias.target.name),
-            style = MaterialTheme.typography.bodyMedium,
-        )
+    CheckboxWithHint(
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+        label = stringResource(R.string.library_edit_separate_artist, alias.target.name),
+        hint = stringResource(R.string.library_edit_separate_artist_hint, alias.source.name, alias.target.name),
+        modifier = modifier,
+    )
+}
+
+@Composable
+internal fun CheckboxWithHint(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    label: String,
+    hint: String,
+    modifier: Modifier = Modifier,
+) {
+    var showHint by rememberSaveable { mutableStateOf(false) }
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(CatlyticsCorners.Medium)
+                .clickable { onCheckedChange(!checked) },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
+            Text(text = label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            InfoToggleButton(expanded = showHint, onExpandedChange = { showHint = it })
+        }
+        CollapsibleHint(visible = showHint, text = hint)
     }
 }
 
-/**
- * Text field with name suggestions. With an [original], an edited value shows it and offers to
- * restore it; without one (bulk edits), [supportingText] and [canRestore] drive that instead.
- */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun MetadataTextField(

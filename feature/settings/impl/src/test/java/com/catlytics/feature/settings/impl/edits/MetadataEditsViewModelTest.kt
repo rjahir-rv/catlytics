@@ -147,6 +147,23 @@ class MetadataEditsViewModelTest {
     }
 
     @Test
+    fun `the select button enters selection mode before any track is picked`() = runTest {
+        libraryRepository.allTracks.value = listOf(track("1"))
+        metadataRepository.overrides.value = listOf(override("1", title = "A"))
+        val viewModel = openedViewModel()
+
+        viewModel.startSelection()
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.selectionActive)
+        assertTrue(viewModel.uiState.value.selectedTrackIds.isEmpty())
+
+        viewModel.toggleSelection("1")
+        viewModel.clearSelection()
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.selectionActive)
+    }
+
+    @Test
     fun `reverting everything filtered includes the visible artist edits`() = runTest {
         libraryRepository.allTracks.value = listOf(track("1"))
         metadataRepository.overrides.value = listOf(override("1", artist = "Nova"), override("gone", title = "X"))

@@ -212,7 +212,7 @@
     <string name="settings_edits_artist_spelling">Se escribe %1$s</string>
     <string name="settings_edits_separate">Separar</string>
     <string name="settings_edits_restore_name">Restaurar</string>
-    <string name="settings_edits_selection_hint">Mantén pulsada una canción para seleccionar varias</string>
+    <string name="settings_edits_select">Seleccionar</string>
     <string name="settings_edits_select_all">Todas</string>
     <string name="settings_edits_cancel">Cancelar</string>
     <string name="settings_edits_revert">Revertir</string>

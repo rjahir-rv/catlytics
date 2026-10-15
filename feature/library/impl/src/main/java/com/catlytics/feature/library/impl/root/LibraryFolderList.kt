@@ -23,9 +23,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +48,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsMenuItem
+import com.catlytics.core.designsystem.component.CatlyticsOptionsMenu
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.TrackBadge
 import com.catlytics.core.designsystem.component.sectionLetter
@@ -383,88 +382,28 @@ private fun FolderOptionsMenu(
     onVisibilityChange: (Boolean) -> Unit,
     onAddToPlaylist: () -> Unit,
 ) {
-    Box {
-        IconButton(onClick = { onExpandedChange(true) }) {
-            Icon(
-                painter = painterResource(R.drawable.ic_options),
-                contentDescription = stringResource(
-                    LibraryR.string.library_folder_options_content_description,
-                    folder.name,
-                ),
-            )
-        }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(LibraryR.string.library_action_add_to_playlist)) },
-                onClick = { onExpandedChange(false); onAddToPlaylist() },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_playlist), null) },
-            )
-            FolderVisibilityMenuItem(
-                label = stringResource(LibraryR.string.library_action_show_folder),
-                iconRes = R.drawable.ic_show,
+    CatlyticsOptionsMenu(
+        entries = listOf(
+            CatlyticsMenuItem(
+                text = stringResource(LibraryR.string.library_action_add_to_playlist),
+                icon = R.drawable.ic_playlist,
+                onClick = onAddToPlaylist,
+            ),
+            CatlyticsMenuItem(
+                text = stringResource(LibraryR.string.library_action_show_folder),
+                icon = R.drawable.ic_show,
                 selected = folder.isVisible,
-                onClick = {
-                    onExpandedChange(false)
-                    onVisibilityChange(true)
-                },
-            )
-            FolderVisibilityMenuItem(
-                label = stringResource(LibraryR.string.library_action_hide_folder),
-                iconRes = R.drawable.ic_hide,
+                onClick = { onVisibilityChange(true) },
+            ),
+            CatlyticsMenuItem(
+                text = stringResource(LibraryR.string.library_action_hide_folder),
+                icon = R.drawable.ic_hide,
                 selected = !folder.isVisible,
-                onClick = {
-                    onExpandedChange(false)
-                    onVisibilityChange(false)
-                },
-            )
-        }
-    }
-}
-
-@Composable
-private fun FolderVisibilityMenuItem(
-    label: String,
-    iconRes: Int,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    DropdownMenuItem(
-        text = {
-            Text(
-                text = label,
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurface
-                },
-            )
-        },
-        leadingIcon = {
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = if (selected) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainer
-                },
-                contentColor = if (selected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-            ) {
-                Icon(
-                    painter = painterResource(iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.padding(4.dp),
-                )
-            }
-        },
-        onClick = onClick,
+                onClick = { onVisibilityChange(false) },
+            ),
+        ),
+        contentDescription = stringResource(LibraryR.string.library_folder_options_content_description, folder.name),
+        expanded = expanded,
+        onExpandedChange = onExpandedChange,
     )
 }

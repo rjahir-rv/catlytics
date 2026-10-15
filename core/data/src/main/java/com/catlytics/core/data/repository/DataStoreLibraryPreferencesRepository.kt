@@ -14,6 +14,10 @@ import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.PlaylistViewMode
+import com.catlytics.core.model.AlbumTrackSort
+import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistTrackSort
+import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.SortDirection
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
@@ -21,6 +25,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val Context.libraryPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -154,6 +159,36 @@ class DataStoreLibraryPreferencesRepository internal constructor(
                 ?: SortDirection.Ascending
         }
 
+    override fun observeDetailSortSettings(): Flow<DetailSortSettings> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { preferences ->
+            val defaults = DetailSortSettings()
+            DetailSortSettings(
+                albumTracks = preferences[ALBUM_TRACK_SORT].toEnumOr(defaults.albumTracks),
+                artistTracks = preferences[ARTIST_TRACK_SORT].toEnumOr(defaults.artistTracks),
+                artistAlbums = preferences[ARTIST_ALBUM_SORT].toEnumOr(defaults.artistAlbums),
+            )
+        }
+        .distinctUntilChanged()
+
+    override suspend fun setAlbumTrackSort(sort: AlbumTrackSort) {
+        dataStore.edit { preferences -> preferences[ALBUM_TRACK_SORT] = sort.name }
+    }
+
+    override suspend fun setArtistTrackSort(sort: ArtistTrackSort) {
+        dataStore.edit { preferences -> preferences[ARTIST_TRACK_SORT] = sort.name }
+    }
+
+    override suspend fun setArtistAlbumSort(sort: ArtistAlbumSort) {
+        dataStore.edit { preferences -> preferences[ARTIST_ALBUM_SORT] = sort.name }
+    }
+
     override suspend fun setPlaylistViewMode(viewMode: PlaylistViewMode) {
         dataStore.edit { preferences ->
             preferences[PLAYLIST_VIEW_MODE] = viewMode.name
@@ -180,5 +215,12 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         val PLAYLIST_VIEW_MODE = stringPreferencesKey("playlist_view_mode")
         val LIBRARY_SORT_DIRECTION = stringPreferencesKey("library_sort_direction")
         val PLAYLIST_SORT_DIRECTION = stringPreferencesKey("playlist_sort_direction")
+        val ALBUM_TRACK_SORT = stringPreferencesKey("album_track_sort")
+        val ARTIST_TRACK_SORT = stringPreferencesKey("artist_track_sort")
+        val ARTIST_ALBUM_SORT = stringPreferencesKey("artist_album_sort")
     }
 }
+
+/** A stored enum name, or [default] when it is missing or no longer exists. */
+private inline fun <reified T : Enum<T>> String?.toEnumOr(default: T): T =
+    this?.let { stored -> enumValues<T>().firstOrNull { it.name == stored } } ?: default

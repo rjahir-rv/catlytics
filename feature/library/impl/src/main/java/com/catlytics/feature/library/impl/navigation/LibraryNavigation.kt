@@ -63,6 +63,10 @@ fun EntryProviderScope<NavKey>.libraryEntry(
         LibraryAlbumRoute(
             route = route,
             onTrackOptions = onTrackOptions,
+            onAddToPlaylist = onAddToPlaylist,
+            onArtistSelected = { artist ->
+                onDestinationSelected(LibraryArtistDestination(artist.id, artist.name))
+            },
             likedTrackIds = likedTrackIds(),
             currentTrackId = currentTrackId(),
             isCurrentTrackPlaying = isCurrentTrackPlaying(),

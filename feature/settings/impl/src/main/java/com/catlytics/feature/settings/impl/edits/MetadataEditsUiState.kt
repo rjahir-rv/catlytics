@@ -44,16 +44,16 @@ internal data class MetadataEditsUiState(
     val isLoading: Boolean = true,
     val query: String = "",
     val filter: MetadataEditFilter = MetadataEditFilter.All,
-    /** Track and artist edits that match [query] and [filter]. */
     val tracks: List<TrackEditItem> = emptyList(),
     val artists: List<ArtistEditItem> = emptyList(),
     val totalTrackEdits: Int = 0,
     val totalArtistEdits: Int = 0,
     val selectedTrackIds: Set<String> = emptySet(),
+    val selectionMode: Boolean = false,
     val dialog: MetadataEditsDialog = MetadataEditsDialog.Hidden,
     val isBusy: Boolean = false,
 ) {
-    val selectionActive: Boolean get() = selectedTrackIds.isNotEmpty()
+    val selectionActive: Boolean get() = selectionMode || selectedTrackIds.isNotEmpty()
 
     val hasAnyEdits: Boolean get() = totalTrackEdits + totalArtistEdits > 0
 

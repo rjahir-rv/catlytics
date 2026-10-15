@@ -56,6 +56,18 @@ enum class SortDirection {
     Descending,
 }
 
+enum class AlbumTrackSort { TrackNumber, Title, Duration, MostPlayed }
+
+enum class ArtistTrackSort { Album, Title, Duration, MostPlayed }
+
+enum class ArtistAlbumSort { Title, TrackCount }
+
+data class DetailSortSettings(
+    val albumTracks: AlbumTrackSort = AlbumTrackSort.TrackNumber,
+    val artistTracks: ArtistTrackSort = ArtistTrackSort.Album,
+    val artistAlbums: ArtistAlbumSort = ArtistAlbumSort.Title,
+)
+
 data class Album(
     val id: String,
     val title: String,

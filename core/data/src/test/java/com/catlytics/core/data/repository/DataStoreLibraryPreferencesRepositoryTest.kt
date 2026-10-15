@@ -2,7 +2,11 @@ package com.catlytics.core.data.repository
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.model.AlbumTrackSort
+import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistTrackSort
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
@@ -75,6 +79,26 @@ class DataStoreLibraryPreferencesRepositoryTest {
         repository.setPlaylistViewMode(PlaylistViewMode.Mosaic)
 
         assertEquals(PlaylistViewMode.Mosaic, repository.observePlaylistViewMode().first())
+    }
+
+    @Test
+    fun `album and artist list orders default to the natural order and persist changes`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(DetailSortSettings(), repository.observeDetailSortSettings().first())
+
+        repository.setAlbumTrackSort(AlbumTrackSort.MostPlayed)
+        repository.setArtistTrackSort(ArtistTrackSort.Duration)
+        repository.setArtistAlbumSort(ArtistAlbumSort.TrackCount)
+
+        assertEquals(
+            DetailSortSettings(
+                albumTracks = AlbumTrackSort.MostPlayed,
+                artistTracks = ArtistTrackSort.Duration,
+                artistAlbums = ArtistAlbumSort.TrackCount,
+            ),
+            repository.observeDetailSortSettings().first(),
+        )
     }
 
     private fun repository(scope: CoroutineScope): LibraryPreferencesRepository =

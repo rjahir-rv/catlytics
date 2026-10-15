@@ -20,6 +20,21 @@
     <string name="library_folders_subtitle">Elige qué carpetas forman parte de tu biblioteca.</string>
     <string name="library_folder_options_content_description">Opciones de %1$s</string>
     <string name="library_action_add_to_playlist">Agregar a playlist</string>
+    <string name="library_collection_play_next">Reproducir siguiente</string>
+    <string name="library_collection_add_to_queue">Agregar a la fila</string>
+    <string name="library_collection_like">Guardar en Tus me gusta</string>
+    <string name="library_collection_unlike">Quitar de Tus me gusta</string>
+    <string name="library_collection_sort_tracks">Ordenar canciones</string>
+    <string name="library_collection_sort_albums">Ordenar álbumes</string>
+    <string name="library_collection_sorted_by">Ordenadas por %1$s</string>
+    <string name="library_sort_track_number">Número de pista</string>
+    <string name="library_sort_album">Álbum</string>
+    <string name="library_sort_title">Título (A-Z)</string>
+    <string name="library_sort_duration">Duración</string>
+    <string name="library_sort_most_played">Más escuchadas</string>
+    <string name="library_sort_track_count">Número de canciones</string>
+    <string name="library_album_menu_edit">Editar álbum</string>
+    <string name="library_album_menu_go_to_artist">Ir al artista</string>
     <string name="library_action_show_folder">Mostrar carpeta</string>
     <string name="library_action_hide_folder">Ocultar carpeta</string>
     <string name="library_folder_hidden_badge">Oculta</string>
@@ -80,7 +95,8 @@
     <string name="library_action_restore_name">Restaurar</string>
     <string name="library_artist_rename_open">Renombrar</string>
     <string name="library_artist_rename_title">Renombrar artista</string>
-    <string name="library_artist_rename_description">Cambia el nombre en todas sus canciones y en su historial de estadísticas, también para las variantes unificadas con él. Puedes deshacerlo desde «Administrar fusiones».</string>
+    <string name="library_artist_rename_description">Afecta a todas sus canciones y a sus estadísticas.</string>
+    <string name="library_artist_rename_details">También cambia las variantes unificadas con este artista y las canciones que se escaneen en el futuro con su nombre original. Los archivos no se modifican. Puedes deshacerlo desde «Administrar fusiones» o en Ajustes › Ediciones de metadatos.</string>
     <string name="library_artist_rename_field">Nombre</string>
     <string name="library_artist_rename_existing">Ya existe «%1$s»: se unificará con él</string>
     <string name="library_artist_rename_success">Artista renombrado</string>
@@ -114,7 +130,8 @@
     <string name="library_edit_title_required">El título es obligatorio</string>
     <string name="library_edit_original_value">Original: %1$s</string>
     <string name="library_edit_restore_field">Restaurar %1$s original</string>
-    <string name="library_edit_unify_artist">Unificar todas las canciones de «%1$s» con «%2$s»</string>
+    <string name="library_edit_unify_artist">Unificar con «%1$s»</string>
+    <string name="library_edit_unify_artist_hint">Todas las canciones de «%1$s» se mostrarán como «%2$s», también en tu historial de estadísticas. Puedes separarlos después.</string>
     <string name="library_edit_write_to_file">Guardar también en el archivo</string>
     <string name="library_edit_write_to_file_supporting">Otras apps verán los cambios</string>
     <string name="library_edit_reset_all">Restablecer todo</string>
@@ -161,7 +178,8 @@
     </plurals>
     <string name="library_album_edit_field_title">Título del álbum</string>
     <string name="library_album_edit_content_description">Editar álbum</string>
-    <string name="library_edit_separate_artist">«%1$s» está unificado con «%2$s». Separarlos para que vuelva a aparecer con su nombre (afecta a todas sus canciones)</string>
+    <string name="library_edit_separate_artist">Separar de «%1$s»</string>
+    <string name="library_edit_separate_artist_hint">«%1$s» está unificado con «%2$s». Al separarlos, todas sus canciones vuelven a aparecer con su nombre, también en tus estadísticas.</string>
     <string name="library_edit_artist_separated">«%1$s» ya no está unificado con «%2$s»</string>
     <string name="library_bulk_edit_no_changes">No hubo cambios</string>
     <string name="library_bulk_edit_not_found">Estas canciones ya no están disponibles.</string>

@@ -7,15 +7,25 @@ import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
 import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveDetailSortSettingsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryTrackUseCase
+import com.catlytics.core.domain.usecase.library.ObserveTrackPlayCountsUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistAlbumSortUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistTrackSortUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.library.RenameArtistUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
+import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistTrackSort
+import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.artistIdentityKey
 import com.catlytics.feature.library.impl.R
+import com.catlytics.feature.library.impl.collection.needsPlayCounts
+import com.catlytics.feature.library.impl.collection.sortedFor
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,6 +35,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -45,6 +58,11 @@ internal class LibraryArtistViewModel @Inject constructor(
     private val playTrackUseCase: PlayTrackUseCase,
     private val renameArtistUseCase: RenameArtistUseCase,
     private val observeLibraryTrack: ObserveLibraryTrackUseCase,
+    private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
+    observeDetailSortSettings: ObserveDetailSortSettingsUseCase,
+    observeTrackPlayCounts: ObserveTrackPlayCountsUseCase,
+    private val setArtistTrackSort: SetArtistTrackSortUseCase,
+    private val setArtistAlbumSort: SetArtistAlbumSortUseCase,
 ) : ViewModel() {
     private val artistId = MutableStateFlow<String?>(null)
     private val searchQuery = MutableStateFlow("")
@@ -71,12 +89,30 @@ internal class LibraryArtistViewModel @Inject constructor(
             }
         }
 
+    private val sortWithCounts = observeDetailSortSettings()
+        .catch { emit(DetailSortSettings()) }
+        .distinctUntilChanged()
+        .flatMapLatest { settings ->
+            if (settings.artistTracks.needsPlayCounts) {
+                observeTrackPlayCounts().catch { emit(emptyMap()) }.map { counts -> settings to counts }
+            } else {
+                flowOf(settings to emptyMap())
+            }
+        }
+
+    private val sortedContent = combine(content, sortWithCounts) { content, (settings, counts) ->
+        content?.copy(
+            tracks = content.tracks.sortedFor(settings.artistTracks, counts),
+            albums = content.albums.sortedFor(settings.artistAlbums),
+        ) to settings
+    }
+
     private val artistData = combine(
-        content,
+        sortedContent,
         searchQuery,
         observeArtistsUseCase().catch { emit(emptyList()) },
         observeArtistAliasesUseCase().catch { emit(emptyList()) },
-    ) { content, query, artists, aliases ->
+    ) { (content, sortSettings), query, artists, aliases ->
         if (content == null) {
             LibraryArtistUiState.NotFound
         } else {
@@ -93,6 +129,8 @@ internal class LibraryArtistViewModel @Inject constructor(
                 ),
                 searchQuery = query,
                 playbackQueue = content.tracks,
+                trackSort = sortSettings.artistTracks,
+                albumSort = sortSettings.artistAlbums,
                 mergeCandidates = artists
                     .map { it.artist }
                     .filter { candidate ->
@@ -219,6 +257,18 @@ internal class LibraryArtistViewModel @Inject constructor(
                 isMergeBusy.value = false
             }
         }
+    }
+
+    fun setTrackSort(sort: ArtistTrackSort) {
+        viewModelScope.launch { setArtistTrackSort(sort) }
+    }
+
+    fun setAlbumSort(sort: ArtistAlbumSort) {
+        viewModelScope.launch { setArtistAlbumSort(sort) }
+    }
+
+    fun playShuffled(queue: List<Track>) {
+        viewModelScope.launch { playShuffledQueueUseCase(queue) }
     }
 
     fun playTrack(track: Track, queue: List<Track>) {

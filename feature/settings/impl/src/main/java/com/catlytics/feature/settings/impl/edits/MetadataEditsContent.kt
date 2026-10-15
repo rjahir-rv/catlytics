@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -33,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +51,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
+import com.catlytics.core.designsystem.component.CollapsibleHint
+import com.catlytics.core.designsystem.component.InfoToggleButton
 import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.feature.settings.impl.R as SettingsR
 import java.time.Instant
@@ -78,6 +82,7 @@ internal fun MetadataEditsRoute(
         onQueryChange = viewModel::onQueryChange,
         onFilterChange = viewModel::onFilterChange,
         onToggleSelection = viewModel::toggleSelection,
+        onStartSelection = viewModel::startSelection,
         onSelectAll = viewModel::selectAllVisible,
         onClearSelection = viewModel::clearSelection,
         onRevertField = viewModel::revertField,
@@ -99,6 +104,7 @@ internal fun MetadataEditsContent(
     onQueryChange: (String) -> Unit,
     onFilterChange: (MetadataEditFilter) -> Unit,
     onToggleSelection: (String) -> Unit,
+    onStartSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onClearSelection: () -> Unit,
     onRevertField: (String, EditedField) -> Unit,
@@ -125,6 +131,7 @@ internal fun MetadataEditsContent(
         return
     }
 
+    var showInfo by rememberSaveable { mutableStateOf(false) }
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -135,22 +142,24 @@ internal fun MetadataEditsContent(
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item(key = "description") {
-            Text(
-                text = stringResource(SettingsR.string.settings_edits_description),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
         item(key = "search") {
-            OutlinedTextField(
-                value = state.query,
-                onValueChange = onQueryChange,
-                label = { Text(stringResource(SettingsR.string.settings_edits_search)) },
-                leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = state.query,
+                    onValueChange = onQueryChange,
+                    label = { Text(stringResource(SettingsR.string.settings_edits_search)) },
+                    leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
+                    trailingIcon = {
+                        InfoToggleButton(expanded = showInfo, onExpandedChange = { showInfo = it })
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                CollapsibleHint(
+                    visible = showInfo,
+                    text = stringResource(SettingsR.string.settings_edits_description),
+                )
+            }
         }
         item(key = "filters") {
             Row(
@@ -171,6 +180,7 @@ internal fun MetadataEditsContent(
         item(key = "actions") {
             BulkActionsRow(
                 state = state,
+                onStartSelection = onStartSelection,
                 onSelectAll = onSelectAll,
                 onClearSelection = onClearSelection,
                 onRevertSelected = onRevertSelected,
@@ -240,6 +250,7 @@ internal fun MetadataEditsContent(
 @Composable
 private fun BulkActionsRow(
     state: MetadataEditsUiState,
+    onStartSelection: () -> Unit,
     onSelectAll: () -> Unit,
     onClearSelection: () -> Unit,
     onRevertSelected: () -> Unit,
@@ -265,16 +276,14 @@ private fun BulkActionsRow(
             TextButton(onClick = onClearSelection, enabled = !state.isBusy) {
                 Text(stringResource(SettingsR.string.settings_edits_cancel))
             }
-            Button(onClick = onRevertSelected, enabled = !state.isBusy) {
+            Button(onClick = onRevertSelected, enabled = state.selectedTrackIds.isNotEmpty() && !state.isBusy) {
                 Text(stringResource(SettingsR.string.settings_edits_revert))
             }
         } else {
-            Text(
-                text = stringResource(SettingsR.string.settings_edits_selection_hint),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f),
-            )
+            TextButton(onClick = onStartSelection, enabled = state.tracks.isNotEmpty() && !state.isBusy) {
+                Text(stringResource(SettingsR.string.settings_edits_select))
+            }
+            Spacer(Modifier.weight(1f))
             TextButton(onClick = onRevertFiltered, enabled = state.hasResults && !state.isBusy) {
                 Text(stringResource(SettingsR.string.settings_edits_revert_filtered))
             }

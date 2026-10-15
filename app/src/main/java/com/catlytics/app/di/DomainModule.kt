@@ -32,6 +32,11 @@ import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveFolderContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibrarySortDirectionUseCase
+import com.catlytics.core.domain.usecase.library.ObserveDetailSortSettingsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveTrackPlayCountsUseCase
+import com.catlytics.core.domain.usecase.library.SetAlbumTrackSortUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistAlbumSortUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistTrackSortUseCase
 import com.catlytics.core.domain.usecase.library.ObserveMusicScanSettingsUseCase
 import com.catlytics.core.domain.usecase.library.SetLibrarySortDirectionUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanDurationFilterUseCase
@@ -206,6 +211,26 @@ object DomainModule {
     fun provideSetPlaylistViewModeUseCase(
         preferencesRepository: LibraryPreferencesRepository,
     ) = SetPlaylistViewModeUseCase(preferencesRepository)
+
+    @Provides
+    fun provideObserveDetailSortSettingsUseCase(preferencesRepository: LibraryPreferencesRepository) =
+        ObserveDetailSortSettingsUseCase(preferencesRepository)
+
+    @Provides
+    fun provideSetAlbumTrackSortUseCase(preferencesRepository: LibraryPreferencesRepository) =
+        SetAlbumTrackSortUseCase(preferencesRepository)
+
+    @Provides
+    fun provideSetArtistTrackSortUseCase(preferencesRepository: LibraryPreferencesRepository) =
+        SetArtistTrackSortUseCase(preferencesRepository)
+
+    @Provides
+    fun provideSetArtistAlbumSortUseCase(preferencesRepository: LibraryPreferencesRepository) =
+        SetArtistAlbumSortUseCase(preferencesRepository)
+
+    @Provides
+    fun provideObserveTrackPlayCountsUseCase(playbackEventRepository: PlaybackEventRepository) =
+        ObserveTrackPlayCountsUseCase(playbackEventRepository)
 
     @Provides
     fun provideObserveLibrarySortDirectionUseCase(

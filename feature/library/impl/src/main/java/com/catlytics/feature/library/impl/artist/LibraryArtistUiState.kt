@@ -1,7 +1,9 @@
 package com.catlytics.feature.library.impl.artist
 
 import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.model.ArtistAlbumSort
 import com.catlytics.core.model.ArtistContent
+import com.catlytics.core.model.ArtistTrackSort
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.Track
@@ -19,6 +21,8 @@ internal sealed interface LibraryArtistUiState {
         val aliases: List<ArtistAlias> = emptyList(),
         val mergeDialog: ArtistMergeDialog = ArtistMergeDialog.Hidden,
         val isMergeBusy: Boolean = false,
+        val trackSort: ArtistTrackSort = ArtistTrackSort.Album,
+        val albumSort: ArtistAlbumSort = ArtistAlbumSort.Title,
     ) : LibraryArtistUiState {
         val canRename: Boolean get() = content.summary.artist.name != UNKNOWN_ARTIST_NAME
         val renameMergeTarget: Artist?

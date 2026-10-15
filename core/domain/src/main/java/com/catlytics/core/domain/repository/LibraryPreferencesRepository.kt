@@ -5,6 +5,10 @@ import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.PlaylistViewMode
+import com.catlytics.core.model.AlbumTrackSort
+import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistTrackSort
+import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.SortDirection
 import kotlinx.coroutines.flow.Flow
 
@@ -19,6 +23,14 @@ interface LibraryPreferencesRepository {
 
     fun observeLibrarySortDirection(): Flow<SortDirection>
     fun observePlaylistSortDirection(): Flow<SortDirection>
+
+    fun observeDetailSortSettings(): Flow<DetailSortSettings>
+
+    suspend fun setAlbumTrackSort(sort: AlbumTrackSort)
+
+    suspend fun setArtistTrackSort(sort: ArtistTrackSort)
+
+    suspend fun setArtistAlbumSort(sort: ArtistAlbumSort)
 
     suspend fun setFolderVisible(folderId: String, visible: Boolean)
 

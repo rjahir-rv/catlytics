@@ -172,6 +172,17 @@ private class FakeLibraryRepository : LibraryRepository {
 }
 
 private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
+    val detailSortSettings = MutableStateFlow(com.catlytics.core.model.DetailSortSettings())
+    override fun observeDetailSortSettings() = detailSortSettings
+    override suspend fun setAlbumTrackSort(sort: com.catlytics.core.model.AlbumTrackSort) {
+        detailSortSettings.value = detailSortSettings.value.copy(albumTracks = sort)
+    }
+    override suspend fun setArtistTrackSort(sort: com.catlytics.core.model.ArtistTrackSort) {
+        detailSortSettings.value = detailSortSettings.value.copy(artistTracks = sort)
+    }
+    override suspend fun setArtistAlbumSort(sort: com.catlytics.core.model.ArtistAlbumSort) {
+        detailSortSettings.value = detailSortSettings.value.copy(artistAlbums = sort)
+    }
     val artistViewMode = MutableStateFlow(ArtistViewMode.List)
     val playlistViewMode = MutableStateFlow(PlaylistViewMode.List)
     val librarySortDirection = MutableStateFlow(SortDirection.Ascending)

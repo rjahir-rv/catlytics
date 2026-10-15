@@ -12,6 +12,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.model.Artist
+import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.api.LibraryAlbumRoute
@@ -22,6 +24,8 @@ import com.catlytics.feature.library.impl.metadata.EditTracksMetadataSheet
 internal fun LibraryAlbumRoute(
     route: LibraryAlbumRoute,
     onTrackOptions: (Track) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit = {},
+    onArtistSelected: (Artist) -> Unit = {},
     likedTrackIds: Set<String> = emptySet(),
     currentTrackId: String? = null,
     isCurrentTrackPlaying: Boolean = false,
@@ -59,6 +63,9 @@ internal fun LibraryAlbumRoute(
         onPlayShuffled = viewModel::playShuffled,
         onTrackOptions = onTrackOptions,
         onEditAlbum = { tracks -> editingTrackIds = tracks.map(Track::id) },
+        onAddToPlaylist = onAddToPlaylist,
+        onArtistSelected = onArtistSelected,
+        onTrackSortChange = viewModel::setTrackSort,
         likedTrackIds = likedTrackIds,
         currentTrackId = currentTrackId,
         isCurrentTrackPlaying = isCurrentTrackPlaying,

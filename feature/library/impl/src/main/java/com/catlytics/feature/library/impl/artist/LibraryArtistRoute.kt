@@ -78,5 +78,8 @@ internal fun LibraryArtistRoute(
         onShowRename = viewModel::showRename,
         onRenameNameChange = viewModel::updateRenameName,
         onConfirmRename = viewModel::confirmRename,
+        onPlayShuffled = viewModel::playShuffled,
+        onTrackSortChange = viewModel::setTrackSort,
+        onAlbumSortChange = viewModel::setAlbumSort,
     )
 }

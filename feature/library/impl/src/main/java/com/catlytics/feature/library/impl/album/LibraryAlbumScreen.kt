@@ -20,8 +20,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +58,17 @@ import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradient
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.format.TrackDurationFormat
 import com.catlytics.core.designsystem.text.asString
+import com.catlytics.core.designsystem.component.CatlyticsMenuDivider
+import com.catlytics.core.designsystem.component.CatlyticsMenuEntry
+import com.catlytics.core.designsystem.component.CatlyticsMenuItem
 import com.catlytics.core.model.Album
+import com.catlytics.core.model.AlbumTrackSort
+import com.catlytics.core.model.Artist
+import com.catlytics.core.model.PlaylistSource
+import com.catlytics.feature.library.impl.collection.CollectionPlaybackRow
+import com.catlytics.feature.library.impl.collection.SortOption
+import com.catlytics.feature.library.impl.collection.SortOptionsSheet
+import com.catlytics.feature.library.impl.collection.collectionMenuEntries
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.model.Track
 import com.catlytics.feature.library.impl.R as LibraryR
@@ -72,6 +81,9 @@ internal fun LibraryAlbumScreen(
     onPlayShuffled: (List<Track>) -> Unit = {},
     onTrackOptions: (Track) -> Unit,
     onEditAlbum: (List<Track>) -> Unit = {},
+    onAddToPlaylist: (PlaylistSource) -> Unit = {},
+    onArtistSelected: (Artist) -> Unit = {},
+    onTrackSortChange: (AlbumTrackSort) -> Unit = {},
     likedTrackIds: Set<String> = emptySet(),
     currentTrackId: String? = null,
     isCurrentTrackPlaying: Boolean = false,
@@ -120,6 +132,14 @@ internal fun LibraryAlbumScreen(
                 gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
             }
 
+            var showSortSheet by rememberSaveable { mutableStateOf(false) }
+            if (showSortSheet) {
+                AlbumSortSheet(
+                    selected = uiState.sort,
+                    onSelect = onTrackSortChange,
+                    onDismiss = { showSortSheet = false },
+                )
+            }
             val selectionState = rememberTrackSelectionState()
             val selection = selectionState.value
             ArtworkGradientBackground(
@@ -160,7 +180,17 @@ internal fun LibraryAlbumScreen(
                                 onPlayAll = { tracks ->
                                     tracks.firstOrNull()?.let { onTrackSelected(it, tracks) }
                                 },
-                                onEditAlbum = onEditAlbum,
+                                sort = uiState.sort,
+                                menuEntries = albumMenuEntries(
+                                    album = content.album,
+                                    tracks = content.tracks,
+                                    likedTrackIds = likedTrackIds,
+                                    onTrackSelectionAction = onTrackSelectionAction,
+                                    onAddToPlaylist = onAddToPlaylist,
+                                    onSortTracks = { showSortSheet = true },
+                                    onEditAlbum = onEditAlbum,
+                                    onArtistSelected = onArtistSelected,
+                                ),
                             )
                         }
                         itemsIndexed(
@@ -203,7 +233,8 @@ private fun AlbumHeader(
     onArtworkLoaded: (Bitmap) -> Unit,
     onPlayShuffled: (List<Track>) -> Unit,
     onPlayAll: (List<Track>) -> Unit,
-    onEditAlbum: (List<Track>) -> Unit,
+    sort: AlbumTrackSort,
+    menuEntries: List<CatlyticsMenuEntry>,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -252,51 +283,81 @@ private fun AlbumHeader(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(
-            modifier = Modifier.padding(top = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            FilledTonalIconButton(
-                onClick = { onPlayShuffled(tracks) },
-                enabled = tracks.isNotEmpty(),
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    painterResource(R.drawable.ic_shuffle),
-                    contentDescription = stringResource(
-                        LibraryR.string.library_album_play_shuffled_content_description,
-                    ),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-            FilledTonalIconButton(
-                onClick = { onEditAlbum(tracks) },
-                enabled = tracks.isNotEmpty(),
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    painterResource(R.drawable.ic_edit),
-                    contentDescription = stringResource(LibraryR.string.library_album_edit_content_description),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
-            FilledIconButton(
-                onClick = { onPlayAll(tracks) },
-                enabled = tracks.isNotEmpty(),
-                modifier = Modifier.size(48.dp),
-            ) {
-                Icon(
-                    painterResource(R.drawable.ic_play),
-                    contentDescription = stringResource(
-                        LibraryR.string.library_album_play_content_description,
-                    ),
-                    modifier = Modifier.size(24.dp),
-                )
-            }
+        if (sort != AlbumTrackSort.TrackNumber) {
+            Text(
+                text = stringResource(LibraryR.string.library_collection_sorted_by, sort.label()),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
+        CollectionPlaybackRow(
+            tracks = tracks,
+            onPlayShuffled = { onPlayShuffled(tracks) },
+            onPlayAll = { onPlayAll(tracks) },
+            menuEntries = menuEntries,
+            menuContentDescription = stringResource(LibraryR.string.library_album_options_content_description, album.title),
+        )
     }
 }
+
+@Composable
+private fun albumMenuEntries(
+    album: Album,
+    tracks: List<Track>,
+    likedTrackIds: Set<String>,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onSortTracks: () -> Unit,
+    onEditAlbum: (List<Track>) -> Unit,
+    onArtistSelected: (Artist) -> Unit,
+): List<CatlyticsMenuEntry> = collectionMenuEntries(
+    tracks = tracks,
+    likedTrackIds = likedTrackIds,
+    onTrackSelectionAction = onTrackSelectionAction,
+    onAddToPlaylist = { onAddToPlaylist(PlaylistSource.AlbumSource(album.id)) },
+) + listOf(
+    CatlyticsMenuItem(
+        text = stringResource(LibraryR.string.library_collection_sort_tracks),
+        icon = R.drawable.ic_filter,
+        onClick = onSortTracks,
+    ),
+    CatlyticsMenuDivider,
+    CatlyticsMenuItem(
+        text = stringResource(LibraryR.string.library_album_menu_edit),
+        icon = R.drawable.ic_edit,
+        onClick = { onEditAlbum(tracks) },
+    ),
+    CatlyticsMenuItem(
+        text = stringResource(LibraryR.string.library_album_menu_go_to_artist),
+        icon = R.drawable.ic_artist,
+        onClick = { onArtistSelected(album.artist) },
+    ),
+)
+
+@Composable
+private fun AlbumSortSheet(
+    selected: AlbumTrackSort,
+    onSelect: (AlbumTrackSort) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    SortOptionsSheet(
+        title = stringResource(LibraryR.string.library_collection_sort_tracks),
+        options = AlbumTrackSort.entries.map { SortOption(it, it.label()) },
+        selected = selected,
+        onSelect = onSelect,
+        onDismiss = onDismiss,
+    )
+}
+
+@Composable
+private fun AlbumTrackSort.label(): String = stringResource(
+    when (this) {
+        AlbumTrackSort.TrackNumber -> LibraryR.string.library_sort_track_number
+        AlbumTrackSort.Title -> LibraryR.string.library_sort_title
+        AlbumTrackSort.Duration -> LibraryR.string.library_sort_duration
+        AlbumTrackSort.MostPlayed -> LibraryR.string.library_sort_most_played
+    },
+)
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

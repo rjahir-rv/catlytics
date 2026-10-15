@@ -8,6 +8,8 @@ import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
+import com.catlytics.core.model.AlbumTrackSort
+import com.catlytics.feature.library.impl.collection.SortTestFakes
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
@@ -33,6 +35,8 @@ import org.junit.Test
 class LibraryAlbumViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    private val sort = SortTestFakes()
 
     @Test
     fun `opening album exposes its content`() = runTest {
@@ -97,6 +101,37 @@ class LibraryAlbumViewModelTest {
     }
 
     @Test
+    fun `album tracks follow the remembered order`() = runTest {
+        val repository = AlbumFakeLibraryRepository()
+        val tracks = listOf(
+            track("one").copy(title = "Zeta", durationMillis = 300L),
+            track("two").copy(title = "alfa", durationMillis = 100L),
+            track("three").copy(title = "Beta", durationMillis = 200L),
+        )
+        repository.content.value = albumContent().copy(tracks = tracks)
+        val viewModel = viewModel(repository, AlbumFakePlaybackController())
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        viewModel.openAlbum(ALBUM_ID)
+        advanceUntilIdle()
+        assertEquals(listOf("one", "two", "three"), viewModel.trackIds())
+
+        viewModel.setTrackSort(AlbumTrackSort.Title)
+        advanceUntilIdle()
+        assertEquals(listOf("two", "three", "one"), viewModel.trackIds())
+        assertEquals(AlbumTrackSort.Title, (viewModel.uiState.value as LibraryAlbumUiState.Success).sort)
+
+        viewModel.setTrackSort(AlbumTrackSort.Duration)
+        advanceUntilIdle()
+        assertEquals(listOf("two", "three", "one"), viewModel.trackIds())
+
+        sort.playCounts.value = mapOf("three" to 5, "one" to 5, "two" to 1)
+        viewModel.setTrackSort(AlbumTrackSort.MostPlayed)
+        advanceUntilIdle()
+        // Ties keep alphabetical order.
+        assertEquals(listOf("three", "one", "two"), viewModel.trackIds())
+    }
+
+    @Test
     fun `playing track replaces queue with album tracks`() = runTest {
         val playbackController = AlbumFakePlaybackController()
         val viewModel = viewModel(AlbumFakeLibraryRepository(), playbackController)
@@ -134,7 +169,13 @@ class LibraryAlbumViewModelTest {
         playTrackUseCase = PlayTrackUseCase(playbackController),
         playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),
         observeLibraryTrack = ObserveLibraryTrackUseCase(repository),
+        observeDetailSortSettings = sort.observeSettings,
+        observeTrackPlayCounts = sort.observePlayCounts,
+        setAlbumTrackSort = sort.setAlbumTrackSort,
     )
+
+    private fun LibraryAlbumViewModel.trackIds() =
+        (uiState.value as LibraryAlbumUiState.Success).content.tracks.map { it.id }
 
     private fun albumContent() = AlbumContent(
         album = Album(ALBUM_ID, "Album", Artist("artist", "Artist"), trackCount = 1),

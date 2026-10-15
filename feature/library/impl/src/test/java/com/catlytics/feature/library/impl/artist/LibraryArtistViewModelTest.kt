@@ -10,6 +10,10 @@ import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryTrackUseCase
 import com.catlytics.core.domain.usecase.library.RenameArtistUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
+import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistTrackSort
+import com.catlytics.feature.library.impl.collection.SortTestFakes
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
@@ -38,6 +42,8 @@ import org.junit.Test
 class LibraryArtistViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
+
+    private val sort = SortTestFakes()
 
     @Test
     fun `opening artist exposes its content`() = runTest {
@@ -222,6 +228,43 @@ class LibraryArtistViewModelTest {
         )
     }
 
+    @Test
+    fun `artist tracks and albums follow the remembered orders and the queue too`() = runTest {
+        val repository = ArtistFakeLibraryRepository()
+        val tracks = listOf(track("one").copy(title = "Zeta"), track("two").copy(title = "alfa"))
+        val albums = listOf(
+            Album("a", "Beta", Artist(ARTIST_ID, "Artist"), trackCount = 1),
+            Album("b", "Alfa", Artist(ARTIST_ID, "Artist"), trackCount = 3),
+        )
+        repository.content.value = artistContent().copy(tracks = tracks, albums = albums)
+        val viewModel = viewModel(repository, ArtistFakePlaybackController())
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        viewModel.openArtist(ARTIST_ID)
+        advanceUntilIdle()
+
+        viewModel.setTrackSort(ArtistTrackSort.Title)
+        viewModel.setAlbumSort(ArtistAlbumSort.TrackCount)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as LibraryArtistUiState.Success
+        assertEquals(listOf("two", "one"), state.content.tracks.map { it.id })
+        assertEquals(listOf("two", "one"), state.playbackQueue.map { it.id })
+        assertEquals(listOf("b", "a"), state.content.albums.map { it.id })
+        assertEquals(ArtistTrackSort.Title, state.trackSort)
+    }
+
+    @Test
+    fun `shuffling the artist plays every track`() = runTest {
+        val playbackController = ArtistFakePlaybackController()
+        val viewModel = viewModel(ArtistFakeLibraryRepository(), playbackController)
+        val queue = listOf(track("one"), track("two"), track("three"))
+
+        viewModel.playShuffled(queue)
+        advanceUntilIdle()
+
+        assertEquals(queue.toSet(), playbackController.playedQueue.toSet())
+    }
+
     private fun viewModel(
         repository: ArtistFakeLibraryRepository,
         playbackController: ArtistFakePlaybackController,
@@ -235,6 +278,11 @@ class LibraryArtistViewModelTest {
         playTrackUseCase = PlayTrackUseCase(playbackController),
         renameArtistUseCase = RenameArtistUseCase(identityRepository),
         observeLibraryTrack = ObserveLibraryTrackUseCase(repository),
+        playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),
+        observeDetailSortSettings = sort.observeSettings,
+        observeTrackPlayCounts = sort.observePlayCounts,
+        setArtistTrackSort = sort.setArtistTrackSort,
+        setArtistAlbumSort = sort.setArtistAlbumSort,
     )
 
     private fun artistContent(): ArtistContent {

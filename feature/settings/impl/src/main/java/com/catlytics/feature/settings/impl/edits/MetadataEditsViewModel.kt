@@ -48,6 +48,7 @@ internal class MetadataEditsViewModel @Inject constructor(
     private val query = MutableStateFlow("")
     private val filter = MutableStateFlow(MetadataEditFilter.All)
     private val selectedTrackIds = MutableStateFlow(emptySet<String>())
+    private val selectionMode = MutableStateFlow(false)
     private val dialog = MutableStateFlow<MetadataEditsDialog>(MetadataEditsDialog.Hidden)
     private val isBusy = MutableStateFlow(false)
     private val _messages = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
@@ -70,12 +71,15 @@ internal class MetadataEditsViewModel @Inject constructor(
     private val edits = combine(trackItems, artistItems, ::Pair)
         .catch { emit(emptyList<TrackEditItem>() to emptyList()) }
 
-    private val controls = combine(query, filter, selectedTrackIds, dialog, isBusy) { query, filter, selected, dialog, busy ->
+    private val selection = combine(selectedTrackIds, selectionMode, ::Pair)
+
+    private val controls = combine(query, filter, selection, dialog, isBusy) { query, filter, (selected, mode), dialog, busy ->
         MetadataEditsUiState(
             isLoading = false,
             query = query,
             filter = filter,
             selectedTrackIds = selected,
+            selectionMode = mode,
             dialog = dialog,
             isBusy = busy,
         )
@@ -99,7 +103,11 @@ internal class MetadataEditsViewModel @Inject constructor(
 
     fun onFilterChange(value: MetadataEditFilter) {
         filter.value = value
-        selectedTrackIds.value = emptySet()
+        clearSelection()
+    }
+
+    fun startSelection() {
+        selectionMode.value = true
     }
 
     fun toggleSelection(trackId: String) {
@@ -112,6 +120,7 @@ internal class MetadataEditsViewModel @Inject constructor(
 
     fun clearSelection() {
         selectedTrackIds.value = emptySet()
+        selectionMode.value = false
     }
 
     fun revertField(trackId: String, field: EditedField) {
@@ -162,7 +171,7 @@ internal class MetadataEditsViewModel @Inject constructor(
                 val trackIds = state.selectedTrackIds.toList()
                 runAction(UiText.Plural(R.plurals.settings_edits_tracks_reverted, trackIds.size)) {
                     resetTracksMetadata(trackIds)
-                    selectedTrackIds.value = emptySet()
+                    clearSelection()
                 }
             }
             is MetadataEditsDialog.ConfirmRevertFiltered -> {
@@ -171,7 +180,7 @@ internal class MetadataEditsViewModel @Inject constructor(
                 runAction(UiText.Resource(R.string.settings_edits_filtered_reverted)) {
                     if (trackIds.isNotEmpty()) resetTracksMetadata(trackIds)
                     aliases.forEach { unmergeArtist(it.source) }
-                    selectedTrackIds.value = emptySet()
+                    clearSelection()
                 }
             }
         }
