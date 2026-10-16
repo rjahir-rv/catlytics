@@ -261,6 +261,9 @@ val unspecified_scheme = ColorFamily(
     Color.Unspecified, Color.Unspecified, Color.Unspecified, Color.Unspecified
 )
 
+/** Esquema de marca sin color dinámico; también lo usa el widget de Glance para seguir la paleta de la app. */
+fun catlyticsColorScheme(darkTheme: Boolean): ColorScheme = if (darkTheme) darkScheme else lightScheme
+
 @Composable
 fun CatlyticsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -274,8 +277,7 @@ fun CatlyticsTheme(
           if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
       }
       
-      darkTheme -> darkScheme
-      else -> lightScheme
+      else -> catlyticsColorScheme(darkTheme)
   }
 
   MaterialTheme(

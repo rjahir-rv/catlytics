@@ -29,6 +29,7 @@ dependencies {
     implementation(project(path = ":core:domain"))
     implementation(project(path = ":core:navigation"))
     implementation(project(path = ":core:playback"))
+    implementation(project(path = ":core:widget"))
     implementation(project(path = ":feature:home:api"))
     implementation(project(path = ":feature:home:impl"))
     implementation(project(path = ":feature:library:api"))

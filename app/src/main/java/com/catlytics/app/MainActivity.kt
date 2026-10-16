@@ -18,11 +18,16 @@ import com.catlytics.app.ui.CatlyticsApp
 import com.catlytics.app.ui.ThemeViewModel
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.ThemeMode
+import com.catlytics.core.widget.NowPlayingWidgetSync
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject
+    lateinit var nowPlayingWidgetSync: NowPlayingWidgetSync
+
     private val deepLinkFlow = MutableStateFlow<Uri?>(null)
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -32,6 +37,7 @@ class MainActivity : ComponentActivity() {
         }
 
         deepLinkFlow.value = intent?.data
+        nowPlayingWidgetSync.start()
 
         setContent {
             val themeViewModel: ThemeViewModel = hiltViewModel()
