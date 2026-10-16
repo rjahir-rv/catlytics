@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.request.ImageRequest
+import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.domain.usecase.playlist.PLAYLIST_COVER_MOSAIC_SIZE
@@ -94,106 +95,117 @@ internal fun PlaylistHeader(
         )
     }
 
-    Column(
+    ArtworkHeaderLayout(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        BoxWithConstraints(
-            modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center,
-        ) {
-            val coverSize = (maxWidth * 0.64f).coerceAtMost(240.dp)
-            PlaylistCover(
-                playlistId = playlist.id,
-                name = playlist.name,
-                artworkModel = if (playlist.artworkUri != null) artworkRequest else null,
-                mosaicArtworkUris = mosaicArtworkUris,
-                shape = coverShape,
-                contentDescription = stringResource(
-                    PlaylistsR.string.playlists_artwork_content_description,
-                    playlist.displayName(),
-                ),
-                onArtworkLoaded = onArtworkLoaded,
-                modifier = Modifier
-                    .size(coverSize)
-                    .graphicsLayer {
-                        val progress = entrance.value
-                        alpha = progress.coerceIn(0f, 1f)
-                        scaleX = 0.9f + 0.1f * progress
-                        scaleY = 0.9f + 0.1f * progress
-                    }
-                    .shadow(elevation = 20.dp, shape = coverShape),
-            )
-        }
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-        ) {
-            Text(
-                text = playlist.displayName(),
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (playlist.description.isNotBlank()) {
-                Text(
-                    text = playlist.description,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
+        artwork = { isWide ->
+            BoxWithConstraints(
+                modifier = if (isWide) Modifier else Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center,
+            ) {
+                val coverSize = if (isWide) {
+                    PlaylistCoverWideSize
+                } else {
+                    (maxWidth * 0.64f).coerceAtMost(240.dp)
+                }
+                PlaylistCover(
+                    playlistId = playlist.id,
+                    name = playlist.name,
+                    artworkModel = if (playlist.artworkUri != null) artworkRequest else null,
+                    mosaicArtworkUris = mosaicArtworkUris,
+                    shape = coverShape,
+                    contentDescription = stringResource(
+                        PlaylistsR.string.playlists_artwork_content_description,
+                        playlist.displayName(),
+                    ),
+                    onArtworkLoaded = onArtworkLoaded,
+                    modifier = Modifier
+                        .size(coverSize)
+                        .graphicsLayer {
+                            val progress = entrance.value
+                            alpha = progress.coerceIn(0f, 1f)
+                            scaleX = 0.9f + 0.1f * progress
+                            scaleY = 0.9f + 0.1f * progress
+                        }
+                        .shadow(elevation = 20.dp, shape = coverShape),
                 )
             }
-        }
-
-        PlaylistMetaPills(tracks = tracks)
-
-        if (customOrdering) {
-            Row(
+        },
+        details = { isWide ->
+            val textAlign = if (isWide) TextAlign.Start else TextAlign.Center
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                horizontalAlignment = if (isWide) Alignment.Start else Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(
-                    stringResource(PlaylistsR.string.playlist_detail_ordering_hint),
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = playlist.displayName(),
+                    style = MaterialTheme.typography.headlineMedium,
+                    textAlign = textAlign,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                TextButton(onClick = onCancelOrdering) {
-                    Text(stringResource(PlaylistsR.string.playlists_action_cancel))
-                }
-                Button(onClick = onSaveOrdering) {
-                    Text(stringResource(PlaylistsR.string.playlists_action_save))
+                if (playlist.description.isNotBlank()) {
+                    Text(
+                        text = playlist.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = textAlign,
+                    )
                 }
             }
-        } else {
-            PlaylistPlaybackActions(
-                playlist = playlist,
-                tracks = tracks,
-                playbackState = playbackState,
-                onPlay = onPlay,
-                onPlayShuffled = onPlayShuffled,
-                onTogglePlayback = onTogglePlayback,
-                onAddTracksClick = onAddTracksClick,
-                onOptionsClick = onOptionsClick,
-                optionsMenu = optionsMenu,
-            )
-        }
-    }
+
+            PlaylistMetaPills(tracks = tracks, centered = !isWide)
+
+            if (customOrdering) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(PlaylistsR.string.playlist_detail_ordering_hint),
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onCancelOrdering) {
+                        Text(stringResource(PlaylistsR.string.playlists_action_cancel))
+                    }
+                    Button(onClick = onSaveOrdering) {
+                        Text(stringResource(PlaylistsR.string.playlists_action_save))
+                    }
+                }
+            } else {
+                PlaylistPlaybackActions(
+                    playlist = playlist,
+                    tracks = tracks,
+                    playbackState = playbackState,
+                    onPlay = onPlay,
+                    onPlayShuffled = onPlayShuffled,
+                    onTogglePlayback = onTogglePlayback,
+                    onAddTracksClick = onAddTracksClick,
+                    onOptionsClick = onOptionsClick,
+                    optionsMenu = optionsMenu,
+                )
+            }
+        },
+    )
 }
+
+private val PlaylistCoverWideSize = 200.dp
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PlaylistMetaPills(tracks: List<Track>) {
+private fun PlaylistMetaPills(tracks: List<Track>, centered: Boolean = true) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(
+            8.dp,
+            if (centered) Alignment.CenterHorizontally else Alignment.Start,
+        ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         MetaPill(

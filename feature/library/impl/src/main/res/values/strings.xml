@@ -183,4 +183,6 @@
     <string name="library_edit_artist_separated">«%1$s» ya no está unificado con «%2$s»</string>
     <string name="library_bulk_edit_no_changes">No hubo cambios</string>
     <string name="library_bulk_edit_not_found">Estas canciones ya no están disponibles.</string>
+    <string name="library_detail_placeholder_title">Explora tu biblioteca</string>
+    <string name="library_detail_placeholder_message">Selecciona un álbum, artista o carpeta para ver su contenido aquí.</string>
 </resources>

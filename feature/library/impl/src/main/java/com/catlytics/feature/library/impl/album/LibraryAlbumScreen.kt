@@ -1,10 +1,16 @@
 package com.catlytics.feature.library.impl.album
 
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.GridCells
 import android.graphics.Bitmap
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -46,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
@@ -117,7 +122,7 @@ internal fun LibraryAlbumScreen(
             var gradientColors by remember(content.album.artworkUri, fallbackGradient) {
                 mutableStateOf(fallbackGradient)
             }
-            val listState = remember(content.album.id) { LazyListState() }
+            val listState = remember(content.album.id) { LazyGridState() }
             val animatedGradientColors = animateArtworkGradientColors(
                 target = gradientColors,
                 labelPrefix = "LibraryAlbumGradient",
@@ -157,8 +162,10 @@ internal fun LibraryAlbumScreen(
                     onAction = onTrackSelectionAction,
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    LazyColumn(
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
                         state = listState,
+                        horizontalArrangement = Arrangement.spacedBy(24.dp),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
                             start = 20.dp,
@@ -169,7 +176,7 @@ internal fun LibraryAlbumScreen(
                                 if (selection.active) 72.dp else 0.dp,
                         ),
                     ) {
-                        item(key = "header") {
+                        item(key = "header", span = { GridItemSpan(maxLineSpan) }) {
                             AlbumHeader(
                                 album = content.album,
                                 tracks = content.tracks,
@@ -196,26 +203,28 @@ internal fun LibraryAlbumScreen(
                             items = content.tracks,
                             key = { _, track -> track.id },
                         ) { index, track ->
-                            AlbumTrackRow(
-                                position = index + 1,
-                                track = track,
-                                isCurrent = track.id == currentTrackId,
-                                isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
-                                selected = track.id in selection.selectedIds,
-                                selectionActive = selection.active,
-                                onClick = {
-                                    if (selection.active) {
+                            Column {
+                                AlbumTrackRow(
+                                    position = index + 1,
+                                    track = track,
+                                    isCurrent = track.id == currentTrackId,
+                                    isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
+                                    selected = track.id in selection.selectedIds,
+                                    selectionActive = selection.active,
+                                    onClick = {
+                                        if (selection.active) {
+                                            selectionState.value = selection.onTrackLongClick(track.id)
+                                        } else {
+                                            onTrackSelected(track, content.tracks)
+                                        }
+                                    },
+                                    onLongClick = {
                                         selectionState.value = selection.onTrackLongClick(track.id)
-                                    } else {
-                                        onTrackSelected(track, content.tracks)
-                                    }
-                                },
-                                onLongClick = {
-                                    selectionState.value = selection.onTrackLongClick(track.id)
-                                },
-                                onTrackOptions = { onTrackOptions(track) },
-                            )
-                            HorizontalDivider()
+                                    },
+                                    onTrackOptions = { onTrackOptions(track) },
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
@@ -236,65 +245,78 @@ private fun AlbumHeader(
     menuEntries: List<CatlyticsMenuEntry>,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    ArtworkHeaderLayout(
         modifier = modifier
             .fillMaxWidth()
             .padding(bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        CatlyticsArtwork(
-            model = artworkModel,
-            seed = album.title,
-            placeholderIcon = R.drawable.ic_album,
-            contentDescription = stringResource(
-                LibraryR.string.library_album_cover_content_description,
-                album.title,
-            ),
-            modifier = Modifier
-                .fillMaxWidth(0.72f)
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(24.dp)),
-            onSuccess = onArtworkLoaded,
-            contentScale = ContentScale.Crop,
-        )
-        Text(
-            text = album.title,
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = album.artist.name,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = pluralStringResource(
-                LibraryR.plurals.library_track_count,
-                album.trackCount,
-                album.trackCount,
-            ),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (sort != AlbumTrackSort.TrackNumber) {
-            Text(
-                text = stringResource(LibraryR.string.library_collection_sorted_by, sort.label()),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+        artwork = { isWide ->
+            CatlyticsArtwork(
+                model = artworkModel,
+                seed = album.title,
+                placeholderIcon = R.drawable.ic_album,
+                contentDescription = stringResource(
+                    LibraryR.string.library_album_cover_content_description,
+                    album.title,
+                ),
+                modifier = Modifier
+                    .then(
+                        if (isWide) {
+                            Modifier.size(AlbumArtworkWideSize)
+                        } else {
+                            Modifier
+                                .fillMaxWidth(0.72f)
+                                .widthIn(max = AlbumArtworkMaxSize)
+                        },
+                    )
+                    .aspectRatio(1f)
+                    .clip(RoundedCornerShape(24.dp)),
+                onSuccess = onArtworkLoaded,
+                contentScale = ContentScale.Crop,
             )
-        }
-        CollectionPlaybackRow(
-            tracks = tracks,
-            onPlayShuffled = { onPlayShuffled(tracks) },
-            onPlayAll = { onPlayAll(tracks) },
-            menuEntries = menuEntries,
-            menuContentDescription = stringResource(LibraryR.string.library_album_options_content_description, album.title),
-        )
-    }
+        },
+        details = {
+            Text(
+                text = album.title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = album.artist.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = pluralStringResource(
+                    LibraryR.plurals.library_track_count,
+                    album.trackCount,
+                    album.trackCount,
+                ),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (sort != AlbumTrackSort.TrackNumber) {
+                Text(
+                    text = stringResource(LibraryR.string.library_collection_sorted_by, sort.label()),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            CollectionPlaybackRow(
+                tracks = tracks,
+                onPlayShuffled = { onPlayShuffled(tracks) },
+                onPlayAll = { onPlayAll(tracks) },
+                menuEntries = menuEntries,
+                menuContentDescription = stringResource(LibraryR.string.library_album_options_content_description, album.title),
+            )
+        },
+    )
 }
+
+private val AlbumArtworkMaxSize = 280.dp
+private val AlbumArtworkWideSize = 220.dp
 
 @Composable
 private fun albumMenuEntries(

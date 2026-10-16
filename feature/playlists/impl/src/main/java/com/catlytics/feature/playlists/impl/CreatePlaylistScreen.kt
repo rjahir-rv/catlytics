@@ -81,6 +81,8 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
+import com.catlytics.core.designsystem.layout.centeredContentMaxWidth
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
@@ -141,7 +143,8 @@ internal fun CreatePlaylistScreen(
                 .fillMaxSize()
                 .systemBarsPadding()
                 .imePadding()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .centeredContentMaxWidth(CatlyticsLayoutTokens.FormMaxWidth),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(

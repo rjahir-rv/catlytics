@@ -112,7 +112,7 @@ internal fun SettingsTopAppBar(
 @Composable
 internal fun LibraryDetailTopAppBar(
     title: String,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     containerColor: Color? = null,
     supportsSearch: Boolean = false,
     isSearchExpanded: Boolean = false,
@@ -149,11 +149,13 @@ internal fun LibraryDetailTopAppBar(
             }
         },
         navigationIcon = {
-            IconButton(onClick = onBack) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_arrow_left),
-                    contentDescription = stringResource(AppR.string.app_action_back),
-                )
+            if (onBack != null) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_arrow_left),
+                        contentDescription = stringResource(AppR.string.app_action_back),
+                    )
+                }
             }
         },
         actions = {

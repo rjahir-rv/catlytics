@@ -1,10 +1,12 @@
 package com.catlytics.feature.statistics.impl
 
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -103,12 +105,15 @@ private fun StatisticsExploreContent(
         null
     }
 
-    LazyColumn(
+    // Una columna en teléfonos; en pantallas anchas los rankings se acomodan lado a lado.
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(STATS_GRID_MIN_COLUMN_WIDTH),
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalItemSpacing = 14.dp,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = contentPadding,
     ) {
-        item(key = "period-header") {
+        item(key = "period-header", span = StaggeredGridItemSpan.FullLine) {
             PeriodSelectorHeader(
                 granularity = data.selection.granularity,
                 offset = data.selection.offset,
@@ -122,7 +127,7 @@ private fun StatisticsExploreContent(
             )
         }
 
-        item(key = "period-summary") {
+        item(key = "period-summary", span = StaggeredGridItemSpan.FullLine) {
             PeriodSummaryCard(
                 totalListenedMillis = stats.totalListenedMillis,
                 playCount = stats.playCount,
@@ -133,7 +138,7 @@ private fun StatisticsExploreContent(
             )
         }
 
-        item(key = "activity-chart") {
+        item(key = "activity-chart", span = StaggeredGridItemSpan.FullLine) {
             ActivityChart(
                 dailyListening = stats.dailyListening,
                 dayCount = dayCount,
@@ -149,7 +154,7 @@ private fun StatisticsExploreContent(
         }
 
         if (stats.isEmpty) {
-            item(key = "period-empty") {
+            item(key = "period-empty", span = StaggeredGridItemSpan.FullLine) {
                 StatsEmptyState(
                     title = stringResource(R.string.stats_empty_period_title),
                     subtitle = stringResource(R.string.stats_empty_period_subtitle),
@@ -158,7 +163,7 @@ private fun StatisticsExploreContent(
             }
         } else {
             if (data.narrative.eligible) {
-                item(key = "narrative") {
+                item(key = "narrative", span = StaggeredGridItemSpan.FullLine) {
                     NarrativeSummaryCard(
                         narrative = data.narrative,
                         title = stringResource(R.string.stats_summary_title),
@@ -240,3 +245,4 @@ private fun friendlyPeriodTitle(
         }
     }
 }
+

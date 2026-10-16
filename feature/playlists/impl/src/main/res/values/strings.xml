@@ -141,4 +141,6 @@
         <item quantity="one">%2$s creada con 1 canción</item>
         <item quantity="other">%2$s creada con %1$d canciones</item>
     </plurals>
+    <string name="playlists_detail_placeholder_title">Tus playlists</string>
+    <string name="playlists_detail_placeholder_message">Selecciona una playlist para ver sus canciones aquí.</string>
 </resources>

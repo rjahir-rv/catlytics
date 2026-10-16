@@ -7,7 +7,34 @@ import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.navigation.BackNavigationBehavior
+import androidx.compose.material3.adaptive.layout.calculatePaneScaffoldDirective
+import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.navigation3.runtime.NavEntry
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.union
+import com.catlytics.app.ui.chrome.CatlyticsNavigationSuiteScaffold
+import com.catlytics.core.designsystem.layout.LocalPaneChrome
+import com.catlytics.core.designsystem.layout.PaneChrome
 import androidx.compose.foundation.background
+import androidx.navigation3.scene.SinglePaneSceneStrategy
+import com.catlytics.core.navigation.findListDetailIndices
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
@@ -28,13 +55,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.focus.FocusRequester
@@ -63,7 +90,6 @@ import com.catlytics.app.playback.PlaybackArtwork
 import com.catlytics.app.playback.PlaybackViewModel
 import com.catlytics.app.playback.PrefetchAdjacentPlaybackArtwork
 import com.catlytics.app.playback.shareTrack
-import com.catlytics.app.ui.chrome.CatlyticsBottomBar
 import com.catlytics.app.ui.chrome.LibraryDetailTopAppBar
 import com.catlytics.app.ui.chrome.SettingsTopAppBar
 import com.catlytics.app.ui.chrome.StatusBarProtection
@@ -79,7 +105,7 @@ import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
-import com.catlytics.core.navigation.TopLevelBackStack
+import com.catlytics.core.navigation.rememberTopLevelBackStack
 import com.catlytics.core.navigation.navigationBackTransition
 import com.catlytics.core.navigation.navigationForwardTransition
 import com.catlytics.core.navigation.verticalSheetEnterTransition
@@ -107,7 +133,7 @@ import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun CatlyticsApp(
     modifier: Modifier = Modifier,
@@ -150,7 +176,7 @@ fun CatlyticsApp(
     val statusBarHeight = WindowInsets.statusBars
         .asPaddingValues()
         .calculateTopPadding()
-    val topLevelBackStack = remember { TopLevelBackStack(HomeRoute) }
+    val topLevelBackStack = rememberTopLevelBackStack(HomeRoute)
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val searchFocusRequester = remember { FocusRequester() }
@@ -165,7 +191,7 @@ fun CatlyticsApp(
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
     var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
-    var editMetadataTrackId by remember { mutableStateOf<String?>(null) }
+    var editMetadataTrackId by rememberSaveable { mutableStateOf<String?>(null) }
     var bulkEditTrackIds by remember { mutableStateOf<List<String>?>(null) }
     var detailTopBarColors by remember { mutableStateOf<Map<NavKey, Color>>(emptyMap()) }
     var detailTopBarTitles by remember { mutableStateOf<Map<NavKey, String>>(emptyMap()) }
@@ -186,6 +212,31 @@ fun CatlyticsApp(
     val queueSourcePlaylist by playbackViewModel.queueSourcePlaylist.collectAsStateWithLifecycle()
     val sleepTimerState by playbackViewModel.sleepTimerState.collectAsStateWithLifecycle()
     val currentRoute = topLevelBackStack.backStack.lastOrNull()
+    val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
+    val navigationSuiteType = NavigationSuiteScaffoldDefaults.navigationSuiteType(windowAdaptiveInfo)
+    val isNavigationRail = navigationSuiteType == NavigationSuiteType.WideNavigationRailCollapsed ||
+        navigationSuiteType == NavigationSuiteType.WideNavigationRailExpanded
+    // Sin espacio entre paneles: cada uno pinta su propio fondo de borde a borde.
+    val paneScaffoldDirective = remember(windowAdaptiveInfo) {
+        calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(horizontalPartitionSpacerSize = 0.dp)
+    }
+    val isTwoPane = paneScaffoldDirective.maxHorizontalPartitions > 1
+    val currentIsTwoPane by rememberUpdatedState(isTwoPane)
+    // Lista y detalle visibles a la vez en ventanas anchas (ver ListDetailSceneStrategy).
+    val listDetailIndices = if (isTwoPane) {
+        findListDetailIndices(
+            items = topLevelBackStack.backStack,
+            isList = ::isListPaneRoute,
+            isDetail = ::isDetailPaneRoute,
+        )
+    } else {
+        null
+    }
+    val listPaneRoute = listDetailIndices?.let { topLevelBackStack.backStack[it.listIndex] }
+    val detailPaneRoute = listDetailIndices?.detailIndex?.let { topLevelBackStack.backStack[it] }
+    // Ruta cuya lista sigue en pantalla: en dos paneles es la del panel izquierdo.
+    val visibleListRoute = listPaneRoute ?: currentRoute
+    val listPaneSearchFocusRequester = remember { FocusRequester() }
     val isWaitingForHomeContent = hasAudioPermission &&
         !isLibraryRefreshRunning &&
         currentRoute == HomeRoute &&
@@ -207,41 +258,20 @@ fun CatlyticsApp(
     val isNowPlayingVisible = currentRoute == NowPlayingRoute
     val isCreatePlaylistVisible = currentRoute is CreatePlaylistRoute
     val isFullScreenRoute = isNowPlayingVisible || isCreatePlaylistVisible
-    val isSettingsVisible = currentRoute == SettingsRoute
-    val isDetailTopBarVisible = when (currentRoute) {
-        is LibraryAlbumRoute,
-        is LibraryArtistRoute,
-        is LibraryFolderRoute,
-        is PlaylistDetailRoute,
-        DailyPlaylistRoute,
-        RecentlyAddedRoute,
-        StatisticsExploreRoute -> true
-        else -> false
-    }
-    val isCurrentSearchExpanded = when (currentRoute) {
+    // En pantallas grandes la navegación nunca se oculta (tampoco en pantallas completas).
+    val isNavigationVisible = isNavigationRail ||
+        (!isFullScreenRoute && selectedTopLevelDestination != null)
+    val isNavigationBarShown = isNavigationVisible && !isNavigationRail
+    fun isSearchExpanded(route: NavKey): Boolean = when (route) {
         HomeRoute -> isHomeSearchExpanded
         LibraryRoute -> isLibrarySearchExpanded
         PlaylistsRoute -> isPlaylistsSearchExpanded
         is LibraryArtistRoute -> isArtistSearchExpanded
         else -> false
     }
-    val canTopBarScroll = rememberUpdatedState(
-        !isFullScreenRoute && !isCurrentSearchExpanded,
-    )
-    val topBarState = remember(currentRoute) {
-        TopAppBarState(
-            initialHeightOffsetLimit = -Float.MAX_VALUE,
-            initialHeightOffset = 0f,
-            initialContentOffset = 0f,
-        )
-    }
-    val topBarScrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
-        state = topBarState,
-        canScroll = remember { { canTopBarScroll.value } },
-    )
-    val detailChromeColor = when (currentRoute) {
+    fun paneChromeColor(route: NavKey): Color? = when (route) {
         is LibraryAlbumRoute, is LibraryArtistRoute, is PlaylistDetailRoute ->
-            detailTopBarColors[currentRoute]
+            detailTopBarColors[route]
         else -> null
     }
     LaunchedEffect(currentRoute) {
@@ -251,10 +281,6 @@ fun CatlyticsApp(
             settingsTopBarTitle = null
             settingsTopBarBackAction = null
         }
-    }
-    LaunchedEffect(settingsTopBarTitle, isCurrentSearchExpanded) {
-        topBarScrollBehavior.state.heightOffset = 0f
-        topBarScrollBehavior.state.contentOffset = 0f
     }
 
     fun closeHomeSearch() {
@@ -437,20 +463,26 @@ fun CatlyticsApp(
     }
 
     LaunchedEffect(isHomeSearchExpanded, isLibrarySearchExpanded, isPlaylistsSearchExpanded, isArtistSearchExpanded) {
-        if (isHomeSearchExpanded || isLibrarySearchExpanded || isPlaylistsSearchExpanded || isArtistSearchExpanded) {
+        if (isArtistSearchExpanded && listPaneRoute != null) {
+            searchFocusRequester.requestFocus()
+            keyboardController?.show()
+        } else if (isLibrarySearchExpanded && listPaneRoute != null) {
+            listPaneSearchFocusRequester.requestFocus()
+            keyboardController?.show()
+        } else if (isHomeSearchExpanded || isLibrarySearchExpanded || isPlaylistsSearchExpanded || isArtistSearchExpanded) {
             searchFocusRequester.requestFocus()
             keyboardController?.show()
         }
     }
 
-    LaunchedEffect(currentRoute) {
-        if (currentRoute != HomeRoute && isHomeSearchExpanded) {
+    LaunchedEffect(visibleListRoute) {
+        if (visibleListRoute != HomeRoute && isHomeSearchExpanded) {
             closeHomeSearch()
         }
-        if (currentRoute != LibraryRoute && isLibrarySearchExpanded) {
+        if (visibleListRoute != LibraryRoute && isLibrarySearchExpanded) {
             closeLibrarySearch()
         }
-        if (currentRoute != PlaylistsRoute && isPlaylistsSearchExpanded) {
+        if (visibleListRoute != PlaylistsRoute && isPlaylistsSearchExpanded) {
             closePlaylistsSearch()
         }
     }
@@ -470,185 +502,263 @@ fun CatlyticsApp(
         topLevelBackStack.removeLast()
     }
 
+    // Al elegir otro elemento en la lista con un detalle ya abierto al lado, ese detalle se
+    // reemplaza en vez de acumularse; así atrás vuelve a la lista. Lee el estado al momento del
+    // toque porque las pantallas pueden conservar este callback entre recomposiciones.
+    fun openFromListPane(key: NavKey) {
+        val backStack = topLevelBackStack.backStack
+        val indices = if (currentIsTwoPane) {
+            findListDetailIndices(
+                items = backStack,
+                isList = ::isListPaneRoute,
+                isDetail = ::isDetailPaneRoute,
+            )
+        } else {
+            null
+        }
+        val detailIndex = indices?.detailIndex
+        when {
+            detailIndex == null -> topLevelBackStack.add(key)
+            backStack[detailIndex] == key -> Unit
+            else -> topLevelBackStack.replaceAbove(anchor = backStack[indices.listIndex], key = key)
+        }
+    }
+
     BackHandler(enabled = showStartupLoading) {}
     PrefetchAdjacentPlaybackArtwork(
         queue = playbackState.queue,
         currentIndex = playbackState.currentIndex,
     )
+    // Barra superior de cada pantalla, con su propio estado de scroll. En lista-detalle el detalle
+    // no muestra la flecha atrás: la lista sigue visible al lado.
+    val routeTopBar: @Composable (NavKey, TopAppBarScrollBehavior) -> Unit = { route, scrollBehavior ->
+        val routeTopLevelDestination = TopLevelDestination.entries.firstOrNull { it.route == route }
+        val onBack: (() -> Unit)? = if (isTwoPane && route == detailPaneRoute) {
+            null
+        } else {
+            ::closeCurrentDestination
+        }
+        val routeSearchFocusRequester = if (route == listPaneRoute) {
+            listPaneSearchFocusRequester
+        } else {
+            searchFocusRequester
+        }
+        when {
+            route is CreatePlaylistRoute -> Unit
+            route is LibraryAlbumRoute -> {
+                LibraryDetailTopAppBar(
+                    title = detailTopBarTitles[route] ?: route.albumTitle,
+                    onBack = onBack,
+                    containerColor = Color.Transparent,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+            route is LibraryArtistRoute -> {
+                LibraryDetailTopAppBar(
+                    title = "",
+                    onBack = onBack,
+                    containerColor = Color.Transparent,
+                    supportsSearch = true,
+                    isSearchExpanded = isArtistSearchExpanded,
+                    searchQuery = artistSearchQuery,
+                    onSearchQueryChange = { artistSearchQuery = it },
+                    onSearchActionClick = {
+                        if (isArtistSearchExpanded) {
+                            artistSearchQuery = ""
+                            isArtistSearchExpanded = false
+                        } else {
+                            isArtistSearchExpanded = true
+                        }
+                    },
+                    searchPlaceholderRes = R.string.app_search_placeholder_artist,
+                    searchFocusRequester = routeSearchFocusRequester,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+            route is LibraryFolderRoute -> {
+                LibraryDetailTopAppBar(
+                    title = route.folderName,
+                    onBack = onBack,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+            route is PlaylistDetailRoute -> {
+                LibraryDetailTopAppBar(
+                    title = "",
+                    onBack = onBack,
+                    containerColor = Color.Transparent,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+            route == DailyPlaylistRoute -> {
+                LibraryDetailTopAppBar(
+                    title = stringResource(R.string.app_top_bar_title_daily_playlist),
+                    onBack = onBack,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+            route == RecentlyAddedRoute -> {
+                LibraryDetailTopAppBar(
+                    title = stringResource(R.string.app_top_bar_title_recently_added),
+                    onBack = onBack,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+            route == StatisticsExploreRoute -> {
+                LibraryDetailTopAppBar(
+                    title = stringResource(R.string.app_top_bar_title_statistics_explore),
+                    onBack = onBack,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+            routeTopLevelDestination != null -> {
+                val supportsSearch = route == HomeRoute || route == LibraryRoute || route == PlaylistsRoute
+                val isSearchExpanded = when {
+                    route == HomeRoute -> isHomeSearchExpanded
+                    route == LibraryRoute -> isLibrarySearchExpanded
+                    route == PlaylistsRoute -> isPlaylistsSearchExpanded
+                    else -> false
+                }
+                val currentSearchQuery = when {
+                    route == HomeRoute -> homeSearchQuery
+                    route == LibraryRoute -> librarySearchQuery
+                    route == PlaylistsRoute -> playlistsSearchQuery
+                    else -> ""
+                }
+                val searchPlaceholderRes = when {
+                    route == HomeRoute -> R.string.app_search_placeholder_home
+                    route == LibraryRoute -> R.string.app_search_placeholder_library
+                    route == PlaylistsRoute -> R.string.app_search_placeholder_playlists
+                    else -> R.string.app_search_placeholder_default
+                }
+
+                TopLevelTopAppBar(
+                    title = stringResource(routeTopLevelDestination.labelRes),
+                    supportsSearch = supportsSearch,
+                    isSearchExpanded = isSearchExpanded,
+                    searchQuery = currentSearchQuery,
+                    searchFocusRequester = routeSearchFocusRequester,
+                    onSearchQueryChange = { newValue ->
+                        if (route == HomeRoute) {
+                            homeSearchQuery = newValue
+                        } else if (route == LibraryRoute) {
+                            librarySearchQuery = newValue
+                        } else if (route == PlaylistsRoute) {
+                            playlistsSearchQuery = newValue
+                        }
+                    },
+                    onSearchActionClick = {
+                        if (route == HomeRoute) {
+                            if (isHomeSearchExpanded) {
+                                closeHomeSearch()
+                            } else {
+                                isHomeSearchExpanded = true
+                            }
+                        } else if (route == LibraryRoute) {
+                            if (isLibrarySearchExpanded) {
+                                closeLibrarySearch()
+                            } else {
+                                isLibrarySearchExpanded = true
+                            }
+                        } else if (route == PlaylistsRoute) {
+                            if (isPlaylistsSearchExpanded) {
+                                closePlaylistsSearch()
+                            } else {
+                                isPlaylistsSearchExpanded = true
+                            }
+                        }
+                    },
+                    searchPlaceholderRes = searchPlaceholderRes,
+                    onSettingsClick = ::openSettings,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+            route == SettingsRoute -> {
+                SettingsTopAppBar(
+                    title = settingsTopBarTitle ?: stringResource(R.string.app_top_bar_title_settings),
+                    onBack = settingsTopBarBackAction ?: ::closeCurrentDestination,
+                    scrollBehavior = scrollBehavior,
+                )
+            }
+        }
+    }
+
+    val statusBarProtectionHeight = statusBarHeight
+    // Cada pantalla se envuelve en su propio Scaffold con su barra superior y su estado de scroll,
+    // así funcionan igual en un panel o lado a lado en lista-detalle.
+    val routePane: @Composable (NavKey, @Composable () -> Unit) -> Unit = { route, content ->
+        val hasTopBar = route != NowPlayingRoute && route !is CreatePlaylistRoute
+        if (hasTopBar) {
+            val isRouteSearchExpanded = isSearchExpanded(route)
+            RoutePane(
+                containerColor = paneChromeColor(route) ?: MaterialTheme.colorScheme.background,
+                statusBarHeight = statusBarProtectionHeight,
+                canScroll = !isRouteSearchExpanded,
+                scrollResetKey = if (route == SettingsRoute) {
+                    settingsTopBarTitle to isRouteSearchExpanded
+                } else {
+                    isRouteSearchExpanded
+                },
+                showPaneDivider = isTwoPane && route == detailPaneRoute,
+                topBar = { scrollBehavior -> routeTopBar(route, scrollBehavior) },
+                content = content,
+            )
+        } else {
+            content()
+        }
+    }
+    val currentRoutePane by rememberUpdatedState(routePane)
+    fun withRoutePanes(
+        provider: (NavKey) -> NavEntry<NavKey>,
+    ): (NavKey) -> NavEntry<NavKey> = { key ->
+        val entry = provider(key)
+        NavEntry(navEntry = entry, content = { route: NavKey ->
+            currentRoutePane(route) { entry.Content() }
+        })
+    }
+
+    val listDetailSceneStrategy = rememberListDetailSceneStrategy<NavKey>(
+        // Atrás quita solo el detalle y vuelve a la lista con el placeholder: con el
+        // comportamiento por defecto seguiría quitando entradas hasta cambiar de pestaña.
+        backNavigationBehavior = BackNavigationBehavior.PopLatest,
+        directive = paneScaffoldDirective,
+    )
+    val navigationSuiteState = rememberNavigationSuiteScaffoldState()
+    LaunchedEffect(isNavigationVisible) {
+        if (isNavigationVisible) navigationSuiteState.show() else navigationSuiteState.hide()
+    }
+
     StartupLoadingGate(
         isLoading = showStartupLoading,
         composeContent = !isLibraryRefreshRunning,
         modifier = modifier.fillMaxSize(),
     ) {
+        CatlyticsNavigationSuiteScaffold(
+            selectedRoute = topLevelBackStack.topLevelKey,
+            onDestinationSelected = topLevelBackStack::addTopLevel,
+            navigationSuiteType = navigationSuiteType,
+            state = navigationSuiteState,
+            modifier = Modifier.fillMaxSize(),
+        ) {
         Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(topBarScrollBehavior.nestedScrollConnection),
-            containerColor = detailChromeColor ?: MaterialTheme.colorScheme.background,
+            modifier = Modifier.fillMaxSize(),
+            containerColor = MaterialTheme.colorScheme.background,
             contentColor = MaterialTheme.colorScheme.onBackground,
-        topBar = {
-            Box {
-                if (!isFullScreenRoute) {
-                    StatusBarProtection(
-                        color = detailChromeColor ?: MaterialTheme.colorScheme.background,
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .graphicsLayer {
-                                alpha = topBarScrollBehavior.state.collapsedFraction
-                            },
-                    )
-                }
-
-                when {
-                isCreatePlaylistVisible -> Unit
-                currentRoute is LibraryAlbumRoute -> {
-                    LibraryDetailTopAppBar(
-                        title = detailTopBarTitles[currentRoute] ?: currentRoute.albumTitle,
-                        onBack = ::closeCurrentDestination,
-                        containerColor = Color.Transparent,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-                currentRoute is LibraryArtistRoute -> {
-                    LibraryDetailTopAppBar(
-                        title = "",
-                        onBack = ::closeCurrentDestination,
-                        containerColor = Color.Transparent,
-                        supportsSearch = true,
-                        isSearchExpanded = isArtistSearchExpanded,
-                        searchQuery = artistSearchQuery,
-                        onSearchQueryChange = { artistSearchQuery = it },
-                        onSearchActionClick = {
-                            if (isArtistSearchExpanded) {
-                                artistSearchQuery = ""
-                                isArtistSearchExpanded = false
-                            } else {
-                                isArtistSearchExpanded = true
-                            }
-                        },
-                        searchPlaceholderRes = R.string.app_search_placeholder_artist,
-                        searchFocusRequester = searchFocusRequester,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-                currentRoute is LibraryFolderRoute -> {
-                    LibraryDetailTopAppBar(
-                        title = currentRoute.folderName,
-                        onBack = ::closeCurrentDestination,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-                currentRoute is PlaylistDetailRoute -> {
-                    LibraryDetailTopAppBar(
-                        title = "",
-                        onBack = ::closeCurrentDestination,
-                        containerColor = Color.Transparent,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-                currentRoute == DailyPlaylistRoute -> {
-                    LibraryDetailTopAppBar(
-                        title = stringResource(R.string.app_top_bar_title_daily_playlist),
-                        onBack = ::closeCurrentDestination,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-                currentRoute == RecentlyAddedRoute -> {
-                    LibraryDetailTopAppBar(
-                        title = stringResource(R.string.app_top_bar_title_recently_added),
-                        onBack = ::closeCurrentDestination,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-                currentRoute == StatisticsExploreRoute -> {
-                    LibraryDetailTopAppBar(
-                        title = stringResource(R.string.app_top_bar_title_statistics_explore),
-                        onBack = ::closeCurrentDestination,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-                currentTopLevelDestination != null -> {
-                    val supportsSearch = isOnHomeRoot || isOnLibraryRoot || isOnPlaylistsRoot
-                    val isSearchExpanded = when {
-                        isOnHomeRoot -> isHomeSearchExpanded
-                        isOnLibraryRoot -> isLibrarySearchExpanded
-                        isOnPlaylistsRoot -> isPlaylistsSearchExpanded
-                        else -> false
-                    }
-                    val currentSearchQuery = when {
-                        isOnHomeRoot -> homeSearchQuery
-                        isOnLibraryRoot -> librarySearchQuery
-                        isOnPlaylistsRoot -> playlistsSearchQuery
-                        else -> ""
-                    }
-                    val searchPlaceholderRes = when {
-                        isOnHomeRoot -> R.string.app_search_placeholder_home
-                        isOnLibraryRoot -> R.string.app_search_placeholder_library
-                        isOnPlaylistsRoot -> R.string.app_search_placeholder_playlists
-                        else -> R.string.app_search_placeholder_default
-                    }
-
-                    TopLevelTopAppBar(
-                        title = stringResource(currentTopLevelDestination.labelRes),
-                        supportsSearch = supportsSearch,
-                        isSearchExpanded = isSearchExpanded,
-                        searchQuery = currentSearchQuery,
-                        searchFocusRequester = searchFocusRequester,
-                        onSearchQueryChange = { newValue ->
-                            if (isOnHomeRoot) {
-                                homeSearchQuery = newValue
-                            } else if (isOnLibraryRoot) {
-                                librarySearchQuery = newValue
-                            } else if (isOnPlaylistsRoot) {
-                                playlistsSearchQuery = newValue
-                            }
-                        },
-                        onSearchActionClick = {
-                            if (isOnHomeRoot) {
-                                if (isHomeSearchExpanded) {
-                                    closeHomeSearch()
-                                } else {
-                                    isHomeSearchExpanded = true
-                                }
-                            } else if (isOnLibraryRoot) {
-                                if (isLibrarySearchExpanded) {
-                                    closeLibrarySearch()
-                                } else {
-                                    isLibrarySearchExpanded = true
-                                }
-                            } else if (isOnPlaylistsRoot) {
-                                if (isPlaylistsSearchExpanded) {
-                                    closePlaylistsSearch()
-                                } else {
-                                    isPlaylistsSearchExpanded = true
-                                }
-                            }
-                        },
-                        searchPlaceholderRes = searchPlaceholderRes,
-                        onSettingsClick = ::openSettings,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-                isSettingsVisible -> {
-                    SettingsTopAppBar(
-                        title = settingsTopBarTitle ?: stringResource(R.string.app_top_bar_title_settings),
-                        onBack = settingsTopBarBackAction ?: ::closeCurrentDestination,
-                        scrollBehavior = topBarScrollBehavior,
-                    )
-                }
-            }
-            }
-        },
         bottomBar = {
             if (!isFullScreenRoute) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     playbackState.currentTrack?.let { track ->
                         CatlyticsMiniPlayer(
-                            modifier = if (isSettingsVisible) {
-                                Modifier.padding(bottom = 8.dp)
-                            } else {
-                                Modifier
-                            },
+                            // Centrado y con ancho acotado en pantallas anchas. Sin barra inferior
+                            // queda sobre la barra de gestos del sistema (si la barra está visible,
+                            // el NavigationSuiteScaffold ya consumió ese inset).
+                            modifier = Modifier
+                                .align(Alignment.CenterHorizontally)
+                                .widthIn(max = MINI_PLAYER_MAX_WIDTH)
+                                .windowInsetsPadding(
+                                    WindowInsets.navigationBars.only(WindowInsetsSides.Bottom),
+                                )
+                                .padding(bottom = if (isNavigationBarShown) 0.dp else 8.dp),
                             title = track.title,
                             artist = track.artist.name,
                             isPlaying = playbackState.status == PlaybackStatus.Playing,
@@ -692,54 +802,33 @@ fun CatlyticsApp(
                         )
                     }
 
-                    if (selectedTopLevelDestination != null) {
-                        CatlyticsBottomBar(
-                            selectedRoute = topLevelBackStack.topLevelKey,
-                            onDestinationSelected = topLevelBackStack::addTopLevel,
-                            hazeState = hazeState,
-                            glassEnabled = detailChromeColor != null,
-                        )
-                    }
                 }
             }
         },
     ) { innerPadding ->
+        // Las pantallas se dibujan detrás del mini reproductor y reciben su alto como padding.
+        // Se congela mientras hay una ruta a pantalla completa para que la pantalla de abajo no
+        // salte durante la transición.
         var lastBottomPadding by remember { mutableStateOf(0.dp) }
         val currentBottomPadding = innerPadding.calculateBottomPadding()
-
-        var lastRegularNavigationContentPadding by remember { mutableStateOf(PaddingValues(0.dp)) }
-        val contentPaddingBehindBottomBar = PaddingValues(
-            start = innerPadding.calculateStartPadding(layoutDirection),
-            top = calculateTopContentPadding(
-                scaffoldTopPadding = innerPadding.calculateTopPadding(),
-                statusBarPadding = statusBarHeight,
-                collapsedFraction = topBarScrollBehavior.state.collapsedFraction,
-            ),
-            end = innerPadding.calculateEndPadding(layoutDirection),
-            bottom = 0.dp,
-        )
-
         SideEffect {
             if (!isFullScreenRoute) {
                 lastBottomPadding = currentBottomPadding
-                lastRegularNavigationContentPadding = contentPaddingBehindBottomBar
             }
         }
-
         val bottomPaddingToUse = if (isFullScreenRoute) lastBottomPadding else currentBottomPadding
-        val regularNavigationContentPadding = if (isFullScreenRoute) lastRegularNavigationContentPadding else contentPaddingBehindBottomBar
-
         val bottomPaddingState = rememberUpdatedState(bottomPaddingToUse)
-        val regularPaddingState = rememberUpdatedState(regularNavigationContentPadding)
 
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState)
-                    .background(detailChromeColor ?: MaterialTheme.colorScheme.background),
+                    .background(MaterialTheme.colorScheme.background),
                 backStack = topLevelBackStack.backStack,
                 onBack = ::closeCurrentDestination,
+                sceneStrategies = listOf(listDetailSceneStrategy, SinglePaneSceneStrategy()),
+
                 transitionSpec = {
                     navigationForwardTransition()
                 },
@@ -749,7 +838,7 @@ fun CatlyticsApp(
                 predictivePopTransitionSpec = {
                     navigationBackTransition()
                 },
-                entryProvider = entryProvider {
+                entryProvider = withRoutePanes(entryProvider {
                     homeEntry(
                         searchQuery = { homeSearchQuery },
                         onTrackOptions = { track -> openTrackOptions(track) },
@@ -780,13 +869,13 @@ fun CatlyticsApp(
                         startupError = { startupError },
                         onContentReady = { isHomeContentReady = true },
                         bottomPadding = { bottomPaddingState.value },
-                        scaffoldContentPadding = { regularPaddingState.value },
                     )
                     libraryEntry(
                         searchQuery = { librarySearchQuery },
                         artistSearchQuery = { artistSearchQuery },
                         onArtistSearchQueryChange = { artistSearchQuery = it },
                         onDestinationSelected = topLevelBackStack::add,
+                        onListDestinationSelected = ::openFromListPane,
                         onAddToPlaylist = ::openAddToPlaylist,
                         onTrackOptions = { track -> openTrackOptions(track) },
                         likedTrackIds = { likedTrackIds },
@@ -806,12 +895,11 @@ fun CatlyticsApp(
                             audioPermissionLauncher.launch(audioPermission)
                         },
                         bottomPadding = { bottomPaddingState.value },
-                        scaffoldContentPadding = { regularPaddingState.value },
-                        collapseFraction = { topBarScrollBehavior.state.collapsedFraction },
                     )
                     playlistsEntry(
                         searchQuery = { playlistsSearchQuery },
                         onDestinationSelected = topLevelBackStack::add,
+                        onListDestinationSelected = ::openFromListPane,
                         onPlaylistDeleted = ::closeCurrentDestination,
                         onTrackOptions = { track, onRemoveFromPlaylist ->
                             openTrackOptions(track, onRemoveFromPlaylist)
@@ -822,8 +910,6 @@ fun CatlyticsApp(
                         onPlaylistDetailTopBarColorChange = { route, color ->
                             detailTopBarColors = detailTopBarColors + (route to color)
                         },
-                        scaffoldContentPadding = { regularPaddingState.value },
-                        collapseFraction = { topBarScrollBehavior.state.collapsedFraction },
                         onCloseCreatePlaylist = ::closeCurrentDestination,
                         onPlaylistCreated = { route, playlist ->
                             closeCurrentDestination()
@@ -857,11 +943,9 @@ fun CatlyticsApp(
                         bottomPadding = { bottomPaddingState.value },
                         onTopBarTitleChange = { title -> settingsTopBarTitle = title },
                         onTopBarBackActionChange = { action -> settingsTopBarBackAction = action },
-                        scaffoldContentPadding = { regularPaddingState.value },
                     )
                     statisticsEntry(
                         bottomPadding = { bottomPaddingState.value },
-                        scaffoldContentPadding = { regularPaddingState.value },
                         onNavigateToExplore = {
                             if (topLevelBackStack.backStack.lastOrNull() != StatisticsExploreRoute) {
                                 topLevelBackStack.add(StatisticsExploreRoute)
@@ -958,11 +1042,12 @@ fun CatlyticsApp(
                             },
                         )
                     }
-                },
+                }),
             )
 
         }
     }
+        }
         CatlyticsAppSheets(
             trackOptionsRequest = trackOptionsRequest,
             likedTrackIds = likedTrackIds,
@@ -1007,6 +1092,117 @@ fun CatlyticsApp(
                 )
             },
         )
+    }
+}
+
+private const val PANE_DIVIDER_ALPHA = 0.5f
+private val PANE_DIVIDER_WIDTH = 1.dp
+private val MINI_PLAYER_MAX_WIDTH = 720.dp
+
+private fun isListPaneRoute(route: NavKey): Boolean =
+    route == LibraryRoute || route == PlaylistsRoute
+
+private fun isDetailPaneRoute(route: NavKey): Boolean =
+    route is LibraryAlbumRoute ||
+        route is LibraryArtistRoute ||
+        route is LibraryFolderRoute ||
+        route is PlaylistDetailRoute
+
+/**
+ * Scaffold de una pantalla: barra superior propia con scroll `enterAlways` independiente y
+ * fondo del panel. El contenido se dibuja detrás de la barra y recibe su alto por [LocalPaneChrome].
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoutePane(
+    containerColor: Color,
+    statusBarHeight: Dp,
+    canScroll: Boolean,
+    scrollResetKey: Any?,
+    showPaneDivider: Boolean,
+    topBar: @Composable (TopAppBarScrollBehavior) -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val topBarState = rememberSaveable(saver = TopAppBarState.Saver) {
+        TopAppBarState(
+            initialHeightOffsetLimit = -Float.MAX_VALUE,
+            initialHeightOffset = 0f,
+            initialContentOffset = 0f,
+        )
+    }
+    val currentCanScroll by rememberUpdatedState(canScroll)
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(
+        state = topBarState,
+        canScroll = remember { { currentCanScroll } },
+    )
+    LaunchedEffect(scrollResetKey) {
+        topBarState.heightOffset = 0f
+        topBarState.contentOffset = 0f
+    }
+    val dividerColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = PANE_DIVIDER_ALPHA)
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .then(
+                if (showPaneDivider) {
+                    Modifier.drawWithContent {
+                        drawContent()
+                        drawRect(color = dividerColor, size = Size(PANE_DIVIDER_WIDTH.toPx(), size.height))
+                    }
+                } else {
+                    Modifier
+                },
+            ),
+        containerColor = containerColor,
+        contentColor = MaterialTheme.colorScheme.onBackground,
+        contentWindowInsets = WindowInsets.systemBars
+            .union(WindowInsets.displayCutout)
+            .only(WindowInsetsSides.Horizontal),
+        topBar = {
+            TopBarPaneSegment(
+                statusBarColor = containerColor,
+                collapsedFraction = { scrollBehavior.state.collapsedFraction },
+            ) {
+                topBar(scrollBehavior)
+            }
+        },
+    ) { innerPadding ->
+        val layoutDirection = LocalLayoutDirection.current
+        val paneChrome = PaneChrome(
+            contentPadding = PaddingValues(
+                start = innerPadding.calculateStartPadding(layoutDirection),
+                top = calculateTopContentPadding(
+                    scaffoldTopPadding = innerPadding.calculateTopPadding(),
+                    statusBarPadding = statusBarHeight,
+                    collapsedFraction = scrollBehavior.state.collapsedFraction,
+                ),
+                end = innerPadding.calculateEndPadding(layoutDirection),
+            ),
+            collapsedFraction = { scrollBehavior.state.collapsedFraction },
+        )
+        CompositionLocalProvider(LocalPaneChrome provides paneChrome) {
+            content()
+        }
+    }
+}
+
+/** Segmento de la barra superior con su propia protección de la barra de estado. */
+@Composable
+private fun TopBarPaneSegment(
+    statusBarColor: Color,
+    collapsedFraction: () -> Float,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(modifier = modifier) {
+        StatusBarProtection(
+            color = statusBarColor,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .graphicsLayer { alpha = collapsedFraction() },
+        )
+        content()
     }
 }
 

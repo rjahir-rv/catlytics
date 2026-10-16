@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.layout.isCompactWindowHeight
 import com.catlytics.core.designsystem.format.SleepTimerFormat
 import com.catlytics.core.model.SleepTimerState
 import kotlin.math.PI
@@ -167,7 +168,7 @@ private fun SleepTimerDial(
 
     Box(
         modifier = modifier
-            .size(264.dp)
+            .size(if (isCompactWindowHeight()) 200.dp else 264.dp)
             .testTag(SLEEP_TIMER_DIAL_TEST_TAG)
             .semantics {
                 stateDescription = dialStateDescription

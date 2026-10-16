@@ -21,6 +21,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.layout.isCompactWindowHeight
 import com.catlytics.core.model.EqualizerState
 import com.catlytics.feature.settings.impl.R
 
@@ -40,7 +41,7 @@ internal fun EqualizerGraph(
 
     Canvas(
         modifier = modifier
-            .height(220.dp)
+            .height(if (isCompactWindowHeight()) 160.dp else 220.dp)
             .pointerInput(isCustom, equalizerState.bands) {
                 val range = equalizerState.levelRange
                 if (!isCustom || equalizerState.bands.isEmpty() || range == null) return@pointerInput

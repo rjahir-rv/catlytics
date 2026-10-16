@@ -1,9 +1,9 @@
 package com.catlytics.feature.home.impl
 
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.catlytics.core.designsystem.layout.LocalPaneChrome
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
@@ -25,7 +25,6 @@ fun EntryProviderScope<NavKey>.homeEntry(
     startupError: () -> UiText?,
     onContentReady: () -> Unit,
     bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
-    scaffoldContentPadding: () -> PaddingValues = { PaddingValues(0.dp) },
 ) {
     entry<HomeRoute> {
         HomeRoute(
@@ -42,7 +41,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
             startupError = startupError(),
             onContentReady = onContentReady,
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
         )
     }
     entry<DailyPlaylistRoute> {
@@ -51,7 +50,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
             likedTrackIds = likedTrackIds(),
             onTrackSelectionAction = onTrackSelectionAction,
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
         )
     }
     entry<RecentlyAddedRoute> {
@@ -60,7 +59,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
             likedTrackIds = likedTrackIds(),
             onTrackSelectionAction = onTrackSelectionAction,
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
         )
     }
 }

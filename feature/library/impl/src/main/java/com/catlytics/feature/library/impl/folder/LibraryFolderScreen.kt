@@ -1,5 +1,10 @@
 package com.catlytics.feature.library.impl.folder
 
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -10,8 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,9 +30,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
@@ -99,7 +102,8 @@ internal fun LibraryFolderScreen(
                     onAction = onTrackSelectionAction,
                     modifier = modifier.fillMaxSize(),
                 ) {
-                    LazyColumn(
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(
                             start = LibraryDimens.ScreenPadding,
@@ -110,8 +114,9 @@ internal fun LibraryFolderScreen(
                                 if (selection.active) 72.dp else 0.dp,
                         ),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
-                        item(key = "folder-header") {
+                        item(key = "folder-header", span = { GridItemSpan(maxLineSpan) }) {
                             FolderHeader(
                                 content = content,
                                 modifier = Modifier.padding(bottom = 8.dp),
@@ -280,9 +285,9 @@ private fun FolderMessage(message: String, modifier: Modifier = Modifier) {
     )
 }
 
-@Preview(name = "Phone", widthDp = 390, heightDp = 844, showBackground = true)
+@FormFactorPreviews
 @Composable
-private fun LibraryFolderScreenPreview() {
+internal fun LibraryFolderScreenPreview() {
     CatlyticsTheme {
         LibraryFolderScreen(
             uiState = LibraryFolderUiState.Success(

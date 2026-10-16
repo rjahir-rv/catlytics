@@ -1,5 +1,13 @@
 package com.catlytics.feature.settings.impl
 
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.GridCells
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -17,8 +25,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
@@ -76,7 +82,8 @@ internal fun MusicScanSettingsContent(
     val visibleFolderCount = folders.count(LibraryFolder::isVisible)
     val isScanning = scanStatus == MusicScanStatus.Scanning
 
-    LazyColumn(
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(CatlyticsLayoutTokens.CardMinColumnWidth),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
@@ -84,7 +91,8 @@ internal fun MusicScanSettingsContent(
             end = 20.dp,
             bottom = bottomPadding() + 24.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalItemSpacing = 20.dp,
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item {
             SettingsSection(
@@ -346,7 +354,8 @@ internal fun ScanFoldersContent(
 ) {
     val sortedFolders = remember(folders) { folders.sortedBy { it.path.lowercase() } }
 
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
@@ -355,8 +364,9 @@ internal fun ScanFoldersContent(
             bottom = bottomPadding() + 24.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item {
+        item(span = { GridItemSpan(maxLineSpan) }) {
             Column(
                 modifier = Modifier.padding(bottom = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -373,7 +383,7 @@ internal fun ScanFoldersContent(
             }
         }
         if (sortedFolders.isEmpty()) {
-            item {
+            item(span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = stringResource(SettingsR.string.settings_folders_empty),
                     style = MaterialTheme.typography.bodyLarge,

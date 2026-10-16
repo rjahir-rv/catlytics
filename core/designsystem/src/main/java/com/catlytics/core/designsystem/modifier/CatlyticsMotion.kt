@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
@@ -34,7 +35,8 @@ fun Modifier.pressScale(
 
 @Composable
 fun Modifier.staggeredEntrance(index: Int, animate: Boolean = true): Modifier {
-    val progress = remember { Animatable(if (animate) 0f else 1f) }
+    val shouldAnimate = animate && !LocalInspectionMode.current
+    val progress = remember { Animatable(if (shouldAnimate) 0f else 1f) }
     LaunchedEffect(Unit) {
         if (progress.value < 1f) {
             delay((index * ENTRANCE_STAGGER_MILLIS).milliseconds)

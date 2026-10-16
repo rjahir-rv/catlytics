@@ -1,5 +1,12 @@
 package com.catlytics.feature.library.impl.root
 
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -18,10 +25,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -65,7 +68,7 @@ import com.catlytics.feature.library.impl.sortedFoldersByDirection
 internal fun LibraryFolderList(
     folders: List<LibraryFolder>,
     modifier: Modifier = Modifier,
-    state: LazyListState = rememberLazyListState(),
+    state: LazyGridState = rememberLazyGridState(),
     sortDirection: SortDirection,
     onFolderVisibilityChange: (String, Boolean) -> Unit,
     onFolderSelected: (LibraryFolder) -> Unit,
@@ -80,7 +83,8 @@ internal fun LibraryFolderList(
     val summary = remember(folders) { folders.visibilitySummary() }
 
     Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
             state = state,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
@@ -90,8 +94,9 @@ internal fun LibraryFolderList(
                 bottom = bottomPadding() + LibraryDimens.ContentBottomSpacing,
             ),
             verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            item(key = "folders-header") {
+            item(key = "folders-header", span = { GridItemSpan(maxLineSpan) }) {
                 FoldersHeaderCard(
                     summary = summary,
                     modifier = Modifier
@@ -118,7 +123,7 @@ internal fun LibraryFolderList(
             }
         }
         CatlyticsLetterFastScroller(
-            listState = state,
+            gridState = state,
             itemCount = sortedFolders.size,
             headerItemCount = FOLDERS_HEADER_ITEM_COUNT,
             letterForVisibleTrackIndex = { index -> sortedFolders[index].name.sectionLetter() },

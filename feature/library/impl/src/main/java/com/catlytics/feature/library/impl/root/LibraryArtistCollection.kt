@@ -1,5 +1,6 @@
 package com.catlytics.feature.library.impl.root
 
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
@@ -15,15 +16,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
@@ -64,7 +61,7 @@ internal fun LibraryArtistCollection(
     modifier: Modifier = Modifier,
     viewMode: ArtistViewMode,
     sortDirection: SortDirection,
-    listState: LazyListState = rememberLazyListState(),
+    listState: LazyGridState = rememberLazyGridState(),
     gridState: LazyGridState = rememberLazyGridState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
@@ -107,7 +104,7 @@ private fun ArtistList(
     artists: List<ArtistSummary>,
     sortDirection: SortDirection,
     modifier: Modifier = Modifier,
-    state: LazyListState = rememberLazyListState(),
+    state: LazyGridState = rememberLazyGridState(),
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
@@ -121,11 +118,13 @@ private fun ArtistList(
         bottom = bottomPadding() + LibraryDimens.ContentBottomSpacing,
     )
     Box(modifier = modifier.fillMaxSize()) {
-        LazyColumn(
+        LazyVerticalGrid(
+            columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
             state = state,
             modifier = Modifier.fillMaxSize(),
             contentPadding = contentPadding,
             verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             itemsIndexed(
                 items = artists,
@@ -143,7 +142,7 @@ private fun ArtistList(
             }
         }
         CatlyticsLetterFastScroller(
-            listState = state,
+            gridState = state,
             itemCount = artists.size,
             letterForVisibleTrackIndex = { index -> artists[index].artist.name.sectionLetter() },
             contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding()),

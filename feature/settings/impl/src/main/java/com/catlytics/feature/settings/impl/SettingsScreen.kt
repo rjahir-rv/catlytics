@@ -1,5 +1,8 @@
 package com.catlytics.feature.settings.impl
 
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
@@ -15,7 +18,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.RadioButton
@@ -36,6 +38,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.format.SleepTimerFormat
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MAX_CROSSFADE_DURATION_SECONDS
@@ -305,7 +308,8 @@ private fun SettingsMainContent(
     modifier: Modifier = Modifier,
 ) {
     LaunchedEffect(Unit) { onEntranceStarted() }
-    LazyColumn(
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(CatlyticsLayoutTokens.CardMinColumnWidth),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
@@ -313,9 +317,10 @@ private fun SettingsMainContent(
             end = 20.dp,
             bottom = bottomPadding() + 80.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalItemSpacing = 20.dp,
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        item {
+        item(span = StaggeredGridItemSpan.FullLine) {
             SettingsAppHeader(
                 appVersion = appVersion,
                 modifier = Modifier.settingsEntrance(index = 0, animate = animateEntrance),

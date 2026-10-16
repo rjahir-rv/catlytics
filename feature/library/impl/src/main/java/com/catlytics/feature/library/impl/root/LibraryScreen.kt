@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -59,9 +58,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.modifier.pressScale
@@ -102,9 +101,9 @@ internal fun LibraryScreen(
     collapseFraction: () -> Float = { 0f },
 ) {
     val albumsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
-    val artistsListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val artistsListState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
     val artistsGridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
-    val foldersListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val foldersListState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
 
     if (!hasAudioPermission) {
         PermissionRequiredContent(
@@ -183,9 +182,9 @@ private fun LibraryContent(
     sortDirection: SortDirection,
     onSortDirectionChange: (SortDirection) -> Unit,
     albumsGridState: LazyGridState,
-    artistsListState: LazyListState,
+    artistsListState: LazyGridState,
     artistsGridState: LazyGridState,
-    foldersListState: LazyListState,
+    foldersListState: LazyGridState,
     onAlbumSelected: (Album) -> Unit,
     onArtistSelected: (ArtistSummary) -> Unit,
     onArtistViewModeChange: (ArtistViewMode) -> Unit,
@@ -578,10 +577,9 @@ private val ControlHeight = 36.dp
 private val HeaderHeightEstimate = 108.dp
 private const val ENTRANCE_SETTLE_MILLIS = 900L
 
-@Preview(name = "Phone", widthDp = 390, heightDp = 844, showBackground = true)
-@Preview(name = "Tablet", widthDp = 800, heightDp = 1280, showBackground = true)
+@FormFactorPreviews
 @Composable
-private fun LibraryScreenPreview() {
+internal fun LibraryScreenPreview() {
     CatlyticsTheme {
         LibraryScreen(
             uiState = LibraryUiState.Success(

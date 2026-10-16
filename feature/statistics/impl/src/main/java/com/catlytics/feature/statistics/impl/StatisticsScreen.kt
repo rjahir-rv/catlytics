@@ -1,12 +1,14 @@
 package com.catlytics.feature.statistics.impl
 
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridItemScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -83,12 +85,15 @@ private fun StatisticsDashboardContent(
 ) {
     val entranceDone = rememberStatsEntranceDone()
 
-    LazyColumn(
+    // Una columna en teléfonos; en pantallas anchas las tarjetas se acomodan lado a lado.
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(STATS_GRID_MIN_COLUMN_WIDTH),
         modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalItemSpacing = 14.dp,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
         contentPadding = contentPadding,
     ) {
-        item(key = "hero") {
+        item(key = "hero", span = StaggeredGridItemSpan.FullLine) {
             DashboardHeroCard(
                 streak = data.streak,
                 totalListenedMillis = data.thisWeek.totalListenedMillis,
@@ -97,7 +102,7 @@ private fun StatisticsDashboardContent(
             )
         }
 
-        item(key = "totals") {
+        item(key = "totals", span = StaggeredGridItemSpan.FullLine) {
             ListeningTotalsRow(
                 totals = data.totals,
                 modifier = statsEntrance(1, entranceDone),
@@ -160,7 +165,7 @@ private fun StatisticsDashboardContent(
 }
 
 @Composable
-internal fun LazyItemScope.statsEntrance(index: Int, entranceDone: Boolean): Modifier =
+internal fun LazyStaggeredGridItemScope.statsEntrance(index: Int, entranceDone: Boolean): Modifier =
     Modifier
         .animateItem()
         .staggeredEntrance(index, animate = !entranceDone && index < ENTRANCE_MAX_STAGGERED_ITEMS)
@@ -201,3 +206,5 @@ internal fun rememberStatsEntranceDone(): Boolean {
 private const val ENTRANCE_MAX_STAGGERED_ITEMS = 6
 private const val ENTRANCE_SETTLE_MILLIS = 900L
 private val STATS_SCREEN_PADDING = 20.dp
+
+internal val STATS_GRID_MIN_COLUMN_WIDTH = 360.dp

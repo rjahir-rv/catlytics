@@ -1,18 +1,20 @@
 package com.catlytics.app.ui.chrome
 
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.navigation3.runtime.NavKey
 import androidx.test.platform.app.InstrumentationRegistry
 import com.catlytics.app.navigation.TopLevelDestination
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
-class CatlyticsAppBottomBarTest {
+class CatlyticsNavigationSuiteTest {
     @get:Rule
     val composeRule = createComposeRule()
 
@@ -20,13 +22,23 @@ class CatlyticsAppBottomBarTest {
 
     @Test
     fun compactBarKeepsLabelsAndDestinationActions() {
-        var selectedRoute: Any? = null
+        assertLabelsAndSelection(NavigationSuiteType.ShortNavigationBarCompact)
+    }
+
+    @Test
+    fun railKeepsLabelsAndDestinationActions() {
+        assertLabelsAndSelection(NavigationSuiteType.WideNavigationRailCollapsed)
+    }
+
+    private fun assertLabelsAndSelection(navigationSuiteType: NavigationSuiteType) {
+        var selectedRoute: NavKey? = null
         composeRule.setContent {
             MaterialTheme {
-                CatlyticsBottomBar(
+                CatlyticsNavigationSuiteScaffold(
                     selectedRoute = TopLevelDestination.Home.route,
                     onDestinationSelected = { selectedRoute = it },
-                )
+                    navigationSuiteType = navigationSuiteType,
+                ) {}
             }
         }
 

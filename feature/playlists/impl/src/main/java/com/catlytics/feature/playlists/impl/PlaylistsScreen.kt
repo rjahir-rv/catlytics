@@ -1,5 +1,7 @@
 package com.catlytics.feature.playlists.impl
 
+import com.catlytics.core.designsystem.layout.FormFactorPreviews
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -14,13 +16,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -125,7 +124,7 @@ internal fun PlaylistsScreen(
     val hasPlaylists = stateKind == PlaylistsStateKind.Content ||
         stateKind == PlaylistsStateKind.NoResults
 
-    val listState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
+    val listState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
     val gridState = rememberSaveable(saver = LazyGridState.Saver) { LazyGridState() }
     val coroutineScope = rememberCoroutineScope()
     var controlsHeightPx by remember { mutableIntStateOf(0) }
@@ -214,11 +213,13 @@ internal fun PlaylistsScreen(
                 )
 
                 PlaylistsStateKind.Content -> when (viewMode) {
-                    PlaylistViewMode.List -> LazyColumn(
+                    PlaylistViewMode.List -> LazyVerticalGrid(
                         state = listState,
+                        columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = contentPadding,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         itemsIndexed(sorted, key = { _, item -> item.playlist.id }) { index, summary ->
                             PlaylistListRow(
@@ -379,9 +380,9 @@ private val previewContent = PlaylistsUiState.Content(
     ),
 )
 
-@Preview(showBackground = true, name = "List mode")
+@FormFactorPreviews
 @Composable
-private fun PlaylistsScreenListPreview() {
+internal fun PlaylistsScreenListPreview() {
     CatlyticsTheme {
         PlaylistsScreen(
             uiState = previewContent,
@@ -397,9 +398,9 @@ private fun PlaylistsScreenListPreview() {
     }
 }
 
-@Preview(showBackground = true, name = "Mosaic mode")
+@FormFactorPreviews
 @Composable
-private fun PlaylistsScreenMosaicPreview() {
+internal fun PlaylistsScreenMosaicPreview() {
     CatlyticsTheme {
         PlaylistsScreen(
             uiState = previewContent,

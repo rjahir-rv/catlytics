@@ -5,6 +5,7 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -61,12 +61,14 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
+import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
@@ -240,7 +242,7 @@ private fun ArtistContent(
     )
     val coroutineScope = rememberCoroutineScope()
     val songsListState = remember(content.summary.artist.id) {
-        LazyListState()
+        LazyGridState()
     }
     val albumsGridState = remember(content.summary.artist.id) {
         LazyGridState()
@@ -388,70 +390,83 @@ private fun ArtistHeader(
     menuEntries: List<CatlyticsMenuEntry>,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    ArtworkHeaderLayout(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        CatlyticsArtwork(
-            model = artworkModel,
-            seed = content.summary.artist.name,
-            placeholderIcon = R.drawable.ic_artist,
-            contentDescription = stringResource(
-                LibraryR.string.library_artist_image_content_description,
-                content.summary.artist.name,
-            ),
-            modifier = Modifier
-                .fillMaxWidth(0.52f)
-                .aspectRatio(1f)
-                .clip(CircleShape),
-            onSuccess = onArtworkLoaded,
-            contentScale = ContentScale.Crop,
-        )
-        Text(
-            text = content.summary.artist.name,
-            style = MaterialTheme.typography.headlineSmall,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-        )
-        val albumCountText = pluralStringResource(
-            LibraryR.plurals.library_album_count,
-            content.summary.albumCount,
-            content.summary.albumCount,
-        )
-        val trackCountText = pluralStringResource(
-            LibraryR.plurals.library_track_count,
-            content.summary.trackCount,
-            content.summary.trackCount,
-        )
-        Text(
-            text = stringResource(
-                LibraryR.string.library_artist_metadata,
-                albumCountText,
-                trackCountText,
-            ),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        sortLabel?.let { label ->
-            Text(
-                text = stringResource(LibraryR.string.library_collection_sorted_by, label),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary,
+        artwork = { isWide ->
+            CatlyticsArtwork(
+                model = artworkModel,
+                seed = content.summary.artist.name,
+                placeholderIcon = R.drawable.ic_artist,
+                contentDescription = stringResource(
+                    LibraryR.string.library_artist_image_content_description,
+                    content.summary.artist.name,
+                ),
+                modifier = Modifier
+                    .then(
+                        if (isWide) {
+                            Modifier.size(ArtistArtworkWideSize)
+                        } else {
+                            Modifier
+                                .fillMaxWidth(0.52f)
+                                .widthIn(max = ArtistArtworkMaxSize)
+                        },
+                    )
+                    .aspectRatio(1f)
+                    .clip(CircleShape),
+                onSuccess = onArtworkLoaded,
+                contentScale = ContentScale.Crop,
             )
-        }
-        CollectionPlaybackRow(
-            tracks = playbackQueue,
-            onPlayShuffled = onPlayShuffled,
-            onPlayAll = onPlayAll,
-            menuEntries = menuEntries,
-            menuContentDescription = stringResource(
-                LibraryR.string.library_artist_options_content_description,
-                content.summary.artist.name,
-            ),
-        )
-    }
+        },
+        details = {
+            Text(
+                text = content.summary.artist.name,
+                style = MaterialTheme.typography.headlineSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val albumCountText = pluralStringResource(
+                LibraryR.plurals.library_album_count,
+                content.summary.albumCount,
+                content.summary.albumCount,
+            )
+            val trackCountText = pluralStringResource(
+                LibraryR.plurals.library_track_count,
+                content.summary.trackCount,
+                content.summary.trackCount,
+            )
+            Text(
+                text = stringResource(
+                    LibraryR.string.library_artist_metadata,
+                    albumCountText,
+                    trackCountText,
+                ),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            sortLabel?.let { label ->
+                Text(
+                    text = stringResource(LibraryR.string.library_collection_sorted_by, label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            CollectionPlaybackRow(
+                tracks = playbackQueue,
+                onPlayShuffled = onPlayShuffled,
+                onPlayAll = onPlayAll,
+                menuEntries = menuEntries,
+                menuContentDescription = stringResource(
+                    LibraryR.string.library_artist_options_content_description,
+                    content.summary.artist.name,
+                ),
+            )
+        },
+    )
 }
+
+private val ArtistArtworkMaxSize = 220.dp
+private val ArtistArtworkWideSize = 180.dp
 
 @Composable
 private fun artistMenuEntries(
@@ -777,7 +792,7 @@ private fun ArtistSectionTabs(
 @Composable
 private fun ArtistSongsPage(
     tracks: List<Track>,
-    state: LazyListState,
+    state: LazyGridState,
     onTrackSelected: (Track) -> Unit,
     onTrackOptions: (Track) -> Unit,
     bottomPadding: () -> Dp,
@@ -786,7 +801,8 @@ private fun ArtistSongsPage(
     selection: TrackSelectionSnapshot = TrackSelectionSnapshot(),
     onTrackLongClick: (Track) -> Unit = {},
 ) {
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
         state = state,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -795,8 +811,9 @@ private fun ArtistSongsPage(
             end = 20.dp,
             bottom = bottomPadding() + 20.dp + if (selection.active) 72.dp else 0.dp,
         ),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        items(items = tracks, key = Track::id) { track ->
+        gridItems(items = tracks, key = Track::id) { track ->
             ArtistTrackRow(
                 track = track,
                 isCurrent = track.id == currentTrackId,
@@ -979,15 +996,9 @@ private enum class ArtistDetailSection(@param:StringRes val labelRes: Int) {
     Albums(LibraryR.string.library_artist_tab_albums),
 }
 
-@Preview(name = "Phone", widthDp = 390, heightDp = 844, showBackground = true)
+@FormFactorPreviews
 @Composable
-private fun LibraryArtistScreenPhonePreview() {
-    LibraryArtistScreenPreviewContent()
-}
-
-@Preview(name = "Tablet", widthDp = 800, heightDp = 1280, showBackground = true)
-@Composable
-private fun LibraryArtistScreenTabletPreview() {
+internal fun LibraryArtistScreenPreview() {
     LibraryArtistScreenPreviewContent()
 }
 

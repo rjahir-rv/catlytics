@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.text.UiText
@@ -233,9 +234,9 @@ private enum class HomeStateKind { Loading, Empty, Error, Success }
 
 private const val STATE_FADE_MILLIS = 220
 
-@Preview(showBackground = true)
+@FormFactorPreviews
 @Composable
-private fun HomeScreenPreview() {
+internal fun HomeScreenPreview() {
     CatlyticsTheme {
         HomeScreen(
             uiState = HomeUiState.Success(

@@ -1,5 +1,9 @@
 package com.catlytics.feature.settings.impl
 
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,7 +35,8 @@ internal fun AboutSettingsContent(
 ) {
     val uriHandler = LocalUriHandler.current
 
-    LazyColumn(
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(CatlyticsLayoutTokens.CardMinColumnWidth),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
@@ -39,7 +44,8 @@ internal fun AboutSettingsContent(
             end = 20.dp,
             bottom = bottomPadding() + 80.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        verticalItemSpacing = 16.dp,
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
             AboutCard(

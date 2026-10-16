@@ -1,5 +1,9 @@
 package com.catlytics.feature.settings.impl
 
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -75,7 +79,8 @@ internal fun UnifiedBackupContent(
 
     var showExportSelectionDialog by rememberSaveable { mutableStateOf(false) }
 
-    LazyColumn(
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(CatlyticsLayoutTokens.CardMinColumnWidth),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
@@ -83,7 +88,8 @@ internal fun UnifiedBackupContent(
             end = 20.dp,
             bottom = bottomPadding() + 24.dp,
         ),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalItemSpacing = 20.dp,
+        horizontalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         item {
             SettingsSection(

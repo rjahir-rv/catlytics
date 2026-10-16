@@ -63,6 +63,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.layout.plusHorizontal
+import com.catlytics.core.designsystem.layout.CenteredListContainer
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
@@ -112,11 +114,11 @@ internal fun HomeTrackList(
         delay(ENTRANCE_SETTLE_MILLIS)
         entranceDone = true
     }
-    Box(modifier = modifier.fillMaxSize()) {
+    CenteredListContainer(modifier = modifier.fillMaxSize()) { horizontalInset ->
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             state = state,
-            contentPadding = contentPadding,
+            contentPadding = contentPadding.plusHorizontal(horizontalInset),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             if (showHighlights) {

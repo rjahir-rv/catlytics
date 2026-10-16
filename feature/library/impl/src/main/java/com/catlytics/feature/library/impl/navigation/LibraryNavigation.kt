@@ -1,6 +1,14 @@
 package com.catlytics.feature.library.impl.navigation
 
-import androidx.compose.foundation.layout.PaddingValues
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.layout.LocalPaneChrome
+import com.catlytics.feature.library.impl.R
+import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
+import androidx.compose.ui.res.stringResource
+import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -18,11 +26,13 @@ import com.catlytics.feature.library.impl.artist.LibraryArtistRoute
 import com.catlytics.feature.library.impl.folder.LibraryFolderRoute
 import com.catlytics.feature.library.impl.root.LibraryRoute as LibraryRootRoute
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 fun EntryProviderScope<NavKey>.libraryEntry(
     searchQuery: () -> String,
     artistSearchQuery: () -> String,
     onArtistSearchQueryChange: (String) -> Unit,
     onDestinationSelected: (NavKey) -> Unit,
+    onListDestinationSelected: (NavKey) -> Unit = onDestinationSelected,
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: () -> Set<String> = { emptySet() },
@@ -34,32 +44,33 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     hasAudioPermission: () -> Boolean,
     onRequestAudioPermission: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
-    scaffoldContentPadding: () -> PaddingValues = { PaddingValues(0.dp) },
-    collapseFraction: () -> Float = { 0f },
 ) {
-    entry<LibraryRoute> {
+    entry<LibraryRoute>(
+        metadata = ListDetailSceneStrategy.listPane(detailPlaceholder = { LibraryDetailPlaceholder() }) +
+            ListDetailSceneStrategy.preferredPaneSize(width = CatlyticsLayoutTokens.ListPanePreferredWidth),
+    ) {
         LibraryRootRoute(
             searchQuery = searchQuery(),
             onAlbumSelected = { album ->
-                onDestinationSelected(LibraryAlbumDestination(album.id, album.title))
+                onListDestinationSelected(LibraryAlbumDestination(album.id, album.title))
             },
             onArtistSelected = { artist ->
-                onDestinationSelected(
+                onListDestinationSelected(
                     LibraryArtistDestination(artist.artist.id, artist.artist.name),
                 )
             },
             onFolderSelected = { folder ->
-                onDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
+                onListDestinationSelected(LibraryFolderDestination(folder.id, folder.name))
             },
             onAddToPlaylist = onAddToPlaylist,
             hasAudioPermission = hasAudioPermission(),
             onRequestPermission = onRequestAudioPermission,
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
-            collapseFraction = collapseFraction,
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
+            collapseFraction = LocalPaneChrome.current.collapsedFraction,
         )
     }
-    entry<LibraryAlbumDestination> { route ->
+    entry<LibraryAlbumDestination>(metadata = ListDetailSceneStrategy.detailPane()) { route ->
         LibraryAlbumRoute(
             route = route,
             onTrackOptions = onTrackOptions,
@@ -76,10 +87,10 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             },
             onTitleChange = { title -> onLibraryDetailTitleChange(route, title) },
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
         )
     }
-    entry<LibraryArtistDestination> { route ->
+    entry<LibraryArtistDestination>(metadata = ListDetailSceneStrategy.detailPane()) { route ->
         LibraryArtistRoute(
             route = route,
             onAlbumSelected = { album ->
@@ -97,10 +108,10 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             searchQuery = artistSearchQuery(),
             onSearchQueryChange = onArtistSearchQueryChange,
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
         )
     }
-    entry<LibraryFolderDestination> { route ->
+    entry<LibraryFolderDestination>(metadata = ListDetailSceneStrategy.detailPane()) { route ->
         LibraryFolderRoute(
             route = route,
             onFolderSelected = { folder ->
@@ -113,7 +124,17 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             isCurrentTrackPlaying = isCurrentTrackPlaying(),
             onTrackSelectionAction = onTrackSelectionAction,
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
         )
     }
+}
+
+@Composable
+private fun LibraryDetailPlaceholder() {
+    CatlyticsEmptyState(
+        title = stringResource(R.string.library_detail_placeholder_title),
+        message = stringResource(R.string.library_detail_placeholder_message),
+        messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        mascotSize = 160.dp,
+    )
 }

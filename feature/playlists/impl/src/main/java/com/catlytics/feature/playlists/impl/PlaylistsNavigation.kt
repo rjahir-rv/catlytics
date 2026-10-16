@@ -1,6 +1,12 @@
 package com.catlytics.feature.playlists.impl
 
-import androidx.compose.foundation.layout.PaddingValues
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.layout.LocalPaneChrome
+import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
+import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -22,21 +28,24 @@ import com.catlytics.feature.playlists.api.CreatePlaylistRoute
 import com.catlytics.feature.playlists.api.PlaylistsRoute
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 fun EntryProviderScope<NavKey>.playlistsEntry(
     searchQuery: () -> String,
     onDestinationSelected: (NavKey) -> Unit,
+    onListDestinationSelected: (NavKey) -> Unit = onDestinationSelected,
     onTrackOptions: (track: Track, onRemoveFromPlaylist: () -> Unit) -> Unit,
     likedTrackIds: () -> Set<String> = { emptySet() },
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onPlaylistDeleted: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     onPlaylistDetailTopBarColorChange: (NavKey, Color) -> Unit,
-    scaffoldContentPadding: () -> PaddingValues = { PaddingValues(0.dp) },
-    collapseFraction: () -> Float = { 0f },
     onCloseCreatePlaylist: () -> Unit = {},
     onPlaylistCreated: (route: CreatePlaylistRoute, playlist: Playlist) -> Unit = { _, _ -> },
 ) {
-    entry<PlaylistsRoute> {
+    entry<PlaylistsRoute>(
+        metadata = ListDetailSceneStrategy.listPane(detailPlaceholder = { PlaylistDetailPlaceholder() }) +
+            ListDetailSceneStrategy.preferredPaneSize(width = CatlyticsLayoutTokens.ListPanePreferredWidth),
+    ) {
         val viewModel: PlaylistsViewModel = hiltViewModel()
         val uiState by viewModel.uiState.collectAsStateWithLifecycle()
         val activePlaylist by viewModel.activePlaylist.collectAsStateWithLifecycle()
@@ -49,7 +58,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             viewMode = viewMode,
             onViewModeChange = viewModel::setViewMode,
             onPlaylistSelected = { playlist ->
-                onDestinationSelected(
+                onListDestinationSelected(
                     PlaylistDetailRoute(
                         playlistId = playlist.id,
                         playlistName = if (playlist.id == LIKED_PLAYLIST_ID) {
@@ -71,11 +80,11 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             sortDirection = sortDirection,
             onSortDirectionChange = viewModel::setSortDirection,
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
-            collapseFraction = collapseFraction,
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
+            collapseFraction = LocalPaneChrome.current.collapsedFraction,
         )
     }
-    entry<PlaylistDetailRoute> { route ->
+    entry<PlaylistDetailRoute>(metadata = ListDetailSceneStrategy.detailPane()) { route ->
         PlaylistDetailRoute(
             playlistId = route.playlistId,
             onTrackOptions = onTrackOptions,
@@ -86,7 +95,7 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             },
             onDeleted = onPlaylistDeleted,
             bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding(),
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
         )
     }
     entry<CreatePlaylistRoute>(
@@ -114,4 +123,14 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
             },
         )
     }
+}
+
+@Composable
+private fun PlaylistDetailPlaceholder() {
+    CatlyticsEmptyState(
+        title = stringResource(R.string.playlists_detail_placeholder_title),
+        message = stringResource(R.string.playlists_detail_placeholder_message),
+        messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        mascotSize = 160.dp,
+    )
 }

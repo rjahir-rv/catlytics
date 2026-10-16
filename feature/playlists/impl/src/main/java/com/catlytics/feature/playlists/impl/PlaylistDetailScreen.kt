@@ -1,5 +1,8 @@
 package com.catlytics.feature.playlists.impl
 
+import com.catlytics.core.designsystem.layout.plusHorizontal
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import androidx.compose.foundation.layout.BoxWithConstraints
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -249,7 +252,11 @@ internal fun PlaylistDetailScreen(
             },
             modifier = Modifier.fillMaxSize(),
         ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            // Sigue siendo lista (permite reordenar arrastrando); en pantallas anchas se centra
+            // con un ancho máximo para que las filas no se estiren.
+            val horizontalInset =
+                ((maxWidth - CatlyticsLayoutTokens.ListContentMaxWidth) / 2).coerceAtLeast(0.dp)
             LazyColumn(
                 state = listState,
                 modifier = Modifier
@@ -266,7 +273,7 @@ internal fun PlaylistDetailScreen(
                         },
                     bottom = maxOf(bottomPadding(), imeBottom) + 20.dp +
                         if (selection.active) 72.dp else 0.dp,
-                ),
+                ).plusHorizontal(horizontalInset),
             ) {
                 item(key = "playlist-header") {
                     AnimatedVisibility(

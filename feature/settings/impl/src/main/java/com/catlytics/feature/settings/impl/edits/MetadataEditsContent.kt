@@ -1,5 +1,10 @@
 package com.catlytics.feature.settings.impl.edits
 
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.GridCells
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.horizontalScroll
@@ -12,8 +17,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -132,7 +135,8 @@ internal fun MetadataEditsContent(
     }
 
     var showInfo by rememberSaveable { mutableStateOf(false) }
-    LazyColumn(
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = 20.dp,
@@ -141,8 +145,9 @@ internal fun MetadataEditsContent(
             bottom = bottomPadding() + 80.dp,
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        item(key = "search") {
+        item(key = "search", span = { GridItemSpan(maxLineSpan) }) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = state.query,
@@ -161,7 +166,7 @@ internal fun MetadataEditsContent(
                 )
             }
         }
-        item(key = "filters") {
+        item(key = "filters", span = { GridItemSpan(maxLineSpan) }) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -177,7 +182,7 @@ internal fun MetadataEditsContent(
                 }
             }
         }
-        item(key = "actions") {
+        item(key = "actions", span = { GridItemSpan(maxLineSpan) }) {
             BulkActionsRow(
                 state = state,
                 onStartSelection = onStartSelection,
@@ -188,7 +193,7 @@ internal fun MetadataEditsContent(
             )
         }
         if (!state.hasResults) {
-            item(key = "no-results") {
+            item(key = "no-results", span = { GridItemSpan(maxLineSpan) }) {
                 Text(
                     text = stringResource(SettingsR.string.settings_edits_no_results),
                     style = MaterialTheme.typography.bodyMedium,
@@ -198,7 +203,7 @@ internal fun MetadataEditsContent(
             }
         }
         if (state.tracks.isNotEmpty()) {
-            item(key = "tracks-header") {
+            item(key = "tracks-header", span = { GridItemSpan(maxLineSpan) }) {
                 SectionHeader(
                     pluralStringResource(
                         SettingsR.plurals.settings_edits_tracks_section,
@@ -220,7 +225,7 @@ internal fun MetadataEditsContent(
             }
         }
         if (state.artists.isNotEmpty()) {
-            item(key = "artists-header") {
+            item(key = "artists-header", span = { GridItemSpan(maxLineSpan) }) {
                 SectionHeader(
                     pluralStringResource(
                         SettingsR.plurals.settings_edits_artists_section,

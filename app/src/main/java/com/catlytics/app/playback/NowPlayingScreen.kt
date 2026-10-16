@@ -240,10 +240,17 @@ fun NowPlayingScreen(
                     .padding(innerPadding),
                 contentAlignment = Alignment.TopCenter,
             ) {
-                val useTwoColumns = maxWidth >= TWO_COLUMN_MIN_WIDTH
+                val isCompactHeight = maxHeight < COMPACT_HEIGHT_MAX
+                val useTwoColumns = maxWidth >= TWO_COLUMN_MIN_WIDTH ||
+                    (isCompactHeight && maxWidth >= COMPACT_HEIGHT_TWO_COLUMN_MIN_WIDTH)
                 val horizontalPadding = if (useTwoColumns) 32.dp else 24.dp
+                val verticalPadding = if (isCompactHeight) {
+                    COMPACT_CONTENT_VERTICAL_PADDING
+                } else {
+                    CONTENT_VERTICAL_PADDING
+                }
                 val contentWidth = minOf(maxWidth, NOW_PLAYING_MAX_WIDTH) - horizontalPadding * 2
-                val contentHeight = maxHeight - CONTENT_VERTICAL_PADDING * 2
+                val contentHeight = maxHeight - verticalPadding * 2
                 val artworkSize = if (useTwoColumns) {
                     minOf((contentWidth - TWO_COLUMN_SPACING) / 2, contentHeight, 440.dp)
                 } else {
@@ -253,7 +260,7 @@ fun NowPlayingScreen(
                     .widthIn(max = NOW_PLAYING_MAX_WIDTH)
                     .fillMaxWidth()
                     .heightIn(min = maxHeight)
-                    .padding(horizontal = horizontalPadding, vertical = CONTENT_VERTICAL_PADDING)
+                    .padding(horizontal = horizontalPadding, vertical = verticalPadding)
 
                 val artwork = @Composable { artworkModifier: Modifier ->
                     NowPlayingArtwork(
@@ -515,7 +522,6 @@ private fun LikeButton(
     val scale = remember { Animatable(1f) }
     var hasUserToggled by remember { mutableStateOf(false) }
 
-    // Rebote solo cuando el usuario marca "me gusta", no al componer ni al cambiar de pista.
     LaunchedEffect(isLiked) {
         if (isLiked && hasUserToggled) {
             scale.animateTo(LIKE_BOUNCE_SCALE, tween(durationMillis = 120))
@@ -622,6 +628,9 @@ private val TWO_COLUMN_MIN_WIDTH = 640.dp
 private val NOW_PLAYING_MAX_WIDTH = 1_040.dp
 private val TWO_COLUMN_SPACING = 40.dp
 private val CONTENT_VERTICAL_PADDING = 12.dp
+private val COMPACT_CONTENT_VERTICAL_PADDING = 4.dp
+private val COMPACT_HEIGHT_MAX = 480.dp
+private val COMPACT_HEIGHT_TWO_COLUMN_MIN_WIDTH = 480.dp
 private val MIN_ARTWORK_SIZE = 160.dp
 private val DETAILS_MIN_HEIGHT = 340.dp
 private val DISMISS_DISTANCE = 120.dp

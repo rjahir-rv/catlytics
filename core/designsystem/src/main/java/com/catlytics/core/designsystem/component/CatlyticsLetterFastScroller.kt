@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +64,67 @@ fun CatlyticsLetterFastScroller(
     minItemCount: Int = FAST_SCROLL_MIN_ITEM_COUNT,
     contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
+    LetterFastScroller(
+        scrollState = remember(listState) {
+            FastScrollState(
+                firstVisibleItemIndex = { listState.firstVisibleItemIndex },
+                firstVisibleItemScrollOffset = { listState.firstVisibleItemScrollOffset },
+                scrollToItem = listState::scrollToItem,
+            )
+        },
+        itemCount = itemCount,
+        letterForVisibleTrackIndex = letterForVisibleTrackIndex,
+        modifier = modifier,
+        headerItemCount = headerItemCount,
+        minItemCount = minItemCount,
+        contentPadding = contentPadding,
+    )
+}
+
+/** Variante para grids adaptativos; los índices son de elementos, igual que en las listas. */
+@Composable
+fun CatlyticsLetterFastScroller(
+    gridState: LazyGridState,
+    itemCount: Int,
+    letterForVisibleTrackIndex: (Int) -> Char,
+    modifier: Modifier = Modifier,
+    headerItemCount: Int = 0,
+    minItemCount: Int = FAST_SCROLL_MIN_ITEM_COUNT,
+    contentPadding: PaddingValues = PaddingValues(0.dp),
+) {
+    LetterFastScroller(
+        scrollState = remember(gridState) {
+            FastScrollState(
+                firstVisibleItemIndex = { gridState.firstVisibleItemIndex },
+                firstVisibleItemScrollOffset = { gridState.firstVisibleItemScrollOffset },
+                scrollToItem = { index -> gridState.scrollToItem(index) },
+            )
+        },
+        itemCount = itemCount,
+        letterForVisibleTrackIndex = letterForVisibleTrackIndex,
+        modifier = modifier,
+        headerItemCount = headerItemCount,
+        minItemCount = minItemCount,
+        contentPadding = contentPadding,
+    )
+}
+
+private class FastScrollState(
+    val firstVisibleItemIndex: () -> Int,
+    val firstVisibleItemScrollOffset: () -> Int,
+    val scrollToItem: suspend (Int) -> Unit,
+)
+
+@Composable
+private fun LetterFastScroller(
+    scrollState: FastScrollState,
+    itemCount: Int,
+    letterForVisibleTrackIndex: (Int) -> Char,
+    modifier: Modifier,
+    headerItemCount: Int,
+    minItemCount: Int,
+    contentPadding: PaddingValues,
+) {
     if (!shouldShowLetterFastScroller(itemCount, minItemCount)) return
 
     val coroutineScope = rememberCoroutineScope()
@@ -74,7 +136,7 @@ fun CatlyticsLetterFastScroller(
     val visibleIndex by remember(headerItemCount, itemCount) {
         derivedStateOf {
             visibleTrackIndex(
-                firstVisibleItemIndex = listState.firstVisibleItemIndex,
+                firstVisibleItemIndex = scrollState.firstVisibleItemIndex(),
                 headerItemCount = headerItemCount,
                 itemCount = itemCount,
             )
@@ -83,8 +145,8 @@ fun CatlyticsLetterFastScroller(
     val revealed by remember(headerItemCount) {
         derivedStateOf {
             isLetterFastScrollerRevealed(
-                firstVisibleItemIndex = listState.firstVisibleItemIndex,
-                firstVisibleItemScrollOffset = listState.firstVisibleItemScrollOffset,
+                firstVisibleItemIndex = scrollState.firstVisibleItemIndex(),
+                firstVisibleItemScrollOffset = scrollState.firstVisibleItemScrollOffset(),
                 headerItemCount = headerItemCount,
             )
         }
@@ -143,7 +205,7 @@ fun CatlyticsLetterFastScroller(
                                 itemCount = latestItemCount,
                             )
                             coroutineScope.launch {
-                                listState.scrollToItem(latestHeaderItemCount + index)
+                                scrollState.scrollToItem(latestHeaderItemCount + index)
                             }
                             down.consume()
                             while (true) {
@@ -158,7 +220,7 @@ fun CatlyticsLetterFastScroller(
                                     itemCount = latestItemCount,
                                 )
                                 coroutineScope.launch {
-                                    listState.scrollToItem(latestHeaderItemCount + dragIndex)
+                                    scrollState.scrollToItem(latestHeaderItemCount + dragIndex)
                                 }
                                 change.consume()
                             }
