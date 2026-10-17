@@ -1,6 +1,7 @@
 package com.catlytics.feature.settings.impl
 
 import android.widget.Toast
+import androidx.annotation.RawRes
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,6 +24,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 internal fun SettingsRoute(
     appVersion: String,
+    @RawRes librariesRes: Int,
     hasAudioPermission: Boolean = true,
     onRequestAudioPermission: () -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
@@ -116,6 +118,7 @@ internal fun SettingsRoute(
 
     SettingsScreen(
         appVersion = appVersion,
+        librariesRes = librariesRes,
         themeMode = themeMode,
         homeRecommendationsSettings = homeRecommendationsSettings,
         equalizerState = equalizerState,

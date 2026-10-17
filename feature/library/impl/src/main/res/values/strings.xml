@@ -4,7 +4,6 @@
     <string name="library_tab_albums">Álbumes</string>
     <string name="library_tab_artists">Artistas</string>
     <string name="library_tab_folders">Carpetas</string>
-    <string name="library_sort_content_description">Ordenar alfabéticamente</string>
     <string name="library_sort_ascending">A-Z</string>
     <string name="library_sort_descending">Z-A</string>
     <string name="library_show_artists_grid_content_description">Mostrar artistas en mosaico</string>
@@ -177,7 +176,6 @@
         <item quantity="other">Los cambios se aplican a las %1$d canciones del álbum.</item>
     </plurals>
     <string name="library_album_edit_field_title">Título del álbum</string>
-    <string name="library_album_edit_content_description">Editar álbum</string>
     <string name="library_edit_separate_artist">Separar de «%1$s»</string>
     <string name="library_edit_separate_artist_hint">«%1$s» está unificado con «%2$s». Al separarlos, todas sus canciones vuelven a aparecer con su nombre, también en tus estadísticas.</string>
     <string name="library_edit_artist_separated">«%1$s» ya no está unificado con «%2$s»</string>

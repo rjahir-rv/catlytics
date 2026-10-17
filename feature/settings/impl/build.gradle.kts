@@ -13,6 +13,8 @@ dependencies {
     implementation(project(path = ":core:model"))
     implementation(project(path = ":core:navigation"))
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.aboutlibraries.compose.m3)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

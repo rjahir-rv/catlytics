@@ -31,13 +31,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.R
+import androidx.core.graphics.drawable.toBitmap
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.feature.settings.impl.R as SettingsR
@@ -70,13 +74,12 @@ internal fun SettingsAppHeader(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Image(
-            painter = painterResource(R.drawable.cat_background),
+            bitmap = rememberAppIcon(),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
                 .size(56.dp)
-                .clip(CircleShape)
-                .background(colorScheme.surface.copy(alpha = 0.6f), CircleShape),
+                .clip(CircleShape),
         )
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
@@ -90,6 +93,18 @@ internal fun SettingsAppHeader(
                 color = colorScheme.onPrimaryContainer.copy(alpha = 0.75f),
             )
         }
+    }
+}
+
+@Composable
+internal fun rememberAppIcon(size: Dp = 56.dp): ImageBitmap {
+    val context = LocalContext.current
+    val sizePx = with(LocalDensity.current) { size.roundToPx() }
+    return remember(context, sizePx) {
+        context.packageManager
+            .getApplicationIcon(context.applicationInfo)
+            .toBitmap(width = sizePx, height = sizePx)
+            .asImageBitmap()
     }
 }
 

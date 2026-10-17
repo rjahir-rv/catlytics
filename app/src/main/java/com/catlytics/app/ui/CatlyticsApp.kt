@@ -936,6 +936,7 @@ fun CatlyticsApp(
                     )
                     settingsEntry(
                         appVersion = appVersion,
+                        librariesRes = R.raw.aboutlibraries,
                         hasAudioPermission = { hasAudioPermission },
                         onRequestAudioPermission = {
                             audioPermissionLauncher.launch(audioPermission)

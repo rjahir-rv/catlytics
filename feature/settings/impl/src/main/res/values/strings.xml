@@ -3,7 +3,6 @@
     <!-- Ajustes: pantalla principal -->
     <string name="settings_title">Ajustes</string>
     <string name="settings_section_app_config">Configuración de la app</string>
-    <string name="settings_notifications_title">Notificaciones</string>
     <string name="settings_music_scan_title">Escanear música</string>
     <string name="settings_music_scan_supporting">Carpetas y filtros para encontrar música local</string>
     <string name="settings_section_home_recommendations">Inicio y recomendaciones</string>
@@ -31,8 +30,7 @@
     <string name="settings_backup_supporting">Exportar o restaurar playlists y estadísticas de escucha</string>
     <string name="settings_section_about">Acerca de</string>
     <string name="settings_about_title">Acerca de Catlytics</string>
-    <string name="settings_about_supporting">Información de la app y código fuente</string>
-    <string name="settings_privacy_policy_title">Política de privacidad</string>
+    <string name="settings_about_supporting">Versión, funciones, código fuente y licencias</string>
 
     <!-- Ajustes: tema y canciones recientes -->
     <string name="settings_theme_title">Tema</string>
@@ -175,12 +173,32 @@
 
     <!-- Ajustes: acerca de -->
     <string name="settings_about_app_title">Catlytics</string>
+    <string name="settings_about_tagline">Tu música local y la historia de lo que escuchas</string>
     <string name="settings_about_version">Versión %1$s</string>
-    <string name="settings_about_local_music_title">Música local y estadísticas</string>
-    <string name="settings_about_local_music_description">Catlytics es un reproductor para la música almacenada en tu dispositivo. También registra estadísticas de escucha para consultar tu actividad de reproducción.</string>
+    <string name="settings_about_local_music_title">Tu música, en tu dispositivo</string>
+    <string name="settings_about_local_music_description">Catlytics reproduce las canciones que ya tienes guardadas en tu teléfono. Funciona sin conexión, no necesita cuenta y tus datos se quedan en el dispositivo.</string>
+    <string name="settings_about_statistics_title">Estadísticas de escucha</string>
+    <string name="settings_about_statistics_description">Cada reproducción se registra para que descubras tus canciones, artistas y álbumes más escuchados. Puedes llevarte tu historial con una copia de seguridad.</string>
+    <string name="settings_about_editing_title">Edita tu biblioteca</string>
+    <string name="settings_about_editing_description">Corrige la información de tu música sin salir de la app.</string>
+    <string name="settings_about_editing_tracks_title">Canciones</string>
+    <string name="settings_about_editing_tracks_description">Cambia título, artista, álbum y carátula, de una en una o varias a la vez.</string>
+    <string name="settings_about_editing_albums_title">Álbumes</string>
+    <string name="settings_about_editing_albums_description">Actualiza el título, el artista y la carátula de todo el álbum de una sola vez.</string>
+    <string name="settings_about_editing_artists_title">Artistas</string>
+    <string name="settings_about_editing_artists_description">Renombra un artista o une sus variantes escritas de forma distinta en uno solo.</string>
+    <string name="settings_about_editing_note">Tus archivos no se modifican, salvo que elijas guardar los cambios también en ellos. Las estadísticas se reagrupan con los datos nuevos y cualquier edición se puede revertir.</string>
+    <string name="settings_about_editing_action">Ver mis ediciones</string>
     <string name="settings_about_open_source_title">Código abierto y sin anuncios</string>
-    <string name="settings_about_open_source_description">La aplicación es un proyecto de código abierto y no incluye anuncios. El código fuente está disponible públicamente en GitHub.</string>
-    <string name="settings_about_repository_action">Ver repositorio en GitHub</string>
+    <string name="settings_about_open_source_description">Catlytics es software libre con licencia MIT y no muestra anuncios. En GitHub puedes revisar el código, reportar problemas o proponer mejoras.</string>
+    <string name="settings_about_repository_action">Ver en GitHub</string>
+    <string name="settings_licenses_title">Licencias de código abierto</string>
+    <string name="settings_licenses_description">Catlytics está hecho con bibliotecas de terceros como AndroidX, Media3 y TagLib. Aquí encontrarás cada una con su licencia.</string>
+    <string name="settings_licenses_action">Ver licencias</string>
+    <string name="settings_licenses_action_source">Código</string>
+    <string name="settings_licenses_action_website">Sitio web</string>
+    <string name="settings_licenses_action_view_license">Ver licencia</string>
+    <string name="settings_licenses_dialog_confirm">Aceptar</string>
 
     <!-- Cabecera de Ajustes -->
     <string name="settings_profile_title">Catlytics</string>

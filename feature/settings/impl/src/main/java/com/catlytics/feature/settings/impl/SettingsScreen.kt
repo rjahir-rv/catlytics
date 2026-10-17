@@ -4,6 +4,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.activity.compose.BackHandler
+import androidx.annotation.RawRes
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -73,6 +74,7 @@ import com.catlytics.feature.settings.impl.equalizer.EqualizerSettingsContent
 @Composable
 internal fun SettingsScreen(
     appVersion: String,
+    @RawRes librariesRes: Int,
     modifier: Modifier = Modifier,
     themeMode: ThemeMode,
     homeRecommendationsSettings: HomeRecommendationsSettings,
@@ -119,6 +121,7 @@ internal fun SettingsScreen(
     fun navigateBack() {
         destination = when (destination) {
             SettingsDestination.ScanFolders -> SettingsDestination.MusicScan
+            SettingsDestination.Licenses -> SettingsDestination.About
             SettingsDestination.About,
             SettingsDestination.Equalizer,
             SettingsDestination.MusicScan,
@@ -133,6 +136,7 @@ internal fun SettingsScreen(
     val mainTitle = stringResource(SettingsR.string.settings_title)
     val equalizerTitle = stringResource(SettingsR.string.settings_equalizer_title)
     val aboutTitle = stringResource(SettingsR.string.settings_about_title)
+    val licensesTitle = stringResource(SettingsR.string.settings_licenses_title)
     val musicScanTitle = stringResource(SettingsR.string.settings_music_scan_title)
     val foldersTitle = stringResource(SettingsR.string.settings_folders_title)
     val backupTitle = stringResource(SettingsR.string.settings_backup_title)
@@ -150,6 +154,10 @@ internal fun SettingsScreen(
             }
             SettingsDestination.About -> {
                 onTopBarTitleChange(aboutTitle)
+                onTopBarBackActionChange(::navigateBack)
+            }
+            SettingsDestination.Licenses -> {
+                onTopBarTitleChange(licensesTitle)
                 onTopBarBackActionChange(::navigateBack)
             }
             SettingsDestination.MusicScan -> {
@@ -209,6 +217,14 @@ internal fun SettingsScreen(
         )
         SettingsDestination.About -> AboutSettingsContent(
             appVersion = appVersion,
+            onMetadataEditsClick = { destination = SettingsDestination.MetadataEdits },
+            onLicensesClick = { destination = SettingsDestination.Licenses },
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
+            modifier = modifier,
+        )
+        SettingsDestination.Licenses -> LicensesSettingsContent(
+            librariesRes = librariesRes,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
@@ -337,8 +353,6 @@ private fun SettingsMainContent(
                     onThemeModeSelected = onThemeModeChange,
                 )
                 SettingsDivider()
-                SettingsValueRow(title = stringResource(SettingsR.string.settings_notifications_title))
-                SettingsDivider()
                 SettingsValueRow(
                     title = stringResource(SettingsR.string.settings_music_scan_title),
                     supportingText = stringResource(SettingsR.string.settings_music_scan_supporting),
@@ -440,8 +454,6 @@ private fun SettingsMainContent(
                     value = appVersion,
                     onClick = onAboutClick,
                 )
-                SettingsDivider()
-                SettingsValueRow(title = stringResource(SettingsR.string.settings_privacy_policy_title))
             }
         }
     }
@@ -616,6 +628,7 @@ private fun EqualizerState.statusLabel(): String = when {
 private enum class SettingsDestination(val depth: Int) {
     Main(0),
     About(1),
+    Licenses(2),
     Equalizer(1),
     MusicScan(1),
     ScanFolders(2),

@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -45,7 +46,7 @@ fun CatlyticsEmptyState(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Image(
-                    painter = painterResource(R.drawable.cat_background),
+                    painter = painterResource(catlyticsMascot()),
                     contentDescription = null,
                     contentScale = ContentScale.Fit,
                     modifier = Modifier.size(mascotSize),
@@ -71,3 +72,15 @@ fun CatlyticsEmptyState(
         }
     }
 }
+
+/**
+ * Michi que contrasta con el fondo actual: el blanco sobre tema oscuro y el negro sobre claro.
+ * Se decide por la luminancia del esquema para respetar el `ThemeMode` de la app y el color dinámico.
+ */
+@Composable
+private fun catlyticsMascot(): Int =
+    if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {
+        R.drawable.ic_michi_stereo
+    } else {
+        R.drawable.ic_michi_dj
+    }

@@ -1,6 +1,7 @@
 plugins {
     id("catlytics.android.application")
     id("catlytics.android.hilt")
+    alias(libs.plugins.aboutlibraries.android)
 }
 
 android {
@@ -20,6 +21,21 @@ android {
                 "proguard-rules.pro"
             )
         }
+    }
+}
+
+aboutLibraries {
+    // Sin red: la lista se genera solo con los POM ya resueltos, así el build es reproducible.
+    offlineMode = true
+    collect {
+        // Entradas manuales para lo que no es una dependencia Maven (el `libtaglib.so` nativo).
+        configPath = file("config/aboutlibraries")
+    }
+    license {
+        // Los textos viven en config/aboutlibraries/licenses/ (offline). Una licencia nueva
+        // rompe el build hasta que se agregue su texto ahí y aquí.
+        strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
+        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "LGPL-2.1-only", "MPL-1.1")
     }
 }
 

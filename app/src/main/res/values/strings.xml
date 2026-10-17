@@ -50,7 +50,6 @@
     <string name="app_now_playing_show_remaining_time">Mostrar tiempo restante</string>
     <string name="app_now_playing_show_total_time">Mostrar duración total</string>
     <string name="app_now_playing_remaining_time">-%1$s</string>
-    <string name="app_now_playing_artwork_gestures">Desliza para cambiar de canción; toca dos veces a un lado para retroceder o adelantar 10 segundos</string>
 
     <!-- Fila de reproducción -->
     <string name="app_queue_title">Fila de reproducción</string>
