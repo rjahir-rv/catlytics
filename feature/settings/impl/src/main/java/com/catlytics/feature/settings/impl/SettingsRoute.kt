@@ -34,6 +34,7 @@ internal fun SettingsRoute(
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+    val appLanguage by viewModel.appLanguage.collectAsStateWithLifecycle()
     val homeRecommendationsSettings by
         viewModel.homeRecommendationsSettings.collectAsStateWithLifecycle()
     val equalizerState by viewModel.equalizerState.collectAsStateWithLifecycle()
@@ -120,6 +121,7 @@ internal fun SettingsRoute(
         appVersion = appVersion,
         librariesRes = librariesRes,
         themeMode = themeMode,
+        appLanguage = appLanguage,
         homeRecommendationsSettings = homeRecommendationsSettings,
         equalizerState = equalizerState,
         crossfadeDurationSeconds = crossfadeDurationSeconds,
@@ -133,6 +135,7 @@ internal fun SettingsRoute(
         unifiedImportPreview = unifiedImportPreview,
         onRequestAudioPermission = onRequestAudioPermission,
         onThemeModeChange = viewModel::setThemeMode,
+        onAppLanguageChange = viewModel::setAppLanguage,
         onShowRecommendedPlaylistsChange = viewModel::setShowRecommendedPlaylists,
         onRecentAddedWindowChange = viewModel::setRecentAddedWindow,
         onShowNewTrackBadgeChange = viewModel::setShowNewTrackBadge,

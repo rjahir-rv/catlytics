@@ -6,18 +6,22 @@ import com.catlytics.core.model.SortDirection
 import java.text.Collator
 import java.util.Locale
 
-internal fun List<PlaylistSummary>.filterByQuery(query: String): List<PlaylistSummary> {
+internal fun List<PlaylistSummary>.filterByQuery(
+    query: String,
+    likedPlaylistName: String,
+): List<PlaylistSummary> {
     val normalizedQuery = query.trim()
     if (normalizedQuery.isEmpty()) return this
     return filter { summary ->
-        summary.playlist.name.contains(normalizedQuery, ignoreCase = true)
+        val name = if (summary.playlist.id == LIKED_PLAYLIST_ID) likedPlaylistName else summary.playlist.name
+        name.contains(normalizedQuery, ignoreCase = true)
     }
 }
 
 internal fun List<PlaylistSummary>.sortedByDirection(
     direction: SortDirection,
 ): List<PlaylistSummary> {
-    val collator = Collator.getInstance(Locale.forLanguageTag("es")).apply {
+    val collator = Collator.getInstance(Locale.getDefault()).apply {
         strength = Collator.PRIMARY
     }
     val (liked, others) = partition { it.playlist.id == LIKED_PLAYLIST_ID }

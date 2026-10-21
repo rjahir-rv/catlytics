@@ -18,12 +18,20 @@ class PlaylistsSearchTest {
     fun `blank query returns every playlist`() {
         val all = listOf(zen, angel)
 
-        assertEquals(all, all.filterByQuery("   "))
+        assertEquals(all, all.filterByQuery("   ", LIKED_NAME_EN))
     }
 
     @Test
     fun `query matches by name ignoring case`() {
-        assertEquals(listOf(zen), listOf(zen, angel, bravo).filterByQuery("ZEN"))
+        assertEquals(listOf(zen), listOf(zen, angel, bravo).filterByQuery("ZEN", LIKED_NAME_EN))
+    }
+
+    @Test
+    fun `liked playlist matches its localized name instead of the stored one`() {
+        val playlists = listOf(liked, zen)
+
+        assertEquals(listOf(liked), playlists.filterByQuery("liked", LIKED_NAME_EN))
+        assertEquals(emptyList<PlaylistSummary>(), playlists.filterByQuery("me gusta", LIKED_NAME_EN))
     }
 
     @Test
@@ -64,4 +72,8 @@ class PlaylistsSearchTest {
         trackCount = trackCount,
         totalDurationMillis = duration,
     )
+
+    private companion object {
+        const val LIKED_NAME_EN = "Liked songs"
+    }
 }

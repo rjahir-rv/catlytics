@@ -40,6 +40,13 @@
     <string name="settings_theme_system_description">Usar el tema configurado en el dispositivo</string>
     <string name="settings_theme_light_description">Usar siempre el tema claro</string>
     <string name="settings_theme_dark_description">Usar siempre el tema oscuro</string>
+    <string name="settings_language_title">Idioma</string>
+    <string name="settings_language_system">Sistema</string>
+    <string name="settings_language_spanish" translatable="false">Español</string>
+    <string name="settings_language_english" translatable="false">English</string>
+    <string name="settings_language_system_description">Usar el idioma configurado en el dispositivo</string>
+    <string name="settings_language_spanish_description">Mostrar la app en español</string>
+    <string name="settings_language_english_description">Mostrar la app en inglés</string>
     <string name="settings_recent_added_title">Canciones recientes</string>
     <string name="settings_recent_added_supporting">Ventana para Agregados recientemente y el distintivo Nuevo</string>
     <string name="settings_recent_added_window_days">%1$d días</string>

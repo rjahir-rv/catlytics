@@ -34,6 +34,8 @@ import androidx.compose.ui.zIndex
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
@@ -69,10 +71,10 @@ internal fun PlaylistTrackRow(
     val dragSurface = MaterialTheme.colorScheme.surfaceContainerHigh
 
     CatlyticsTrackRow(
-        title = track.title,
+        title = track.title.displayTrackTitle(),
         subtitle = stringResource(
             PlaylistsR.string.playlist_detail_track_metadata,
-            track.artist.name,
+            track.artist.name.displayArtistName(),
             TrackDurationFormat.format(track.durationMillis),
         ),
         artworkUri = track.artworkUri,
@@ -89,7 +91,7 @@ internal fun PlaylistTrackRow(
                     painter = painterResource(R.drawable.ic_item_selection),
                     contentDescription = stringResource(
                         PlaylistsR.string.playlist_detail_drag_content_description,
-                        track.title,
+                        track.title.displayTrackTitle(),
                     ),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
@@ -122,7 +124,7 @@ internal fun PlaylistTrackRow(
                         painterResource(R.drawable.ic_options),
                         contentDescription = stringResource(
                             PlaylistsR.string.playlist_detail_track_options_content_description,
-                            track.title,
+                            track.title.displayTrackTitle(),
                         ),
                     )
                 }
@@ -184,7 +186,7 @@ internal fun PlaylistTrackSearchBar(
 }
 
 internal fun List<Track>.alphabeticalOrder(): List<Track> {
-    val collator = Collator.getInstance(Locale.forLanguageTag("es")).apply {
+    val collator = Collator.getInstance(Locale.getDefault()).apply {
         strength = Collator.PRIMARY
     }
     return sortedWith { first, second ->

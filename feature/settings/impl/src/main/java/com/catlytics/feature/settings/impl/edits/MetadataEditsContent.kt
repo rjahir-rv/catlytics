@@ -56,6 +56,8 @@ import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.component.CollapsibleHint
 import com.catlytics.core.designsystem.component.InfoToggleButton
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.feature.settings.impl.R as SettingsR
 import java.time.Instant
@@ -317,13 +319,16 @@ private fun TrackEditRow(
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val subtitle = if (item.inLibrary) {
-        item.artistName
+        item.artistName.displayArtistName()
     } else {
-        stringResource(SettingsR.string.settings_edits_missing_track, item.artistName)
+        stringResource(
+            SettingsR.string.settings_edits_missing_track,
+            item.artistName.displayArtistName(),
+        )
     }
     Column {
         CatlyticsTrackRow(
-            title = item.title,
+            title = item.title.displayTrackTitle(),
             subtitle = subtitle,
             artworkUri = item.artworkUri,
             isCurrent = false,
@@ -339,7 +344,7 @@ private fun TrackEditRow(
                             painter = painterResource(R.drawable.ic_options),
                             contentDescription = stringResource(
                                 SettingsR.string.settings_edits_options_content_description,
-                                item.title,
+                                item.title.displayTrackTitle(),
                             ),
                         )
                     }
@@ -408,7 +413,7 @@ private fun ArtistEditRow(
     onRevert: () -> Unit,
 ) {
     ListItem(
-        headlineContent = { Text(item.alias.source.name) },
+        headlineContent = { Text(item.alias.source.name.displayArtistName()) },
         supportingContent = {
             Text(
                 stringResource(

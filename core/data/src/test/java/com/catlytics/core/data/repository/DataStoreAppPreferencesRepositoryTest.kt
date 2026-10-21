@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
+import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.ThemeMode
@@ -47,6 +48,35 @@ class DataStoreAppPreferencesRepositoryTest {
         }
 
         assertEquals(ThemeMode.System, repository.observeThemeMode().first())
+    }
+
+    @Test
+    fun `app language defaults to system`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(AppLanguage.System, repository.observeAppLanguage().first())
+    }
+
+    @Test
+    fun `setAppLanguage persists every available language`() = runTest {
+        val repository = repository(backgroundScope)
+
+        AppLanguage.entries.forEach { language ->
+            repository.setAppLanguage(language)
+
+            assertEquals(language, repository.observeAppLanguage().first())
+        }
+    }
+
+    @Test
+    fun `invalid app language falls back to system`() = runTest {
+        val dataStore = dataStore(backgroundScope)
+        val repository = DataStoreAppPreferencesRepository(dataStore)
+        dataStore.edit { preferences ->
+            preferences[stringPreferencesKey("app_language")] = "Invalid"
+        }
+
+        assertEquals(AppLanguage.System, repository.observeAppLanguage().first())
     }
 
     @Test

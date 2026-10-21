@@ -20,6 +20,7 @@ import com.catlytics.core.domain.usecase.backup.ImportUnifiedBackupUseCase
 import com.catlytics.core.domain.usecase.backup.ObserveUnifiedBackupSummaryUseCase
 import com.catlytics.core.domain.usecase.backup.PreviewUnifiedBackupUseCase
 import com.catlytics.core.model.BackupOptions
+import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
@@ -71,6 +72,12 @@ internal class SettingsViewModel @Inject constructor(
             scope = viewModelScope,
             started = SharingStarted.Eagerly,
             initialValue = ThemeMode.System,
+        )
+    val appLanguage: StateFlow<AppLanguage> = appPreferencesRepository.observeAppLanguage()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = AppLanguage.System,
         )
     val equalizerState: StateFlow<EqualizerState> = equalizerRepository.observeEqualizerState()
         .stateIn(
@@ -131,6 +138,12 @@ internal class SettingsViewModel @Inject constructor(
     fun setThemeMode(themeMode: ThemeMode) {
         viewModelScope.launch {
             appPreferencesRepository.setThemeMode(themeMode)
+        }
+    }
+
+    fun setAppLanguage(language: AppLanguage) {
+        viewModelScope.launch {
+            appPreferencesRepository.setAppLanguage(language)
         }
     }
 

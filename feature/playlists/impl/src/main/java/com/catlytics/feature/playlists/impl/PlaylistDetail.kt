@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.text.resolve
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 
@@ -104,7 +105,12 @@ internal fun PlaylistDetailRoute(
         },
         onDelete = viewModel::delete,
         onExportM3u = {
-            val name = (uiState as? PlaylistDetailUiState.Success)?.content?.playlist?.name ?: "playlist"
+            val playlist = (uiState as? PlaylistDetailUiState.Success)?.content?.playlist
+            val name = when {
+                playlist == null -> "playlist"
+                playlist.id == LIKED_PLAYLIST_ID -> resources.getString(R.string.playlist_liked_name)
+                else -> playlist.name
+            }
             exportM3uLauncher.launch("$name.m3u8")
         },
         onTopBarColorChange = onTopBarColorChange,

@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.Track
 
 internal data class TrackOption(
@@ -165,7 +166,7 @@ internal fun TrackOptionsSheet(
     ) {
         Column(Modifier.padding(bottom = 24.dp)) {
             Text(
-                text = track.title,
+                text = track.title.displayTrackTitle(),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
@@ -220,7 +221,7 @@ internal fun TrackOptionsDropdownMenu(
                 painter = painterResource(id = R.drawable.ic_options),
                 contentDescription = stringResource(
                     AppR.string.app_content_description_track_options,
-                    track.title,
+                    track.title.displayTrackTitle(),
                 ),
             )
         }

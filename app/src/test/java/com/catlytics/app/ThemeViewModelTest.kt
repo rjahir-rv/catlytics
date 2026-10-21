@@ -2,6 +2,7 @@ package com.catlytics.app
 
 import com.catlytics.app.ui.ThemeViewModel
 import com.catlytics.core.domain.repository.AppPreferencesRepository
+import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -49,14 +50,36 @@ class ThemeViewModelTest {
         assertEquals(ThemeMode.Dark, viewModel.themeMode.value)
     }
 
+    @Test
+    fun `appLanguage exposes repository changes`() = runTest {
+        val viewModel = ThemeViewModel(repository)
+        assertNull(viewModel.appLanguage.value)
+
+        backgroundScope.launch { viewModel.appLanguage.collect() }
+        advanceUntilIdle()
+
+        repository.appLanguage.value = AppLanguage.English
+        advanceUntilIdle()
+
+        assertEquals(AppLanguage.English, viewModel.appLanguage.value)
+    }
+
 }
 
 private class FakeAppPreferencesRepository : AppPreferencesRepository {
     val themeMode = MutableStateFlow(ThemeMode.System)
+    val appLanguage = MutableStateFlow(AppLanguage.System)
+
     override fun observeThemeMode(): Flow<ThemeMode> = themeMode
 
     override suspend fun setThemeMode(themeMode: ThemeMode) {
         this.themeMode.value = themeMode
+    }
+
+    override fun observeAppLanguage(): Flow<AppLanguage> = appLanguage
+
+    override suspend fun setAppLanguage(language: AppLanguage) {
+        this.appLanguage.value = language
     }
 }
 

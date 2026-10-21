@@ -17,6 +17,7 @@ import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.DEFAULT_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MAX_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MIN_CROSSFADE_DURATION_SECONDS
+import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.RecentAddedWindow
@@ -60,6 +61,24 @@ class DataStoreAppPreferencesRepository internal constructor(
     override suspend fun setThemeMode(themeMode: ThemeMode) {
         dataStore.edit { preferences ->
             preferences[THEME_MODE] = themeMode.name
+        }
+    }
+
+    override fun observeAppLanguage(): Flow<AppLanguage> = dataStore.data
+        .catch { error ->
+            if (error is IOException) {
+                emit(emptyPreferences())
+            } else {
+                throw error
+            }
+        }
+        .map { preferences ->
+            preferences[APP_LANGUAGE]?.toAppLanguage() ?: AppLanguage.System
+        }
+
+    override suspend fun setAppLanguage(language: AppLanguage) {
+        dataStore.edit { preferences ->
+            preferences[APP_LANGUAGE] = language.name
         }
     }
 
@@ -209,11 +228,15 @@ class DataStoreAppPreferencesRepository internal constructor(
     private fun String.toThemeMode(): ThemeMode =
         runCatching { ThemeMode.valueOf(this) }.getOrDefault(ThemeMode.System)
 
+    private fun String.toAppLanguage(): AppLanguage =
+        runCatching { AppLanguage.valueOf(this) }.getOrDefault(AppLanguage.System)
+
     private fun String.toRecentAddedWindow(): RecentAddedWindow =
         runCatching { RecentAddedWindow.valueOf(this) }.getOrDefault(RecentAddedWindow.Days21)
 
     private companion object {
         val THEME_MODE = stringPreferencesKey("theme_mode")
+        val APP_LANGUAGE = stringPreferencesKey("app_language")
         val CROSSFADE_DURATION_SECONDS = intPreferencesKey("crossfade_duration_seconds")
         val EQUALIZER_ENABLED = booleanPreferencesKey("equalizer_enabled")
         val EQUALIZER_PRESET_NAME = stringPreferencesKey("equalizer_preset_name")

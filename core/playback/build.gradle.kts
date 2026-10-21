@@ -9,6 +9,7 @@ android {
 
 dependencies {
     api(project(path = ":core:domain"))
+    implementation(project(path = ":core:designsystem"))
     implementation(project(path = ":core:model"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.media3.exoplayer)

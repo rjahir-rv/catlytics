@@ -37,6 +37,8 @@ import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
+import com.catlytics.core.designsystem.text.displayAlbumTitle
+import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.SortDirection
 import com.catlytics.feature.library.impl.LibraryDimens
@@ -116,7 +118,7 @@ private fun AlbumCard(
             placeholderIcon = R.drawable.ic_album,
             contentDescription = stringResource(
                 LibraryR.string.library_album_cover_content_description,
-                album.title,
+                album.title.displayAlbumTitle(),
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -136,7 +138,7 @@ private fun AlbumCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = album.title,
+                    text = album.title.displayAlbumTitle(),
                     style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
@@ -145,7 +147,7 @@ private fun AlbumCard(
                 Text(
                     text = stringResource(
                         LibraryR.string.library_track_metadata,
-                        album.artist.name,
+                        album.artist.name.displayArtistName(),
                         pluralStringResource(
                             LibraryR.plurals.library_track_count,
                             album.trackCount,
@@ -163,7 +165,7 @@ private fun AlbumCard(
                     painterResource(R.drawable.ic_options),
                     stringResource(
                         LibraryR.string.library_album_options_content_description,
-                        album.title,
+                        album.title.displayAlbumTitle(),
                     ),
                 )
             }

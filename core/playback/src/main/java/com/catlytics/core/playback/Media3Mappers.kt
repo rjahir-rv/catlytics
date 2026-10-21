@@ -12,15 +12,27 @@ import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.UNKNOWN_ALBUM_TITLE
+import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
+import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 
-fun Track.toMediaItem(): MediaItem = MediaItem.Builder()
+data class MissingMetadataLabels(
+    val untitledTrack: String = UNTITLED_TRACK_TITLE,
+    val unknownArtist: String = UNKNOWN_ARTIST_NAME,
+    val unknownAlbum: String = UNKNOWN_ALBUM_TITLE,
+)
+
+internal fun Track.hasMissingMetadata(): Boolean =
+    title == UNTITLED_TRACK_TITLE || artist.name == UNKNOWN_ARTIST_NAME || albumTitle == UNKNOWN_ALBUM_TITLE
+
+fun Track.toMediaItem(labels: MissingMetadataLabels = MissingMetadataLabels()): MediaItem = MediaItem.Builder()
     .setMediaId(id)
     .setUri(mediaUri)
     .setMediaMetadata(
         MediaMetadata.Builder()
-            .setTitle(title)
-            .setArtist(artist.name)
-            .setAlbumTitle(albumTitle)
+            .setTitle(if (title == UNTITLED_TRACK_TITLE) labels.untitledTrack else title)
+            .setArtist(if (artist.name == UNKNOWN_ARTIST_NAME) labels.unknownArtist else artist.name)
+            .setAlbumTitle(if (albumTitle == UNKNOWN_ALBUM_TITLE) labels.unknownAlbum else albumTitle)
             .setDurationMs(durationMillis)
             .setArtworkUri(artworkUri?.toArtworkUri())
             .build(),

@@ -44,6 +44,8 @@ import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.Track
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
@@ -152,7 +154,7 @@ internal fun AddTracksToPlaylistSheet(
                             )
                             Column(Modifier.weight(1f)) {
                                 Text(
-                                    track.title,
+                                    track.title.displayTrackTitle(),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,
                                 )
@@ -160,7 +162,7 @@ internal fun AddTracksToPlaylistSheet(
                                     if (alreadyAdded) {
                                         stringResource(PlaylistsR.string.playlists_already_added)
                                     } else {
-                                        track.artist.name
+                                        track.artist.name.displayArtistName()
                                     },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,

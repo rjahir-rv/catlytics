@@ -5,6 +5,9 @@ import com.catlytics.core.model.Artist
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
+import com.catlytics.core.model.UNKNOWN_ALBUM_TITLE
+import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
+import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,6 +53,30 @@ class Media3MappersTest {
         assertEquals("Local Artist", mediaItem.mediaMetadata.artist.toString())
         assertEquals(180_000L, mediaItem.mediaMetadata.durationMs)
         assertEquals("content://media/external/audio/albumart/9", mediaItem.mediaMetadata.artworkUri.toString())
+    }
+
+    @Test
+    fun `missing metadata is exposed with the given labels and stored values are kept`() {
+        val track = Track(
+            id = "track-3",
+            title = UNTITLED_TRACK_TITLE,
+            artist = Artist(id = "artist-3", name = UNKNOWN_ARTIST_NAME),
+            durationMillis = 1_000L,
+            mediaUri = "content://media/external/audio/media/3",
+            albumTitle = UNKNOWN_ALBUM_TITLE,
+        )
+        val labels = MissingMetadataLabels(
+            untitledTrack = "Untitled track",
+            unknownArtist = "Unknown artist",
+            unknownAlbum = "Unknown album",
+        )
+
+        val metadata = track.toMediaItem(labels).mediaMetadata
+
+        assertEquals("Untitled track", metadata.title.toString())
+        assertEquals("Unknown artist", metadata.artist.toString())
+        assertEquals("Unknown album", metadata.albumTitle.toString())
+        assertEquals(UNKNOWN_ARTIST_NAME, track.toMediaItem().mediaMetadata.artist.toString())
     }
 
     @Test

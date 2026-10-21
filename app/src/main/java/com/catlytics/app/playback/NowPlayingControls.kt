@@ -50,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.modifier.pressScale
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
@@ -206,7 +207,7 @@ private fun UpNextChip(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val label = upNext?.let {
-        stringResource(AppR.string.app_queue_up_next, it.title)
+        stringResource(AppR.string.app_queue_up_next, it.title.displayTrackTitle())
     } ?: stringResource(AppR.string.app_queue_title)
 
     Surface(

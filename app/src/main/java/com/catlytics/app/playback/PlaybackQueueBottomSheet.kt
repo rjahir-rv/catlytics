@@ -95,6 +95,8 @@ import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.Track
 import kotlin.math.abs
 import kotlin.math.sign
@@ -157,9 +159,6 @@ internal fun PlaybackQueueBottomSheet(
         }
     }
 
-    // Al mezclar o restaurar el orden cambia casi toda la fila. En lugar de que cada fila viaje a su
-    // nueva posición (y la lista se desplace después), la canción actual se queda fija y el resto
-    // aparece al instante en su nuevo orden con una entrada corta y escalonada.
     val reshuffleProgress = remember { Animatable(1f) }
     val isReshuffling by remember { derivedStateOf { reshuffleProgress.value < 1f } }
     var isReshufflePending by remember { mutableStateOf(false) }
@@ -673,7 +672,7 @@ private fun QueueSwipeableItem(
                         painter = painterResource(id = R.drawable.ic_delete),
                         contentDescription = stringResource(
                             AppR.string.app_queue_remove_track,
-                            track.title,
+                            track.title.displayTrackTitle(),
                         ),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f),
                         modifier = Modifier.graphicsLayer {
@@ -763,7 +762,7 @@ private fun QueueTrackRow(
                     NowPlayingBars(isPlaying = isPlaying, color = accent)
                 }
                 Text(
-                    text = track.title,
+                    text = track.title.displayTrackTitle(),
                     style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal,
                     ),
@@ -787,9 +786,12 @@ private fun QueueTrackRow(
             }
             Text(
                 text = if (isCurrent) {
-                    stringResource(AppR.string.app_queue_now_playing_track, track.artist.name)
+                    stringResource(
+                        AppR.string.app_queue_now_playing_track,
+                        track.artist.name.displayArtistName(),
+                    )
                 } else {
-                    track.artist.name
+                    track.artist.name.displayArtistName()
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isCurrent) {
@@ -811,7 +813,7 @@ private fun QueueTrackRow(
                 painter = painterResource(id = R.drawable.ic_item_selection),
                 contentDescription = stringResource(
                     AppR.string.app_content_description_reorder_track,
-                    track.title,
+                    track.title.displayTrackTitle(),
                 ),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(
                     alpha = if (isDragging) 1f else 0.72f,

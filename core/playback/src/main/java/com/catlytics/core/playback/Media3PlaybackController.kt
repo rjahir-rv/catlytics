@@ -2,11 +2,16 @@ package com.catlytics.core.playback
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.res.Resources
 import androidx.core.content.ContextCompat
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.catlytics.core.designsystem.R as DesignSystemR
+import com.catlytics.core.designsystem.locale.resolveLocale
+import com.catlytics.core.designsystem.locale.withAppLocale
+import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
@@ -51,6 +56,7 @@ class Media3PlaybackController @Inject constructor(
     private val playbackSessionRepository: PlaybackSessionRepository,
     private val playbackTracker: PlaybackTracker,
     private val playbackShuffleOrder: PlaybackShuffleOrder,
+    private val appPreferencesRepository: AppPreferencesRepository,
 ) : PlaybackController {
     private val _playbackState = MutableStateFlow(PlaybackState())
     override val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -66,6 +72,7 @@ class Media3PlaybackController @Inject constructor(
     private var queueSyncJob: Job? = null
     private var lastSessionSaveTimeMillis = 0L
     private var suppressPlaybackStateUpdates = false
+    private var missingMetadataLabels = MissingMetadataLabels()
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -105,6 +112,17 @@ class Media3PlaybackController @Inject constructor(
             },
             ContextCompat.getMainExecutor(context),
         )
+        playbackScope.launch {
+            appPreferencesRepository.observeAppLanguage()
+                .map { language ->
+                    context.withAppLocale(language.resolveLocale()).resources.missingMetadataLabels()
+                }
+                .distinctUntilChanged()
+                .collect { labels ->
+                    missingMetadataLabels = labels
+                    refreshMissingMetadataLabels()
+                }
+        }
     }
 
     override suspend fun play(
@@ -140,7 +158,7 @@ class Media3PlaybackController @Inject constructor(
         this.queue = playbackQueue
         withController { controller ->
             controller.shuffleModeEnabled = false
-            controller.setMediaItems(playbackQueue.map { it.toMediaItem() }, selectedIndex, 0L)
+            controller.setMediaItems(playbackQueue.map { it.toMediaItem(missingMetadataLabels) }, selectedIndex, 0L)
             controller.prepare()
             controller.play()
             updatePlaybackState(controller, playbackQueue, forcePersist = true)
@@ -194,7 +212,7 @@ class Media3PlaybackController @Inject constructor(
                 if (existingIndex >= 0) {
                     player.moveMediaItem(existingIndex, targetIndex)
                 } else {
-                    player.addMediaItem(targetIndex, track.toMediaItem())
+                    player.addMediaItem(targetIndex, track.toMediaItem(missingMetadataLabels))
                 }
                 queue = updatedPlaybackQueue
             }
@@ -329,7 +347,7 @@ class Media3PlaybackController @Inject constructor(
                         reordered
                     }
                     queue = updatedQueue
-                    controller.setMediaItems(updatedQueue.map { it.toMediaItem() }, 0, currentPos)
+                    controller.setMediaItems(updatedQueue.map { it.toMediaItem(missingMetadataLabels) }, 0, currentPos)
                     controller.prepare()
                     controller.playWhenReady = shouldPlay
                     updatePlaybackState(controller, updatedQueue, forcePersist = true)
@@ -343,7 +361,7 @@ class Media3PlaybackController @Inject constructor(
                         }
                         val queueStartIndex = updatedQueue.indexOfFirst { it.id == currentTrack.id }.coerceAtLeast(0)
                         queue = updatedQueue
-                        controller.setMediaItems(updatedQueue.map { it.toMediaItem() }, queueStartIndex, currentPos)
+                        controller.setMediaItems(updatedQueue.map { it.toMediaItem(missingMetadataLabels) }, queueStartIndex, currentPos)
                         controller.prepare()
                         controller.playWhenReady = shouldPlay
                         updatePlaybackState(controller, updatedQueue, forcePersist = true)
@@ -392,7 +410,7 @@ class Media3PlaybackController @Inject constructor(
             controller.shuffleModeEnabled = false
             controller.repeatMode = snapshot.repeatMode.toMedia3RepeatMode()
             controller.setMediaItems(
-                restoredQueue.map { it.toMediaItem() },
+                restoredQueue.map { it.toMediaItem(missingMetadataLabels) },
                 restoredIndex,
                 snapshot.positionMillis.coerceAtLeast(0L),
             )
@@ -596,7 +614,23 @@ class Media3PlaybackController @Inject constructor(
             mutateQueue(player, player.currentMediaItem?.mediaId) {
                 for (index in 0 until player.mediaItemCount) {
                     val track = changedTracks[player.getMediaItemAt(index).mediaId] ?: continue
-                    player.replaceMediaItem(index, track.toMediaItem())
+                    player.replaceMediaItem(index, track.toMediaItem(missingMetadataLabels))
+                }
+            }
+        }
+    }
+
+    /** Vuelve a publicar los elementos con metadatos ausentes con los textos del idioma actual. */
+    private suspend fun refreshMissingMetadataLabels() {
+        if (queue.none(Track::hasMissingMetadata)) return
+        val tracksById = queue.associateBy(Track::id)
+        withQueuePlayer { player ->
+            mutateQueue(player, player.currentMediaItem?.mediaId) {
+                for (index in 0 until player.mediaItemCount) {
+                    val track = tracksById[player.getMediaItemAt(index).mediaId] ?: continue
+                    if (track.hasMissingMetadata()) {
+                        player.replaceMediaItem(index, track.toMediaItem(missingMetadataLabels))
+                    }
                 }
             }
         }
@@ -648,7 +682,7 @@ class Media3PlaybackController @Inject constructor(
             }
             val shouldPlay = controller.playWhenReady
             controller.shuffleModeEnabled = false
-            controller.setMediaItems(effectiveQueue.map { it.toMediaItem() }, startIndex, positionMillis)
+            controller.setMediaItems(effectiveQueue.map { it.toMediaItem(missingMetadataLabels) }, startIndex, positionMillis)
             controller.prepare()
             controller.playWhenReady = shouldPlay
             updatePlaybackState(controller, effectiveQueue, forcePersist = true)
@@ -718,3 +752,9 @@ private fun <T> List<T>.moved(fromIndex: Int, toIndex: Int): List<T> =
     toMutableList().apply {
         add(toIndex, removeAt(fromIndex))
     }
+
+private fun Resources.missingMetadataLabels() = MissingMetadataLabels(
+    untitledTrack = getString(DesignSystemR.string.ds_untitled_track),
+    unknownArtist = getString(DesignSystemR.string.ds_unknown_artist),
+    unknownAlbum = getString(DesignSystemR.string.ds_unknown_album),
+)

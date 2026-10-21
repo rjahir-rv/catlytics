@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -54,6 +55,11 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.flow.first
+import com.catlytics.core.designsystem.locale.resolveLocale
+import com.catlytics.core.designsystem.locale.withAppLocale
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
+import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.designsystem.R as DesignR
 
 private val COMPACT_SIZE = DpSize(250.dp, 60.dp)
@@ -73,16 +79,26 @@ class CatlyticsCassetteWidget : GlanceAppWidget() {
         val store = entryPoint.nowPlayingWidgetStore()
         val sync = entryPoint.nowPlayingWidgetSync()
         val themeModes = entryPoint.appPreferencesRepository().observeThemeMode()
+        val appLanguages = entryPoint.appPreferencesRepository().observeAppLanguage()
 
         val initialState = store.current()
         val initialThemeMode = themeModes.first()
+        val initialAppLanguage = appLanguages.first()
         val initialArtwork = initialState.artworkUri?.let { loadWidgetArtwork(context, it) }
 
         provideContent {
             val state by store.observe().collectAsState(initialState)
             val themeMode by themeModes.collectAsState(initialThemeMode)
+            val appLanguage by appLanguages.collectAsState(initialAppLanguage)
             val syncRunning by sync.isRunning.collectAsState()
             var artwork by remember { mutableStateOf(initialState.artworkUri to initialArtwork) }
+            val localizedContext = remember(appLanguage) {
+                if (appLanguage == AppLanguage.System) {
+                    context
+                } else {
+                    context.withAppLocale(appLanguage.resolveLocale())
+                }
+            }
 
             LaunchedEffect(state.artworkUri) {
                 val uri = state.artworkUri
@@ -91,12 +107,14 @@ class CatlyticsCassetteWidget : GlanceAppWidget() {
                 }
             }
 
-            CassetteWidgetContent(
-                state = state,
-                isPlaying = state.isPlaying && syncRunning,
-                artwork = artwork.second.takeIf { artwork.first == state.artworkUri },
-                palette = widgetPalette(themeMode),
-            )
+            CompositionLocalProvider(LocalContext provides localizedContext) {
+                CassetteWidgetContent(
+                    state = state,
+                    isPlaying = state.isPlaying && syncRunning,
+                    artwork = artwork.second.takeIf { artwork.first == state.artworkUri },
+                    palette = widgetPalette(themeMode),
+                )
+            }
         }
     }
 }
@@ -287,7 +305,11 @@ private fun TrackText(
 ) {
     val context = LocalContext.current
     Text(
-        text = if (state.hasTrack) state.title else context.getString(R.string.widget_empty_title),
+        text = if (state.hasTrack) {
+            context.displayTrackTitle(state.title)
+        } else {
+            context.getString(R.string.widget_empty_title)
+        },
         maxLines = 1,
         style = TextStyle(
             color = palette.labelText,
@@ -296,7 +318,11 @@ private fun TrackText(
         ),
     )
     Text(
-        text = if (state.hasTrack) state.artist else context.getString(R.string.widget_empty_subtitle),
+        text = if (state.hasTrack) {
+            context.displayArtistName(state.artist)
+        } else {
+            context.getString(R.string.widget_empty_subtitle)
+        },
         maxLines = 1,
         style = TextStyle(color = palette.labelSubtext, fontSize = artistSize.sp),
     )
@@ -436,7 +462,6 @@ private fun TintedImage(@DrawableRes drawable: Int, tint: ColorProvider, modifie
     )
 }
 
-/** Fondo redondeado tintado: `cornerRadius` solo existe desde API 31 y minSdk es 28. */
 private fun GlanceModifier.tintedBackground(@DrawableRes shape: Int, color: ColorProvider): GlanceModifier =
     background(
         imageProvider = ImageProvider(shape),

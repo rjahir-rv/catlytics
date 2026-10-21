@@ -50,6 +50,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.Track
 import kotlin.math.abs
 import kotlinx.coroutines.delay
@@ -171,7 +172,7 @@ internal fun NowPlayingArtwork(
             artworkUri = track?.artworkUri,
             seed = track?.title.orEmpty(),
             contentDescription = track?.let {
-                stringResource(AppR.string.app_content_description_artwork, it.title)
+                stringResource(AppR.string.app_content_description_artwork, it.title.displayTrackTitle())
             },
             onSuccess = onArtworkLoaded,
             modifier = Modifier

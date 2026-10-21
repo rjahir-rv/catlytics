@@ -73,6 +73,9 @@ import com.catlytics.core.designsystem.component.extractArtworkAccentColor
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
+import com.catlytics.core.designsystem.text.displayAlbumTitle
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.SleepTimerState
@@ -460,7 +463,8 @@ private fun NowPlayingTrackInfo(
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
             Text(
-                text = track?.title ?: stringResource(AppR.string.app_now_playing_empty_track),
+                text = track?.title?.displayTrackTitle()
+                    ?: stringResource(AppR.string.app_now_playing_empty_track),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -472,7 +476,7 @@ private fun NowPlayingTrackInfo(
                 ),
             )
             Text(
-                text = track?.artist?.name
+                text = track?.artist?.name?.displayArtistName()
                     ?: stringResource(AppR.string.app_now_playing_empty_artist),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -489,7 +493,7 @@ private fun NowPlayingTrackInfo(
             )
             track?.albumTitle?.takeIf { it.isNotBlank() }?.let { albumTitle ->
                 Text(
-                    text = albumTitle,
+                    text = albumTitle.displayAlbumTitle(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                     maxLines = 1,

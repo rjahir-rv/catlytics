@@ -112,8 +112,9 @@ internal fun PlaylistsScreen(
     }
 
     val summaries = (uiState as? PlaylistsUiState.Content)?.playlists.orEmpty()
-    val sorted = remember(summaries, searchQuery, sortDirection) {
-        summaries.filterByQuery(searchQuery).sortedByDirection(sortDirection)
+    val likedPlaylistName = stringResource(PlaylistsR.string.playlist_liked_name)
+    val sorted = remember(summaries, searchQuery, sortDirection, likedPlaylistName) {
+        summaries.filterByQuery(searchQuery, likedPlaylistName).sortedByDirection(sortDirection)
     }
     val stateKind = when {
         uiState is PlaylistsUiState.Loading -> PlaylistsStateKind.Loading

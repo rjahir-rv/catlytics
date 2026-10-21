@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Statistics: dashboard -->
+    <string name="stats_dashboard_this_week">This week</string>
+    <plurals name="stats_streak_days">
+        <item quantity="one">1 day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="stats_streak_none">No streak</string>
+    <string name="stats_totals_title">All-time</string>
+    <string name="stats_totals_tracks">Songs</string>
+    <string name="stats_totals_artists">Artists</string>
+    <string name="stats_totals_albums">Albums</string>
+
+    <!-- Statistics: narrative -->
+    <string name="stats_summary_title">Your summary</string>
+    <string name="stats_summary_week_title">Week summary</string>
+    <string name="stats_narrative_time_with_artist">You spent the most time with</string>
+    <string name="stats_narrative_favorite_track">Your favorite song was</string>
+    <string name="stats_narrative_default_title">Your listening summary</string>
+    <string name="stats_narrative_top_track_label">Most played song</string>
+    <string name="stats_narrative_top_artist_label">Most played artist</string>
+    <string name="stats_narrative_unlock_title">Unlock your summary</string>
+    <string name="stats_narrative_unlock_hint">Listen to %1$s more this week</string>
+    <string name="stats_narrative_unlock_progress">%1$s / %2$s</string>
+
+    <!-- Statistics: explore -->
+    <string name="stats_explore_cta_title">Explore statistics</string>
+    <string name="stats_explore_cta_subtitle">Weeks, months, and full tops</string>
+    <string name="stats_granularity_week">Week</string>
+    <string name="stats_granularity_month">Month</string>
+    <string name="stats_period_previous_content_description">Previous period</string>
+    <string name="stats_period_next_content_description">Next period</string>
+    <string name="stats_period_this_week">This week</string>
+    <string name="stats_period_last_week">Last week</string>
+    <string name="stats_period_this_month">This month</string>
+    <string name="stats_period_last_month">Last month</string>
+
+    <!-- Statistics: period summary -->
+    <string name="stats_period_metric_tracks">songs</string>
+    <string name="stats_period_metric_artists">artists</string>
+    <string name="stats_period_metric_albums">albums</string>
+
+    <!-- Statistics: activity chart -->
+    <string name="stats_chart_weekly_title">Weekly activity</string>
+    <string name="stats_chart_monthly_title">Monthly activity</string>
+    <string name="stats_chart_subtitle">Minutes listened per day</string>
+    <string name="stats_chart_selected_day">Day %1$d: %2$d min</string>
+    <string-array name="stats_weekday_short_labels">
+        <item>M</item>
+        <item>T</item>
+        <item>W</item>
+        <item>T</item>
+        <item>F</item>
+        <item>S</item>
+        <item>S</item>
+    </string-array>
+
+    <!-- Statistics: top lists -->
+    <string name="stats_top_tracks_title">Top songs</string>
+    <string name="stats_top_artists_title">Top artists</string>
+    <string name="stats_top_albums_title">Top albums</string>
+    <string name="stats_top_see_all">See all</string>
+
+    <!-- Statistics: empty and error states -->
+    <string name="stats_empty_history_title">No statistics yet</string>
+    <string name="stats_empty_history_subtitle">Listen to music for more than 30 seconds to start tracking your activity.</string>
+    <string name="stats_empty_week_title">No activity this week</string>
+    <string name="stats_empty_week_subtitle">Listen to something this week or explore previous periods.</string>
+    <string name="stats_empty_period_title">No plays in this period</string>
+    <string name="stats_empty_period_subtitle">Try another week or month, or listen to music again.</string>
+    <string name="stats_error_loading">There was an error loading statistics.</string>
+
+    <!-- Statistics: formats -->
+    <plurals name="stats_play_count">
+        <item quantity="one">1 play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
+    <string name="stats_duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="stats_duration_hours">%1$dh</string>
+    <string name="stats_duration_minutes">%1$d min</string>
+</resources>

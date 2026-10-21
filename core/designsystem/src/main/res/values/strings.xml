@@ -32,4 +32,9 @@
     <string name="ds_hint_hide">Ocultar información</string>
     <string name="ds_selection_edit_metadata">Editar información</string>
     <string name="ds_selection_remove_from_playlist">Quitar de playlist</string>
+
+    <!-- Metadatos desconocidos (los valores internos viven en :core:model) -->
+    <string name="ds_unknown_artist">Artista desconocido</string>
+    <string name="ds_unknown_album">Álbum desconocido</string>
+    <string name="ds_untitled_track">Canción sin título</string>
 </resources>

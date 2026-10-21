@@ -71,6 +71,8 @@ import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.sectionLetter
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.Track
 import com.catlytics.feature.home.impl.R as HomeR
@@ -583,7 +585,7 @@ private fun RecentlyPlayedTrackCard(
                 placeholderIcon = R.drawable.ic_audio,
                 contentDescription = stringResource(
                     HomeR.string.home_play_recently_played_content_description,
-                    track.title,
+                    track.title.displayTrackTitle(),
                 ),
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
@@ -592,14 +594,14 @@ private fun RecentlyPlayedTrackCard(
                     .clip(HomeDimens.ThumbShape),
             )
             Text(
-                text = track.title,
+                text = track.title.displayTrackTitle(),
                 style = MaterialTheme.typography.labelLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 8.dp),
             )
             Text(
-                text = track.artist.name,
+                text = track.artist.name.displayArtistName(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -618,7 +620,7 @@ private fun TopTrackRow(
 ) {
     val topTrackContentDescription = stringResource(
         HomeR.string.home_play_top_track_content_description,
-        track.title,
+        track.title.displayTrackTitle(),
     )
     val interactionSource = remember { MutableInteractionSource() }
     Row(
@@ -659,13 +661,13 @@ private fun TopTrackRow(
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = track.title,
+                text = track.title.displayTrackTitle(),
                 style = MaterialTheme.typography.titleSmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = track.artistName,
+                text = track.artistName.displayArtistName(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,

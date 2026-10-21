@@ -41,6 +41,8 @@ import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.format.TrackDurationFormat
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.LibraryFolder
@@ -134,10 +136,10 @@ internal fun LibraryFolderScreen(
                         items(content.tracks, key = Track::id) { track ->
                             val isCurrent = track.id == currentTrackId
                             CatlyticsTrackRow(
-                                title = track.title,
+                                title = track.title.displayTrackTitle(),
                                 subtitle = stringResource(
                                     LibraryR.string.library_track_metadata,
-                                    track.artist.name,
+                                    track.artist.name.displayArtistName(),
                                     TrackDurationFormat.format(track.durationMillis),
                                 ),
                                 artworkUri = track.artworkUri,
@@ -161,7 +163,7 @@ internal fun LibraryFolderScreen(
                                             painterResource(R.drawable.ic_options),
                                             stringResource(
                                                 LibraryR.string.library_track_options_content_description,
-                                                track.title,
+                                                track.title.displayTrackTitle(),
                                             ),
                                         )
                                     }

@@ -55,5 +55,10 @@ class NowPlayingWidgetSync @Inject constructor(
                 .distinctUntilChanged()
                 .collect { CatlyticsCassetteWidget().updateAll(context) }
         }
+        syncScope.launch {
+            appPreferencesRepository.observeAppLanguage()
+                .distinctUntilChanged()
+                .collect { CatlyticsCassetteWidget().updateAll(context) }
+        }
     }
 }

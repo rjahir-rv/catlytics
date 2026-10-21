@@ -81,6 +81,9 @@ import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.format.TrackDurationFormat
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
+import com.catlytics.core.designsystem.text.displayAlbumTitle
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
@@ -400,7 +403,7 @@ private fun ArtistHeader(
                 placeholderIcon = R.drawable.ic_artist,
                 contentDescription = stringResource(
                     LibraryR.string.library_artist_image_content_description,
-                    content.summary.artist.name,
+                    content.summary.artist.name.displayArtistName(),
                 ),
                 modifier = Modifier
                     .then(
@@ -420,7 +423,7 @@ private fun ArtistHeader(
         },
         details = {
             Text(
-                text = content.summary.artist.name,
+                text = content.summary.artist.name.displayArtistName(),
                 style = MaterialTheme.typography.headlineSmall,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
@@ -458,7 +461,7 @@ private fun ArtistHeader(
                 menuEntries = menuEntries,
                 menuContentDescription = stringResource(
                     LibraryR.string.library_artist_options_content_description,
-                    content.summary.artist.name,
+                    content.summary.artist.name.displayArtistName(),
                 ),
             )
         },
@@ -601,7 +604,7 @@ private fun ArtistMergeDialogs(
                 ) {
                     items(candidates, key = Artist::id) { artist ->
                         ListItem(
-                            headlineContent = { Text(artist.name) },
+                            headlineContent = { Text(artist.name.displayArtistName()) },
                             modifier = Modifier.clickable { onTargetSelected(artist) },
                         )
                     }
@@ -615,8 +618,8 @@ private fun ArtistMergeDialogs(
                 Text(
                     stringResource(
                         LibraryR.string.library_artist_merge_confirm_message,
-                        state.content.summary.artist.name,
-                        dialog.target.name,
+                        state.content.summary.artist.name.displayArtistName(),
+                        dialog.target.name.displayArtistName(),
                     ),
                 )
             },
@@ -885,7 +888,7 @@ private fun ArtistAlbumCard(
             placeholderIcon = R.drawable.ic_album,
             contentDescription = stringResource(
                 LibraryR.string.library_album_cover_content_description,
-                album.title,
+                album.title.displayAlbumTitle(),
             ),
             modifier = Modifier
                 .fillMaxWidth()
@@ -903,7 +906,7 @@ private fun ArtistAlbumCard(
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Text(
-                    text = album.title,
+                    text = album.title.displayAlbumTitle(),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -925,7 +928,7 @@ private fun ArtistAlbumCard(
                     painterResource(R.drawable.ic_options),
                     stringResource(
                         LibraryR.string.library_album_options_content_description,
-                        album.title,
+                        album.title.displayAlbumTitle(),
                     ),
                 )
             }
@@ -945,10 +948,10 @@ private fun ArtistTrackRow(
     onLongClick: (() -> Unit)? = null,
 ) {
     CatlyticsTrackRow(
-        title = track.title,
+        title = track.title.displayTrackTitle(),
         subtitle = stringResource(
             LibraryR.string.library_track_metadata,
-            track.artist.name,
+            track.artist.name.displayArtistName(),
             TrackDurationFormat.formatMinutesSeconds(track.durationMillis),
         ),
         artworkUri = track.artworkUri,
@@ -964,7 +967,7 @@ private fun ArtistTrackRow(
                     painter = painterResource(R.drawable.ic_options),
                     contentDescription = stringResource(
                         LibraryR.string.library_track_options_content_description,
-                        track.title,
+                        track.title.displayTrackTitle(),
                     ),
                 )
             }

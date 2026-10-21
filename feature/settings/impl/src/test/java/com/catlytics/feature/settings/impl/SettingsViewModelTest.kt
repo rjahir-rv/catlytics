@@ -21,6 +21,7 @@ import com.catlytics.core.domain.usecase.backup.ObserveUnifiedBackupSummaryUseCa
 import com.catlytics.core.domain.usecase.backup.PreviewUnifiedBackupUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
+import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.BackupOptions
@@ -86,6 +87,24 @@ class SettingsViewModelTest {
 
             assertEquals(themeMode, repository.themeMode.value)
             assertEquals(themeMode, viewModel.themeMode.value)
+        }
+    }
+
+    @Test
+    fun `setAppLanguage persists every available language`() = runTest {
+        val repository = FakeAppPreferencesRepository()
+        val viewModel = viewModel(
+            appPreferencesRepository = repository,
+            equalizerRepository = FakeEqualizerRepository(),
+            playbackPreferencesRepository = FakePlaybackPreferencesRepository(),
+        )
+
+        AppLanguage.entries.forEach { language ->
+            viewModel.setAppLanguage(language)
+            advanceUntilIdle()
+
+            assertEquals(language, repository.appLanguage.value)
+            assertEquals(language, viewModel.appLanguage.value)
         }
     }
 
@@ -391,11 +410,18 @@ private class FakeLibraryPreferencesRepository : LibraryPreferencesRepository {
 
 private class FakeAppPreferencesRepository : AppPreferencesRepository {
     val themeMode = MutableStateFlow(ThemeMode.System)
+    val appLanguage = MutableStateFlow(AppLanguage.System)
 
     override fun observeThemeMode(): Flow<ThemeMode> = themeMode
 
     override suspend fun setThemeMode(themeMode: ThemeMode) {
         this.themeMode.value = themeMode
+    }
+
+    override fun observeAppLanguage(): Flow<AppLanguage> = appLanguage
+
+    override suspend fun setAppLanguage(language: AppLanguage) {
+        this.appLanguage.value = language
     }
 }
 

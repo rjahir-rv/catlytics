@@ -21,8 +21,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,6 +48,7 @@ import com.catlytics.core.designsystem.format.SleepTimerFormat
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MAX_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MIN_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.model.EqualizerMode
+import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
 import com.catlytics.core.model.HomeRecommendationsSettings
@@ -77,6 +81,7 @@ internal fun SettingsScreen(
     @RawRes librariesRes: Int,
     modifier: Modifier = Modifier,
     themeMode: ThemeMode,
+    appLanguage: AppLanguage,
     homeRecommendationsSettings: HomeRecommendationsSettings,
     equalizerState: EqualizerState,
     crossfadeDurationSeconds: Int,
@@ -90,6 +95,7 @@ internal fun SettingsScreen(
     unifiedImportPreview: UnifiedBackupPreview? = null,
     onRequestAudioPermission: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onAppLanguageChange: (AppLanguage) -> Unit,
     onShowRecommendedPlaylistsChange: (Boolean) -> Unit,
     onRecentAddedWindowChange: (RecentAddedWindow) -> Unit,
     onShowNewTrackBadgeChange: (Boolean) -> Unit,
@@ -196,11 +202,13 @@ internal fun SettingsScreen(
             animateEntrance = !hasPlayedEntrance,
             onEntranceStarted = { hasPlayedEntrance = true },
             themeMode = themeMode,
+            appLanguage = appLanguage,
             homeRecommendationsSettings = homeRecommendationsSettings,
             equalizerState = equalizerState,
             crossfadeDurationSeconds = crossfadeDurationSeconds,
             sleepTimerState = sleepTimerState,
             onThemeModeChange = onThemeModeChange,
+            onAppLanguageChange = onAppLanguageChange,
             onShowRecommendedPlaylistsChange = onShowRecommendedPlaylistsChange,
             onRecentAddedWindowChange = onRecentAddedWindowChange,
             onShowNewTrackBadgeChange = onShowNewTrackBadgeChange,
@@ -304,11 +312,13 @@ private fun SettingsMainContent(
     animateEntrance: Boolean,
     onEntranceStarted: () -> Unit,
     themeMode: ThemeMode,
+    appLanguage: AppLanguage,
     homeRecommendationsSettings: HomeRecommendationsSettings,
     equalizerState: EqualizerState,
     crossfadeDurationSeconds: Int,
     sleepTimerState: SleepTimerState,
     onThemeModeChange: (ThemeMode) -> Unit,
+    onAppLanguageChange: (AppLanguage) -> Unit,
     onShowRecommendedPlaylistsChange: (Boolean) -> Unit,
     onRecentAddedWindowChange: (RecentAddedWindow) -> Unit,
     onShowNewTrackBadgeChange: (Boolean) -> Unit,
@@ -351,6 +361,11 @@ private fun SettingsMainContent(
                 ThemeModeSelector(
                     selectedThemeMode = themeMode,
                     onThemeModeSelected = onThemeModeChange,
+                )
+                SettingsDivider()
+                AppLanguageSelector(
+                    selectedLanguage = appLanguage,
+                    onLanguageSelected = onAppLanguageChange,
                 )
                 SettingsDivider()
                 SettingsValueRow(
@@ -605,6 +620,85 @@ private fun RecentAddedWindowSelector(
         }
     }
 }
+
+@Composable
+private fun AppLanguageSelector(
+    selectedLanguage: AppLanguage,
+    onLanguageSelected: (AppLanguage) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+
+    Column(modifier = modifier) {
+        SettingsValueRow(
+            title = stringResource(SettingsR.string.settings_language_title),
+            supportingText = stringResource(selectedLanguage.descriptionRes),
+            value = stringResource(selectedLanguage.labelRes),
+            expanded = showDialog,
+            onClick = { showDialog = true },
+        )
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text(stringResource(SettingsR.string.settings_language_title)) },
+            text = {
+                Column(modifier = Modifier.selectableGroup()) {
+                    AppLanguage.entries.forEach { language ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .selectable(
+                                    selected = language == selectedLanguage,
+                                    onClick = {
+                                        onLanguageSelected(language)
+                                        showDialog = false
+                                    },
+                                    role = Role.RadioButton,
+                                )
+                                .padding(vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            RadioButton(
+                                selected = language == selectedLanguage,
+                                onClick = null,
+                            )
+                            SettingsRowText(
+                                title = stringResource(language.labelRes),
+                                supportingText = null,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(start = 16.dp),
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(stringResource(SettingsR.string.settings_action_cancel))
+                }
+            },
+        )
+    }
+}
+
+@get:StringRes
+private val AppLanguage.labelRes: Int
+    get() = when (this) {
+        AppLanguage.System -> SettingsR.string.settings_language_system
+        AppLanguage.Spanish -> SettingsR.string.settings_language_spanish
+        AppLanguage.English -> SettingsR.string.settings_language_english
+    }
+
+@get:StringRes
+private val AppLanguage.descriptionRes: Int
+    get() = when (this) {
+        AppLanguage.System -> SettingsR.string.settings_language_system_description
+        AppLanguage.Spanish -> SettingsR.string.settings_language_spanish_description
+        AppLanguage.English -> SettingsR.string.settings_language_english_description
+    }
 
 @get:StringRes
 private val RecentAddedWindow.labelRes: Int

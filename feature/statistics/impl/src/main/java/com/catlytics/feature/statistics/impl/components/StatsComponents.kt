@@ -79,6 +79,9 @@ import coil3.compose.AsyncImage
 import coil3.request.crossfade
 import com.catlytics.core.designsystem.component.nameSeededGradient
 import com.catlytics.core.designsystem.modifier.pressScale
+import com.catlytics.core.designsystem.text.displayAlbumTitle
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.domain.usecase.statistics.BuildListeningNarrativeUseCase
 import com.catlytics.core.model.DailyListeningStat
@@ -320,13 +323,13 @@ internal fun NarrativeSummaryCard(
                     narrative.topTrack?.let { track ->
                         NarrativeStatRow(
                             label = stringResource(StatsR.string.stats_narrative_top_track_label),
-                            value = "${track.title} · ${formatPlayCountLabel(track.playCount)}",
+                            value = "${track.title.displayTrackTitle()} · ${formatPlayCountLabel(track.playCount)}",
                         )
                     }
                     narrative.topArtist?.let { artist ->
                         NarrativeStatRow(
                             label = stringResource(StatsR.string.stats_narrative_top_artist_label),
-                            value = "${artist.name} · ${formatListeningDuration(artist.totalListenedMillis)}",
+                            value = "${artist.name.displayArtistName()} · ${formatListeningDuration(artist.totalListenedMillis)}",
                         )
                     }
                 }
@@ -341,13 +344,14 @@ private fun NarrativeHeadline(narrative: ListeningNarrative) {
         ListeningNarrativeKind.TimeWithArtist -> {
             NarrativeHeadlineText(
                 label = stringResource(StatsR.string.stats_narrative_time_with_artist),
-                value = (narrative.topArtist?.name ?: narrative.topTrack?.title).orEmpty(),
+                value = (narrative.topArtist?.name?.displayArtistName()
+                    ?: narrative.topTrack?.title?.displayTrackTitle()).orEmpty(),
             )
         }
         ListeningNarrativeKind.FavoriteTrack -> {
             NarrativeHeadlineText(
                 label = stringResource(StatsR.string.stats_narrative_favorite_track),
-                value = narrative.topTrack?.title.orEmpty(),
+                value = narrative.topTrack?.title?.displayTrackTitle().orEmpty(),
             )
         }
         ListeningNarrativeKind.Summary -> {
@@ -999,14 +1003,14 @@ internal fun TopTrackItem(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = track.title,
+                    text = track.title.displayTrackTitle(),
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = track.artistName,
+                    text = track.artistName.displayArtistName(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -1050,7 +1054,7 @@ internal fun TopArtistItem(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = artist.name,
+                    text = artist.name.displayArtistName(),
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
@@ -1099,14 +1103,14 @@ internal fun TopAlbumItem(
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = album.title,
+                    text = album.title.displayAlbumTitle(),
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = album.artistName,
+                    text = album.artistName.displayArtistName(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

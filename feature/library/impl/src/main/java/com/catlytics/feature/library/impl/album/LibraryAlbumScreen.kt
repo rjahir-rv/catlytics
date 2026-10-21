@@ -62,6 +62,9 @@ import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradient
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.format.TrackDurationFormat
 import com.catlytics.core.designsystem.text.asString
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
+import com.catlytics.core.designsystem.text.displayAlbumTitle
 import com.catlytics.core.designsystem.component.CatlyticsMenuDivider
 import com.catlytics.core.designsystem.component.CatlyticsMenuEntry
 import com.catlytics.core.designsystem.component.CatlyticsMenuItem
@@ -257,7 +260,7 @@ private fun AlbumHeader(
                 placeholderIcon = R.drawable.ic_album,
                 contentDescription = stringResource(
                     LibraryR.string.library_album_cover_content_description,
-                    album.title,
+                    album.title.displayAlbumTitle(),
                 ),
                 modifier = Modifier
                     .then(
@@ -277,14 +280,14 @@ private fun AlbumHeader(
         },
         details = {
             Text(
-                text = album.title,
+                text = album.title.displayAlbumTitle(),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = album.artist.name,
+                text = album.artist.name.displayArtistName(),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -309,7 +312,10 @@ private fun AlbumHeader(
                 onPlayShuffled = { onPlayShuffled(tracks) },
                 onPlayAll = { onPlayAll(tracks) },
                 menuEntries = menuEntries,
-                menuContentDescription = stringResource(LibraryR.string.library_album_options_content_description, album.title),
+                menuContentDescription = stringResource(
+                    LibraryR.string.library_album_options_content_description,
+                    album.title.displayAlbumTitle(),
+                ),
             )
         },
     )
@@ -418,7 +424,7 @@ private fun AlbumTrackRow(
                 CatlyticsPlayingBarsOverlay(
                     contentDescription = stringResource(
                         R.string.ds_track_row_playing_content_description,
-                        track.title,
+                        track.title.displayTrackTitle(),
                     ),
                     modifier = Modifier
                         .fillMaxSize()
@@ -438,7 +444,7 @@ private fun AlbumTrackRow(
         }
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = track.title,
+                text = track.title.displayTrackTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 color = if (isCurrent && !selectionActive) {
                     MaterialTheme.colorScheme.primary
@@ -449,7 +455,7 @@ private fun AlbumTrackRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                text = track.artist.name,
+                text = track.artist.name.displayArtistName(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -467,7 +473,7 @@ private fun AlbumTrackRow(
                     painterResource(R.drawable.ic_options),
                     stringResource(
                         LibraryR.string.library_track_options_content_description,
-                        track.title,
+                        track.title.displayTrackTitle(),
                     ),
                 )
             }

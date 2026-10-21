@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home -->
+    <string name="home_all_tracks_title">All songs</string>
+    <plurals name="home_all_tracks_count">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <string name="home_quick_actions_title">Quick actions</string>
+    <string name="home_toggle_featured_sections_hide_content_description">Hide featured sections</string>
+    <string name="home_toggle_featured_sections_show_content_description">Show featured sections</string>
+    <string name="home_quick_action_recently_added_title">Recently added</string>
+    <plurals name="home_quick_action_recently_added_subtitle">
+        <item quantity="one">1 new song</item>
+        <item quantity="other">%1$d new songs</item>
+    </plurals>
+    <string name="home_quick_action_recently_added_content_description">Open Recently added</string>
+    <string name="home_quick_action_daily_playlist_title">Daily playlist</string>
+    <plurals name="home_quick_action_daily_playlist_subtitle">
+        <item quantity="one">1 song for today</item>
+        <item quantity="other">%1$d songs for today</item>
+    </plurals>
+    <string name="home_quick_action_daily_playlist_content_description">Open Daily playlist</string>
+    <string name="home_quick_action_shuffle_title">Shuffle</string>
+    <string name="home_quick_action_shuffle_subtitle">Play all</string>
+    <string name="home_quick_action_shuffle_content_description">Play all songs shuffled</string>
+    <string name="home_quick_action_favorites_title">Favorites</string>
+    <plurals name="home_quick_action_favorites_subtitle">
+        <item quantity="one">1 song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <string name="home_quick_action_favorites_content_description">Open Favorites</string>
+
+    <!-- Featured sections -->
+    <string name="home_recently_played_title">Recently played</string>
+    <string name="home_play_recently_played_content_description">Play %1$s</string>
+    <string name="home_top_tracks_title">Top 3 this week</string>
+    <string name="home_top_tracks_subtitle">Your most played songs</string>
+    <plurals name="home_top_track_play_count">
+        <item quantity="one">%1$d play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
+    <string name="home_play_top_track_content_description">Play %1$s from Top 3</string>
+    <string name="home_open_statistics">View statistics</string>
+    <string name="home_activity_empty">Your activity will appear here after you listen to music.</string>
+
+    <!-- Track row -->
+    <string name="home_track_options_content_description">Options for %1$s</string>
+    <string name="home_new_track_badge">New</string>
+
+    <!-- States -->
+    <string name="home_permission_required_message">Catlytics needs permission to read your local music.</string>
+    <string name="home_permission_required_action">Allow music access</string>
+    <string name="home_empty_library_message">We couldn\'t find any songs on this device.</string>
+    <string name="home_search_no_results_message">We couldn\'t find songs matching your search.</string>
+
+    <!-- Recently added -->
+    <string name="recently_added_empty_message">No songs added in the last %1$d days.</string>
+    <plurals name="recently_added_tracks_count">
+        <item quantity="one">%1$d song added in the last %2$d days</item>
+        <item quantity="other">%1$d songs added in the last %2$d days</item>
+    </plurals>
+    <string name="recently_added_shuffle_content_description">Play shuffled</string>
+    <string name="recently_added_play_all_content_description">Play songs</string>
+
+    <!-- Daily playlist -->
+    <string name="daily_playlist_title">Your pick for today</string>
+    <plurals name="daily_playlist_tracks_count">
+        <item quantity="one">1 song picked for you</item>
+        <item quantity="other">%1$d songs picked for you</item>
+    </plurals>
+    <string name="daily_playlist_empty_message">You need at least 5 songs to create your Daily playlist.</string>
+    <string name="daily_playlist_shuffle_content_description">Play shuffled</string>
+    <string name="daily_playlist_play_all_content_description">Play songs</string>
+</resources>

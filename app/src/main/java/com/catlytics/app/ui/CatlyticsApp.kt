@@ -98,9 +98,11 @@ import com.catlytics.app.ui.sheet.CatlyticsAppSheets
 import com.catlytics.app.ui.sheet.TrackOptionsRequest
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
 import com.catlytics.core.designsystem.component.extractArtworkAccentColor
+import com.catlytics.core.designsystem.text.displayAlbumTitle
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
-import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
@@ -144,6 +146,7 @@ fun CatlyticsApp(
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
+    val likedPlaylistName = stringResource(R.string.app_playlist_liked_name)
     val audioPermission = remember { requiredAudioPermission() }
     var hasAudioPermission by remember(audioPermission) {
         mutableStateOf(
@@ -330,13 +333,18 @@ fun CatlyticsApp(
         val albumTitle = track.albumTitle ?: return
         trackOptionsRequest = null
         topLevelBackStack.addTopLevel(LibraryRoute)
-        topLevelBackStack.add(LibraryAlbumRoute(albumId, albumTitle))
+        topLevelBackStack.add(LibraryAlbumRoute(albumId, resources.displayAlbumTitle(albumTitle)))
     }
 
     fun navigateToArtist(track: Track) {
         trackOptionsRequest = null
         topLevelBackStack.addTopLevel(LibraryRoute)
-        topLevelBackStack.add(LibraryArtistRoute(track.artist.id, track.artist.name))
+        topLevelBackStack.add(
+            LibraryArtistRoute(
+                track.artist.id,
+                resources.displayArtistName(track.artist.name),
+            ),
+        )
     }
 
     fun canAddTrackToQueue(track: Track): Boolean =
@@ -759,8 +767,8 @@ fun CatlyticsApp(
                                     WindowInsets.navigationBars.only(WindowInsetsSides.Bottom),
                                 )
                                 .padding(bottom = if (isNavigationBarShown) 0.dp else 8.dp),
-                            title = track.title,
-                            artist = track.artist.name,
+                            title = track.title.displayTrackTitle(),
+                            artist = track.artist.name.displayArtistName(),
                             isPlaying = playbackState.status == PlaybackStatus.Playing,
                             isBuffering = playbackState.status == PlaybackStatus.Buffering,
                             progress = if (playbackState.durationMillis > 0L) {
@@ -788,7 +796,7 @@ fun CatlyticsApp(
                                     seed = track.title,
                                     contentDescription = stringResource(
                                         R.string.app_content_description_artwork,
-                                        track.title,
+                                        track.title.displayTrackTitle(),
                                     ),
                                     modifier = artworkModifier,
                                     onSuccess = { bitmap ->
@@ -858,7 +866,7 @@ fun CatlyticsApp(
                             topLevelBackStack.add(
                                 PlaylistDetailRoute(
                                     playlistId = LIKED_PLAYLIST_ID,
-                                    playlistName = LIKED_PLAYLIST_NAME,
+                                    playlistName = likedPlaylistName,
                                 ),
                             )
                         },

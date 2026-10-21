@@ -48,6 +48,7 @@ import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.sectionLetter
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
+import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.SortDirection
@@ -287,7 +288,7 @@ private fun ArtistOptionsButton(
             painter = painterResource(R.drawable.ic_options),
             contentDescription = stringResource(
                 LibraryR.string.library_artist_options_content_description,
-                artist.artist.name,
+                artist.artist.name.displayArtistName(),
             ),
             modifier = if (tonal) Modifier.size(18.dp) else Modifier,
         )
@@ -318,7 +319,7 @@ private fun ArtistImage(
         placeholderIcon = R.drawable.ic_artist,
         contentDescription = stringResource(
             LibraryR.string.library_artist_image_content_description,
-            artist.artist.name,
+            artist.artist.name.displayArtistName(),
         ),
         modifier = modifier.clip(CircleShape),
         contentScale = ContentScale.Crop,
@@ -342,7 +343,7 @@ private fun ArtistText(
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(
-            text = artist.artist.name,
+            text = artist.artist.name.displayArtistName(),
             style = MaterialTheme.typography.titleSmall,
             textAlign = textAlign,
             maxLines = 1,
