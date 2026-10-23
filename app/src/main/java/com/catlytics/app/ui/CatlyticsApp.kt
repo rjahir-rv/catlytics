@@ -43,6 +43,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.material3.MaterialTheme
@@ -750,6 +751,12 @@ fun CatlyticsApp(
         }
         val bottomPaddingToUse = if (isFullScreenRoute) lastBottomPadding else currentBottomPadding
         val bottomPaddingState = rememberUpdatedState(bottomPaddingToUse)
+        // Con el teclado abierto las listas terminan encima de él (tapa al mini reproductor). Se
+        // lee al usar el padding, así su animación no recompone toda la app.
+        val imePadding = WindowInsets.ime.asPaddingValues()
+        val screenBottomPadding: () -> Dp = remember(bottomPaddingState, imePadding) {
+            { maxOf(bottomPaddingState.value, imePadding.calculateBottomPadding()) }
+        }
 
         Box(modifier = Modifier.fillMaxSize()) {
             NavDisplay(
@@ -780,6 +787,7 @@ fun CatlyticsApp(
                 entryProvider = withRoutePanes(entryProvider {
                     homeEntry(
                         searchQuery = { homeSearchQuery },
+                        isSearchActive = { isHomeSearchExpanded },
                         onTrackOptions = { track -> openTrackOptions(track) },
                         likedTrackIds = { likedTrackIds },
                         onTrackSelectionAction = ::handleTrackSelectionAction,
@@ -807,11 +815,12 @@ fun CatlyticsApp(
                         },
                         startupError = { startupError },
                         onContentReady = { isHomeContentReady = true },
-                        bottomPadding = { bottomPaddingState.value },
+                        bottomPadding = screenBottomPadding,
                     )
                     libraryEntry(
                         searchQuery = { librarySearchQuery },
                         artistSearchQuery = { artistSearchQuery },
+                        isArtistSearchActive = { isArtistSearchExpanded },
                         onArtistSearchQueryChange = { artistSearchQuery = it },
                         onDestinationSelected = topLevelBackStack::add,
                         onListDestinationSelected = ::openFromListPane,
@@ -833,7 +842,7 @@ fun CatlyticsApp(
                         onRequestAudioPermission = {
                             audioPermissionLauncher.launch(audioPermission)
                         },
-                        bottomPadding = { bottomPaddingState.value },
+                        bottomPadding = screenBottomPadding,
                     )
                     playlistsEntry(
                         searchQuery = { playlistsSearchQuery },
@@ -845,7 +854,7 @@ fun CatlyticsApp(
                         },
                         likedTrackIds = { likedTrackIds },
                         onTrackSelectionAction = ::handleTrackSelectionAction,
-                        bottomPadding = { bottomPaddingState.value },
+                        bottomPadding = screenBottomPadding,
                         onPlaylistDetailTopBarColorChange = { route, color ->
                             detailTopBarColors[route] = color
                         },
@@ -877,12 +886,12 @@ fun CatlyticsApp(
                         onRequestAudioPermission = {
                             audioPermissionLauncher.launch(audioPermission)
                         },
-                        bottomPadding = { bottomPaddingState.value },
+                        bottomPadding = screenBottomPadding,
                         onTopBarTitleChange = { title -> settingsTopBarTitle = title },
                         onTopBarBackActionChange = { action -> settingsTopBarBackAction = action },
                     )
                     statisticsEntry(
-                        bottomPadding = { bottomPaddingState.value },
+                        bottomPadding = screenBottomPadding,
                         onNavigateToExplore = {
                             if (topLevelBackStack.backStack.lastOrNull() != StatisticsExploreRoute) {
                                 topLevelBackStack.add(StatisticsExploreRoute)

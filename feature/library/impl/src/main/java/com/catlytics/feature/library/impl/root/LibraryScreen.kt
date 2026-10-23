@@ -142,7 +142,7 @@ internal fun LibraryScreen(
             ) {
                 CatlyticsEmptyState(
                     message = stringResource(LibraryR.string.library_no_search_results),
-                    modifier = modifier,
+                    modifier = modifier.padding(bottom = bottomPadding()),
                     messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {

@@ -24,6 +24,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.component.TrackSelectionHost
+import com.catlytics.core.designsystem.component.isSearching
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
@@ -34,6 +35,7 @@ import com.catlytics.core.model.TrackSelectionAction
 @Composable
 internal fun HomeRoute(
     searchQuery: String,
+    isSearchActive: Boolean = false,
     modifier: Modifier = Modifier,
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
@@ -56,6 +58,7 @@ internal fun HomeRoute(
         uiState = uiState,
         startupError = startupError,
         searchQuery = searchQuery,
+        isSearchActive = isSearchActive,
         hasAudioPermission = hasAudioPermission,
         onRequestPermission = onRequestPermission,
         onTrackSelected = viewModel::onTrackSelected,
@@ -82,6 +85,7 @@ internal fun HomeScreen(
     uiState: HomeUiState,
     startupError: UiText? = null,
     searchQuery: String,
+    isSearchActive: Boolean = false,
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
     onTrackSelected: (Track, List<Track>) -> Unit,
@@ -109,6 +113,11 @@ internal fun HomeScreen(
         LazyListState()
     }
     var areFeaturedSectionsVisible by rememberSaveable { mutableStateOf(true) }
+    val searching = isSearching(isSearchActive, searchQuery)
+
+    LaunchedEffect(searching) {
+        if (searching) trackListState.scrollToItem(0)
+    }
 
     if (!hasAudioPermission) {
         PermissionRequiredContent(
@@ -165,6 +174,7 @@ internal fun HomeScreen(
                             start = HomeDimens.ScreenPadding,
                             top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
                             end = HomeDimens.ScreenPadding,
+                            bottom = bottomPadding(),
                         ),
                     )
                 } else {
@@ -223,7 +233,7 @@ internal fun HomeScreen(
                             },
                             onTopTrackSelected = onTopTrackSelected,
                             onNavigateToStatistics = onNavigateToStatistics,
-                            showHighlights = searchQuery.isBlank(),
+                            isSearching = searching,
                             areFeaturedSectionsVisible = areFeaturedSectionsVisible,
                             onToggleFeaturedSections = {
                                 areFeaturedSectionsVisible = !areFeaturedSectionsVisible

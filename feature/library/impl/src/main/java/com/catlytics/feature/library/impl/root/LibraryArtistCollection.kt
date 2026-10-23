@@ -135,7 +135,7 @@ private fun ArtistList(
                     artist = artist,
                     onClick = { onArtistSelected(artist) },
                     onOptions = { onAddToPlaylist(artist) },
-                    modifier = Modifier.staggeredEntrance(
+                    modifier = Modifier.animateItem().staggeredEntrance(
                         index = index,
                         animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
                     ),
@@ -219,7 +219,7 @@ private fun ArtistGrid(
                 artist = artist,
                 onClick = { onArtistSelected(artist) },
                 onOptions = { onAddToPlaylist(artist) },
-                modifier = Modifier.staggeredEntrance(
+                modifier = Modifier.animateItem().staggeredEntrance(
                     index = index,
                     animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
                 ),

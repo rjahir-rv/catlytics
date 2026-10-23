@@ -67,6 +67,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.allowHardware
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
 import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
 import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
@@ -122,6 +123,7 @@ internal fun LibraryArtistScreen(
     isCurrentTrackPlaying: Boolean = false,
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
+    isSearching: Boolean = false,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     onShowMergePicker: () -> Unit = {},
@@ -163,6 +165,7 @@ internal fun LibraryArtistScreen(
             isCurrentTrackPlaying = isCurrentTrackPlaying,
             onTrackSelectionAction = onTrackSelectionAction,
             onTopBarColorChange = onTopBarColorChange,
+            isSearching = isSearching,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
@@ -206,6 +209,7 @@ private fun ArtistContent(
     isCurrentTrackPlaying: Boolean,
     onTrackSelectionAction: (TrackSelectionAction) -> Unit,
     onTopBarColorChange: (Color) -> Unit,
+    isSearching: Boolean,
     bottomPadding: () -> Dp,
     scaffoldContentPadding: PaddingValues,
     modifier: Modifier = Modifier,
@@ -275,6 +279,14 @@ private fun ArtistContent(
         selectedSectionIndex.intValue = pagerState.currentPage
     }
 
+    // Al buscar, los resultados empiezan arriba, justo bajo las pestañas.
+    LaunchedEffect(isSearching) {
+        if (isSearching) {
+            songsListState.scrollToItem(0)
+            albumsGridState.scrollToItem(0)
+        }
+    }
+
     LaunchedEffect(content.summary.artworkUri, artworkBitmap, fallbackGradient) {
         gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
     }
@@ -300,40 +312,44 @@ private fun ArtistContent(
             modifier = Modifier.fillMaxSize(),
         ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = scaffoldContentPadding.calculateTopPadding()),
         ) {
-            ArtistHeader(
-                content = content,
-                artworkModel = artworkRequest,
-                onArtworkLoaded = { artworkBitmap = it },
-                sortLabel = when (ArtistDetailSection.entries[pagerState.currentPage]) {
-                    ArtistDetailSection.Songs -> trackSort.takeIf { it != ArtistTrackSort.Album }?.label()
-                    ArtistDetailSection.Albums -> albumSort.takeIf { it != ArtistAlbumSort.Title }?.label()
-                },
-                playbackQueue = playbackQueue,
-                onPlayAll = { playbackQueue.firstOrNull()?.let { onTrackSelected(it, playbackQueue) } },
-                onPlayShuffled = { onPlayShuffled(playbackQueue) },
-                menuEntries = artistMenuEntries(
+            SearchCollapsibleHeader(isSearching = isSearching) {
+                ArtistHeader(
                     content = content,
-                    tracks = playbackQueue,
-                    likedTrackIds = likedTrackIds,
-                    section = ArtistDetailSection.entries[pagerState.currentPage],
-                    aliasCount = aliases.size,
-                    canRename = canRename,
-                    onTrackSelectionAction = onTrackSelectionAction,
-                    onAddToPlaylist = onAddToPlaylist,
-                    onSort = { section -> sortSheet = section },
-                    onShowRename = onShowRename,
-                    onShowMergePicker = onShowMergePicker,
-                    onShowAliasManager = onShowAliasManager,
-                ),
-                modifier = Modifier.padding(
-                    start = 20.dp,
-                    top = scaffoldContentPadding.calculateTopPadding() + 20.dp,
-                    end = 20.dp,
-                    bottom = 8.dp,
-                ),
-            )
+                    artworkModel = artworkRequest,
+                    onArtworkLoaded = { artworkBitmap = it },
+                    sortLabel = when (ArtistDetailSection.entries[pagerState.currentPage]) {
+                        ArtistDetailSection.Songs -> trackSort.takeIf { it != ArtistTrackSort.Album }?.label()
+                        ArtistDetailSection.Albums -> albumSort.takeIf { it != ArtistAlbumSort.Title }?.label()
+                    },
+                    playbackQueue = playbackQueue,
+                    onPlayAll = { playbackQueue.firstOrNull()?.let { onTrackSelected(it, playbackQueue) } },
+                    onPlayShuffled = { onPlayShuffled(playbackQueue) },
+                    menuEntries = artistMenuEntries(
+                        content = content,
+                        tracks = playbackQueue,
+                        likedTrackIds = likedTrackIds,
+                        section = ArtistDetailSection.entries[pagerState.currentPage],
+                        aliasCount = aliases.size,
+                        canRename = canRename,
+                        onTrackSelectionAction = onTrackSelectionAction,
+                        onAddToPlaylist = onAddToPlaylist,
+                        onSort = { section -> sortSheet = section },
+                        onShowRename = onShowRename,
+                        onShowMergePicker = onShowMergePicker,
+                        onShowAliasManager = onShowAliasManager,
+                    ),
+                    modifier = Modifier.padding(
+                        start = 20.dp,
+                        top = 20.dp,
+                        end = 20.dp,
+                        bottom = 8.dp,
+                    ),
+                )
+            }
             ArtistSectionTabs(
                 selectedIndex = pagerState.currentPage,
                 onSectionSelected = { index ->
@@ -821,6 +837,7 @@ private fun ArtistSongsPage(
         gridItems(items = tracks, key = Track::id) { track ->
             ArtistTrackRow(
                 track = track,
+                modifier = Modifier.animateItem(),
                 isCurrent = track.id == currentTrackId,
                 isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
                 onClick = { onTrackSelected(track) },
@@ -859,6 +876,7 @@ private fun ArtistAlbumsPage(
                 album = album,
                 onClick = { onAlbumSelected(album) },
                 onAddToPlaylist = { onAddToPlaylist(album) },
+                modifier = Modifier.animateItem(),
             )
         }
     }
@@ -869,10 +887,11 @@ private fun ArtistAlbumCard(
     album: Album,
     onClick: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .pressScale(interactionSource)
             .clip(LibraryDimens.CardShape)
@@ -941,6 +960,7 @@ private fun ArtistAlbumCard(
 @Composable
 private fun ArtistTrackRow(
     track: Track,
+    modifier: Modifier = Modifier,
     isCurrent: Boolean,
     isPlaying: Boolean,
     onClick: () -> Unit,
@@ -974,6 +994,7 @@ private fun ArtistTrackRow(
                 )
             }
         },
+        modifier = modifier,
     )
 }
 

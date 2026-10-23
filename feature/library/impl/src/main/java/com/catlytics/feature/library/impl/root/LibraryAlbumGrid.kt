@@ -82,7 +82,7 @@ internal fun LibraryAlbumGrid(
                 album = album,
                 onClick = { onAlbumSelected(album) },
                 onAddToPlaylist = { onAddToPlaylist(album) },
-                modifier = Modifier.staggeredEntrance(
+                modifier = Modifier.animateItem().staggeredEntrance(
                     index = index,
                     animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
                 ),

@@ -30,6 +30,7 @@ import com.catlytics.feature.library.impl.root.LibraryRoute as LibraryRootRoute
 fun EntryProviderScope<NavKey>.libraryEntry(
     searchQuery: () -> String,
     artistSearchQuery: () -> String,
+    isArtistSearchActive: () -> Boolean = { false },
     onArtistSearchQueryChange: (String) -> Unit,
     onDestinationSelected: (NavKey) -> Unit,
     onListDestinationSelected: (NavKey) -> Unit = onDestinationSelected,
@@ -106,6 +107,7 @@ fun EntryProviderScope<NavKey>.libraryEntry(
                 onLibraryDetailTopBarColorChange(route, color)
             },
             searchQuery = artistSearchQuery(),
+            isSearchActive = isArtistSearchActive(),
             onSearchQueryChange = onArtistSearchQueryChange,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = LocalPaneChrome.current.contentPadding,

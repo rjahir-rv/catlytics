@@ -68,6 +68,7 @@ import com.catlytics.core.designsystem.layout.CenteredListContainer
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
+import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
 import com.catlytics.core.designsystem.component.sectionLetter
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
@@ -107,7 +108,7 @@ internal fun HomeTrackList(
     onRecentlyPlayedTrackSelected: (Track) -> Unit,
     onTopTrackSelected: (String) -> Unit,
     onNavigateToStatistics: () -> Unit,
-    showHighlights: Boolean,
+    isSearching: Boolean,
     areFeaturedSectionsVisible: Boolean,
     onToggleFeaturedSections: () -> Unit,
 ) {
@@ -123,90 +124,88 @@ internal fun HomeTrackList(
             contentPadding = contentPadding.plusHorizontal(horizontalInset),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            if (showHighlights) {
-                item(key = "featured-sections-header") {
-                    FeaturedSectionsHeader(
-                        areFeaturedSectionsVisible = areFeaturedSectionsVisible,
-                        onToggleFeaturedSections = onToggleFeaturedSections,
-                        modifier = Modifier.padding(horizontal = HomeDimens.ScreenPadding),
-                    )
-                }
-                item(key = "featured-sections-content") {
-                    AnimatedVisibility(
-                        visible = areFeaturedSectionsVisible,
-                        enter = expandVertically(
-                            animationSpec = tween(durationMillis = 260),
-                            expandFrom = Alignment.Top,
-                        ) + fadeIn(animationSpec = tween(durationMillis = 180)),
-                        exit = shrinkVertically(
-                            animationSpec = tween(durationMillis = 240),
-                            shrinkTowards = Alignment.Top,
-                        ) + fadeOut(animationSpec = tween(durationMillis = 160)),
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = HomeDimens.ScreenPadding),
-                            verticalArrangement = Arrangement.spacedBy(HomeDimens.SectionSpacing),
+            item(key = "home-header") {
+                SearchCollapsibleHeader(isSearching = isSearching) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        FeaturedSectionsHeader(
+                            areFeaturedSectionsVisible = areFeaturedSectionsVisible,
+                            onToggleFeaturedSections = onToggleFeaturedSections,
+                            modifier = Modifier.padding(horizontal = HomeDimens.ScreenPadding),
+                        )
+                        AnimatedVisibility(
+                            visible = areFeaturedSectionsVisible,
+                            enter = expandVertically(
+                                animationSpec = tween(durationMillis = 260),
+                                expandFrom = Alignment.Top,
+                            ) + fadeIn(animationSpec = tween(durationMillis = 180)),
+                            exit = shrinkVertically(
+                                animationSpec = tween(durationMillis = 240),
+                                shrinkTowards = Alignment.Top,
+                            ) + fadeOut(animationSpec = tween(durationMillis = 160)),
                         ) {
-                            if (
-                                showRecommendedPlaylists &&
-                                (
-                                    recentlyAddedTrackCount > 0 ||
-                                        dailyPlaylistTrackCount > 0 ||
-                                        canShuffleAll ||
-                                        favoriteTrackCount > 0
-                                    )
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = HomeDimens.ScreenPadding),
+                                verticalArrangement = Arrangement.spacedBy(HomeDimens.SectionSpacing),
                             ) {
-                                HomeQuickActions(
-                                    dailyPlaylistTrackCount = dailyPlaylistTrackCount,
-                                    canShuffleAll = canShuffleAll,
-                                    favoriteTrackCount = favoriteTrackCount,
-                                    recentlyAddedTrackCount = recentlyAddedTrackCount,
-                                    onOpenDailyPlaylist = onOpenDailyPlaylist,
-                                    onShuffleAll = onShuffleAll,
-                                    onOpenFavorites = onOpenFavorites,
-                                    onOpenRecentlyAdded = onOpenRecentlyAdded,
+                                if (
+                                    showRecommendedPlaylists &&
+                                    (
+                                        recentlyAddedTrackCount > 0 ||
+                                            dailyPlaylistTrackCount > 0 ||
+                                            canShuffleAll ||
+                                            favoriteTrackCount > 0
+                                        )
+                                ) {
+                                    HomeQuickActions(
+                                        dailyPlaylistTrackCount = dailyPlaylistTrackCount,
+                                        canShuffleAll = canShuffleAll,
+                                        favoriteTrackCount = favoriteTrackCount,
+                                        recentlyAddedTrackCount = recentlyAddedTrackCount,
+                                        onOpenDailyPlaylist = onOpenDailyPlaylist,
+                                        onShuffleAll = onShuffleAll,
+                                        onOpenFavorites = onOpenFavorites,
+                                        onOpenRecentlyAdded = onOpenRecentlyAdded,
+                                        animateEntrance = !entranceDone,
+                                    )
+                                }
+                                HomeHighlights(
+                                    recentlyPlayedTracks = recentlyPlayedTracks,
+                                    topTracks = topTracks,
+                                    onRecentlyPlayedTrackSelected = onRecentlyPlayedTrackSelected,
+                                    onTopTrackSelected = onTopTrackSelected,
+                                    onNavigateToStatistics = onNavigateToStatistics,
                                     animateEntrance = !entranceDone,
+                                    modifier = Modifier.padding(bottom = 8.dp),
                                 )
                             }
-                            HomeHighlights(
-                                recentlyPlayedTracks = recentlyPlayedTracks,
-                                topTracks = topTracks,
-                                onRecentlyPlayedTrackSelected = onRecentlyPlayedTrackSelected,
-                                onTopTrackSelected = onTopTrackSelected,
-                                onNavigateToStatistics = onNavigateToStatistics,
-                                animateEntrance = !entranceDone,
-                                modifier = Modifier.padding(bottom = 8.dp),
+                        }
+                        Row(
+                            modifier = Modifier.padding(
+                                start = HomeDimens.ScreenPadding,
+                                top = 8.dp,
+                                end = HomeDimens.ScreenPadding,
+                                bottom = 4.dp,
+                            ),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            Text(
+                                text = stringResource(HomeR.string.home_all_tracks_title),
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                text = pluralStringResource(
+                                    HomeR.plurals.home_all_tracks_count,
+                                    tracks.size,
+                                    tracks.size,
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = 2.dp),
                             )
                         }
-                    }
-                }
-                item {
-                    Row(
-                        modifier = Modifier.padding(
-                            start = HomeDimens.ScreenPadding,
-                            top = 8.dp,
-                            end = HomeDimens.ScreenPadding,
-                            bottom = 4.dp,
-                        ),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
-                        Text(
-                            text = stringResource(HomeR.string.home_all_tracks_title),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = pluralStringResource(
-                                HomeR.plurals.home_all_tracks_count,
-                                tracks.size,
-                                tracks.size,
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(bottom = 2.dp),
-                        )
                     }
                 }
             }
@@ -224,7 +223,9 @@ internal fun HomeTrackList(
                         }
                     },
                     onTrackOptions = { onTrackOptions(track) },
-                    modifier = Modifier.padding(horizontal = HomeDimens.ScreenPadding),
+                    modifier = Modifier
+                        .animateItem()
+                        .padding(horizontal = HomeDimens.ScreenPadding),
                     selected = track.id in selectedTrackIds,
                     selectionActive = selectionActive,
                     onLongClick = { onTrackLongClick(track) },
@@ -234,15 +235,14 @@ internal fun HomeTrackList(
         CatlyticsLetterFastScroller(
             listState = state,
             itemCount = tracks.size,
-            headerItemCount = if (showHighlights) HIGHLIGHT_HEADER_ITEM_COUNT else 0,
+            headerItemCount = HEADER_ITEM_COUNT,
             letterForVisibleTrackIndex = { index -> tracks[index].title.sectionLetter() },
             contentPadding = contentPadding,
         )
     }
 }
 
-/** Items fijos antes de las canciones: encabezado, secciones destacadas y título de la lista. */
-private const val HIGHLIGHT_HEADER_ITEM_COUNT = 3
+private const val HEADER_ITEM_COUNT = 1
 private val QUICK_ACTION_CARD_HEIGHT = 116.dp
 private const val ENTRANCE_SETTLE_MILLIS = 900L
 private const val ENTRANCE_MAX_STAGGERED_ITEMS = 4

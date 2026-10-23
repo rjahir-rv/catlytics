@@ -1,6 +1,8 @@
 package com.catlytics.core.designsystem.locale
 
 import android.content.Context
+import android.content.ContextWrapper
+import android.content.res.AssetManager
 import android.content.res.Configuration
 import android.content.res.Resources
 import com.catlytics.core.model.AppLanguage
@@ -21,5 +23,17 @@ fun Context.withAppLocale(locale: Locale): Context {
     val configuration = Configuration(resources.configuration)
     configuration.setLocale(locale)
     configuration.setLayoutDirection(locale)
-    return createConfigurationContext(configuration)
+    return LocalizedContext(
+        base = this,
+        localizedResources = createConfigurationContext(configuration).resources,
+    )
+}
+
+private class LocalizedContext(
+    base: Context,
+    private val localizedResources: Resources,
+) : ContextWrapper(base) {
+    override fun getResources(): Resources = localizedResources
+
+    override fun getAssets(): AssetManager = localizedResources.assets
 }

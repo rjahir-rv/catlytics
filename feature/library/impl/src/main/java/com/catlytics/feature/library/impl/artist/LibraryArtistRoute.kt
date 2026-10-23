@@ -18,6 +18,7 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.api.LibraryArtistRoute
+import com.catlytics.core.designsystem.component.isSearching
 
 @Composable
 internal fun LibraryArtistRoute(
@@ -32,6 +33,7 @@ internal fun LibraryArtistRoute(
     onTopBarColorChange: (Color) -> Unit,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
+    isSearchActive: Boolean = false,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: LibraryArtistViewModel = hiltViewModel(),
@@ -65,6 +67,7 @@ internal fun LibraryArtistRoute(
         isCurrentTrackPlaying = isCurrentTrackPlaying,
         onTrackSelectionAction = onTrackSelectionAction,
         onTopBarColorChange = onTopBarColorChange,
+        isSearching = isSearching(isSearchActive, searchQuery),
         bottomPadding = bottomPadding,
         scaffoldContentPadding = scaffoldContentPadding,
         onShowMergePicker = viewModel::showMergePicker,

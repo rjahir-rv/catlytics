@@ -10,19 +10,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -64,7 +58,9 @@ import coil3.request.allowHardware
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
 import com.catlytics.core.designsystem.component.TrackSelectionHost
+import com.catlytics.core.designsystem.component.isSearching
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
@@ -72,7 +68,6 @@ import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.NowPlaying
-import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
@@ -151,10 +146,8 @@ internal fun PlaylistDetailScreen(
     val displayedTracks = if (customOrdering) customTracks else filteredTracks
     val hidePlaylistHeader = shouldHidePlaylistHeader(searchFocused, searchQuery)
     val listState = rememberLazyListState()
-    // El teclado se lee al medir/colocar (no al componer) para que su animación no recomponga
-    // toda la pantalla.
-    val imePadding = WindowInsets.ime.asPaddingValues()
-    val bottomInset = { maxOf(bottomPadding(), imePadding.calculateBottomPadding()) }
+    // bottomPadding ya incluye el teclado; se lee al medir/colocar (no al componer) para que su
+    // animación no recomponga toda la pantalla.
     val scrollConnection = remember(searchQuery, searchFocused, customOrdering) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -217,7 +210,6 @@ internal fun PlaylistDetailScreen(
             surfaceBlend = PLAYLIST_ARTWORK_SURFACE_BLEND,
         ) ?: noArtworkGradient
     }
-    // La entrada escalonada de las filas solo ocurre la primera vez que se abre la playlist.
     var entranceDone by rememberSaveable(playlist.id) { mutableStateOf(false) }
     LaunchedEffect(playlist.id) {
         delay(ENTRANCE_SETTLE_MILLIS)
@@ -263,8 +255,6 @@ internal fun PlaylistDetailScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            // Sigue siendo lista (permite reordenar arrastrando); en pantallas anchas se centra
-            // con un ancho máximo para que las filas no se estiren.
             val horizontalInset =
                 ((maxWidth - CatlyticsLayoutTokens.ListContentMaxWidth) / 2).coerceAtLeast(0.dp)
             LazyColumn(
@@ -282,15 +272,11 @@ internal fun PlaylistDetailScreen(
                             0.dp
                         },
                 ).plusHorizontal(horizontalInset).withDeferredBottom {
-                    bottomInset() + 20.dp + if (selection.active) 72.dp else 0.dp
+                    bottomPadding() + 20.dp + if (selection.active) 72.dp else 0.dp
                 },
             ) {
                 item(key = "playlist-header") {
-                    AnimatedVisibility(
-                        visible = !hidePlaylistHeader,
-                        enter = expandVertically() + fadeIn(),
-                        exit = shrinkVertically() + fadeOut(),
-                    ) {
+                    SearchCollapsibleHeader(isSearching = hidePlaylistHeader) {
                         PlaylistHeader(
                             playlist = playlist,
                             tracks = content.tracks,
@@ -430,7 +416,7 @@ internal fun PlaylistDetailScreen(
                 hostState = snackbarHostState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .offset { IntOffset(0, -(bottomInset() + 8.dp).roundToPx()) },
+                    .offset { IntOffset(0, -(bottomPadding() + 8.dp).roundToPx()) },
             )
         }
         }
@@ -569,7 +555,7 @@ private fun PlaylistDetailOverlays(
 internal fun shouldHidePlaylistHeader(
     searchFocused: Boolean,
     searchQuery: String,
-): Boolean = searchFocused || searchQuery.isNotBlank()
+): Boolean = isSearching(isSearchActive = searchFocused, searchQuery = searchQuery)
 
 private const val PLAYLIST_ARTWORK_SURFACE_BLEND = 0.32f
 private const val IDENTITY_SURFACE_BLEND = 0.3f

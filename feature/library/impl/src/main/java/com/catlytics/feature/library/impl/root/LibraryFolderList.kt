@@ -115,7 +115,7 @@ internal fun LibraryFolderList(
                     },
                     onClick = { onFolderSelected(folder) },
                     onAddToPlaylist = { onAddToPlaylist(folder) },
-                    modifier = Modifier.staggeredEntrance(
+                    modifier = Modifier.animateItem().staggeredEntrance(
                         index = index + 1,
                         animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
                     ),

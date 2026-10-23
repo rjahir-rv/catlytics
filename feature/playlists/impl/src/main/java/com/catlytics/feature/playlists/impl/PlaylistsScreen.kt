@@ -209,6 +209,7 @@ internal fun PlaylistsScreen(
 
                 PlaylistsStateKind.NoResults -> CatlyticsEmptyState(
                     message = stringResource(PlaylistsR.string.playlists_no_search_results),
+                    modifier = Modifier.padding(bottom = bottomPadding()),
                     messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     mascotSize = 160.dp,
                 )

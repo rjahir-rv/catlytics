@@ -13,6 +13,7 @@ import com.catlytics.feature.home.api.RecentlyAddedRoute
 
 fun EntryProviderScope<NavKey>.homeEntry(
     searchQuery: () -> String,
+    isSearchActive: () -> Boolean = { false },
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: () -> Set<String> = { emptySet() },
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
@@ -29,6 +30,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
     entry<HomeRoute> {
         HomeRoute(
             searchQuery = searchQuery(),
+            isSearchActive = isSearchActive(),
             onTrackOptions = onTrackOptions,
             likedTrackIds = likedTrackIds(),
             onTrackSelectionAction = onTrackSelectionAction,
