@@ -1,6 +1,7 @@
 package com.catlytics.feature.playlists.impl
 
 import com.catlytics.core.designsystem.layout.plusHorizontal
+import com.catlytics.core.designsystem.layout.withDeferredBottom
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import androidx.compose.foundation.layout.BoxWithConstraints
 import android.graphics.Bitmap
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -53,6 +55,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import coil3.compose.LocalPlatformContext
@@ -73,6 +76,7 @@ import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.core.navigation.ViewModelStoreScope
 import com.catlytics.core.designsystem.R as DsR
 import kotlinx.coroutines.delay
 
@@ -91,7 +95,7 @@ internal fun PlaylistDetailScreen(
     onTogglePlayback: () -> Unit,
     onSaveDetails: (String, String, String?, Boolean, () -> Unit) -> Unit,
     onSaveOrder: (List<String>, () -> Unit) -> Unit,
-    onAddTracks: (List<String>, () -> Unit) -> Unit,
+    onAddTracks: (List<String>) -> Unit,
     onDelete: () -> Unit,
     onExportM3u: () -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
@@ -127,10 +131,10 @@ internal fun PlaylistDetailScreen(
     var showAddTracksSheet by remember { mutableStateOf(false) }
     var customOrdering by remember { mutableStateOf(false) }
     var customTracks by remember { mutableStateOf(emptyList<Track>()) }
-    var editName by remember { mutableStateOf(playlist.name) }
-    var editDescription by remember { mutableStateOf(playlist.description) }
-    var editArtworkUri by remember { mutableStateOf(playlist.artworkUri) }
-    var artworkChanged by remember { mutableStateOf(false) }
+    var editName by remember(playlist.id) { mutableStateOf(playlist.name) }
+    var editDescription by remember(playlist.id) { mutableStateOf(playlist.description) }
+    var editArtworkUri by remember(playlist.id) { mutableStateOf(playlist.artworkUri) }
+    var artworkChanged by remember(playlist.id) { mutableStateOf(false) }
 
     val coverPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
@@ -147,7 +151,10 @@ internal fun PlaylistDetailScreen(
     val displayedTracks = if (customOrdering) customTracks else filteredTracks
     val hidePlaylistHeader = shouldHidePlaylistHeader(searchFocused, searchQuery)
     val listState = rememberLazyListState()
-    val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+    // El teclado se lee al medir/colocar (no al componer) para que su animación no recomponga
+    // toda la pantalla.
+    val imePadding = WindowInsets.ime.asPaddingValues()
+    val bottomInset = { maxOf(bottomPadding(), imePadding.calculateBottomPadding()) }
     val scrollConnection = remember(searchQuery, searchFocused, customOrdering) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -200,8 +207,9 @@ internal fun PlaylistDetailScreen(
         labelPrefix = "PlaylistDetailGradient",
     )
 
-    LaunchedEffect(animatedGradientColors.start) {
-        onTopBarColorChange(animatedGradientColors.start)
+    // Se reporta el color destino; la barra superior lo anima por su cuenta.
+    LaunchedEffect(gradientColors.start) {
+        onTopBarColorChange(gradientColors.start)
     }
     LaunchedEffect(playlist.artworkUri, artworkBitmap, fallbackGradient, noArtworkGradient) {
         gradientColors = artworkBitmap?.extractArtworkGradientColors(
@@ -237,8 +245,10 @@ internal fun PlaylistDetailScreen(
         TrackSelectionHost(
             selection = selection,
             onSelectionChange = { selectionState.value = it },
-            visibleIds = displayedTracks.map(Track::id),
-            selectedTracks = selection.selectedTracks(content.tracks),
+            visibleIds = remember(displayedTracks) { displayedTracks.map(Track::id) },
+            selectedTracks = remember(selection, content.tracks) {
+                selection.selectedTracks(content.tracks)
+            },
             likedTrackIds = likedTrackIds,
             currentTrackId = nowPlaying.trackId,
             topInset = scaffoldContentPadding.calculateTopPadding(),
@@ -271,9 +281,9 @@ internal fun PlaylistDetailScreen(
                         } else {
                             0.dp
                         },
-                    bottom = maxOf(bottomPadding(), imeBottom) + 20.dp +
-                        if (selection.active) 72.dp else 0.dp,
-                ).plusHorizontal(horizontalInset),
+                ).plusHorizontal(horizontalInset).withDeferredBottom {
+                    bottomInset() + 20.dp + if (selection.active) 72.dp else 0.dp
+                },
             ) {
                 item(key = "playlist-header") {
                     AnimatedVisibility(
@@ -420,7 +430,7 @@ internal fun PlaylistDetailScreen(
                 hostState = snackbarHostState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = maxOf(bottomPadding(), imeBottom) + 8.dp),
+                    .offset { IntOffset(0, -(bottomInset() + 8.dp).roundToPx()) },
             )
         }
         }
@@ -478,7 +488,7 @@ internal fun PlaylistDetailScreen(
         },
     )
 
-    if (showAddSheet) {
+    ViewModelStoreScope(key = playlist.id.takeIf { showAddSheet }) {
         AddToPlaylistSheet(
             source = PlaylistSource.TrackCollectionSource(
                 title = playlist.displayName(),
@@ -496,7 +506,8 @@ internal fun PlaylistDetailScreen(
             existingTrackIds = playlist.trackIds.toSet(),
             onDismiss = { showAddTracksSheet = false },
             onAdd = { selectedTrackIds ->
-                onAddTracks(selectedTrackIds) { showAddTracksSheet = false }
+                showAddTracksSheet = false
+                onAddTracks(selectedTrackIds)
             },
         )
     }

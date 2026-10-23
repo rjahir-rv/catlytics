@@ -13,6 +13,7 @@ dependencies {
     api(libs.androidx.navigation3.ui)
     api(libs.androidx.compose.material3.adaptive.navigation3)
     implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.compose.animation)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.serialization.json)

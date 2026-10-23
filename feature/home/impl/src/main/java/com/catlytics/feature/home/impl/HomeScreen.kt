@@ -1,6 +1,9 @@
 package com.catlytics.feature.home.impl
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -121,18 +125,15 @@ internal fun HomeScreen(
         return
     }
 
-    val stateKind = when (displayedUiState) {
-        HomeUiState.Empty -> HomeStateKind.Empty
-        is HomeUiState.Error -> HomeStateKind.Error
-        HomeUiState.Loading -> HomeStateKind.Loading
-        is HomeUiState.Success -> HomeStateKind.Success
-    }
-    Crossfade(
-        targetState = stateKind,
-        animationSpec = tween(STATE_FADE_MILLIS),
+    AnimatedContent(
+        targetState = displayedUiState,
+        transitionSpec = {
+            (fadeIn(tween(STATE_FADE_MILLIS)) togetherWith fadeOut(tween(STATE_FADE_MILLIS))).using(null)
+        },
+        contentKey = { it::class },
         label = "homeState",
-    ) { _ ->
-        when (displayedUiState) {
+    ) { state ->
+        when (state) {
             HomeUiState.Empty -> EmptyLibraryContent(
                 modifier = modifier
                     .fillMaxSize()
@@ -144,7 +145,7 @@ internal fun HomeScreen(
                     ),
             )
             is HomeUiState.Error -> ErrorContent(
-                message = displayedUiState.message,
+                message = state.message,
                 modifier = modifier.padding(
                     start = HomeDimens.ScreenPadding,
                     top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
@@ -155,7 +156,9 @@ internal fun HomeScreen(
                 modifier = modifier.padding(top = scaffoldContentPadding.calculateTopPadding()),
             )
             is HomeUiState.Success -> {
-                val filteredTracks = displayedUiState.tracks.filterByQuery(searchQuery)
+                val filteredTracks = remember(state.tracks, searchQuery) {
+                    state.tracks.filterByQuery(searchQuery)
+                }
                 if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
                     NoSearchResultsContent(
                         modifier = modifier.padding(
@@ -167,14 +170,17 @@ internal fun HomeScreen(
                 } else {
                     val selectionState = rememberTrackSelectionState()
                     val selection = selectionState.value
-                    val selectedTracks = selection.selectedTracks(displayedUiState.tracks)
+                    val selectedTracks = remember(selection, state.tracks) {
+                        selection.selectedTracks(state.tracks)
+                    }
+                    val visibleIds = remember(filteredTracks) { filteredTracks.map(Track::id) }
                     TrackSelectionHost(
                         selection = selection,
                         onSelectionChange = { selectionState.value = it },
-                        visibleIds = filteredTracks.map(Track::id),
+                        visibleIds = visibleIds,
                         selectedTracks = selectedTracks,
                         likedTrackIds = likedTrackIds,
-                        currentTrackId = displayedUiState.currentTrackId,
+                        currentTrackId = state.currentTrackId,
                         topInset = scaffoldContentPadding.calculateTopPadding(),
                         bottomInset = bottomPadding(),
                         onAction = onTrackSelectionAction,
@@ -182,17 +188,17 @@ internal fun HomeScreen(
                     ) {
                         HomeTrackList(
                             tracks = filteredTracks,
-                            playbackQueue = displayedUiState.tracks,
-                            dailyPlaylistTrackCount = displayedUiState.dailyPlaylistTrackCount,
-                            canShuffleAll = displayedUiState.canShuffleAll,
-                            favoriteTrackCount = displayedUiState.favoriteTracks.size,
-                            recentlyAddedTrackCount = displayedUiState.recentlyAddedTracks.size,
-                            newTrackIds = displayedUiState.newTrackIds,
-                            showRecommendedPlaylists = displayedUiState.showRecommendedPlaylists,
-                            recentlyPlayedTracks = displayedUiState.recentlyPlayedTracks,
-                            topTracks = displayedUiState.topTracks,
-                            currentTrackId = displayedUiState.currentTrackId,
-                            isCurrentTrackPlaying = displayedUiState.isCurrentTrackPlaying,
+                            playbackQueue = state.tracks,
+                            dailyPlaylistTrackCount = state.dailyPlaylistTrackCount,
+                            canShuffleAll = state.canShuffleAll,
+                            favoriteTrackCount = state.favoriteTracks.size,
+                            recentlyAddedTrackCount = state.recentlyAddedTracks.size,
+                            newTrackIds = state.newTrackIds,
+                            showRecommendedPlaylists = state.showRecommendedPlaylists,
+                            recentlyPlayedTracks = state.recentlyPlayedTracks,
+                            topTracks = state.topTracks,
+                            currentTrackId = state.currentTrackId,
+                            isCurrentTrackPlaying = state.isCurrentTrackPlaying,
                             onTrackSelected = onTrackSelected,
                             onOpenDailyPlaylist = onOpenDailyPlaylist,
                             onShuffleAll = onShuffleAll,
@@ -213,7 +219,7 @@ internal fun HomeScreen(
                                 selectionState.value = selection.onTrackLongClick(track.id)
                             },
                             onRecentlyPlayedTrackSelected = { track ->
-                                onTrackSelected(track, displayedUiState.tracks)
+                                onTrackSelected(track, state.tracks)
                             },
                             onTopTrackSelected = onTopTrackSelected,
                             onNavigateToStatistics = onNavigateToStatistics,
@@ -229,8 +235,6 @@ internal fun HomeScreen(
         }
     }
 }
-
-private enum class HomeStateKind { Loading, Empty, Error, Success }
 
 private const val STATE_FADE_MILLIS = 220
 

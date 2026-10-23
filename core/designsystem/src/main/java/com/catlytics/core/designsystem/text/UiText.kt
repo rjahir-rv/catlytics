@@ -14,7 +14,8 @@ import androidx.annotation.StringRes
 sealed interface UiText {
 
     /**
-     * Texto simple. [args] se aplican como argumentos de formato posicionales (`%1$s`, `%1$d`).
+     * Texto simple. [args] se aplican como argumentos de formato posicionales (`%1$s`, `%1$d`);
+     * los que sean [UiText] se resuelven antes (en [Plural] también).
      */
     data class Resource(
         @param:StringRes val id: Int,

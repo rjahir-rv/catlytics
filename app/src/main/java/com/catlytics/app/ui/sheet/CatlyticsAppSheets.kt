@@ -1,9 +1,9 @@
 package com.catlytics.app.ui.sheet
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.key
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
+import com.catlytics.core.navigation.ViewModelStoreScope
 import com.catlytics.feature.library.impl.metadata.EditTrackMetadataSheet
 import com.catlytics.feature.library.impl.metadata.EditTracksMetadataSheet
 import com.catlytics.feature.playlists.impl.AddToPlaylistSheet
@@ -26,7 +26,6 @@ internal fun CatlyticsAppSheets(
     bulkEditTrackIds: List<String>?,
     onDismissBulkEdit: () -> Unit,
     playlistSource: PlaylistSource?,
-    playlistSheetSession: Int,
     onDismissPlaylistSheet: () -> Unit,
     onCreatePlaylist: (trackIds: List<String>) -> Unit,
 ) {
@@ -51,28 +50,26 @@ internal fun CatlyticsAppSheets(
         )
     }
 
-    editMetadataTrackId?.let { trackId ->
+    ViewModelStoreScope(key = editMetadataTrackId) { trackId ->
         EditTrackMetadataSheet(
             trackId = trackId,
             onDismiss = onDismissEditMetadata,
         )
     }
 
-    bulkEditTrackIds?.let { trackIds ->
+    ViewModelStoreScope(key = bulkEditTrackIds) { trackIds ->
         EditTracksMetadataSheet(
             trackIds = trackIds,
             onDismiss = onDismissBulkEdit,
         )
     }
 
-    playlistSource?.let { source ->
-        key(playlistSheetSession) {
-            AddToPlaylistSheet(
-                source = source,
-                onDismiss = onDismissPlaylistSheet,
-                onCreatePlaylist = onCreatePlaylist,
-            )
-        }
+    ViewModelStoreScope(key = playlistSource) { source ->
+        AddToPlaylistSheet(
+            source = source,
+            onDismiss = onDismissPlaylistSheet,
+            onCreatePlaylist = onCreatePlaylist,
+        )
     }
 }
 

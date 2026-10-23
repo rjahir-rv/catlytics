@@ -2,6 +2,8 @@ package com.catlytics.app.playback
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.catlytics.app.R
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.repository.SleepTimerController
 import com.catlytics.core.domain.usecase.playback.AddQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.CycleRepeatModeUseCase
@@ -29,6 +31,9 @@ import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -61,6 +66,10 @@ class PlaybackViewModel @Inject constructor(
     private val removeTracksFromLikedUseCase: RemoveTracksFromLikedUseCase,
     private val sleepTimerController: SleepTimerController,
 ) : ViewModel() {
+    private val _messages = MutableSharedFlow<UiText>(extraBufferCapacity = 4)
+
+    val messages: SharedFlow<UiText> = _messages.asSharedFlow()
+
     private val fullPlaybackState: StateFlow<PlaybackState> = observePlaybackStateUseCase()
         .stateIn(
             scope = viewModelScope,
@@ -199,48 +208,68 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
-    fun addQueueItem(track: Track, onAdded: () -> Unit) {
-        enqueueTrack(track, onAdded) { addQueueItemUseCase(it) }
-    }
-
-    fun playNext(track: Track, onQueued: () -> Unit) {
-        enqueueTrack(track, onQueued) { playNextUseCase(it) }
-    }
-
-    fun addQueueItems(tracks: List<Track>, onAdded: (Int) -> Unit) {
-        viewModelScope.launch {
-            onAdded(addQueueItemUseCase.invokeAll(tracks, playbackState.value.currentTrack?.id))
+    fun addQueueItem(track: Track) {
+        enqueueTrack(track, UiText.Resource(R.string.app_toast_added_to_queue)) {
+            addQueueItemUseCase(it)
         }
     }
 
-    fun playNextTracks(tracks: List<Track>, onQueued: (Int) -> Unit) {
-        viewModelScope.launch {
-            onQueued(playNextUseCase.invokeAll(tracks, playbackState.value.currentTrack?.id))
+    fun playNext(track: Track) {
+        enqueueTrack(track, UiText.Resource(R.string.app_toast_will_play_next)) {
+            playNextUseCase(it)
         }
     }
 
-    fun likeTracks(trackIds: Collection<String>, onResult: (Int) -> Unit) {
+    fun addQueueItems(tracks: List<Track>) {
         viewModelScope.launch {
-            onResult(addTracksToLikedUseCase(trackIds))
+            val added = addQueueItemUseCase.invokeAll(tracks, playbackState.value.currentTrack?.id)
+            _messages.emit(UiText.Plural(R.plurals.app_toast_tracks_added_to_queue, added))
         }
     }
 
-    fun unlikeTracks(trackIds: Collection<String>, onResult: (Int) -> Unit) {
+    fun playNextTracks(tracks: List<Track>) {
         viewModelScope.launch {
-            onResult(removeTracksFromLikedUseCase(trackIds))
+            val queued = playNextUseCase.invokeAll(tracks, playbackState.value.currentTrack?.id)
+            _messages.emit(UiText.Plural(R.plurals.app_toast_tracks_will_play_next, queued))
+        }
+    }
+
+    fun likeTracks(trackIds: Collection<String>) {
+        viewModelScope.launch {
+            val added = addTracksToLikedUseCase(trackIds)
+            _messages.emit(
+                UiText.Plural(
+                    id = R.plurals.app_toast_tracks_added_to_liked,
+                    count = added,
+                    args = listOf(added, LikedPlaylistName),
+                ),
+            )
+        }
+    }
+
+    fun unlikeTracks(trackIds: Collection<String>) {
+        viewModelScope.launch {
+            val removed = removeTracksFromLikedUseCase(trackIds)
+            _messages.emit(
+                UiText.Plural(
+                    id = R.plurals.app_toast_tracks_removed_from_liked,
+                    count = removed,
+                    args = listOf(removed, LikedPlaylistName),
+                ),
+            )
         }
     }
 
     private fun enqueueTrack(
         track: Track,
-        onQueued: () -> Unit,
+        message: UiText,
         action: suspend (Track) -> Unit,
     ) {
         val currentTrackId = playbackState.value.currentTrack?.id ?: return
         if (currentTrackId == track.id) return
         viewModelScope.launch {
             action(track)
-            onQueued()
+            _messages.emit(message)
         }
     }
 
@@ -256,14 +285,18 @@ class PlaybackViewModel @Inject constructor(
         }
     }
 
-    fun toggleCurrentTrackLiked(onResult: (ToggleLikedTrackResult) -> Unit) {
+    fun toggleCurrentTrackLiked() {
         val trackId = playbackState.value.currentTrack?.id ?: return
-        toggleTrackLiked(trackId, onResult)
+        toggleTrackLiked(trackId)
     }
 
-    fun toggleTrackLiked(trackId: String, onResult: (ToggleLikedTrackResult) -> Unit) {
+    fun toggleTrackLiked(trackId: String) {
         viewModelScope.launch {
-            onResult(toggleLikedTrackUseCase(trackId))
+            val messageRes = when (toggleLikedTrackUseCase(trackId)) {
+                ToggleLikedTrackResult.Added -> R.string.app_toast_track_added_to_liked
+                ToggleLikedTrackResult.Removed -> R.string.app_toast_track_removed_from_liked
+            }
+            _messages.emit(UiText.Resource(messageRes, listOf(LikedPlaylistName)))
         }
     }
 
@@ -284,6 +317,7 @@ class PlaybackViewModel @Inject constructor(
 
     private companion object {
         const val SEEK_INTERVAL_MILLIS = 10_000L
+        val LikedPlaylistName = UiText.Resource(R.string.app_playlist_liked_name)
     }
 }
 

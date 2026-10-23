@@ -1,6 +1,10 @@
 package com.catlytics.feature.statistics.impl
 
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
@@ -8,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -17,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.domain.usecase.statistics.StatsPeriodCalculator
 import com.catlytics.core.model.StatsGranularity
 import com.catlytics.feature.statistics.impl.components.ActivityChart
@@ -42,20 +46,22 @@ internal fun StatisticsExploreScreen(
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val contentPadding = statsContentPadding(scaffoldContentPadding, bottomPadding)
 
-    Crossfade(
-        targetState = uiState::class,
+    AnimatedContent(
+        targetState = uiState,
         modifier = modifier.fillMaxSize(),
+        transitionSpec = { (fadeIn(tween()) togetherWith fadeOut(tween())).using(null) },
+        contentKey = { it::class },
         label = "statsExploreState",
-    ) { kind ->
-        when (kind) {
-            StatisticsExploreUiState.Loading::class -> StatsSkeleton(contentPadding = contentPadding)
+    ) { state ->
+        when (state) {
+            StatisticsExploreUiState.Loading -> StatsSkeleton(contentPadding = contentPadding)
 
-            StatisticsExploreUiState.Error::class -> StatsErrorState(contentPadding = contentPadding)
+            StatisticsExploreUiState.Error -> StatsErrorState(contentPadding = contentPadding)
 
-            else -> (uiState as? StatisticsExploreUiState.Success)?.let { state ->
+            is StatisticsExploreUiState.Success -> {
                 StatisticsExploreContent(
                     data = state.data,
                     onGranularityChange = viewModel::setGranularity,

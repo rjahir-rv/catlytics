@@ -267,8 +267,8 @@ private fun ArtistContent(
         labelPrefix = "LibraryArtistGradient",
     )
 
-    LaunchedEffect(animatedGradientColors.start) {
-        onTopBarColorChange(animatedGradientColors.start)
+    LaunchedEffect(gradientColors.start) {
+        onTopBarColorChange(gradientColors.start)
     }
 
     LaunchedEffect(pagerState.currentPage) {
@@ -288,8 +288,10 @@ private fun ArtistContent(
         TrackSelectionHost(
             selection = selection,
             onSelectionChange = { selectionState.value = it },
-            visibleIds = content.tracks.map(Track::id),
-            selectedTracks = selection.selectedTracks(content.tracks),
+            visibleIds = remember(content.tracks) { content.tracks.map(Track::id) },
+            selectedTracks = remember(selection, content.tracks) {
+                selection.selectedTracks(content.tracks)
+            },
             likedTrackIds = likedTrackIds,
             currentTrackId = currentTrackId,
             topInset = scaffoldContentPadding.calculateTopPadding(),

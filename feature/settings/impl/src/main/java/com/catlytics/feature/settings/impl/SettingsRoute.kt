@@ -1,5 +1,6 @@
 package com.catlytics.feature.settings.impl
 
+import android.content.res.Resources
 import android.widget.Toast
 import androidx.annotation.RawRes
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -9,7 +10,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
@@ -18,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.model.BackupOptions
+import com.catlytics.core.model.UnifiedExportResult
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -33,21 +36,12 @@ internal fun SettingsRoute(
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: SettingsViewModel = hiltViewModel(),
 ) {
-    val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
-    val appLanguage by viewModel.appLanguage.collectAsStateWithLifecycle()
-    val homeRecommendationsSettings by
-        viewModel.homeRecommendationsSettings.collectAsStateWithLifecycle()
-    val equalizerState by viewModel.equalizerState.collectAsStateWithLifecycle()
-    val crossfadeDurationSeconds by viewModel.crossfadeDurationSeconds.collectAsStateWithLifecycle()
-    val sleepTimerState by viewModel.sleepTimerState.collectAsStateWithLifecycle()
-    val libraryFolders by viewModel.libraryFolders.collectAsStateWithLifecycle()
-    val musicScanSettings by viewModel.musicScanSettings.collectAsStateWithLifecycle()
-    val musicScanStatus by viewModel.musicScanStatus.collectAsStateWithLifecycle()
-    val unifiedBackupSummary by viewModel.unifiedBackupSummary.collectAsStateWithLifecycle()
-    val unifiedBackupStatus by viewModel.unifiedBackupStatus.collectAsStateWithLifecycle()
-    val unifiedImportPreview by viewModel.unifiedImportPreview.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var pendingExportOptions by remember { mutableStateOf<BackupOptions?>(null) }
+    // Sobrevive a que el sistema recree la actividad mientras el selector de archivos está abierto.
+    var pendingExportOptions by rememberSaveable(stateSaver = BackupOptionsSaver) {
+        mutableStateOf<BackupOptions?>(null)
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/json"),
@@ -74,65 +68,34 @@ internal fun SettingsRoute(
         viewModel.refreshEqualizer()
     }
 
-    LaunchedEffect(unifiedBackupStatus) {
-        when (val status = unifiedBackupStatus) {
-            is UnifiedBackupStatus.ExportSuccess -> {
-                val stats = status.result.statistics
-                val playlists = status.result.playlists
-                val parts = mutableListOf<String>()
-                if (playlists != null) {
-                    parts.add(
-                        resources.getQuantityString(
-                            R.plurals.settings_backup_export_toast_playlists,
-                            playlists.playlistCount,
-                            playlists.playlistCount,
-                        ),
-                    )
-                }
-                if (stats != null) {
-                    parts.add(
-                        resources.getQuantityString(
-                            R.plurals.settings_backup_export_toast_listens,
-                            stats.eventCount,
-                            stats.eventCount,
-                        ),
-                    )
-                }
-                val detail = if (parts.isNotEmpty()) {
-                    resources.getString(
-                        R.string.settings_backup_export_toast_detail,
-                        parts.joinToString(", "),
-                    )
-                } else {
-                    ""
-                }
-                Toast.makeText(
+    LaunchedEffect(viewModel) {
+        viewModel.events.collect { event ->
+            when (event) {
+                is SettingsEvent.BackupExported -> Toast.makeText(
                     context,
-                    resources.getString(R.string.settings_backup_export_toast_success) + detail,
+                    resources.backupExportedMessage(event.result),
                     Toast.LENGTH_SHORT,
                 ).show()
-                viewModel.dismissUnifiedBackupStatus()
             }
-            else -> Unit
         }
     }
 
     SettingsScreen(
         appVersion = appVersion,
         librariesRes = librariesRes,
-        themeMode = themeMode,
-        appLanguage = appLanguage,
-        homeRecommendationsSettings = homeRecommendationsSettings,
-        equalizerState = equalizerState,
-        crossfadeDurationSeconds = crossfadeDurationSeconds,
-        sleepTimerState = sleepTimerState,
-        libraryFolders = libraryFolders,
-        musicScanSettings = musicScanSettings,
-        musicScanStatus = musicScanStatus,
+        themeMode = uiState.themeMode,
+        appLanguage = uiState.appLanguage,
+        homeRecommendationsSettings = uiState.homeRecommendationsSettings,
+        equalizerState = uiState.equalizerState,
+        crossfadeDurationSeconds = uiState.crossfadeDurationSeconds,
+        sleepTimerState = uiState.sleepTimerState,
+        libraryFolders = uiState.libraryFolders,
+        musicScanSettings = uiState.musicScanSettings,
+        musicScanStatus = uiState.musicScanStatus,
         hasAudioPermission = hasAudioPermission,
-        unifiedBackupSummary = unifiedBackupSummary,
-        unifiedBackupStatus = unifiedBackupStatus,
-        unifiedImportPreview = unifiedImportPreview,
+        unifiedBackupSummary = uiState.unifiedBackupSummary,
+        unifiedBackupStatus = uiState.unifiedBackupStatus,
+        unifiedImportPreview = uiState.unifiedImportPreview,
         onRequestAudioPermission = onRequestAudioPermission,
         onThemeModeChange = viewModel::setThemeMode,
         onAppLanguageChange = viewModel::setAppLanguage,
@@ -166,4 +129,40 @@ internal fun SettingsRoute(
         onTopBarBackActionChange = onTopBarBackActionChange,
         scaffoldContentPadding = scaffoldContentPadding,
     )
+}
+
+private val BackupOptionsSaver = Saver<BackupOptions?, List<Boolean>>(
+    save = { options -> options?.let { listOf(it.includeStatistics, it.includePlaylists) } },
+    restore = { (includeStatistics, includePlaylists) ->
+        BackupOptions(includeStatistics, includePlaylists)
+    },
+)
+
+private fun Resources.backupExportedMessage(result: UnifiedExportResult): String {
+    val parts = buildList {
+        result.playlists?.let { playlists ->
+            add(
+                getQuantityString(
+                    R.plurals.settings_backup_export_toast_playlists,
+                    playlists.playlistCount,
+                    playlists.playlistCount,
+                ),
+            )
+        }
+        result.statistics?.let { stats ->
+            add(
+                getQuantityString(
+                    R.plurals.settings_backup_export_toast_listens,
+                    stats.eventCount,
+                    stats.eventCount,
+                ),
+            )
+        }
+    }
+    val detail = if (parts.isNotEmpty()) {
+        getString(R.string.settings_backup_export_toast_detail, parts.joinToString(", "))
+    } else {
+        ""
+    }
+    return getString(R.string.settings_backup_export_toast_success) + detail
 }

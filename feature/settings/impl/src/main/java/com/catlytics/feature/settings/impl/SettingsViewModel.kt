@@ -32,6 +32,7 @@ import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.RecentAddedWindow
+import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.core.model.UnifiedBackupPreview
@@ -40,10 +41,13 @@ import com.catlytics.core.model.UnifiedExportResult
 import com.catlytics.core.model.UnifiedImportResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
-import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.stateIn
@@ -67,72 +71,65 @@ internal class SettingsViewModel @Inject constructor(
     private val previewUnifiedBackupUseCase: PreviewUnifiedBackupUseCase,
     private val importUnifiedBackupUseCase: ImportUnifiedBackupUseCase,
 ) : ViewModel() {
-    val sleepTimerState = sleepTimerController.state
-
-    val themeMode: StateFlow<ThemeMode> = appPreferencesRepository.observeThemeMode()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = ThemeMode.System,
-        )
-    val appLanguage: StateFlow<AppLanguage> = appPreferencesRepository.observeAppLanguage()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = AppLanguage.System,
-        )
-    val equalizerState: StateFlow<EqualizerState> = equalizerRepository.observeEqualizerState()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = EqualizerState(),
-        )
-    val crossfadeDurationSeconds: StateFlow<Int> =
-        playbackPreferencesRepository.observeCrossfadeDurationSeconds()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.Eagerly,
-                initialValue = DEFAULT_CROSSFADE_DURATION_SECONDS,
-            )
-    val homeRecommendationsSettings: StateFlow<HomeRecommendationsSettings> =
-        homePreferencesRepository.observeHomeRecommendationsSettings()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.Eagerly,
-                initialValue = HomeRecommendationsSettings(),
-            )
-    val libraryFolders: StateFlow<List<LibraryFolder>> = observeLibraryFoldersUseCase()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = emptyList(),
-        )
-    val musicScanSettings: StateFlow<MusicScanSettings> = observeMusicScanSettingsUseCase()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.Eagerly,
-            initialValue = MusicScanSettings(),
-        )
-
     private val _musicScanStatus = MutableStateFlow<MusicScanStatus>(MusicScanStatus.Idle)
-    val musicScanStatus: StateFlow<MusicScanStatus> = _musicScanStatus.asStateFlow()
     private var scanSettingsUpdateJob: Job? = null
-
-    val unifiedBackupSummary: StateFlow<UnifiedBackupSummary> =
-        observeUnifiedBackupSummaryUseCase()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = UnifiedBackupSummary(),
-            )
-
     private val _unifiedBackupStatus =
         MutableStateFlow<UnifiedBackupStatus>(UnifiedBackupStatus.Idle)
-    val unifiedBackupStatus: StateFlow<UnifiedBackupStatus> =
-        _unifiedBackupStatus.asStateFlow()
-
     private val _unifiedImportPreview = MutableStateFlow<UnifiedBackupPreview?>(null)
-    val unifiedImportPreview: StateFlow<UnifiedBackupPreview?> = _unifiedImportPreview.asStateFlow()
+    private val _events = MutableSharedFlow<SettingsEvent>(extraBufferCapacity = 1)
+    val events: SharedFlow<SettingsEvent> = _events.asSharedFlow()
+
+    private val preferences = combine(
+        appPreferencesRepository.observeThemeMode(),
+        appPreferencesRepository.observeAppLanguage(),
+        homePreferencesRepository.observeHomeRecommendationsSettings(),
+        equalizerRepository.observeEqualizerState(),
+        playbackPreferencesRepository.observeCrossfadeDurationSeconds(),
+    ) { themeMode, appLanguage, homeRecommendations, equalizer, crossfadeSeconds ->
+        SettingsUiState(
+            themeMode = themeMode,
+            appLanguage = appLanguage,
+            homeRecommendationsSettings = homeRecommendations,
+            equalizerState = equalizer,
+            crossfadeDurationSeconds = crossfadeSeconds,
+        )
+    }
+
+    private val library = combine(
+        observeLibraryFoldersUseCase(),
+        observeMusicScanSettingsUseCase(),
+        _musicScanStatus,
+        ::Triple,
+    )
+
+    private val backup = combine(
+        observeUnifiedBackupSummaryUseCase(),
+        _unifiedBackupStatus,
+        _unifiedImportPreview,
+        ::Triple,
+    )
+
+    val uiState: StateFlow<SettingsUiState> = combine(
+        preferences,
+        sleepTimerController.state,
+        library,
+        backup,
+    ) { preferences, sleepTimer, (folders, scanSettings, scanStatus), backup ->
+        val (summary, backupStatus, preview) = backup
+        preferences.copy(
+            sleepTimerState = sleepTimer,
+            libraryFolders = folders,
+            musicScanSettings = scanSettings,
+            musicScanStatus = scanStatus,
+            unifiedBackupSummary = summary,
+            unifiedBackupStatus = backupStatus,
+            unifiedImportPreview = preview,
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = SettingsUiState(),
+    )
 
     private var pendingImportUri: String? = null
     private var backupJob: Job? = null
@@ -260,17 +257,16 @@ internal class SettingsViewModel @Inject constructor(
         if (isBackupBusy()) return
         backupJob = viewModelScope.launch {
             _unifiedBackupStatus.value = UnifiedBackupStatus.Exporting
-            _unifiedBackupStatus.value = exportUnifiedBackupUseCase(uri, options, appVersion)
-                .fold(
-                    onSuccess = { result ->
-                        UnifiedBackupStatus.ExportSuccess(result)
-                    },
-                    onFailure = { error ->
-                        UnifiedBackupStatus.Error(
-                            error.toBackupMessage(R.string.settings_error_backup_export_failed),
-                        )
-                    },
-                )
+            exportUnifiedBackupUseCase(uri, options, appVersion)
+                .onSuccess { result ->
+                    _unifiedBackupStatus.value = UnifiedBackupStatus.Idle
+                    _events.emit(SettingsEvent.BackupExported(result))
+                }
+                .onFailure { error ->
+                    _unifiedBackupStatus.value = UnifiedBackupStatus.Error(
+                        error.toBackupMessage(R.string.settings_error_backup_export_failed),
+                    )
+                }
         }
     }
 
@@ -348,6 +344,25 @@ private fun Throwable.toBackupMessage(@StringRes fallback: Int): UiText = when (
     else -> UiText.Resource(fallback)
 }
 
+internal data class SettingsUiState(
+    val themeMode: ThemeMode = ThemeMode.System,
+    val appLanguage: AppLanguage = AppLanguage.System,
+    val homeRecommendationsSettings: HomeRecommendationsSettings = HomeRecommendationsSettings(),
+    val equalizerState: EqualizerState = EqualizerState(),
+    val crossfadeDurationSeconds: Int = DEFAULT_CROSSFADE_DURATION_SECONDS,
+    val sleepTimerState: SleepTimerState = SleepTimerState.Inactive,
+    val libraryFolders: List<LibraryFolder> = emptyList(),
+    val musicScanSettings: MusicScanSettings = MusicScanSettings(),
+    val musicScanStatus: MusicScanStatus = MusicScanStatus.Idle,
+    val unifiedBackupSummary: UnifiedBackupSummary = UnifiedBackupSummary(),
+    val unifiedBackupStatus: UnifiedBackupStatus = UnifiedBackupStatus.Idle,
+    val unifiedImportPreview: UnifiedBackupPreview? = null,
+)
+
+internal sealed interface SettingsEvent {
+    data class BackupExported(val result: UnifiedExportResult) : SettingsEvent
+}
+
 internal sealed interface MusicScanStatus {
     data object Idle : MusicScanStatus
     data object Scanning : MusicScanStatus
@@ -360,7 +375,6 @@ internal sealed interface UnifiedBackupStatus {
     data object Exporting : UnifiedBackupStatus
     data object LoadingPreview : UnifiedBackupStatus
     data object Importing : UnifiedBackupStatus
-    data class ExportSuccess(val result: UnifiedExportResult) : UnifiedBackupStatus
     data class ImportSuccess(val result: UnifiedImportResult) : UnifiedBackupStatus
     data class Error(val message: UiText) : UnifiedBackupStatus
 }

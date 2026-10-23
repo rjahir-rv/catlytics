@@ -26,7 +26,7 @@ internal fun LibraryFolderRoute(
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
-    viewModel: LibraryFolderViewModel = hiltViewModel(key = route.folderId),
+    viewModel: LibraryFolderViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 

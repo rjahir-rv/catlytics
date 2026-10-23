@@ -1,6 +1,7 @@
 package com.catlytics.core.designsystem.component
 
 import android.graphics.Bitmap
+import androidx.compose.animation.Animatable
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -9,8 +10,11 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -81,6 +85,26 @@ fun animateArtworkGradientColors(
     )
 
     return ArtworkGradientColors(start = start, center = center, end = end)
+}
+
+/**
+ * Anima un color de cromo (barra superior, barra de estado) hacia [target] con la misma duración
+ * que [animateArtworkGradientColors]. Sin destino usa [fallback]; el primer destino se aplica sin
+ * animación para que la barra coincida con el degradado desde que aparece la pantalla.
+ */
+@Composable
+fun animateArtworkChromeColor(target: Color?, fallback: Color): Color {
+    val color = remember { Animatable(target ?: fallback) }
+    var hadTarget by remember { mutableStateOf(target != null) }
+    LaunchedEffect(target, fallback) {
+        if (target != null && !hadTarget) {
+            color.snapTo(target)
+        } else {
+            color.animateTo(target ?: fallback, tween(ARTWORK_GRADIENT_ANIMATION_MILLIS))
+        }
+        hadTarget = target != null
+    }
+    return color.value
 }
 
 fun nameSeededGradient(

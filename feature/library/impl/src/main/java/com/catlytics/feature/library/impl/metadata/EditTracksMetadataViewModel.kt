@@ -79,6 +79,7 @@ internal class EditTracksMetadataViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), EditTracksMetadataUiState.Loading)
 
     fun open(ids: List<String>) {
+        if (trackIds.value == ids) return
         form.value = null
         trackIds.value = ids
         viewModelScope.launch {

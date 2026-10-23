@@ -59,7 +59,7 @@ fun EditTracksMetadataSheet(
     onDismiss: () -> Unit,
     mode: BulkEditMode = BulkEditMode.Tracks,
 ) {
-    val viewModel: EditTracksMetadataViewModel = hiltViewModel(key = "edit-tracks-metadata")
+    val viewModel: EditTracksMetadataViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current

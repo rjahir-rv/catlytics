@@ -16,6 +16,7 @@ import com.catlytics.core.model.Artist
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.core.navigation.ViewModelStoreScope
 import com.catlytics.feature.library.api.LibraryAlbumRoute
 import com.catlytics.feature.library.impl.metadata.BulkEditMode
 import com.catlytics.feature.library.impl.metadata.EditTracksMetadataSheet
@@ -34,7 +35,7 @@ internal fun LibraryAlbumRoute(
     onTitleChange: (String) -> Unit = {},
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
-    viewModel: LibraryAlbumViewModel = hiltViewModel(key = route.albumId),
+    viewModel: LibraryAlbumViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -49,7 +50,7 @@ internal fun LibraryAlbumRoute(
         albumTitle?.let(onTitleChange)
     }
 
-    editingTrackIds?.let { trackIds ->
+    ViewModelStoreScope(key = editingTrackIds) { trackIds ->
         EditTracksMetadataSheet(
             trackIds = trackIds,
             onDismiss = { editingTrackIds = null },

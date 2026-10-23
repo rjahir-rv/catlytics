@@ -76,7 +76,7 @@ fun EditTrackMetadataSheet(
     trackId: String,
     onDismiss: () -> Unit,
 ) {
-    val viewModel: EditTrackMetadataViewModel = hiltViewModel(key = "edit-track-metadata")
+    val viewModel: EditTrackMetadataViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val resources = LocalResources.current

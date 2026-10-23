@@ -34,7 +34,7 @@ internal fun LibraryArtistRoute(
     onSearchQueryChange: (String) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
-    viewModel: LibraryArtistViewModel = hiltViewModel(key = route.artistId),
+    viewModel: LibraryArtistViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current

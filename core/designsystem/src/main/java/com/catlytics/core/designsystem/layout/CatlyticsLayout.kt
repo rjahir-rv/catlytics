@@ -68,6 +68,24 @@ private class HorizontalInsetPaddingValues(
     override fun calculateBottomPadding(): Dp = base.calculateBottomPadding()
 }
 
+fun PaddingValues.withDeferredBottom(bottom: () -> Dp): PaddingValues =
+    DeferredBottomPaddingValues(this, bottom)
+
+private class DeferredBottomPaddingValues(
+    private val base: PaddingValues,
+    private val bottom: () -> Dp,
+) : PaddingValues {
+    override fun calculateLeftPadding(layoutDirection: LayoutDirection): Dp =
+        base.calculateLeftPadding(layoutDirection)
+
+    override fun calculateTopPadding(): Dp = base.calculateTopPadding()
+
+    override fun calculateRightPadding(layoutDirection: LayoutDirection): Dp =
+        base.calculateRightPadding(layoutDirection)
+
+    override fun calculateBottomPadding(): Dp = bottom()
+}
+
 @Composable
 fun isCompactWindowHeight(): Boolean =
     LocalWindowInfo.current.containerDpSize.height < CatlyticsLayoutTokens.CompactHeightMax

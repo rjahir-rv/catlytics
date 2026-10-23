@@ -3,7 +3,6 @@ package com.catlytics.app.ui
 import android.Manifest
 import android.net.Uri
 import android.os.Build
-import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,7 +16,9 @@ import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
 import androidx.compose.material3.adaptive.navigationsuite.rememberNavigationSuiteScaffoldState
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.runtime.CompositionLocalProvider
@@ -36,8 +37,6 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.calculateEndPadding
-import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
@@ -56,7 +55,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -78,8 +77,10 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.metadata
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
 import com.catlytics.app.R
@@ -97,11 +98,12 @@ import com.catlytics.app.ui.chrome.TopLevelTopAppBar
 import com.catlytics.app.ui.sheet.CatlyticsAppSheets
 import com.catlytics.app.ui.sheet.TrackOptionsRequest
 import com.catlytics.core.designsystem.component.CatlyticsMiniPlayer
+import com.catlytics.core.designsystem.component.animateArtworkChromeColor
 import com.catlytics.core.designsystem.component.extractArtworkAccentColor
 import com.catlytics.core.designsystem.text.displayAlbumTitle
 import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.designsystem.text.displayTrackTitle
-import com.catlytics.core.domain.usecase.playlist.ToggleLikedTrackResult
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
@@ -192,12 +194,21 @@ fun CatlyticsApp(
     var isArtistSearchExpanded by rememberSaveable { mutableStateOf(false) }
     var artistSearchQuery by rememberSaveable { mutableStateOf("") }
     var playlistSource by remember { mutableStateOf<PlaylistSource?>(null) }
-    var playlistSheetSession by remember { mutableIntStateOf(0) }
     var trackOptionsRequest by remember { mutableStateOf<TrackOptionsRequest?>(null) }
     var editMetadataTrackId by rememberSaveable { mutableStateOf<String?>(null) }
     var bulkEditTrackIds by remember { mutableStateOf<List<String>?>(null) }
-    var detailTopBarColors by remember { mutableStateOf<Map<NavKey, Color>>(emptyMap()) }
-    var detailTopBarTitles by remember { mutableStateOf<Map<NavKey, String>>(emptyMap()) }
+    val detailTopBarColors = remember { mutableStateMapOf<NavKey, Color>() }
+    val detailTopBarTitles = remember { mutableStateMapOf<NavKey, String>() }
+    val pruneDetailTopBarState = remember(topLevelBackStack) {
+        NavEntryDecorator<NavKey>(
+            onPop = {
+                val keys = topLevelBackStack.backStack.toSet()
+                detailTopBarColors.keys.retainAll(keys)
+                detailTopBarTitles.keys.retainAll(keys)
+            },
+            decorate = { entry -> entry.Content() },
+        )
+    }
     var settingsTopBarTitle by remember { mutableStateOf<String?>(null) }
     var settingsTopBarBackAction by remember { mutableStateOf<(() -> Unit)?>(null) }
     val hazeState = rememberHazeState()
@@ -208,6 +219,10 @@ fun CatlyticsApp(
             .getPackageInfo(context.packageName, 0)
             .versionName
             .orEmpty()
+    }
+    val appFeedback = rememberAppFeedback()
+    LaunchedEffect(playbackViewModel) {
+        playbackViewModel.messages.collect(appFeedback::show)
     }
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
     val playbackProgress = playbackViewModel.progress.collectAsStateWithLifecycle()
@@ -325,7 +340,6 @@ fun CatlyticsApp(
     }
 
     fun openAddToPlaylist(source: PlaylistSource) {
-        playlistSheetSession++
         playlistSource = source
     }
 
@@ -353,42 +367,6 @@ fun CatlyticsApp(
             track.id != currentTrackId
         } ?: false
 
-    fun toggleTrackLikedWithToast(trackId: String) {
-        playbackViewModel.toggleTrackLiked(trackId) { result ->
-            val likedPlaylistName = resources.getString(R.string.app_playlist_liked_name)
-            Toast.makeText(
-                context,
-                when (result) {
-                    ToggleLikedTrackResult.Added ->
-                        resources.getString(R.string.app_toast_track_added_to_liked, likedPlaylistName)
-                    ToggleLikedTrackResult.Removed ->
-                        resources.getString(R.string.app_toast_track_removed_from_liked, likedPlaylistName)
-                },
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
-    }
-
-    fun addTrackToQueueWithToast(track: Track) {
-        playbackViewModel.addQueueItem(track) {
-            Toast.makeText(
-                context,
-                resources.getString(R.string.app_toast_added_to_queue),
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
-    }
-
-    fun playNextTrackWithToast(track: Track) {
-        playbackViewModel.playNext(track) {
-            Toast.makeText(
-                context,
-                resources.getString(R.string.app_toast_will_play_next),
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
-    }
-
     fun handleTrackSelectionAction(action: TrackSelectionAction) {
         when (action) {
             is TrackSelectionAction.AddToPlaylist -> openAddToPlaylist(
@@ -402,59 +380,15 @@ fun CatlyticsApp(
                     trackIds = action.tracks.map(Track::id),
                 ),
             )
-            is TrackSelectionAction.Like -> playbackViewModel.likeTracks(action.tracks.map(Track::id)) { added ->
-                val likedPlaylistName = resources.getString(R.string.app_playlist_liked_name)
-                Toast.makeText(
-                    context,
-                    resources.getQuantityString(
-                        R.plurals.app_toast_tracks_added_to_liked,
-                        added,
-                        added,
-                        likedPlaylistName,
-                    ),
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
-            is TrackSelectionAction.Unlike -> playbackViewModel.unlikeTracks(action.tracks.map(Track::id)) { removed ->
-                val likedPlaylistName = resources.getString(R.string.app_playlist_liked_name)
-                Toast.makeText(
-                    context,
-                    resources.getQuantityString(
-                        R.plurals.app_toast_tracks_removed_from_liked,
-                        removed,
-                        removed,
-                        likedPlaylistName,
-                    ),
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
-            is TrackSelectionAction.AddToQueue -> playbackViewModel.addQueueItems(action.tracks) { added ->
-                Toast.makeText(
-                    context,
-                    resources.getQuantityString(
-                        R.plurals.app_toast_tracks_added_to_queue,
-                        added,
-                        added,
-                    ),
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
+            is TrackSelectionAction.Like -> playbackViewModel.likeTracks(action.tracks.map(Track::id))
+            is TrackSelectionAction.Unlike -> playbackViewModel.unlikeTracks(action.tracks.map(Track::id))
+            is TrackSelectionAction.AddToQueue -> playbackViewModel.addQueueItems(action.tracks)
             is TrackSelectionAction.EditMetadata -> {
                 val trackIds = action.tracks.map(Track::id)
                 // A single track gets the full editor, which also covers its title.
                 if (trackIds.size == 1) editMetadataTrackId = trackIds.single() else bulkEditTrackIds = trackIds
             }
-            is TrackSelectionAction.PlayNext -> playbackViewModel.playNextTracks(action.tracks) { added ->
-                Toast.makeText(
-                    context,
-                    resources.getQuantityString(
-                        R.plurals.app_toast_tracks_will_play_next,
-                        added,
-                        added,
-                    ),
-                    Toast.LENGTH_SHORT,
-                ).show()
-            }
+            is TrackSelectionAction.PlayNext -> playbackViewModel.playNextTracks(action.tracks)
         }
     }
 
@@ -697,7 +631,7 @@ fun CatlyticsApp(
         if (hasTopBar) {
             val isRouteSearchExpanded = isSearchExpanded(route)
             RoutePane(
-                containerColor = paneChromeColor(route) ?: MaterialTheme.colorScheme.background,
+                chromeColor = paneChromeColor(route),
                 statusBarHeight = statusBarProtectionHeight,
                 canScroll = !isRouteSearchExpanded,
                 scrollResetKey = if (route == SettingsRoute) {
@@ -826,6 +760,13 @@ fun CatlyticsApp(
                 backStack = topLevelBackStack.backStack,
                 onBack = ::closeCurrentDestination,
                 sceneStrategies = listOf(listDetailSceneStrategy, SinglePaneSceneStrategy()),
+                // Cada entrada tiene su propio ViewModelStore: se crea un ViewModel por ruta y se
+                // limpia cuando la ruta sale del back stack.
+                entryDecorators = listOf(
+                    rememberSaveableStateHolderNavEntryDecorator(),
+                    rememberViewModelStoreNavEntryDecorator(),
+                    pruneDetailTopBarState,
+                ),
 
                 transitionSpec = {
                     navigationForwardTransition()
@@ -883,10 +824,10 @@ fun CatlyticsApp(
                         },
                         onTrackSelectionAction = ::handleTrackSelectionAction,
                         onLibraryDetailTopBarColorChange = { route, color ->
-                            detailTopBarColors = detailTopBarColors + (route to color)
+                            detailTopBarColors[route] = color
                         },
                         onLibraryDetailTitleChange = { route, title ->
-                            detailTopBarTitles = detailTopBarTitles + (route to title)
+                            detailTopBarTitles[route] = title
                         },
                         hasAudioPermission = { hasAudioPermission },
                         onRequestAudioPermission = {
@@ -906,7 +847,7 @@ fun CatlyticsApp(
                         onTrackSelectionAction = ::handleTrackSelectionAction,
                         bottomPadding = { bottomPaddingState.value },
                         onPlaylistDetailTopBarColorChange = { route, color ->
-                            detailTopBarColors = detailTopBarColors + (route to color)
+                            detailTopBarColors[route] = color
                         },
                         onCloseCreatePlaylist = ::closeCurrentDestination,
                         onPlaylistCreated = { route, playlist ->
@@ -919,16 +860,13 @@ fun CatlyticsApp(
                                     ),
                                 )
                             } else {
-                                Toast.makeText(
-                                    context,
-                                    resources.getQuantityString(
-                                        PlaylistsR.plurals.create_playlist_toast_created,
-                                        playlist.trackIds.size,
-                                        playlist.trackIds.size,
-                                        playlist.name,
+                                appFeedback.show(
+                                    UiText.Plural(
+                                        id = PlaylistsR.plurals.create_playlist_toast_created,
+                                        count = playlist.trackIds.size,
+                                        args = listOf(playlist.trackIds.size, playlist.name),
                                     ),
-                                    Toast.LENGTH_SHORT,
-                                ).show()
+                                )
                             }
                         },
                     )
@@ -991,14 +929,14 @@ fun CatlyticsApp(
                             },
                             onToggleCurrentTrackLikedFromOptions = {
                                 playbackState.currentTrack?.let { track ->
-                                    toggleTrackLikedWithToast(track.id)
+                                    playbackViewModel.toggleTrackLiked(track.id)
                                 }
                             },
                             onPlayNextCurrentTrack = {
-                                playbackState.currentTrack?.let(::playNextTrackWithToast)
+                                playbackState.currentTrack?.let(playbackViewModel::playNext)
                             },
                             onAddCurrentTrackToQueue = {
-                                playbackState.currentTrack?.let(::addTrackToQueueWithToast)
+                                playbackState.currentTrack?.let(playbackViewModel::addQueueItem)
                             },
                             onGoToCurrentTrackAlbum = {
                                 playbackState.currentTrack?.let(::navigateToAlbum)
@@ -1020,26 +958,7 @@ fun CatlyticsApp(
                             sleepTimerState = sleepTimerState,
                             onStartSleepTimer = playbackViewModel::startSleepTimer,
                             onCancelSleepTimer = playbackViewModel::cancelSleepTimer,
-                            onAddCurrentTrackToLiked = {
-                                playbackViewModel.toggleCurrentTrackLiked { result ->
-                                    val likedPlaylistName =
-                                        resources.getString(R.string.app_playlist_liked_name)
-                                    Toast.makeText(
-                                        context,
-                                        when (result) {
-                                            ToggleLikedTrackResult.Added -> resources.getString(
-                                                R.string.app_toast_track_added_to_liked,
-                                                likedPlaylistName,
-                                            )
-                                            ToggleLikedTrackResult.Removed -> resources.getString(
-                                                R.string.app_toast_track_removed_from_liked,
-                                                likedPlaylistName,
-                                            )
-                                        },
-                                        Toast.LENGTH_SHORT,
-                                    ).show()
-                                }
-                            },
+                            onAddCurrentTrackToLiked = playbackViewModel::toggleCurrentTrackLiked,
                         )
                     }
                 }),
@@ -1059,15 +978,15 @@ fun CatlyticsApp(
             },
             onToggleTrackLiked = { track ->
                 trackOptionsRequest = null
-                toggleTrackLikedWithToast(track.id)
+                playbackViewModel.toggleTrackLiked(track.id)
             },
             onPlayNextTrack = { track ->
                 trackOptionsRequest = null
-                playNextTrackWithToast(track)
+                playbackViewModel.playNext(track)
             },
             onAddTrackToQueue = { track ->
                 trackOptionsRequest = null
-                addTrackToQueueWithToast(track)
+                playbackViewModel.addQueueItem(track)
             },
             onGoToAlbum = ::navigateToAlbum,
             onGoToArtist = ::navigateToArtist,
@@ -1080,7 +999,6 @@ fun CatlyticsApp(
             bulkEditTrackIds = bulkEditTrackIds,
             onDismissBulkEdit = { bulkEditTrackIds = null },
             playlistSource = playlistSource,
-            playlistSheetSession = playlistSheetSession,
             onDismissPlaylistSheet = { playlistSource = null },
             onCreatePlaylist = { trackIds ->
                 playlistSource = null
@@ -1115,7 +1033,7 @@ private fun isDetailPaneRoute(route: NavKey): Boolean =
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RoutePane(
-    containerColor: Color,
+    chromeColor: Color?,
     statusBarHeight: Dp,
     canScroll: Boolean,
     scrollResetKey: Any?,
@@ -1123,6 +1041,10 @@ private fun RoutePane(
     topBar: @Composable (TopAppBarScrollBehavior) -> Unit,
     content: @Composable () -> Unit,
 ) {
+    val containerColor = animateArtworkChromeColor(
+        target = chromeColor,
+        fallback = MaterialTheme.colorScheme.background,
+    )
     val topBarState = rememberSaveable(saver = TopAppBarState.Saver) {
         TopAppBarState(
             initialHeightOffsetLimit = -Float.MAX_VALUE,
@@ -1168,19 +1090,18 @@ private fun RoutePane(
             }
         },
     ) { innerPadding ->
-        val layoutDirection = LocalLayoutDirection.current
-        val paneChrome = PaneChrome(
-            contentPadding = PaddingValues(
-                start = innerPadding.calculateStartPadding(layoutDirection),
-                top = calculateTopContentPadding(
-                    scaffoldTopPadding = innerPadding.calculateTopPadding(),
+        // collapsedFraction se lee al usar el padding, no aquí: el scroll de la barra no recompone
+        // el panel en cada frame.
+        val paneChrome = remember(innerPadding, statusBarHeight, topBarState) {
+            PaneChrome(
+                contentPadding = TopBarContentPadding(
+                    scaffoldPadding = innerPadding,
                     statusBarPadding = statusBarHeight,
-                    collapsedFraction = scrollBehavior.state.collapsedFraction,
+                    collapsedFraction = { topBarState.collapsedFraction },
                 ),
-                end = innerPadding.calculateEndPadding(layoutDirection),
-            ),
-            collapsedFraction = { scrollBehavior.state.collapsedFraction },
-        )
+                collapsedFraction = { topBarState.collapsedFraction },
+            )
+        }
         CompositionLocalProvider(LocalPaneChrome provides paneChrome) {
             content()
         }
@@ -1204,6 +1125,27 @@ private fun TopBarPaneSegment(
         )
         content()
     }
+}
+
+/** Padding del contenido bajo la barra superior; el superior depende del colapso de la barra. */
+private class TopBarContentPadding(
+    private val scaffoldPadding: PaddingValues,
+    private val statusBarPadding: Dp,
+    private val collapsedFraction: () -> Float,
+) : PaddingValues {
+    override fun calculateLeftPadding(layoutDirection: LayoutDirection): Dp =
+        scaffoldPadding.calculateLeftPadding(layoutDirection)
+
+    override fun calculateTopPadding(): Dp = calculateTopContentPadding(
+        scaffoldTopPadding = scaffoldPadding.calculateTopPadding(),
+        statusBarPadding = statusBarPadding,
+        collapsedFraction = collapsedFraction(),
+    )
+
+    override fun calculateRightPadding(layoutDirection: LayoutDirection): Dp =
+        scaffoldPadding.calculateRightPadding(layoutDirection)
+
+    override fun calculateBottomPadding(): Dp = 0.dp
 }
 
 internal fun calculateTopContentPadding(

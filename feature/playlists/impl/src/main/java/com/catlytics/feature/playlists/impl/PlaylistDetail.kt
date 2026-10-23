@@ -35,7 +35,7 @@ internal fun PlaylistDetailRoute(
     onDeleted: () -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
-    viewModel: PlaylistDetailViewModel = hiltViewModel(key = playlistId),
+    viewModel: PlaylistDetailViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val resources = LocalResources.current
@@ -96,11 +96,10 @@ internal fun PlaylistDetailRoute(
         onTogglePlayback = viewModel::togglePlayback,
         onSaveDetails = viewModel::saveDetails,
         onSaveOrder = viewModel::saveOrder,
-        onAddTracks = { trackIds, onAdded ->
+        onAddTracks = { trackIds ->
             viewModel.addTracks(
                 trackIds = trackIds,
                 title = resources.getString(R.string.playlist_detail_selection_title),
-                onAdded = onAdded,
             )
         },
         onDelete = viewModel::delete,

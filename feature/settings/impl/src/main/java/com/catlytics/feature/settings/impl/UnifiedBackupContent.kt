@@ -201,9 +201,6 @@ internal fun UnifiedBackupContent(
                     }
                 }
             }
-            is UnifiedBackupStatus.ExportSuccess -> {
-                // Notificado mediante Toast
-            }
             is UnifiedBackupStatus.ImportSuccess -> {
                 val playlists = operationStatus.result.playlists
                 item {

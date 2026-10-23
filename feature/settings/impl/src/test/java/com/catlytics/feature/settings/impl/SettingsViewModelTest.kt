@@ -55,10 +55,14 @@ import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -80,13 +84,14 @@ class SettingsViewModelTest {
         val equalizerRepository = FakeEqualizerRepository()
         val playbackPreferencesRepository = FakePlaybackPreferencesRepository()
         val viewModel = viewModel(repository, equalizerRepository, playbackPreferencesRepository)
+        collectUiState(viewModel)
 
         ThemeMode.entries.forEach { themeMode ->
             viewModel.setThemeMode(themeMode)
             advanceUntilIdle()
 
             assertEquals(themeMode, repository.themeMode.value)
-            assertEquals(themeMode, viewModel.themeMode.value)
+            assertEquals(themeMode, viewModel.uiState.value.themeMode)
         }
     }
 
@@ -98,13 +103,14 @@ class SettingsViewModelTest {
             equalizerRepository = FakeEqualizerRepository(),
             playbackPreferencesRepository = FakePlaybackPreferencesRepository(),
         )
+        collectUiState(viewModel)
 
         AppLanguage.entries.forEach { language ->
             viewModel.setAppLanguage(language)
             advanceUntilIdle()
 
             assertEquals(language, repository.appLanguage.value)
-            assertEquals(language, viewModel.appLanguage.value)
+            assertEquals(language, viewModel.uiState.value.appLanguage)
         }
     }
 
@@ -116,12 +122,13 @@ class SettingsViewModelTest {
             equalizerRepository,
             FakePlaybackPreferencesRepository(),
         )
+        collectUiState(viewModel)
 
         viewModel.setEqualizerEnabled(true)
         advanceUntilIdle()
 
         assertEquals(true, equalizerRepository.state.value.enabled)
-        assertEquals(true, viewModel.equalizerState.value.enabled)
+        assertEquals(true, viewModel.uiState.value.equalizerState.enabled)
     }
 
     @Test
@@ -132,13 +139,14 @@ class SettingsViewModelTest {
             equalizerRepository,
             FakePlaybackPreferencesRepository(),
         )
+        collectUiState(viewModel)
         val preset = EqualizerPreset(id = 1, name = "Rock")
 
         viewModel.selectEqualizerPreset(preset)
         advanceUntilIdle()
 
         assertEquals("Rock", equalizerRepository.state.value.selectedPresetName)
-        assertEquals("Rock", viewModel.equalizerState.value.selectedPresetName)
+        assertEquals("Rock", viewModel.uiState.value.equalizerState.selectedPresetName)
     }
 
     @Test
@@ -149,18 +157,20 @@ class SettingsViewModelTest {
             FakeEqualizerRepository(),
             playbackPreferencesRepository,
         )
+        collectUiState(viewModel)
 
         viewModel.setCrossfadeDurationSeconds(7)
         advanceUntilIdle()
 
         assertEquals(7, playbackPreferencesRepository.durationSeconds.value)
-        assertEquals(7, viewModel.crossfadeDurationSeconds.value)
+        assertEquals(7, viewModel.uiState.value.crossfadeDurationSeconds)
     }
 
     @Test
     fun `home recommendation settings are persisted`() = runTest {
         val homePreferencesRepository = FakeSettingsHomePreferencesRepository()
         val viewModel = viewModel(homePreferencesRepository = homePreferencesRepository)
+        collectUiState(viewModel)
 
         viewModel.setShowRecommendedPlaylists(false)
         viewModel.setRecentAddedWindow(RecentAddedWindow.Days14)
@@ -173,26 +183,29 @@ class SettingsViewModelTest {
             showNewTrackBadge = false,
         )
         assertEquals(expected, homePreferencesRepository.settings.value)
-        assertEquals(expected, viewModel.homeRecommendationsSettings.value)
+        assertEquals(expected, viewModel.uiState.value.homeRecommendationsSettings)
     }
 
     @Test
     fun `sleep timer can be started and cancelled`() = runTest {
         val sleepTimerController = FakeSleepTimerController()
         val viewModel = viewModel(sleepTimerController = sleepTimerController)
+        collectUiState(viewModel)
 
         viewModel.startSleepTimer(durationMinutes = 45)
+        advanceUntilIdle()
 
         assertEquals(listOf(45), sleepTimerController.startedDurations)
         assertEquals(
             SleepTimerState.Active(2_700_000L, 2_700_000L),
-            viewModel.sleepTimerState.value,
+            viewModel.uiState.value.sleepTimerState,
         )
 
         viewModel.cancelSleepTimer()
+        advanceUntilIdle()
 
         assertEquals(1, sleepTimerController.cancelCalls)
-        assertEquals(SleepTimerState.Inactive, viewModel.sleepTimerState.value)
+        assertEquals(SleepTimerState.Inactive, viewModel.uiState.value.sleepTimerState)
     }
 
     @Test
@@ -203,6 +216,7 @@ class SettingsViewModelTest {
             libraryRepository = libraryRepository,
             libraryPreferencesRepository = libraryPreferencesRepository,
         )
+        collectUiState(viewModel)
 
         viewModel.setMusicScanDurationFilter(MusicScanDurationFilter.Seconds30)
         viewModel.setMusicScanSizeFilter(MusicScanSizeFilter.Megabyte1)
@@ -217,7 +231,7 @@ class SettingsViewModelTest {
             ),
             libraryPreferencesRepository.settings.value,
         )
-        assertEquals(MusicScanStatus.Success(23), viewModel.musicScanStatus.value)
+        assertEquals(MusicScanStatus.Success(23), viewModel.uiState.value.musicScanStatus)
         assertEquals(1, libraryRepository.refreshCalls)
     }
 
@@ -225,46 +239,61 @@ class SettingsViewModelTest {
     fun `scan failure is exposed to the screen`() = runTest {
         val libraryRepository = FakeLibraryRepository(refreshError = IllegalStateException("Falló MediaStore"))
         val viewModel = viewModel(libraryRepository = libraryRepository)
+        collectUiState(viewModel)
 
         viewModel.scanMusic()
         advanceUntilIdle()
 
         assertEquals(
             MusicScanStatus.Error(UiText.Resource(R.string.settings_error_scan_failed)),
-            viewModel.musicScanStatus.value,
+            viewModel.uiState.value.musicScanStatus,
         )
     }
 
     @Test
-    fun `exportUnifiedBackup updates status on success`() = runTest {
+    fun `exportUnifiedBackup emits exported event and returns to idle`() = runTest {
         val viewModel = viewModel()
+        collectUiState(viewModel)
+        val events = mutableListOf<SettingsEvent>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.events.collect(events::add)
+        }
         viewModel.exportUnifiedBackup("content://export", BackupOptions(), "0.0.5")
         advanceUntilIdle()
 
-        val status = viewModel.unifiedBackupStatus.value
-        assertEquals(true, status is UnifiedBackupStatus.ExportSuccess)
+        assertEquals(true, events.single() is SettingsEvent.BackupExported)
+        assertEquals(UnifiedBackupStatus.Idle, viewModel.uiState.value.unifiedBackupStatus)
     }
 
     @Test
     fun `loadUnifiedImportPreview updates preview state`() = runTest {
         val viewModel = viewModel()
+        collectUiState(viewModel)
         viewModel.loadUnifiedImportPreview("content://import")
         advanceUntilIdle()
 
-        assertEquals(0, viewModel.unifiedImportPreview.value?.playlists?.playlistCount)
+        assertEquals(0, viewModel.uiState.value.unifiedImportPreview?.playlists?.playlistCount)
     }
 
     @Test
     fun `confirmUnifiedImport completes and updates status`() = runTest {
         val viewModel = viewModel()
+        collectUiState(viewModel)
         viewModel.loadUnifiedImportPreview("content://import")
         advanceUntilIdle()
 
         viewModel.confirmUnifiedImport(BackupOptions(), StatisticsImportMode.Merge)
         advanceUntilIdle()
 
-        val status = viewModel.unifiedBackupStatus.value
+        val status = viewModel.uiState.value.unifiedBackupStatus
         assertEquals(true, status is UnifiedBackupStatus.ImportSuccess)
+    }
+
+    /** uiState usa WhileSubscribed: sin un colector activo no refleja los cambios. */
+    private fun TestScope.collectUiState(viewModel: SettingsViewModel) {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect()
+        }
     }
 
     private fun viewModel(

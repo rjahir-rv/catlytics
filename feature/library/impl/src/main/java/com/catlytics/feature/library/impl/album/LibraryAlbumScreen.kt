@@ -131,8 +131,8 @@ internal fun LibraryAlbumScreen(
                 labelPrefix = "LibraryAlbumGradient",
             )
 
-            LaunchedEffect(animatedGradientColors.start) {
-                onTopBarColorChange(animatedGradientColors.start)
+            LaunchedEffect(gradientColors.start) {
+                onTopBarColorChange(gradientColors.start)
             }
 
             LaunchedEffect(content.album.artworkUri, artworkBitmap, fallbackGradient) {
@@ -156,8 +156,10 @@ internal fun LibraryAlbumScreen(
                 TrackSelectionHost(
                     selection = selection,
                     onSelectionChange = { selectionState.value = it },
-                    visibleIds = content.tracks.map(Track::id),
-                    selectedTracks = selection.selectedTracks(content.tracks),
+                    visibleIds = remember(content.tracks) { content.tracks.map(Track::id) },
+                    selectedTracks = remember(selection, content.tracks) {
+                        selection.selectedTracks(content.tracks)
+                    },
                     likedTrackIds = likedTrackIds,
                     currentTrackId = currentTrackId,
                     topInset = scaffoldContentPadding.calculateTopPadding(),

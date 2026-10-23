@@ -159,7 +159,7 @@ internal class PlaylistDetailViewModel @Inject constructor(
         deletePlaylist(id)
     }
 
-    fun addTracks(trackIds: List<String>, title: String, onAdded: () -> Unit) =
+    fun addTracks(trackIds: List<String>, title: String) =
         viewModelScope.launch {
             val id = playlistId.value ?: return@launch
             try {
@@ -176,7 +176,6 @@ internal class PlaylistDetailViewModel @Inject constructor(
                         UiText.Plural(R.plurals.playlist_detail_tracks_added, added),
                     ),
                 )
-                onAdded()
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {

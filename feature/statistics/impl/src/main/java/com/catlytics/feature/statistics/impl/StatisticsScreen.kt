@@ -3,7 +3,11 @@ package com.catlytics.feature.statistics.impl
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
-import androidx.compose.animation.Crossfade
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridItemScope
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -22,6 +25,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.feature.statistics.impl.components.DashboardHeroCard
@@ -44,20 +48,22 @@ internal fun StatisticsScreen(
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     onExploreClick: () -> Unit = {},
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val contentPadding = statsContentPadding(scaffoldContentPadding, bottomPadding)
 
-    Crossfade(
-        targetState = uiState::class,
+    AnimatedContent(
+        targetState = uiState,
         modifier = modifier.fillMaxSize(),
+        transitionSpec = { (fadeIn(tween()) togetherWith fadeOut(tween())).using(null) },
+        contentKey = { it::class },
         label = "statsState",
-    ) { kind ->
-        when (kind) {
-            StatisticsUiState.Loading::class -> StatsSkeleton(contentPadding = contentPadding)
+    ) { state ->
+        when (state) {
+            StatisticsUiState.Loading -> StatsSkeleton(contentPadding = contentPadding)
 
-            StatisticsUiState.Error::class -> StatsErrorState(contentPadding = contentPadding)
+            StatisticsUiState.Error -> StatsErrorState(contentPadding = contentPadding)
 
-            else -> (uiState as? StatisticsUiState.Success)?.let { state ->
+            is StatisticsUiState.Success -> {
                 if (state.data.hasAnyHistory) {
                     StatisticsDashboardContent(
                         data = state.data,
