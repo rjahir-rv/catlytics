@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -15,12 +14,9 @@ import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackSessionSnapshot
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
 
 private val Context.playbackSessionDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "playback_session",
@@ -35,15 +31,9 @@ class DataStorePlaybackSessionRepository internal constructor(
         @ApplicationContext context: Context,
     ) : this(context.playbackSessionDataStore)
 
-    override fun observeSession(): Flow<PlaybackSessionSnapshot?> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences -> preferences.toPlaybackSessionSnapshot() }
+    override fun observeSession(): Flow<PlaybackSessionSnapshot?> = dataStore.observe { preferences ->
+        preferences.toPlaybackSessionSnapshot()
+    }
 
     override suspend fun saveSession(snapshot: PlaybackSessionSnapshot) {
         dataStore.edit { preferences ->
@@ -107,7 +97,7 @@ class DataStorePlaybackSessionRepository internal constructor(
     }
 
     private fun String.toPlaybackRepeatMode(): PlaybackRepeatMode =
-        runCatching { PlaybackRepeatMode.valueOf(this) }.getOrDefault(PlaybackRepeatMode.Off)
+        toEnumOr(PlaybackRepeatMode.Off)
 
     private fun Preferences.toPlaybackQueueSource(): PlaybackQueueSource =
         when (this[QUEUE_SOURCE_TYPE]) {

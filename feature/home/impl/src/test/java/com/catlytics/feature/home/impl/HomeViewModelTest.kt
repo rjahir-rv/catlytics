@@ -10,7 +10,7 @@ import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
-import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
@@ -360,7 +360,7 @@ class HomeViewModelTest {
         homePreferencesRepository: HomePreferencesRepository = FakeHomePreferencesRepository(),
     ) = HomeViewModel(
         observeLibraryUseCase = ObserveLibraryUseCase(repository),
-        observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
+        observeNowPlayingUseCase = ObserveNowPlayingUseCase(playbackController),
         observeRecentlyPlayedTracksUseCase = ObserveRecentlyPlayedTracksUseCase(playbackEventRepository),
         observeWeeklyStatsUseCase = ObserveWeeklyStatsUseCase(playbackEventRepository),
         observePlaylistContentUseCase = ObservePlaylistContentUseCase(

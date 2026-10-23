@@ -36,10 +36,9 @@ import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
-import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
-import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.model.Track
@@ -51,6 +50,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -67,23 +67,24 @@ internal sealed interface DailyPlaylistUiState {
 @HiltViewModel
 internal class DailyPlaylistViewModel @Inject constructor(
     observeLibraryUseCase: ObserveLibraryUseCase,
-    observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    observeNowPlayingUseCase: ObserveNowPlayingUseCase,
     generateDailyPlaylistUseCase: GenerateDailyPlaylistUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
     private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
 ) : ViewModel() {
     val uiState: StateFlow<DailyPlaylistUiState> = combine(
-        observeLibraryUseCase().catch { emit(emptyList()) },
-        observePlaybackStateUseCase(),
-    ) { library, playbackState ->
-        val dailyTracks = generateDailyPlaylistUseCase(library)
+        observeLibraryUseCase()
+            .catch { emit(emptyList()) }
+            .map(generateDailyPlaylistUseCase::invoke),
+        observeNowPlayingUseCase(),
+    ) { dailyTracks, nowPlaying ->
         if (dailyTracks.isEmpty()) {
             DailyPlaylistUiState.Empty
         } else {
             DailyPlaylistUiState.Success(
                 tracks = dailyTracks,
-                currentTrackId = playbackState.currentTrack?.id,
-                isCurrentTrackPlaying = playbackState.status == PlaybackStatus.Playing,
+                currentTrackId = nowPlaying.trackId,
+                isCurrentTrackPlaying = nowPlaying.isPlaying,
             )
         }
     }.stateIn(

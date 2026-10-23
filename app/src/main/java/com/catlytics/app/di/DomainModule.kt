@@ -62,6 +62,7 @@ import com.catlytics.core.domain.usecase.playlist.ExportPlaylistsBackupUseCase
 import com.catlytics.core.domain.usecase.playlist.PreviewPlaylistsBackupUseCase
 import com.catlytics.core.domain.usecase.playlist.ImportPlaylistsBackupUseCase
 import com.catlytics.core.domain.usecase.playlist.ExportPlaylistToM3uUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
 import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
@@ -480,6 +481,11 @@ object DomainModule {
     fun provideObservePlaybackStateUseCase(
         playbackController: PlaybackController,
     ) = ObservePlaybackStateUseCase(playbackController)
+
+    @Provides
+    fun provideObserveNowPlayingUseCase(
+        playbackController: PlaybackController,
+    ) = ObserveNowPlayingUseCase(playbackController)
 
     @Provides
     fun providePlayTrackUseCase(

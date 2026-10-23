@@ -35,10 +35,9 @@ import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
-import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
-import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.model.RecentAddedWindow
@@ -69,23 +68,23 @@ internal sealed interface RecentlyAddedUiState {
 @HiltViewModel
 internal class RecentlyAddedViewModel @Inject constructor(
     observeRecentlyAddedTracksUseCase: ObserveRecentlyAddedTracksUseCase,
-    observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    observeNowPlayingUseCase: ObserveNowPlayingUseCase,
     homePreferencesRepository: HomePreferencesRepository,
     private val playTrackUseCase: PlayTrackUseCase,
     private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
 ) : ViewModel() {
     val uiState: StateFlow<RecentlyAddedUiState> = combine(
         observeRecentlyAddedTracksUseCase().catch { emit(emptyList()) },
-        observePlaybackStateUseCase(),
+        observeNowPlayingUseCase(),
         homePreferencesRepository.observeHomeRecommendationsSettings(),
-    ) { recentlyAddedTracks, playbackState, homeRecommendationsSettings ->
+    ) { recentlyAddedTracks, nowPlaying, homeRecommendationsSettings ->
         if (recentlyAddedTracks.isEmpty()) {
             RecentlyAddedUiState.Empty(homeRecommendationsSettings.recentAddedWindow.days)
         } else {
             RecentlyAddedUiState.Success(
                 tracks = recentlyAddedTracks,
-                currentTrackId = playbackState.currentTrack?.id,
-                isCurrentTrackPlaying = playbackState.status == PlaybackStatus.Playing,
+                currentTrackId = nowPlaying.trackId,
+                isCurrentTrackPlaying = nowPlaying.isPlaying,
                 windowDays = homeRecommendationsSettings.recentAddedWindow.days,
                 showNewTrackBadge = homeRecommendationsSettings.showNewTrackBadge,
             )

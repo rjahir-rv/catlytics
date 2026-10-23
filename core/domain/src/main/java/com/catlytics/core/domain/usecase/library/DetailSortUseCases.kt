@@ -7,7 +7,6 @@ import com.catlytics.core.model.ArtistAlbumSort
 import com.catlytics.core.model.ArtistTrackSort
 import com.catlytics.core.model.DetailSortSettings
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 class ObserveDetailSortSettingsUseCase(
     private val preferencesRepository: LibraryPreferencesRepository,
@@ -36,7 +35,5 @@ class SetArtistAlbumSortUseCase(
 class ObserveTrackPlayCountsUseCase(
     private val playbackEventRepository: PlaybackEventRepository,
 ) {
-    operator fun invoke(): Flow<Map<String, Int>> = playbackEventRepository
-        .observeTopTracks(startMillis = 0L, endMillis = Long.MAX_VALUE, limit = Int.MAX_VALUE)
-        .map { tracks -> tracks.associate { it.trackId to it.playCount } }
+    operator fun invoke(): Flow<Map<String, Int>> = playbackEventRepository.observeTrackPlayCounts()
 }

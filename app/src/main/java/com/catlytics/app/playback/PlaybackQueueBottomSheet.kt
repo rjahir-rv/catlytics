@@ -118,7 +118,7 @@ internal fun PlaybackQueueBottomSheet(
     isPlaying: Boolean = false,
     isShuffleEnabled: Boolean = false,
     repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
-    positionMillis: Long = 0L,
+    positionMillis: () -> Long = { 0L },
     sleepTimerState: SleepTimerState = SleepTimerState.Inactive,
     onToggleShuffle: () -> Unit = {},
     onCycleRepeatMode: () -> Unit = {},
@@ -205,14 +205,12 @@ internal fun PlaybackQueueBottomSheet(
         sleepTimerEndIndex(
             queue = visibleQueue,
             currentIndex = currentIndex,
-            positionMillis = positionMillis,
+            positionMillis = positionMillis(),
             remainingMillis = timer.remainingMillis,
             repeatMode = repeatMode,
         )
     }?.takeIf { draggedTrackId == null && settlingTrackId == null }
 
-    // La hoja siempre está "expandida" para que la barra de controles del fondo se vea desde el
-    // inicio; su altura arranca a media pantalla y crece por completo en cuanto el usuario hace scroll.
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val density = LocalDensity.current
     val containerHeightPx = LocalWindowInfo.current.containerSize.height

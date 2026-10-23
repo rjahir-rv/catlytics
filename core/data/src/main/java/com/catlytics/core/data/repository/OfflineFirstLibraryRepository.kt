@@ -19,12 +19,18 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.artistIdentityKey
+import com.catlytics.core.model.TrackMetadataOverride
 import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 
+@Singleton
 class OfflineFirstLibraryRepository @Inject constructor(
     private val localDataSource: LocalDataSource,
     private val mediator: DataMediator,
@@ -32,14 +38,19 @@ class OfflineFirstLibraryRepository @Inject constructor(
     private val artistIdentityRepository: ArtistIdentityRepository,
     private val trackMetadataRepository: TrackMetadataRepository,
 ) : LibraryRepository {
+    private val resolvedTracksCache = ResolvedTracksCache()
+
     override fun observeAlbums(): Flow<List<Album>> = observeVisibleTracks()
         .map { tracks -> tracks.toAlbums() }
+        .offMain()
 
     override fun observeAlbumContent(albumId: String): Flow<AlbumContent?> = observeVisibleTracks()
         .map { tracks -> tracks.toAlbumContent(albumId) }
+        .offMain()
 
     override fun observeArtists(): Flow<List<ArtistSummary>> = observeVisibleTracks()
         .map { tracks -> tracks.toArtists() }
+        .offMain()
 
     override fun observeArtistContent(artistId: String): Flow<ArtistContent?> = combine(
         observeVisibleTracks(),
@@ -51,13 +62,15 @@ class OfflineFirstLibraryRepository @Inject constructor(
             ?.id
             ?: artistId
         tracks.toArtistContent(resolvedArtistId)
-    }
+    }.offMain()
 
     override fun observeTracks(): Flow<List<Track>> = observeVisibleTracks()
         .map { tracks -> tracks.map(TrackEntity::toDomain) }
+        .offMain()
 
     override fun observeAllTracks(): Flow<List<Track>> = observeResolvedTracks()
         .map { tracks -> tracks.map(TrackEntity::toDomain) }
+        .offMain()
 
     override fun observeFolders(): Flow<List<LibraryFolder>> = combine(
         observeResolvedTracks(),
@@ -67,14 +80,14 @@ class OfflineFirstLibraryRepository @Inject constructor(
             .map(FolderTrack::folderId)
             .toSet()
         canonicalTracks.toLibraryFolders(hiddenFolderIds).filter { it.id in rootFolderIds }
-    }
+    }.offMain()
 
     override fun observeFolderContent(folderId: String): Flow<LibraryFolderContent?> = combine(
         observeResolvedTracks(),
         preferencesRepository.observeHiddenFolderIds(),
     ) { tracks, hiddenFolderIds ->
         tracks.toLibraryFolderContent(folderId, hiddenFolderIds)
-    }
+    }.offMain()
 
     override suspend fun resolvePlaylistSource(source: PlaylistSource): List<Track> {
         val aliases = artistIdentityRepository.observeAliases().first()
@@ -107,9 +120,8 @@ class OfflineFirstLibraryRepository @Inject constructor(
         localDataSource.observeTracks(),
         trackMetadataRepository.observeOverrides(),
         artistIdentityRepository.observeAliases(),
-    ) { tracks, overrides, aliases ->
-        tracks.applyMetadataOverrides(overrides).canonicalizeArtists(aliases)
-    }
+        resolvedTracksCache::resolve,
+    ).flowOn(Dispatchers.Default)
 
     private fun observeVisibleTracks(): Flow<List<TrackEntity>> = combine(
         observeResolvedTracks(),
@@ -127,6 +139,33 @@ class OfflineFirstLibraryRepository @Inject constructor(
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {
         preferencesRepository.setFolderVisible(folderId, visible)
     }
+}
+
+private fun <T> Flow<T>.offMain(): Flow<T> = distinctUntilChanged().flowOn(Dispatchers.Default)
+
+private class ResolvedTracksCache {
+    private var tracks: List<TrackEntity>? = null
+    private var overrides: List<TrackMetadataOverride>? = null
+    private var aliases: List<ArtistAlias>? = null
+    private var resolved: List<TrackEntity> = emptyList()
+
+    @Synchronized
+    fun resolve(
+        tracks: List<TrackEntity>,
+        overrides: List<TrackMetadataOverride>,
+        aliases: List<ArtistAlias>,
+    ): List<TrackEntity> {
+        if (tracks.sameAs(this.tracks) && overrides.sameAs(this.overrides) && aliases.sameAs(this.aliases)) {
+            return resolved
+        }
+        resolved = tracks.applyMetadataOverrides(overrides).canonicalizeArtists(aliases)
+        this.tracks = tracks
+        this.overrides = overrides
+        this.aliases = aliases
+        return resolved
+    }
+
+    private fun List<*>.sameAs(other: List<*>?) = this === other || this == other
 }
 
 private fun List<TrackEntity>.canonicalizeArtists(

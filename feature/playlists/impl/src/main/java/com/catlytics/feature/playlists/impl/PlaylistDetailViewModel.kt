@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
-import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
@@ -18,7 +18,7 @@ import com.catlytics.core.domain.usecase.playlist.RestorePlaylistTracksUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
 import com.catlytics.core.domain.usecase.playlist.UpdatePlaylistDetailsUseCase
 import com.catlytics.core.model.PlaybackQueueSource
-import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.NowPlaying
 import com.catlytics.core.model.PlaylistContent
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
@@ -61,7 +61,7 @@ internal class PlaylistDetailViewModel @Inject constructor(
     private val removeTrack: RemoveTrackFromPlaylistUseCase,
     private val playTrack: PlayTrackUseCase,
     private val playShuffledQueue: PlayShuffledQueueUseCase,
-    observePlaybackState: ObservePlaybackStateUseCase,
+    observeNowPlaying: ObserveNowPlayingUseCase,
     private val togglePlaybackUseCase: TogglePlaybackUseCase,
     private val updatePlaylistDetails: UpdatePlaylistDetailsUseCase,
     private val setPlaylistCover: SetPlaylistCoverUseCase,
@@ -88,10 +88,10 @@ internal class PlaylistDetailViewModel @Inject constructor(
             PlaylistDetailUiState.Loading,
         )
 
-    val playbackState = observePlaybackState().stateIn(
+    val nowPlaying = observeNowPlaying().stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5_000),
-        PlaybackState(),
+        NowPlaying(),
     )
 
     val allTracks = observeLibrary().stateIn(

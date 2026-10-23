@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.data.local.ManagedImageStore
@@ -14,12 +13,10 @@ import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.StatisticsImportMode
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.IOException
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -39,14 +36,12 @@ class DataStorePlaylistRepository internal constructor(
 
     private val coverStore = ManagedImageStore(context, COVER_DIRECTORY)
 
-    override fun observePlaylists(): Flow<List<Playlist>> = dataStore.data
-        .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
-        .map { preferences ->
-            preferences[PLAYLISTS]
-                ?.decodePlaylists()
-                .orEmpty()
-                .withLikedPlaylist()
-        }
+    override fun observePlaylists(): Flow<List<Playlist>> = dataStore.observe { preferences ->
+        preferences[PLAYLISTS]
+            ?.decodePlaylists()
+            .orEmpty()
+            .withLikedPlaylist()
+    }
 
     override suspend fun createPlaylist(name: String, trackIds: List<String>): Playlist {
         val playlist = Playlist(UUID.randomUUID().toString(), name, trackIds.distinct())

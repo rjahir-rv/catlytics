@@ -61,11 +61,29 @@ class PlaybackViewModel @Inject constructor(
     private val removeTracksFromLikedUseCase: RemoveTracksFromLikedUseCase,
     private val sleepTimerController: SleepTimerController,
 ) : ViewModel() {
-    val playbackState: StateFlow<PlaybackState> = observePlaybackStateUseCase()
+    private val fullPlaybackState: StateFlow<PlaybackState> = observePlaybackStateUseCase()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = PlaybackState(),
+        )
+
+    val playbackState: StateFlow<PlaybackState> = fullPlaybackState
+        .map { it.copy(positionMillis = 0L, bufferedPositionMillis = 0L) }
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = PlaybackState(),
+        )
+
+    val progress: StateFlow<PlaybackProgress> = fullPlaybackState
+        .map(PlaybackState::toProgress)
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = PlaybackProgress(),
         )
 
     val isCurrentTrackLiked: StateFlow<Boolean> = playbackState
@@ -250,7 +268,7 @@ class PlaybackViewModel @Inject constructor(
     }
 
     private fun seekBy(offsetMillis: Long) {
-        val state = playbackState.value
+        val state = fullPlaybackState.value
         if (state.currentTrack == null) return
 
         viewModelScope.launch {

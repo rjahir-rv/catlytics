@@ -45,14 +45,13 @@ import com.catlytics.core.designsystem.format.TrackDurationFormat
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NowPlayingProgress(
-    positionMillis: Long,
-    bufferedPositionMillis: Long,
-    durationMillis: Long,
+    progress: () -> PlaybackProgress,
     enabled: Boolean,
     accent: Color,
     onSeekTo: (Long) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val (positionMillis, bufferedPositionMillis, durationMillis) = progress()
     val haptics = LocalHapticFeedback.current
     var pendingProgress by remember {
         mutableFloatStateOf(positionMillis.progressFor(durationMillis))

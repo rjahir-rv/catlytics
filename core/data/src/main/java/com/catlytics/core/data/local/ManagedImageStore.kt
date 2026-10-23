@@ -85,4 +85,6 @@ internal class ManagedImageStore(
     }
 }
 
-private fun String.toFileNamePart(): String = replace(Regex("[^A-Za-z0-9_.-]"), "_")
+private val UNSAFE_FILE_NAME_CHARACTERS = Regex("[^A-Za-z0-9_.-]")
+
+private fun String.toFileNamePart(): String = replace(UNSAFE_FILE_NAME_CHARACTERS, "_")

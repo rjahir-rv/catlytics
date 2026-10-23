@@ -21,7 +21,7 @@ class CatlyticsMiniPlayerTest {
                     artist = "Artista de prueba",
                     isPlaying = true,
                     isBuffering = false,
-                    progress = 0.5f,
+                    progress = { 0.5f },
                     onTogglePlayback = {},
                     onSkipPrevious = {},
                     onSkipNext = {},

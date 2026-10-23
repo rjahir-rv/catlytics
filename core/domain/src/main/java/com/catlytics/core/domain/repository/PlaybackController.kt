@@ -22,6 +22,14 @@ interface PlaybackController {
 
     suspend fun playNext(track: Track)
 
+    suspend fun addQueueItems(tracks: List<Track>) {
+        tracks.forEach { addQueueItem(it) }
+    }
+
+    suspend fun playNextItems(tracks: List<Track>) {
+        tracks.asReversed().forEach { playNext(it) }
+    }
+
     suspend fun moveQueueItem(fromIndex: Int, toIndex: Int)
 
     suspend fun removeQueueItem(index: Int)

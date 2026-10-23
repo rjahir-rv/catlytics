@@ -12,8 +12,9 @@ data class ArtistAlias(
     val source: Artist,
     val target: Artist,
 ) {
-    val isDisplayRename: Boolean
-        get() = artistIdentityKey(source.name) == artistIdentityKey(target.name)
+    val isDisplayRename: Boolean by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        artistIdentityKey(source.name) == artistIdentityKey(target.name)
+    }
 }
 
 fun renamedArtistId(name: String): String = "$RENAMED_ARTIST_ID_PREFIX${artistIdentityKey(name)}"
@@ -26,7 +27,9 @@ private const val RENAMED_ARTIST_ID_PREFIX = "renamed-artist-"
 fun artistIdentityKey(name: String): String = Normalizer
     .normalize(name.trim(), Normalizer.Form.NFKC)
     .lowercase(Locale.ROOT)
-    .replace(Regex("\\s+"), " ")
+    .replace(WHITESPACE, " ")
+
+private val WHITESPACE = Regex("\\s+")
 
 data class ArtistSummary(
     val artist: Artist,
@@ -125,6 +128,16 @@ data class PlaybackState(
     val isShuffleEnabled: Boolean = false,
     val repeatMode: PlaybackRepeatMode = PlaybackRepeatMode.Off,
 )
+
+/** What is playing, without the position: changes only on track, status or source changes. */
+data class NowPlaying(
+    val trackId: String? = null,
+    val status: PlaybackStatus = PlaybackStatus.Idle,
+    val queueSource: PlaybackQueueSource = PlaybackQueueSource.Static,
+) {
+    val isPlaying: Boolean
+        get() = status == PlaybackStatus.Playing
+}
 
 enum class PlaybackStatus {
     Idle,

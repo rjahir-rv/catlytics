@@ -210,6 +210,7 @@ fun CatlyticsApp(
             .orEmpty()
     }
     val playbackState by playbackViewModel.playbackState.collectAsStateWithLifecycle()
+    val playbackProgress = playbackViewModel.progress.collectAsStateWithLifecycle()
     val isCurrentTrackLiked by playbackViewModel.isCurrentTrackLiked.collectAsStateWithLifecycle()
     val likedTrackIds by playbackViewModel.likedTrackIds.collectAsStateWithLifecycle()
     val queueSourcePlaylist by playbackViewModel.queueSourcePlaylist.collectAsStateWithLifecycle()
@@ -510,9 +511,6 @@ fun CatlyticsApp(
         topLevelBackStack.removeLast()
     }
 
-    // Al elegir otro elemento en la lista con un detalle ya abierto al lado, ese detalle se
-    // reemplaza en vez de acumularse; así atrás vuelve a la lista. Lee el estado al momento del
-    // toque porque las pantallas pueden conservar este callback entre recomposiciones.
     fun openFromListPane(key: NavKey) {
         val backStack = topLevelBackStack.backStack
         val indices = if (currentIsTwoPane) {
@@ -757,9 +755,6 @@ fun CatlyticsApp(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     playbackState.currentTrack?.let { track ->
                         CatlyticsMiniPlayer(
-                            // Centrado y con ancho acotado en pantallas anchas. Sin barra inferior
-                            // queda sobre la barra de gestos del sistema (si la barra está visible,
-                            // el NavigationSuiteScaffold ya consumió ese inset).
                             modifier = Modifier
                                 .align(Alignment.CenterHorizontally)
                                 .widthIn(max = MINI_PLAYER_MAX_WIDTH)
@@ -771,12 +766,7 @@ fun CatlyticsApp(
                             artist = track.artist.name.displayArtistName(),
                             isPlaying = playbackState.status == PlaybackStatus.Playing,
                             isBuffering = playbackState.status == PlaybackStatus.Buffering,
-                            progress = if (playbackState.durationMillis > 0L) {
-                                (playbackState.positionMillis.toFloat() / playbackState.durationMillis)
-                                    .coerceIn(0f, 1f)
-                            } else {
-                                0f
-                            },
+                            progress = { playbackProgress.value.fraction },
                             onTogglePlayback = playbackViewModel::togglePlayback,
                             onSkipPrevious = playbackViewModel::skipPrevious,
                             onSkipNext = playbackViewModel::skipNext,
@@ -976,6 +966,7 @@ fun CatlyticsApp(
                     ) {
                         NowPlayingScreen(
                             playbackState = playbackState,
+                            progress = { playbackProgress.value },
                             onBack = ::closeCurrentDestination,
                             onTogglePlayback = playbackViewModel::togglePlayback,
                             onSkipPrevious = playbackViewModel::skipPrevious,

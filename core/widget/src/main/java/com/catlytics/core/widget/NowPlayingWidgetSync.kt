@@ -36,6 +36,7 @@ class NowPlayingWidgetSync @Inject constructor(
         if (!running.compareAndSet(expect = false, update = true)) return
 
         syncScope.launch {
+            var isFirstUpdate = true
             combine(
                 playbackController.get().playbackState.map { it.toWidgetState() },
                 playbackSessionRepository.observeSession().map { it != null },
@@ -46,7 +47,10 @@ class NowPlayingWidgetSync @Inject constructor(
                     val state = resolveWidgetState(live, hasSavedSession, cached)
                     if (state != cached) {
                         store.save(state)
+                    } else if (!isFirstUpdate) {
+                        return@collect
                     }
+                    isFirstUpdate = false
                     CatlyticsCassetteWidget().updateAll(context)
                 }
         }

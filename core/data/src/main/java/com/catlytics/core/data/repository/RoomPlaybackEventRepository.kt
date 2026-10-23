@@ -13,96 +13,83 @@ import com.catlytics.core.model.TopAlbum
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.artistIdentityKey
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import javax.inject.Inject
 
 class RoomPlaybackEventRepository @Inject constructor(
     private val dao: PlaybackEventDao
 ) : PlaybackEventRepository {
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-
     override suspend fun recordEvent(event: PlaybackEvent) {
-        withContext(ioDispatcher) {
-            dao.insert(event.toEntity())
-        }
+        dao.insert(event.toEntity())
     }
 
     override fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>> {
-        return dao.observeRecentlyPlayedTracks(limit).flowOn(ioDispatcher)
+        return dao.observeRecentlyPlayedTracks(limit)
     }
 
     override fun observeTopTracks(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopTrack>> {
-        return dao.observeTopTracks(startMillis, endMillis, limit).flowOn(ioDispatcher)
+        return dao.observeTopTracks(startMillis, endMillis, limit)
+    }
+
+    override fun observeTrackPlayCounts(): Flow<Map<String, Int>> {
+        return dao.observeTrackPlayCounts().map { rows -> rows.associate { it.trackId to it.playCount } }
     }
 
     override fun observeTopArtists(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopArtist>> {
-        return dao.observeTopArtists(startMillis, endMillis, limit).flowOn(ioDispatcher)
+        return dao.observeTopArtists(startMillis, endMillis, limit)
     }
 
     override fun observeTopAlbums(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopAlbum>> {
-        return dao.observeTopAlbums(startMillis, endMillis, limit).flowOn(ioDispatcher)
+        return dao.observeTopAlbums(startMillis, endMillis, limit)
     }
 
     override fun observeTotalListeningTime(startMillis: Long, endMillis: Long): Flow<Long> {
-        return dao.observeTotalListeningTime(startMillis, endMillis).flowOn(ioDispatcher)
+        return dao.observeTotalListeningTime(startMillis, endMillis)
     }
 
     override fun observeDailyListening(
         startMillis: Long,
         endMillis: Long
     ): Flow<List<DailyListeningStat>> {
-        return dao.observeDailyListening(startMillis, endMillis).flowOn(ioDispatcher)
+        return dao.observeDailyListening(startMillis, endMillis)
     }
 
     override fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int> {
-        return dao.observePlayCount(startMillis, endMillis).flowOn(ioDispatcher)
+        return dao.observePlayCount(startMillis, endMillis)
     }
 
     override fun observePeriodUniqueCounts(
         startMillis: Long,
         endMillis: Long,
     ): Flow<PeriodUniqueCounts> {
-        return dao.observePeriodUniqueCounts(startMillis, endMillis).flowOn(ioDispatcher)
+        return dao.observePeriodUniqueCounts(startMillis, endMillis)
     }
 
     override fun observeListeningTotals(): Flow<ListeningTotals> {
-        return dao.observeListeningTotals().flowOn(ioDispatcher)
+        return dao.observeListeningTotals()
     }
 
     override fun observeActiveListeningDays(): Flow<List<LocalDate>> {
         return dao.observeActiveListeningDays()
             .map { days -> days.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() } }
-            .flowOn(ioDispatcher)
     }
 
     override suspend fun cleanOldEvents(beforeMillis: Long): Int {
-        return withContext(ioDispatcher) {
-            dao.deleteEventsBefore(beforeMillis)
-        }
+        return dao.deleteEventsBefore(beforeMillis)
     }
 
     override suspend fun getAllEvents(): List<PlaybackEvent> {
-        return withContext(ioDispatcher) {
-            dao.getAllEvents().map { it.toDomain() }
-        }
+        return dao.getAllEvents().map { it.toDomain() }
     }
 
     override suspend fun replaceEvents(events: List<PlaybackEvent>) {
-        withContext(ioDispatcher) {
-            dao.replaceAllEvents(events.map { it.toEntity() })
-        }
+        dao.replaceAllEvents(events.map { it.toEntity() })
     }
 
     override suspend fun insertEventsIfAbsent(events: List<PlaybackEvent>): Int =
-        if (events.isEmpty()) 0 else withContext(ioDispatcher) {
-            dao.insertEventsIfAbsent(events.map { it.toEntity() })
-        }
+        if (events.isEmpty()) 0 else dao.insertEventsIfAbsent(events.map { it.toEntity() })
 
     override fun observeBackupSummary(): Flow<StatisticsBackupSummary> {
         return dao.observeBackupSummary()
@@ -113,7 +100,6 @@ class RoomPlaybackEventRepository @Inject constructor(
                     lastEventMillis = row.lastEventMillis,
                 )
             }
-            .flowOn(ioDispatcher)
     }
 }
 

@@ -19,6 +19,11 @@ data class PlaybackEventFingerprintRow(
     val durationListenedMillis: Long,
 )
 
+data class TrackPlayCountRow(
+    val trackId: String,
+    val playCount: Int,
+)
+
 data class PlaybackEventBoundsRow(
     val eventCount: Long,
     val firstEventMillis: Long?,
@@ -55,6 +60,9 @@ interface PlaybackEventDao {
         newEvents.chunked(IMPORT_BATCH_SIZE).forEach { insertAll(it) }
         return newEvents.size
     }
+
+    @Query("SELECT track_id AS trackId, COUNT(*) AS playCount FROM playback_events GROUP BY track_id")
+    fun observeTrackPlayCounts(): Flow<List<TrackPlayCountRow>>
 
     @Query("""
         SELECT track_id AS trackId,

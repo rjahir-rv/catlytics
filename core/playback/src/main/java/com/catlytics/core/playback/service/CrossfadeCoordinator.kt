@@ -23,7 +23,7 @@ internal class CrossfadeCoordinator(
     primary: ExoPlayer,
     secondary: ExoPlayer,
     preferencesRepository: PlaybackPreferencesRepository,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     private val onActivePlayerChanged: (active: ExoPlayer, standby: ExoPlayer) -> Unit,
 ) : PlayerControl {
     private var active = primary
@@ -36,6 +36,10 @@ internal class CrossfadeCoordinator(
     private var transition: Transition? = null
 
     private val listener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            refreshMonitor()
+        }
+
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             if (transition != null) standby.playWhenReady = playWhenReady
         }
@@ -98,10 +102,19 @@ internal class CrossfadeCoordinator(
                     if (configuredDurationMillis == 0L && transition == null) {
                         clearStandby()
                     }
+                    refreshMonitor()
                 }
         }
+    }
+
+    // A running transition must finish even if the outgoing player stops, so it keeps the monitor alive.
+    private fun needsMonitor() = transition != null || (configuredDurationMillis > 0L && active.isPlaying)
+
+    /** Polls only while a crossfade can start or is running, instead of for the whole session. */
+    private fun refreshMonitor() {
+        if (monitorJob?.isActive == true || !needsMonitor()) return
         monitorJob = scope.launch {
-            while (isActive) {
+            while (isActive && needsMonitor()) {
                 update()
                 delay(UPDATE_INTERVAL_MILLIS.milliseconds)
             }

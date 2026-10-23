@@ -6,14 +6,13 @@ import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
-import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
-import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopTrack
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -28,7 +27,7 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 internal class HomeViewModel @Inject constructor(
     observeLibraryUseCase: ObserveLibraryUseCase,
-    observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    observeNowPlayingUseCase: ObserveNowPlayingUseCase,
     observeRecentlyPlayedTracksUseCase: ObserveRecentlyPlayedTracksUseCase,
     observeWeeklyStatsUseCase: ObserveWeeklyStatsUseCase,
     observePlaylistContentUseCase: ObservePlaylistContentUseCase,
@@ -47,6 +46,7 @@ internal class HomeViewModel @Inject constructor(
         val tracksById = tracks.associateBy(Track::id)
         HomeLibraryAndListening(
             tracks = tracks,
+            dailyPlaylistTrackCount = generateDailyPlaylistUseCase(tracks).size,
             recentlyPlayedTracks = recentlyPlayed.mapNotNull { recentlyPlayedTrack ->
                 tracksById[recentlyPlayedTrack.trackId]
             },
@@ -61,24 +61,22 @@ internal class HomeViewModel @Inject constructor(
 
     val uiState: StateFlow<HomeUiState> = combine(
         libraryAndListening,
-        observePlaybackStateUseCase(),
+        observeNowPlayingUseCase(),
         observePlaylistContentUseCase(LIKED_PLAYLIST_ID).catch { emit(null) },
         homePreferencesRepository.observeHomeRecommendationsSettings(),
-    ) { libraryAndListening, playbackState, likedPlaylist, homeRecommendationsSettings ->
+    ) { libraryAndListening, nowPlaying, likedPlaylist, homeRecommendationsSettings ->
         when {
             libraryAndListening.tracks.isEmpty() -> HomeUiState.Empty
             else -> HomeUiState.Success(
                 tracks = libraryAndListening.tracks,
-                dailyPlaylistTrackCount = generateDailyPlaylistUseCase(
-                    libraryAndListening.tracks,
-                ).size,
+                dailyPlaylistTrackCount = libraryAndListening.dailyPlaylistTrackCount,
                 canShuffleAll = libraryAndListening.tracks.size >= MIN_SHUFFLE_TRACK_COUNT,
                 favoriteTracks = likedPlaylist?.tracks.orEmpty(),
                 recentlyPlayedTracks = libraryAndListening.recentlyPlayedTracks,
                 recentlyAddedTracks = libraryAndListening.recentlyAddedTracks,
                 topTracks = libraryAndListening.topTracks,
-                currentTrackId = playbackState.currentTrack?.id,
-                isCurrentTrackPlaying = playbackState.status == PlaybackStatus.Playing,
+                currentTrackId = nowPlaying.trackId,
+                isCurrentTrackPlaying = nowPlaying.isPlaying,
                 showRecommendedPlaylists = homeRecommendationsSettings.showRecommendedPlaylists,
                 showNewTrackBadge = homeRecommendationsSettings.showNewTrackBadge,
             )
@@ -119,6 +117,7 @@ internal class HomeViewModel @Inject constructor(
 
     private data class HomeLibraryAndListening(
         val tracks: List<Track>,
+        val dailyPlaylistTrackCount: Int,
         val recentlyPlayedTracks: List<Track>,
         val recentlyAddedTracks: List<Track>,
         val topTracks: List<TopTrack>,

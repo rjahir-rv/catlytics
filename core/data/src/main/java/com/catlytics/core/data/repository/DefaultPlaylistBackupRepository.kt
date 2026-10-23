@@ -22,7 +22,6 @@ import com.catlytics.core.model.artistIdentityKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.InputStream
 import java.io.OutputStream
-import java.text.Normalizer
 import java.util.Base64
 import java.util.Locale
 import javax.inject.Inject
@@ -346,20 +345,20 @@ internal fun TrackEntity.m3uLocation(): String {
 internal class TrackReconciler(localTracks: List<TrackEntity>) {
     private val byId = localTracks.associateBy { it.id }
     private val byArtistAndTitle = localTracks.groupBy {
-        artistIdentityKey(it.artistName) to normalizeTitle(it.title)
+        artistIdentityKey(it.artistName) to artistIdentityKey(it.title)
     }
-    private val byTitle = localTracks.groupBy { normalizeTitle(it.title) }
+    private val byTitle = localTracks.groupBy { artistIdentityKey(it.title) }
 
     fun reconcile(backupTrack: PlaylistTrackBackupDto): TrackEntity? {
         // Nivel 1: ID exacto y título coincidente
         val byExactId = byId[backupTrack.trackId]
-        if (byExactId != null && normalizeTitle(byExactId.title) == normalizeTitle(backupTrack.title)) {
+        if (byExactId != null && artistIdentityKey(byExactId.title) == artistIdentityKey(backupTrack.title)) {
             return byExactId
         }
 
         // Nivel 2: Artista + Título normalizado
         val artistKey = artistIdentityKey(backupTrack.artistName)
-        val titleKey = normalizeTitle(backupTrack.title)
+        val titleKey = artistIdentityKey(backupTrack.title)
         val candidateMatches = byArtistAndTitle[artistKey to titleKey]
         if (!candidateMatches.isNullOrEmpty()) {
             if (candidateMatches.size == 1) return candidateMatches.first()
@@ -380,13 +379,6 @@ internal class TrackReconciler(localTracks: List<TrackEntity>) {
         }
 
         return null
-    }
-
-    companion object {
-        fun normalizeTitle(title: String): String = Normalizer
-            .normalize(title.trim(), Normalizer.Form.NFKC)
-            .lowercase(Locale.ROOT)
-            .replace(Regex("\\s+"), " ")
     }
 }
 

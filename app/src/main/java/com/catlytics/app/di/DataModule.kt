@@ -119,6 +119,7 @@ interface DataModule {
     ): DataMediator
 
     @Binds
+    @Singleton
     fun bindLibraryRepository(
         repository: OfflineFirstLibraryRepository,
     ): LibraryRepository

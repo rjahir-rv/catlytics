@@ -72,6 +72,7 @@ class Media3PlaybackController @Inject constructor(
     private var progressUpdatesJob: Job? = null
     private var queueSyncJob: Job? = null
     private var lastSessionSaveTimeMillis = 0L
+    private var lastSavedSnapshot: PlaybackSessionSnapshot? = null
     private var suppressPlaybackStateUpdates = false
     private var missingMetadataLabels = MissingMetadataLabels()
 
@@ -179,46 +180,65 @@ class Media3PlaybackController @Inject constructor(
         }
     }
 
-    override suspend fun addQueueItem(track: Track) {
-        insertQueueItem(track) { playbackQueue, currentTrackId ->
+    override suspend fun addQueueItem(track: Track) = addQueueItems(listOf(track))
+
+    override suspend fun playNext(track: Track) = playNextItems(listOf(track))
+
+    override suspend fun addQueueItems(tracks: List<Track>) {
+        insertQueueItems(tracks) { playbackQueue, currentTrackId, insertedIds ->
             pruneManualQueue(playbackQueue, currentTrackId)
-            manualQueue = manualQueue.filterNot { it.id == track.id } + track
+            manualQueue = manualQueue.filterNot { it.id in insertedIds } + tracks
             playbackQueue.withManualQueueAfterCurrent(currentTrackId, manualQueue)
         }
     }
 
-    override suspend fun playNext(track: Track) {
-        insertQueueItem(track) { playbackQueue, currentTrackId ->
+    override suspend fun playNextItems(tracks: List<Track>) {
+        insertQueueItems(tracks) { playbackQueue, currentTrackId, insertedIds ->
             pruneManualQueue(playbackQueue, currentTrackId)
-            manualQueue = listOf(track) + manualQueue.filterNot { it.id == track.id }
+            manualQueue = tracks + manualQueue.filterNot { it.id in insertedIds }
             playbackQueue.withManualQueueAfterCurrent(currentTrackId, manualQueue)
         }
     }
 
-    private suspend fun insertQueueItem(
-        track: Track,
-        transform: (playbackQueue: List<Track>, currentTrackId: String) -> List<Track>,
+    private suspend fun insertQueueItems(
+        tracks: List<Track>,
+        transform: (playbackQueue: List<Track>, currentTrackId: String, insertedIds: Set<String>) -> List<Track>,
     ) {
         val state = _playbackState.value
         val currentTrackId = state.currentTrack?.id ?: return
+        val inserted = tracks.distinctBy(Track::id).filterNot { it.id == currentTrackId }
+        if (inserted.isEmpty()) return
         val playbackQueue = state.queue.ifEmpty { queue }
-        val updatedPlaybackQueue = transform(playbackQueue, currentTrackId)
+        val updatedPlaybackQueue = transform(playbackQueue, currentTrackId, inserted.mapTo(HashSet(), Track::id))
         if (updatedPlaybackQueue.map(Track::id) == playbackQueue.map(Track::id)) return
 
-        val existingIndex = queue.indexOfFirst { it.id == track.id }
-        val targetIndex = updatedPlaybackQueue.indexOfFirst { it.id == track.id }
         queueSource = PlaybackQueueSource.Static
         withQueuePlayer { player ->
             mutateQueue(player, expectedCurrentId = currentTrackId) {
-                if (existingIndex >= 0) {
-                    player.moveMediaItem(existingIndex, targetIndex)
-                } else {
-                    player.addMediaItem(targetIndex, track.toMediaItem(missingMetadataLabels))
-                }
+                player.alignMediaItems(queue, updatedPlaybackQueue)
                 queue = updatedPlaybackQueue
             }
         }
         restartQueueSync()
+    }
+
+    /**
+     * Moves or adds media items so the player matches [target], position by position. Earlier
+     * positions are already aligned when a later one is fixed, so each item is touched once.
+     */
+    private fun Player.alignMediaItems(current: List<Track>, target: List<Track>) {
+        val working = current.toMutableList()
+        target.forEachIndexed { index, track ->
+            if (working.getOrNull(index)?.id == track.id) return@forEachIndexed
+            val existingIndex = working.indexOfFirst { it.id == track.id }
+            if (existingIndex > index) {
+                moveMediaItem(existingIndex, index)
+                working.add(index, working.removeAt(existingIndex))
+            } else {
+                addMediaItem(index, track.toMediaItem(missingMetadataLabels))
+                working.add(index, track)
+            }
+        }
     }
 
     private fun pruneManualQueue(playbackQueue: List<Track>, currentTrackId: String) {
@@ -402,8 +422,6 @@ class Media3PlaybackController @Inject constructor(
             .takeUnless { it < 0 }
             ?: snapshot.currentIndex.coerceIn(0, restoredQueue.lastIndex)
         queue = restoredQueue
-        // Con shuffle activo, la cola guardada está mezclada: se recupera el orden original para
-        // que desactivar shuffle tras reabrir la app vuelva a ese orden.
         originalQueue = restoredOriginalQueue(
             restoredQueue = restoredQueue,
             persistedOriginalQueue = snapshot.originalQueueTrackIds.mapNotNull(availableTracksById::get),
@@ -439,6 +457,7 @@ class Media3PlaybackController @Inject constructor(
             manualQueue = emptyList()
             updatePlaybackState(controller, forcePersist = true)
         }
+        lastSavedSnapshot = null
         playbackSessionRepository.clearSession()
     }
 
@@ -526,11 +545,13 @@ class Media3PlaybackController @Inject constructor(
     }
 
     private fun persistPlaybackSession(state: PlaybackState, force: Boolean) {
-        val snapshot = state.toPlaybackSessionSnapshot() ?: return
         val now = System.currentTimeMillis()
         if (!force && now - lastSessionSaveTimeMillis < SESSION_SAVE_INTERVAL_MILLIS) return
+        val snapshot = state.toPlaybackSessionSnapshot() ?: return
+        if (snapshot == lastSavedSnapshot) return
 
         lastSessionSaveTimeMillis = now
+        lastSavedSnapshot = snapshot
         playbackScope.launch {
             playbackSessionRepository.saveSession(snapshot)
         }
@@ -667,6 +688,7 @@ class Media3PlaybackController @Inject constructor(
                 queue = emptyList()
                 manualQueue = emptyList()
                 updatePlaybackState(controller, emptyList(), forcePersist = true)
+                lastSavedSnapshot = null
                 playbackScope.launch { playbackSessionRepository.clearSession() }
                 return@withController
             }

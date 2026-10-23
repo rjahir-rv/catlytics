@@ -13,7 +13,7 @@ class AddQueueItemUseCase(
     suspend fun invokeAll(tracks: List<Track>, currentTrackId: String?): Int {
         if (currentTrackId == null) return 0
         val toAdd = tracks.filter { it.id != currentTrackId }
-        toAdd.forEach { playbackController.addQueueItem(it) }
+        playbackController.addQueueItems(toAdd)
         return toAdd.size
     }
 }

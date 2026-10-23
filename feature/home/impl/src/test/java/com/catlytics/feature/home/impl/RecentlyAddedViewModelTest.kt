@@ -4,7 +4,7 @@ import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
-import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
@@ -170,7 +170,7 @@ class RecentlyAddedViewModelTest {
             homePreferencesRepository = homePreferencesRepository,
             nowMillis = { NOW_MILLIS },
         ),
-        observePlaybackStateUseCase = ObservePlaybackStateUseCase(playbackController),
+        observeNowPlayingUseCase = ObserveNowPlayingUseCase(playbackController),
         homePreferencesRepository = homePreferencesRepository,
         playTrackUseCase = PlayTrackUseCase(playbackController),
         playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),

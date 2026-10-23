@@ -61,7 +61,7 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.domain.usecase.playlist.PLAYLIST_COVER_MOSAIC_SIZE
 import com.catlytics.core.model.PlaybackQueueSource
-import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.NowPlaying
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
@@ -73,7 +73,7 @@ internal fun PlaylistHeader(
     playlist: Playlist,
     tracks: List<Track>,
     artworkRequest: ImageRequest,
-    playbackState: PlaybackState,
+    nowPlaying: NowPlaying,
     customOrdering: Boolean,
     onArtworkLoaded: (Bitmap) -> Unit,
     onPlay: (Track, List<Track>) -> Unit,
@@ -182,7 +182,7 @@ internal fun PlaylistHeader(
                 PlaylistPlaybackActions(
                     playlist = playlist,
                     tracks = tracks,
-                    playbackState = playbackState,
+                    nowPlaying = nowPlaying,
                     onPlay = onPlay,
                     onPlayShuffled = onPlayShuffled,
                     onTogglePlayback = onTogglePlayback,
@@ -226,7 +226,7 @@ private fun PlaylistMetaPills(tracks: List<Track>, centered: Boolean = true) {
 private fun PlaylistPlaybackActions(
     playlist: Playlist,
     tracks: List<Track>,
-    playbackState: PlaybackState,
+    nowPlaying: NowPlaying,
     onPlay: (Track, List<Track>) -> Unit,
     onPlayShuffled: (List<Track>) -> Unit,
     onTogglePlayback: () -> Unit,
@@ -234,12 +234,12 @@ private fun PlaylistPlaybackActions(
     onOptionsClick: () -> Unit,
     optionsMenu: @Composable () -> Unit,
 ) {
-    val source = playbackState.queueSource
+    val source = nowPlaying.queueSource
     val isThisPlaylistActive = source is PlaybackQueueSource.Playlist &&
         source.playlistId == playlist.id
     val isPlayingThis = isThisPlaylistActive &&
-        (playbackState.status == PlaybackStatus.Playing ||
-            playbackState.status == PlaybackStatus.Buffering)
+        (nowPlaying.status == PlaybackStatus.Playing ||
+            nowPlaying.status == PlaybackStatus.Buffering)
 
     Row(
         modifier = Modifier.fillMaxWidth(),

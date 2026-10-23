@@ -40,7 +40,7 @@ internal fun PlaylistDetailRoute(
     val context = LocalContext.current
     val resources = LocalResources.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val nowPlaying by viewModel.nowPlaying.collectAsStateWithLifecycle()
     val allTracks by viewModel.allTracks.collectAsStateWithLifecycle()
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -83,7 +83,7 @@ internal fun PlaylistDetailRoute(
 
     PlaylistDetailScreen(
         uiState = uiState,
-        playbackState = playbackState,
+        nowPlaying = nowPlaying,
         allTracks = allTracks,
         onPlay = viewModel::play,
         onPlayShuffled = viewModel::playShuffled,

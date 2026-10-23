@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -20,13 +19,9 @@ import com.catlytics.core.model.ArtistTrackSort
 import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.SortDirection
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 
 private val Context.libraryPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "library_preferences",
@@ -41,52 +36,20 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         @ApplicationContext context: Context,
     ) : this(context.libraryPreferencesDataStore)
 
-    override fun observeHiddenFolderIds(): Flow<Set<String>> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences -> preferences[HIDDEN_FOLDER_IDS].orEmpty() }
+    override fun observeHiddenFolderIds(): Flow<Set<String>> = dataStore.observe { preferences ->
+        preferences[HIDDEN_FOLDER_IDS].orEmpty()
+    }
 
-    override fun observeMusicScanSettings(): Flow<MusicScanSettings> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            MusicScanSettings(
-                durationFilter = preferences[MUSIC_SCAN_DURATION_FILTER]
-                    ?.let { stored ->
-                        MusicScanDurationFilter.entries.firstOrNull { it.name == stored }
-                    }
-                    ?: MusicScanDurationFilter.Disabled,
-                sizeFilter = preferences[MUSIC_SCAN_SIZE_FILTER]
-                    ?.let { stored ->
-                        MusicScanSizeFilter.entries.firstOrNull { it.name == stored }
-                    }
-                    ?: MusicScanSizeFilter.Disabled,
-            )
-        }
+    override fun observeMusicScanSettings(): Flow<MusicScanSettings> = dataStore.observe { preferences ->
+        MusicScanSettings(
+            durationFilter = preferences[MUSIC_SCAN_DURATION_FILTER].toEnumOr(MusicScanDurationFilter.Disabled),
+            sizeFilter = preferences[MUSIC_SCAN_SIZE_FILTER].toEnumOr(MusicScanSizeFilter.Disabled),
+        )
+    }
 
-    override fun observeArtistViewMode(): Flow<ArtistViewMode> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            preferences[ARTIST_VIEW_MODE]
-                ?.let { stored -> ArtistViewMode.entries.firstOrNull { it.name == stored } }
-                ?: ArtistViewMode.List
-        }
+    override fun observeArtistViewMode(): Flow<ArtistViewMode> = dataStore.observe { preferences ->
+        preferences[ARTIST_VIEW_MODE].toEnumOr(ArtistViewMode.List)
+    }
 
     override suspend fun setFolderVisible(folderId: String, visible: Boolean) {
         dataStore.edit { preferences ->
@@ -117,65 +80,26 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         }
     }
 
-    override fun observePlaylistViewMode(): Flow<PlaylistViewMode> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            preferences[PLAYLIST_VIEW_MODE]
-                ?.let { stored -> PlaylistViewMode.entries.firstOrNull { it.name == stored } }
-                ?: PlaylistViewMode.List
-        }
+    override fun observePlaylistViewMode(): Flow<PlaylistViewMode> = dataStore.observe { preferences ->
+        preferences[PLAYLIST_VIEW_MODE].toEnumOr(PlaylistViewMode.List)
+    }
 
-    override fun observeLibrarySortDirection(): Flow<SortDirection> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            preferences[LIBRARY_SORT_DIRECTION]
-                ?.let { stored -> SortDirection.entries.firstOrNull { it.name == stored } }
-                ?: SortDirection.Ascending
-        }
+    override fun observeLibrarySortDirection(): Flow<SortDirection> = dataStore.observe { preferences ->
+        preferences[LIBRARY_SORT_DIRECTION].toEnumOr(SortDirection.Ascending)
+    }
 
-    override fun observePlaylistSortDirection(): Flow<SortDirection> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            preferences[PLAYLIST_SORT_DIRECTION]
-                ?.let { stored -> SortDirection.entries.firstOrNull { it.name == stored } }
-                ?: SortDirection.Ascending
-        }
+    override fun observePlaylistSortDirection(): Flow<SortDirection> = dataStore.observe { preferences ->
+        preferences[PLAYLIST_SORT_DIRECTION].toEnumOr(SortDirection.Ascending)
+    }
 
-    override fun observeDetailSortSettings(): Flow<DetailSortSettings> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            val defaults = DetailSortSettings()
-            DetailSortSettings(
-                albumTracks = preferences[ALBUM_TRACK_SORT].toEnumOr(defaults.albumTracks),
-                artistTracks = preferences[ARTIST_TRACK_SORT].toEnumOr(defaults.artistTracks),
-                artistAlbums = preferences[ARTIST_ALBUM_SORT].toEnumOr(defaults.artistAlbums),
-            )
-        }
-        .distinctUntilChanged()
+    override fun observeDetailSortSettings(): Flow<DetailSortSettings> = dataStore.observe { preferences ->
+        val defaults = DetailSortSettings()
+        DetailSortSettings(
+            albumTracks = preferences[ALBUM_TRACK_SORT].toEnumOr(defaults.albumTracks),
+            artistTracks = preferences[ARTIST_TRACK_SORT].toEnumOr(defaults.artistTracks),
+            artistAlbums = preferences[ARTIST_ALBUM_SORT].toEnumOr(defaults.artistAlbums),
+        )
+    }
 
     override suspend fun setAlbumTrackSort(sort: AlbumTrackSort) {
         dataStore.edit { preferences -> preferences[ALBUM_TRACK_SORT] = sort.name }
@@ -220,7 +144,3 @@ class DataStoreLibraryPreferencesRepository internal constructor(
         val ARTIST_ALBUM_SORT = stringPreferencesKey("artist_album_sort")
     }
 }
-
-/** A stored enum name, or [default] when it is missing or no longer exists. */
-private inline fun <reified T : Enum<T>> String?.toEnumOr(default: T): T =
-    this?.let { stored -> enumValues<T>().firstOrNull { it.name == stored } } ?: default

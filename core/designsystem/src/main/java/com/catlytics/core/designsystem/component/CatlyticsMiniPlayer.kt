@@ -52,7 +52,7 @@ fun CatlyticsMiniPlayer(
     artist: String,
     isPlaying: Boolean,
     isBuffering: Boolean,
-    progress: Float = 0f,
+    progress: () -> Float = { 0f },
     onTogglePlayback: () -> Unit,
     onSkipPrevious: () -> Unit,
     onSkipNext: () -> Unit,
@@ -209,7 +209,7 @@ fun CatlyticsMiniPlayer(
                 }
             }
             LinearProgressIndicator(
-                progress = { progress.coerceIn(0f, 1f) },
+                progress = { progress().coerceIn(0f, 1f) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)

@@ -239,8 +239,10 @@ internal object MediaStoreAudioMapper {
     private fun Long.toAddedAtMillis(): Long? = takeIf { it > 0L }
         ?.times(MILLIS_PER_SECOND)
 
+    private val NON_ID_CHARACTERS = Regex("[^a-z0-9]+")
+
     private fun String.normalizedIdPart(): String = lowercase()
-        .replace(Regex("[^a-z0-9]+"), "-")
+        .replace(NON_ID_CHARACTERS, "-")
         .trim('-')
         .ifBlank { "unknown" }
 

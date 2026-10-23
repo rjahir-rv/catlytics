@@ -86,6 +86,7 @@ import com.catlytics.core.model.Track
 fun NowPlayingScreen(
     playbackState: PlaybackState,
     modifier: Modifier = Modifier,
+    progress: () -> PlaybackProgress = { playbackState.toProgress() },
     onBack: () -> Unit,
     onTogglePlayback: () -> Unit,
     onSkipPrevious: () -> Unit,
@@ -165,7 +166,7 @@ fun NowPlayingScreen(
             isPlaying = isPlayingOrBuffering,
             isShuffleEnabled = playbackState.isShuffleEnabled,
             repeatMode = playbackState.repeatMode,
-            positionMillis = playbackState.positionMillis,
+            positionMillis = { progress().positionMillis },
             sleepTimerState = sleepTimerState,
             onToggleShuffle = onToggleShuffle,
             onCycleRepeatMode = onCycleRepeatMode,
@@ -283,6 +284,7 @@ fun NowPlayingScreen(
                 val details = @Composable { detailsModifier: Modifier ->
                     NowPlayingDetails(
                         playbackState = playbackState,
+                        progress = progress,
                         track = track,
                         upNext = upNext,
                         isSleepTimerActive = sleepTimerState is SleepTimerState.Active,
@@ -370,6 +372,7 @@ private fun NowPlayingTitle(queueSourceTitle: String?) {
 @Composable
 private fun NowPlayingDetails(
     playbackState: PlaybackState,
+    progress: () -> PlaybackProgress,
     track: Track?,
     upNext: Track?,
     isSleepTimerActive: Boolean,
@@ -405,9 +408,7 @@ private fun NowPlayingDetails(
         Spacer(modifier = Modifier.height(16.dp))
 
         NowPlayingProgress(
-            positionMillis = playbackState.positionMillis,
-            bufferedPositionMillis = playbackState.bufferedPositionMillis,
-            durationMillis = playbackState.durationMillis,
+            progress = progress,
             enabled = track != null,
             accent = accent,
             onSeekTo = onSeekTo,

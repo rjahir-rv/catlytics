@@ -2,7 +2,7 @@ package com.catlytics.feature.playlists.impl
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.catlytics.core.domain.usecase.playback.ObservePlaybackStateUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
@@ -43,7 +43,7 @@ internal class PlaylistsViewModel @Inject constructor(
     observePlaylistSummariesUseCase: ObservePlaylistSummariesUseCase,
     observePlaylistViewModeUseCase: ObservePlaylistViewModeUseCase,
     observePlaylistSortDirectionUseCase: ObservePlaylistSortDirectionUseCase,
-    observePlaybackStateUseCase: ObservePlaybackStateUseCase,
+    observeNowPlayingUseCase: ObserveNowPlayingUseCase,
     private val observePlaylistContentUseCase: ObservePlaylistContentUseCase,
     private val playTrackUseCase: PlayTrackUseCase,
     private val playShuffledQueueUseCase: PlayShuffledQueueUseCase,
@@ -62,7 +62,7 @@ internal class PlaylistsViewModel @Inject constructor(
             PlaylistsUiState.Loading,
         )
 
-    val activePlaylist: StateFlow<ActivePlaylist?> = observePlaybackStateUseCase()
+    val activePlaylist: StateFlow<ActivePlaylist?> = observeNowPlayingUseCase()
         .map { state ->
             val source = state.queueSource as? PlaybackQueueSource.Playlist
                 ?: return@map null

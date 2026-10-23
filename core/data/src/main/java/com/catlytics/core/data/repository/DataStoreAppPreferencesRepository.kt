@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
@@ -23,11 +22,9 @@ import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
 private val Context.appPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(
@@ -46,17 +43,9 @@ class DataStoreAppPreferencesRepository internal constructor(
         @ApplicationContext context: Context,
     ) : this(context.appPreferencesDataStore)
 
-    override fun observeThemeMode(): Flow<ThemeMode> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            preferences[THEME_MODE]?.toThemeMode() ?: ThemeMode.System
-        }
+    override fun observeThemeMode(): Flow<ThemeMode> = dataStore.observe { preferences ->
+        preferences[THEME_MODE].toEnumOr(ThemeMode.System)
+    }
 
     override suspend fun setThemeMode(themeMode: ThemeMode) {
         dataStore.edit { preferences ->
@@ -64,17 +53,9 @@ class DataStoreAppPreferencesRepository internal constructor(
         }
     }
 
-    override fun observeAppLanguage(): Flow<AppLanguage> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            preferences[APP_LANGUAGE]?.toAppLanguage() ?: AppLanguage.System
-        }
+    override fun observeAppLanguage(): Flow<AppLanguage> = dataStore.observe { preferences ->
+        preferences[APP_LANGUAGE].toEnumOr(AppLanguage.System)
+    }
 
     override suspend fun setAppLanguage(language: AppLanguage) {
         dataStore.edit { preferences ->
@@ -82,18 +63,10 @@ class DataStoreAppPreferencesRepository internal constructor(
         }
     }
 
-    override fun observeCrossfadeDurationSeconds(): Flow<Int> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            (preferences[CROSSFADE_DURATION_SECONDS] ?: DEFAULT_CROSSFADE_DURATION_SECONDS)
-                .coerceIn(MIN_CROSSFADE_DURATION_SECONDS, MAX_CROSSFADE_DURATION_SECONDS)
-        }
+    override fun observeCrossfadeDurationSeconds(): Flow<Int> = dataStore.observe { preferences ->
+        (preferences[CROSSFADE_DURATION_SECONDS] ?: DEFAULT_CROSSFADE_DURATION_SECONDS)
+            .coerceIn(MIN_CROSSFADE_DURATION_SECONDS, MAX_CROSSFADE_DURATION_SECONDS)
+    }
 
     override suspend fun setCrossfadeDurationSeconds(seconds: Int) {
         dataStore.edit { preferences ->
@@ -104,74 +77,26 @@ class DataStoreAppPreferencesRepository internal constructor(
         }
     }
 
-    override fun observeEqualizerEnabled(): Flow<Boolean> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences -> preferences[EQUALIZER_ENABLED] ?: false }
+    override fun observeEqualizerEnabled(): Flow<Boolean> = dataStore.observe { preferences -> preferences[EQUALIZER_ENABLED] ?: false }
 
-    override fun observeEqualizerPresetName(): Flow<String?> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences -> preferences[EQUALIZER_PRESET_NAME] }
+    override fun observeEqualizerPresetName(): Flow<String?> = dataStore.observe { preferences -> preferences[EQUALIZER_PRESET_NAME] }
 
-    override fun observeEqualizerMode(): Flow<EqualizerMode> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            preferences[EQUALIZER_MODE]?.let { modeStr ->
-                runCatching { EqualizerMode.valueOf(modeStr) }.getOrDefault(EqualizerMode.Preset)
-            } ?: EqualizerMode.Preset
-        }
+    override fun observeEqualizerMode(): Flow<EqualizerMode> = dataStore.observe { preferences ->
+        preferences[EQUALIZER_MODE].toEnumOr(EqualizerMode.Preset)
+    }
 
-    override fun observeCustomBandLevels(): Flow<Map<Short, Int>> = dataStore.data
-        .catch { error ->
-            if (error is IOException) {
-                emit(emptyPreferences())
-            } else {
-                throw error
-            }
-        }
-        .map { preferences ->
-            preferences[EQUALIZER_CUSTOM_BANDS]?.let { bandsSet ->
-                bandsSet.associate { bandStr ->
-                    val parts = bandStr.split(":")
-                    parts[0].toShort() to parts[1].toInt()
-                }
-            } ?: emptyMap()
-        }
+    override fun observeCustomBandLevels(): Flow<Map<Short, Int>> = dataStore.observe { preferences ->
+        preferences[EQUALIZER_CUSTOM_BANDS].toBandLevels()
+    }
 
     override fun observeHomeRecommendationsSettings(): Flow<HomeRecommendationsSettings> =
-        dataStore.data
-            .catch { error ->
-                if (error is IOException) {
-                    emit(emptyPreferences())
-                } else {
-                    throw error
-                }
-            }
-            .map { preferences ->
-                HomeRecommendationsSettings(
-                    showRecommendedPlaylists = preferences[SHOW_RECOMMENDED_PLAYLISTS] ?: true,
-                    recentAddedWindow = preferences[RECENT_ADDED_WINDOW]?.toRecentAddedWindow()
-                        ?: RecentAddedWindow.Days21,
-                    showNewTrackBadge = preferences[SHOW_NEW_TRACK_BADGE] ?: true,
-                )
-            }
+        dataStore.observe { preferences ->
+            HomeRecommendationsSettings(
+                showRecommendedPlaylists = preferences[SHOW_RECOMMENDED_PLAYLISTS] ?: true,
+                recentAddedWindow = preferences[RECENT_ADDED_WINDOW].toEnumOr(RecentAddedWindow.Days21),
+                showNewTrackBadge = preferences[SHOW_NEW_TRACK_BADGE] ?: true,
+            )
+        }
 
     override suspend fun setShowRecommendedPlaylists(show: Boolean) {
         dataStore.edit { preferences ->
@@ -216,23 +141,21 @@ class DataStoreAppPreferencesRepository internal constructor(
     override suspend fun setCustomBandLevel(bandId: Short, level: Int) {
         dataStore.edit { preferences ->
             val currentBands = preferences[EQUALIZER_CUSTOM_BANDS] ?: emptySet()
-            val map = currentBands.associate { bandStr ->
-                val parts = bandStr.split(":")
-                parts[0].toShort() to parts[1].toInt()
-            }.toMutableMap()
+            val map = currentBands.toBandLevels().toMutableMap()
             map[bandId] = level
             preferences[EQUALIZER_CUSTOM_BANDS] = map.map { "${it.key}:${it.value}" }.toSet()
         }
     }
 
-    private fun String.toThemeMode(): ThemeMode =
-        runCatching { ThemeMode.valueOf(this) }.getOrDefault(ThemeMode.System)
 
-    private fun String.toAppLanguage(): AppLanguage =
-        runCatching { AppLanguage.valueOf(this) }.getOrDefault(AppLanguage.System)
-
-    private fun String.toRecentAddedWindow(): RecentAddedWindow =
-        runCatching { RecentAddedWindow.valueOf(this) }.getOrDefault(RecentAddedWindow.Days21)
+    private fun Set<String>?.toBandLevels(): Map<Short, Int> = orEmpty()
+        .mapNotNull { entry ->
+            val bandId = entry.substringBefore(':').toShortOrNull() ?: return@mapNotNull null
+            val level = entry.substringAfter(':', missingDelimiterValue = "").toIntOrNull()
+                ?: return@mapNotNull null
+            bandId to level
+        }
+        .toMap()
 
     private companion object {
         val THEME_MODE = stringPreferencesKey("theme_mode")

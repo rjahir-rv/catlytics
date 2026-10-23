@@ -8,10 +8,8 @@ import com.catlytics.core.domain.usecase.library.SetAlbumTrackSortUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistAlbumSortUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistTrackSortUseCase
 import com.catlytics.core.model.DetailSortSettings
-import com.catlytics.core.model.TopTrack
 import java.lang.reflect.Proxy
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
 
 internal class SortTestFakes {
     val settings = MutableStateFlow(DetailSortSettings())
@@ -29,9 +27,7 @@ internal class SortTestFakes {
 
     private val events: PlaybackEventRepository = proxy { name, _ ->
         when (name) {
-            "observeTopTracks" -> playCounts.map { counts ->
-                counts.map { (id, count) -> TopTrack(id, id, "", null, count, 0L) }
-            }
+            "observeTrackPlayCounts" -> playCounts
             else -> error("Unexpected call $name")
         }
     }

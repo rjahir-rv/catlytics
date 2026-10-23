@@ -68,7 +68,7 @@ import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradient
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
-import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.NowPlaying
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
@@ -80,7 +80,7 @@ import kotlinx.coroutines.delay
 @Composable
 internal fun PlaylistDetailScreen(
     uiState: PlaylistDetailUiState,
-    playbackState: PlaybackState,
+    nowPlaying: NowPlaying,
     allTracks: List<Track>,
     onPlay: (Track, List<Track>) -> Unit,
     onPlayShuffled: (List<Track>) -> Unit,
@@ -240,7 +240,7 @@ internal fun PlaylistDetailScreen(
             visibleIds = displayedTracks.map(Track::id),
             selectedTracks = selection.selectedTracks(content.tracks),
             likedTrackIds = likedTrackIds,
-            currentTrackId = playbackState.currentTrack?.id,
+            currentTrackId = nowPlaying.trackId,
             topInset = scaffoldContentPadding.calculateTopPadding(),
             bottomInset = bottomPadding(),
             onAction = onTrackSelectionAction,
@@ -285,7 +285,7 @@ internal fun PlaylistDetailScreen(
                             playlist = playlist,
                             tracks = content.tracks,
                             artworkRequest = artworkRequest,
-                            playbackState = playbackState,
+                            nowPlaying = nowPlaying,
                             customOrdering = customOrdering,
                             onArtworkLoaded = { artworkBitmap = it },
                             onPlay = onPlay,
@@ -369,9 +369,9 @@ internal fun PlaylistDetailScreen(
                                 ),
                             track = track,
                             customOrdering = customOrdering,
-                            isCurrent = track.id == playbackState.currentTrack?.id,
-                            isPlaying = track.id == playbackState.currentTrack?.id &&
-                                playbackState.status == PlaybackStatus.Playing,
+                            isCurrent = track.id == nowPlaying.trackId,
+                            isPlaying = track.id == nowPlaying.trackId &&
+                                nowPlaying.isPlaying,
                             onClick = {
                                 if (selection.active && !customOrdering) {
                                     selectionState.value = selection.onTrackLongClick(track.id)
