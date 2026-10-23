@@ -29,6 +29,7 @@ import com.google.common.util.concurrent.ListenableFuture
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -386,7 +387,13 @@ class Media3PlaybackController @Inject constructor(
         if (_playbackState.value.currentTrack != null) return
 
         val snapshot = playbackSessionRepository.observeSession().first() ?: return
-        runCatching { libraryRepository.refreshTracks() }
+        try {
+            libraryRepository.refreshTracks()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
+            // A failed rescan still lets the last known library restore the session.
+        }
         val availableTracksById = libraryRepository.observeAllTracks().first().associateBy { it.id }
         val restoredQueue = snapshot.queueTrackIds.mapNotNull(availableTracksById::get)
         if (restoredQueue.isEmpty()) return

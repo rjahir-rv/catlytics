@@ -13,6 +13,7 @@ import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.StatisticsBackupPreview
 import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.StatisticsExportResult
+import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.StatisticsImportResult
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -106,9 +107,13 @@ class DefaultStatisticsBackupRepository @Inject constructor(
                     )
                 }
                 StatisticsImportMode.Merge -> {
-                    val importedCount = playbackEventRepository.insertEventsIfAbsent(parsedEvents)
-                    val importedAliasCount = artistIdentityRepository.mergeAliases(parsedAliases)
-                    val importedEditCount = trackMetadataRepository.mergeFromBackup(overrides)
+                    val (importedCount, importedAliasCount, importedEditCount) = database.withTransaction {
+                        Triple(
+                            playbackEventRepository.insertEventsIfAbsent(parsedEvents),
+                            artistIdentityRepository.mergeAliases(parsedAliases),
+                            trackMetadataRepository.mergeFromBackup(overrides),
+                        )
+                    }
                     StatisticsImportResult(
                         importedCount = importedCount,
                         skippedDuplicateCount = totalInFile - importedCount,
@@ -131,8 +136,8 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         runSuspendCatching {
             val section = exportStatisticsSection()
             val document = StatisticsBackupDocument(
-                format = BACKUP_FORMAT,
-                schemaVersion = SUPPORTED_SCHEMA_VERSION,
+                format = BackupDocumentValidator.STATISTICS_FORMAT,
+                schemaVersion = BackupDocumentValidator.SUPPORTED_SCHEMA_VERSION,
                 exportedAtMillis = System.currentTimeMillis(),
                 appVersion = appVersion,
                 events = section.events,
@@ -142,7 +147,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
             context.contentResolver.openOutputStream(uri.toUri())?.use { output ->
                 writeDocument(
                     document,
-                    SizeLimitedOutputStream(output, MAX_BACKUP_BYTES),
+                    SizeLimitedOutputStream(output, BackupDocumentValidator.MAX_BACKUP_BYTES),
                 )
                 output.flush()
             } ?: error("No se pudo abrir el archivo de destino para exportar.")
@@ -154,7 +159,7 @@ class DefaultStatisticsBackupRepository @Inject constructor(
         withContext(ioDispatcher) {
             runSuspendCatching {
                 val document = readDocument(uri)
-                validateDocument(document)
+                BackupDocumentValidator.validate(document)
                 previewFromDocument(document)
             }
         }
@@ -165,67 +170,15 @@ class DefaultStatisticsBackupRepository @Inject constructor(
     ): Result<StatisticsImportResult> = withContext(ioDispatcher) {
         runSuspendCatching {
             val document = readDocument(uri)
-            validateDocument(document)
+            BackupDocumentValidator.validate(document)
             restoreStatistics(document, mode)
         }
     }
 
     private fun readDocument(uri: String): StatisticsBackupDocument {
         return context.contentResolver.openInputStream(uri.toUri())?.use { input ->
-            decodeDocument(SizeLimitedInputStream(input, MAX_BACKUP_BYTES))
+            decodeDocument(SizeLimitedInputStream(input, BackupDocumentValidator.MAX_BACKUP_BYTES))
         } ?: error("No se pudo abrir el archivo de respaldo.")
-    }
-
-    private fun validateDocument(document: StatisticsBackupDocument) {
-        if (document.format != BACKUP_FORMAT &&
-            document.format != UNIFIED_BACKUP_FORMAT &&
-            document.format != PLAYLIST_BACKUP_FORMAT
-        ) {
-            error("Formato de archivo no reconocido.")
-        }
-        if (document.schemaVersion !in MIN_SUPPORTED_SCHEMA_VERSION..SUPPORTED_SCHEMA_VERSION) {
-            error(
-                "Versión de respaldo no soportada (v${document.schemaVersion}). " +
-                    "Esta app admite v$SUPPORTED_SCHEMA_VERSION.",
-            )
-        }
-        require(document.exportedAtMillis > 0L) { "Fecha de exportación inválida." }
-        document.events.forEachIndexed { index, event ->
-            require(event.trackId.isNotBlank()) { "Evento $index: trackId vacío." }
-            require(event.trackTitle.isNotBlank()) { "Evento $index: título vacío." }
-            require(event.artistId.isNotBlank()) { "Evento $index: artistId vacío." }
-            require(event.artistName.isNotBlank()) { "Evento $index: artista vacío." }
-            require(event.timestamp > 0L) { "Evento $index: timestamp inválido." }
-            require(event.durationListenedMillis > 0L) {
-                "Evento $index: duración escuchada inválida."
-            }
-            require(event.trackDurationMillis >= 0L) {
-                "Evento $index: duración de canción inválida."
-            }
-        }
-        document.artistAliases.forEachIndexed { index, alias ->
-            require(alias.sourceArtistId.isNotBlank()) { "Fusión $index: ID de origen vacío." }
-            require(alias.sourceArtistName.isNotBlank()) { "Fusión $index: origen vacío." }
-            require(alias.targetArtistId.isNotBlank()) { "Fusión $index: ID principal vacío." }
-            require(alias.targetArtistName.isNotBlank()) { "Fusión $index: principal vacío." }
-            require(
-                com.catlytics.core.model.artistIdentityKey(alias.sourceArtistName) !=
-                    com.catlytics.core.model.artistIdentityKey(alias.targetArtistName),
-            ) {
-                "Fusión $index: origen y principal son iguales."
-            }
-        }
-        document.trackMetadataOverrides.forEachIndexed { index, override ->
-            require(override.trackId.isNotBlank()) { "Edición $index: trackId vacío." }
-            require(override.originalTitle.isNotBlank()) { "Edición $index: título original vacío." }
-            require(override.hasEdits) { "Edición $index: no contiene cambios." }
-        }
-        require(
-            document.artistAliases
-                .map { com.catlytics.core.model.artistIdentityKey(it.sourceArtistName) }
-                .distinct()
-                .size == document.artistAliases.size,
-        ) { "El respaldo contiene fusiones duplicadas." }
     }
 
     @OptIn(
@@ -245,21 +198,15 @@ class DefaultStatisticsBackupRepository @Inject constructor(
     )
     private fun decodeDocument(input: InputStream): StatisticsBackupDocument = try {
         json.decodeFromStream<StatisticsBackupDocument>(input)
-    } catch (error: BackupTooLargeException) {
+    } catch (error: BackupException) {
         throw error
     } catch (error: Exception) {
-        throw IllegalArgumentException("El archivo no es un respaldo de estadísticas válido.", error)
+        throw BackupException.InvalidFormat("Not a Catlytics backup document.", error)
     }
 
     companion object {
-        const val BACKUP_FORMAT = "catlytics.statistics.backup"
-        const val UNIFIED_BACKUP_FORMAT = "catlytics.backup"
-        const val PLAYLIST_BACKUP_FORMAT = "catlytics.playlists.backup"
-        const val SUPPORTED_SCHEMA_VERSION = 4
-        const val MIN_SUPPORTED_SCHEMA_VERSION = 1
         const val ALIAS_SCHEMA_VERSION = 2
         const val METADATA_SCHEMA_VERSION = 4
-        internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
     }
 }
 

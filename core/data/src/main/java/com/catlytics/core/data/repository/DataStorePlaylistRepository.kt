@@ -21,14 +21,11 @@ import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.buildJsonArray
-import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonPrimitive
 
 private val Context.playlistsDataStore: DataStore<Preferences> by preferencesDataStore("playlists")
 
@@ -40,7 +37,7 @@ class DataStorePlaylistRepository internal constructor(
     @Inject
     constructor(@ApplicationContext context: Context) : this(context.playlistsDataStore, context)
 
-    private val coverStore = ManagedImageStore(context, "playlist_covers")
+    private val coverStore = ManagedImageStore(context, COVER_DIRECTORY)
 
     override fun observePlaylists(): Flow<List<Playlist>> = dataStore.data
         .catch { error -> if (error is IOException) emit(emptyPreferences()) else throw error }
@@ -177,12 +174,15 @@ class DataStorePlaylistRepository internal constructor(
     override suspend fun restorePlaylists(playlists: List<Playlist>, mode: StatisticsImportMode) {
         val incomingLiked = playlists.firstOrNull { it.id == LIKED_PLAYLIST_ID }
         val incomingOther = playlists.filterNot { it.id == LIKED_PLAYLIST_ID }
+        // Covers are deleted only after the new list is committed, so a failed write keeps them.
+        val coversToDelete = mutableListOf<Pair<String, String?>>()
 
         update { currentPlaylists ->
+            coversToDelete.clear()
             when (mode) {
                 StatisticsImportMode.Replace -> {
                     val currentNonLiked = currentPlaylists.filterNot { it.id == LIKED_PLAYLIST_ID }
-                    currentNonLiked.forEach { deleteManagedCover(it.id, it.artworkUri) }
+                    currentNonLiked.forEach { coversToDelete += it.id to it.artworkUri }
 
                     val newLiked = (incomingLiked ?: currentPlaylists.firstOrNull { it.id == LIKED_PLAYLIST_ID })
                         ?.copy(name = LIKED_PLAYLIST_NAME)
@@ -209,6 +209,9 @@ class DataStorePlaylistRepository internal constructor(
                         }
                         if (existingIndex >= 0) {
                             val existing = currentNonLiked[existingIndex]
+                            if (existing.artworkUri != null) {
+                                coversToDelete += incoming.id to incoming.artworkUri
+                            }
                             val merged = existing.copy(
                                 trackIds = (existing.trackIds + incoming.trackIds).distinct(),
                                 description = existing.description.ifBlank { incoming.description },
@@ -224,12 +227,14 @@ class DataStorePlaylistRepository internal constructor(
                 }
             }
         }
+        coversToDelete.forEach { (playlistId, artworkUri) -> deleteManagedCover(playlistId, artworkUri) }
     }
 
     private suspend fun update(transform: (List<Playlist>) -> List<Playlist>) {
         dataStore.edit { preferences ->
-            preferences[PLAYLISTS] = transform(preferences[PLAYLISTS]?.decodePlaylists().orEmpty())
-                .encodePlaylists()
+            val stored = preferences[PLAYLISTS]
+            val current = stored?.let { checkNotNull(it.decodePlaylists()) { "Stored playlists are unreadable." } }
+            preferences[PLAYLISTS] = transform(current.orEmpty()).encodePlaylists()
         }
     }
 
@@ -240,23 +245,37 @@ class DataStorePlaylistRepository internal constructor(
         coverStore.delete(playlistId, artworkUri)
     }
 
-    private companion object {
-        val PLAYLISTS = stringPreferencesKey("playlists_json")
+    internal companion object {
+        const val COVER_DIRECTORY = "playlist_covers"
+        private val PLAYLISTS = stringPreferencesKey("playlists_json")
     }
 }
 
-private fun List<Playlist>.encodePlaylists(): String = buildJsonArray {
-    forEach { playlist ->
-        add(buildJsonObject {
-            put("id", JsonPrimitive(playlist.id))
-            put("name", JsonPrimitive(playlist.name))
-            put("trackIds", buildJsonArray { playlist.trackIds.forEach { add(JsonPrimitive(it)) } })
-            playlist.artworkUri?.let { put("artworkUri", JsonPrimitive(it)) }
-            playlist.description.takeIf(String::isNotBlank)
-                ?.let { put("description", JsonPrimitive(it)) }
-        })
-    }
-}.toString()
+@Serializable
+private data class StoredPlaylist(
+    val id: String,
+    val name: String,
+    val trackIds: List<String> = emptyList(),
+    val artworkUri: String? = null,
+    val description: String = "",
+)
+
+private val playlistJson = Json {
+    ignoreUnknownKeys = true
+    explicitNulls = false
+}
+
+private fun List<Playlist>.encodePlaylists(): String = playlistJson.encodeToString(
+    map { playlist ->
+        StoredPlaylist(
+            id = playlist.id,
+            name = playlist.name,
+            trackIds = playlist.trackIds,
+            artworkUri = playlist.artworkUri,
+            description = playlist.description,
+        )
+    },
+)
 
 private fun List<Playlist>.withLikedPlaylist(): List<Playlist> {
     val liked = firstOrNull { it.id == LIKED_PLAYLIST_ID }
@@ -265,15 +284,19 @@ private fun List<Playlist>.withLikedPlaylist(): List<Playlist> {
     return listOf(liked) + filterNot { it.id == LIKED_PLAYLIST_ID }
 }
 
-private fun String.decodePlaylists(): List<Playlist> = runCatching {
-    Json.parseToJsonElement(this).jsonArray.mapNotNull { element ->
-        val objectValue = element as? JsonObject ?: return@mapNotNull null
-        val id = objectValue["id"]?.jsonPrimitive?.content ?: return@mapNotNull null
-        val name = objectValue["name"]?.jsonPrimitive?.content ?: return@mapNotNull null
-        val trackIds = (objectValue["trackIds"] as? JsonArray).orEmpty()
-            .map { it.jsonPrimitive.content }
-        val artworkUri = objectValue["artworkUri"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
-        val description = objectValue["description"]?.jsonPrimitive?.content.orEmpty()
-        Playlist(id, name, trackIds, artworkUri, description)
+
+private fun String.decodePlaylists(): List<Playlist>? {
+    val elements = runCatching { playlistJson.parseToJsonElement(this).jsonArray }.getOrNull() ?: return null
+    return elements.mapNotNull { element ->
+        runCatching { playlistJson.decodeFromJsonElement<StoredPlaylist>(element) }.getOrNull()
+            ?.let { stored ->
+                Playlist(
+                    id = stored.id,
+                    name = stored.name,
+                    trackIds = stored.trackIds,
+                    artworkUri = stored.artworkUri?.takeIf(String::isNotBlank),
+                    description = stored.description,
+                )
+            }
     }
-}.getOrDefault(emptyList())
+}

@@ -219,6 +219,40 @@ class PlaylistBackupLogicTest {
         assertTrue(text.contains("#EXTINF:185,Band - Song A"))
     }
 
+    @Test
+    fun `restored cover stays inside the covers folder whatever the playlist id`() = runTest {
+        val file = newBackupFile().apply {
+            writeText(
+                """{"format":"catlytics.playlists.backup","schemaVersion":4,"exportedAtMillis":1000,""" +
+                    """"playlists":[{"id":"../../shared_prefs/evil","name":"Evil","coverBase64":"AQID"}]}""",
+            )
+        }
+
+        backupRepository.importFromUri(file.toURI().toString(), StatisticsImportMode.Merge).getOrThrow()
+
+        val cover = playlistRepository.observePlaylists().first().single { it.name == "Evil" }.artworkUri
+        val coversDir = context.filesDir.resolve(DataStorePlaylistRepository.COVER_DIRECTORY).canonicalFile
+        assertEquals(coversDir, File(cover!!).canonicalFile.parentFile)
+        assertTrue(File(cover).readBytes().contentEquals(byteArrayOf(1, 2, 3)))
+    }
+
+    @Test
+    fun `M3U location rebuilds the absolute path from the scanned file key`() {
+        val primary = track(id = "m-1", title = "Song", artist = "Band")
+            .copy(folderPath = "Music/Rock", fileKey = "external_primary:Music/Rock/song.flac")
+        val sdCard = primary.copy(fileKey = "1234-abcd:Music/Rock/song.flac")
+        val legacy = primary.copy(
+            folderPath = "storage/emulated/0/Music",
+            fileKey = "external:storage/emulated/0/Music/song.mp3",
+        )
+        val unknown = primary.copy(fileKey = null)
+
+        assertEquals("/storage/emulated/0/Music/Rock/song.flac", primary.m3uLocation())
+        assertEquals("/storage/1234-ABCD/Music/Rock/song.flac", sdCard.m3uLocation())
+        assertEquals("/storage/emulated/0/Music/song.mp3", legacy.m3uLocation())
+        assertEquals(primary.mediaUri, unknown.m3uLocation())
+    }
+
     private fun newBackupUri(): String = newBackupFile().toURI().toString()
 
     private fun newBackupFile(): File = File.createTempFile(

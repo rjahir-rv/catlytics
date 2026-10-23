@@ -6,6 +6,7 @@ import com.catlytics.core.domain.repository.UnifiedBackupRepository
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.PlaylistExportResult
 import com.catlytics.core.model.PlaylistImportResult
+import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.StatisticsImportResult
 import com.catlytics.core.model.UnifiedBackupPreview
@@ -83,8 +84,8 @@ class DefaultUnifiedBackupRepository @Inject constructor(
             }
 
             val document = StatisticsBackupDocument(
-                format = BACKUP_FORMAT,
-                schemaVersion = SUPPORTED_SCHEMA_VERSION,
+                format = BackupDocumentValidator.UNIFIED_FORMAT,
+                schemaVersion = BackupDocumentValidator.SUPPORTED_SCHEMA_VERSION,
                 exportedAtMillis = System.currentTimeMillis(),
                 appVersion = appVersion,
                 events = statistics?.events.orEmpty(),
@@ -94,7 +95,7 @@ class DefaultUnifiedBackupRepository @Inject constructor(
             )
 
             context.contentResolver.openOutputStream(uri.toUri())?.use { output ->
-                writeDocument(document, SizeLimitedOutputStream(output, MAX_BACKUP_BYTES))
+                writeDocument(document, SizeLimitedOutputStream(output, BackupDocumentValidator.MAX_BACKUP_BYTES))
                 output.flush()
             } ?: error("No se pudo abrir el archivo de destino para exportar el respaldo.")
 
@@ -109,7 +110,7 @@ class DefaultUnifiedBackupRepository @Inject constructor(
         withContext(ioDispatcher) {
             runSuspendCatching {
                 val document = readDocument(uri)
-                validateDocument(document)
+                BackupDocumentValidator.validate(document)
 
                 val statsPreview = if (document.hasStatistics) {
                     statisticsBackupRepository.previewFromDocument(document)
@@ -139,7 +140,7 @@ class DefaultUnifiedBackupRepository @Inject constructor(
     ): Result<UnifiedImportResult> = withContext(ioDispatcher) {
         runSuspendCatching {
             val document = readDocument(uri)
-            validateDocument(document)
+            BackupDocumentValidator.validate(document)
 
             var statsImportResult: StatisticsImportResult? = null
             if (options.includeStatistics && document.hasStatistics) {
@@ -160,23 +161,8 @@ class DefaultUnifiedBackupRepository @Inject constructor(
 
     private fun readDocument(uri: String): StatisticsBackupDocument {
         return context.contentResolver.openInputStream(uri.toUri())?.use { input ->
-            decodeDocument(SizeLimitedInputStream(input, MAX_BACKUP_BYTES))
+            decodeDocument(SizeLimitedInputStream(input, BackupDocumentValidator.MAX_BACKUP_BYTES))
         } ?: error("No se pudo abrir el archivo de respaldo.")
-    }
-
-    private fun validateDocument(document: StatisticsBackupDocument) {
-        if (document.format != BACKUP_FORMAT &&
-            document.format != PLAYLIST_BACKUP_FORMAT &&
-            document.format != LEGACY_STATISTICS_FORMAT
-        ) {
-            error("Formato de archivo no reconocido (${document.format}).")
-        }
-        if (document.schemaVersion !in MIN_SUPPORTED_SCHEMA_VERSION..SUPPORTED_SCHEMA_VERSION) {
-            error(
-                "Versión de respaldo no soportada (v${document.schemaVersion}). " +
-                    "Esta app admite v$SUPPORTED_SCHEMA_VERSION.",
-            )
-        }
     }
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -190,18 +176,9 @@ class DefaultUnifiedBackupRepository @Inject constructor(
     @OptIn(ExperimentalSerializationApi::class)
     private fun decodeDocument(input: InputStream): StatisticsBackupDocument = try {
         json.decodeFromStream<StatisticsBackupDocument>(input)
-    } catch (error: BackupTooLargeException) {
+    } catch (error: BackupException) {
         throw error
     } catch (error: Exception) {
-        throw IllegalArgumentException("El archivo no es un respaldo válido de Catlytics.", error)
-    }
-
-    companion object {
-        const val BACKUP_FORMAT = "catlytics.backup"
-        const val PLAYLIST_BACKUP_FORMAT = "catlytics.playlists.backup"
-        const val LEGACY_STATISTICS_FORMAT = "catlytics.statistics.backup"
-        const val SUPPORTED_SCHEMA_VERSION = 4
-        const val MIN_SUPPORTED_SCHEMA_VERSION = 1
-        internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
+        throw BackupException.InvalidFormat("Not a Catlytics backup document.", error)
     }
 }

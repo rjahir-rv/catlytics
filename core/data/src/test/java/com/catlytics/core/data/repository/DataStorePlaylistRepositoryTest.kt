@@ -2,6 +2,8 @@ package com.catlytics.core.data.repository
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import java.io.File
@@ -190,7 +192,46 @@ class DataStorePlaylistRepositoryTest {
         assertEquals(listOf("one", "two"), liked.trackIds)
     }
 
+    @Test
+    fun `malformed entries are skipped without dropping valid playlists`() = runTest {
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { temporaryFolder.newFile("playlists-partial.preferences_pb") },
+        )
+        dataStore.edit {
+            it[PLAYLISTS_KEY] = """[{"id":"ok","name":"Buena","trackIds":["t1"]},""" +
+                """{"id":"bad","name":{"nested":true}},"texto"]"""
+        }
+        val repository = DataStorePlaylistRepository(dataStore)
+
+        assertEquals(listOf(LIKED_PLAYLIST_ID, "ok"), repository.observePlaylists().first().map { it.id })
+        repository.addTracks("ok", listOf("t2"))
+        val ok = repository.observePlaylists().first().single { it.id == "ok" }
+        assertEquals(listOf("t1", "t2"), ok.trackIds)
+    }
+
+    @Test
+    fun `unreadable stored value is never overwritten`() = runTest {
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { temporaryFolder.newFile("playlists-corrupt.preferences_pb") },
+        )
+        val corrupt = """{"not":"an array"""
+        dataStore.edit { it[PLAYLISTS_KEY] = corrupt }
+        val repository = DataStorePlaylistRepository(dataStore)
+
+        assertEquals(listOf(LIKED_PLAYLIST_ID), repository.observePlaylists().first().map { it.id })
+        val failure = runCatching { repository.createPlaylist("Nueva") }.exceptionOrNull()
+
+        assertTrue(failure is IllegalStateException)
+        assertEquals(corrupt, dataStore.data.first()[PLAYLISTS_KEY])
+    }
+
     private fun repository(scope: CoroutineScope, file: File) = DataStorePlaylistRepository(
         PreferenceDataStoreFactory.create(scope = scope, produceFile = { file }),
     )
+
+    private companion object {
+        val PLAYLISTS_KEY = stringPreferencesKey("playlists_json")
+    }
 }

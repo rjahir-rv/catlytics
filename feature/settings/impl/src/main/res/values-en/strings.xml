@@ -85,6 +85,10 @@
     <string name="settings_error_backup_export_failed">Couldn\'t export the backup.</string>
     <string name="settings_error_backup_read_failed">Couldn\'t read the backup file.</string>
     <string name="settings_error_backup_import_failed">Couldn\'t import the backup.</string>
+    <string name="settings_error_backup_too_large">The file exceeds the 64 MB limit.</string>
+    <string name="settings_error_backup_invalid_format">This file isn\'t a Catlytics backup.</string>
+    <string name="settings_error_backup_unsupported_version">This backup (v%1$d) isn\'t supported by this version of the app.</string>
+    <string name="settings_error_backup_invalid_content">The backup contains damaged or incomplete data.</string>
 
     <!-- Settings: backup -->
     <string name="settings_backup_description">Export a backup file to protect your playlists and listening history if you uninstall the app or move to a new phone.</string>

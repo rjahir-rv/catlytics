@@ -146,7 +146,7 @@ class RoomTrackMetadataRepository internal constructor(
         val tracksById = localDataSource.observeTracks().first().associateBy(TrackEntity::id)
         trackIds.distinct().count { trackId ->
             val original = tracksById[trackId] ?: return@count true
-            runCatching { writeTags(original) }.isFailure
+            runSuspendCatching { writeTags(original) }.isFailure
         }
     }
 

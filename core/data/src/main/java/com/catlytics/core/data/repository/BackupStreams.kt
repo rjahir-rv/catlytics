@@ -1,13 +1,10 @@
 package com.catlytics.core.data.repository
 
+import com.catlytics.core.model.BackupException
 import java.io.FilterInputStream
 import java.io.InputStream
 import java.io.OutputStream
 import kotlin.coroutines.cancellation.CancellationException
-
-internal class BackupTooLargeException : IllegalArgumentException(
-    "El respaldo supera el límite permitido de 64 MB.",
-)
 
 internal class SizeLimitedInputStream(
     input: InputStream,
@@ -29,7 +26,7 @@ internal class SizeLimitedInputStream(
 
     private fun accountFor(count: Int) {
         bytesRead += count
-        if (bytesRead > maxBytes) throw BackupTooLargeException()
+        if (bytesRead > maxBytes) throw BackupException.TooLarge(maxBytes)
     }
 }
 
@@ -53,7 +50,7 @@ internal class SizeLimitedOutputStream(
 
     private fun accountFor(count: Int) {
         bytesWritten += count
-        if (bytesWritten > maxBytes) throw BackupTooLargeException()
+        if (bytesWritten > maxBytes) throw BackupException.TooLarge(maxBytes)
     }
 }
 

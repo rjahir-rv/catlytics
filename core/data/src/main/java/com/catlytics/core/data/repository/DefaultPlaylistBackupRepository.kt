@@ -3,6 +3,7 @@ package com.catlytics.core.data.repository
 import android.content.Context
 import androidx.core.net.toUri
 import com.catlytics.core.data.local.LocalDataSource
+import com.catlytics.core.data.local.ManagedImageStore
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.domain.repository.PlaylistBackupRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
@@ -13,18 +14,17 @@ import com.catlytics.core.model.PlaylistBackupPreview
 import com.catlytics.core.model.PlaylistBackupSummary
 import com.catlytics.core.model.PlaylistExportResult
 import com.catlytics.core.model.PlaylistImportResult
+import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
 import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 import com.catlytics.core.model.artistIdentityKey
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 import java.text.Normalizer
 import java.util.Base64
 import java.util.Locale
-import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
@@ -48,6 +48,8 @@ class DefaultPlaylistBackupRepository @Inject constructor(
 ) : PlaylistBackupRepository {
 
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+
+    private val coverStore = ManagedImageStore(context, DataStorePlaylistRepository.COVER_DIRECTORY)
 
     private val json = Json {
         ignoreUnknownKeys = true
@@ -220,15 +222,15 @@ class DefaultPlaylistBackupRepository @Inject constructor(
         runSuspendCatching {
             val (playlistDtos, exportResult) = exportPlaylistDtos()
             val document = PlaylistBackupDocument(
-                format = BACKUP_FORMAT,
-                schemaVersion = SUPPORTED_SCHEMA_VERSION,
+                format = BackupDocumentValidator.PLAYLISTS_FORMAT,
+                schemaVersion = BackupDocumentValidator.SUPPORTED_SCHEMA_VERSION,
                 exportedAtMillis = System.currentTimeMillis(),
                 appVersion = appVersion,
                 playlists = playlistDtos,
             )
 
             context.contentResolver.openOutputStream(uri.toUri())?.use { output ->
-                writeDocument(document, SizeLimitedOutputStream(output, MAX_BACKUP_BYTES))
+                writeDocument(document, SizeLimitedOutputStream(output, BackupDocumentValidator.MAX_BACKUP_BYTES))
                 output.flush()
             } ?: error("No se pudo abrir el archivo de destino para exportar playlists.")
 
@@ -240,7 +242,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
         withContext(ioDispatcher) {
             runSuspendCatching {
                 val document = readDocument(uri)
-                validateDocument(document)
+                BackupDocumentValidator.validate(document)
                 previewFromPlaylists(document.playlists, document.schemaVersion, document.exportedAtMillis)
             }
         }
@@ -251,7 +253,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
     ): Result<PlaylistImportResult> = withContext(ioDispatcher) {
         runSuspendCatching {
             val document = readDocument(uri)
-            validateDocument(document)
+            BackupDocumentValidator.validate(document)
             restoreFromPlaylists(document.playlists, mode)
         }
     }
@@ -273,10 +275,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
                     val track = tracksById[trackId] ?: return@forEach
                     val durationSeconds = (track.durationMillis / 1000L).coerceAtLeast(0L)
                     appendLine("#EXTINF:$durationSeconds,${track.artistName} - ${track.title}")
-                    val pathOrUri = track.folderPath?.let { folder ->
-                        "$folder/${track.title}"
-                    } ?: track.mediaUri
-                    appendLine(pathOrUri)
+                    appendLine(track.m3uLocation())
                 }
             }
 
@@ -291,25 +290,8 @@ class DefaultPlaylistBackupRepository @Inject constructor(
 
     private fun readDocument(uri: String): PlaylistBackupDocument {
         return context.contentResolver.openInputStream(uri.toUri())?.use { input ->
-            decodeDocument(SizeLimitedInputStream(input, MAX_BACKUP_BYTES))
+            decodeDocument(SizeLimitedInputStream(input, BackupDocumentValidator.MAX_BACKUP_BYTES))
         } ?: error("No se pudo abrir el archivo de respaldo.")
-    }
-
-    private fun validateDocument(document: PlaylistBackupDocument) {
-        if (document.format != BACKUP_FORMAT &&
-            document.format != LEGACY_STATISTICS_FORMAT &&
-            document.format != UNIFIED_BACKUP_FORMAT
-        ) {
-            error("Formato de archivo no reconocido como respaldo de Catlytics.")
-        }
-        if (document.schemaVersion !in MIN_SUPPORTED_SCHEMA_VERSION..SUPPORTED_SCHEMA_VERSION) {
-            error("Versión de respaldo no soportada (v${document.schemaVersion}).")
-        }
-        require(document.exportedAtMillis > 0L) { "Fecha de exportación inválida." }
-        document.playlists.forEachIndexed { index, playlist ->
-            require(playlist.id.isNotBlank()) { "Playlist $index: ID vacío." }
-            require(playlist.name.isNotBlank()) { "Playlist $index: nombre vacío." }
-        }
     }
 
     @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
@@ -323,41 +305,42 @@ class DefaultPlaylistBackupRepository @Inject constructor(
     @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
     private fun decodeDocument(input: InputStream): PlaylistBackupDocument = try {
         json.decodeFromStream<PlaylistBackupDocument>(input)
-    } catch (error: BackupTooLargeException) {
+    } catch (error: BackupException) {
         throw error
     } catch (error: Exception) {
-        throw IllegalArgumentException("El archivo no es un respaldo de playlists válido.", error)
+        throw BackupException.InvalidFormat("Not a Catlytics backup document.", error)
     }
 
-    private fun tryReadCoverBase64(coverUri: String): String? = runCatching {
-        val file = when {
-            coverUri.startsWith("/") -> File(coverUri)
-            coverUri.startsWith("file://") -> coverUri.toUri().path?.let(::File)
-            else -> null
-        }
-        if (file != null && file.exists() && file.length() in 1..MAX_COVER_BYTES) {
-            Base64.getEncoder().encodeToString(file.readBytes())
-        } else null
-    }.getOrNull()
+    private fun tryReadCoverBase64(coverUri: String): String? =
+        coverStore.read(coverUri, MAX_COVER_BYTES)?.let(Base64.getEncoder()::encodeToString)
 
-    private fun saveCoverFromBase64(playlistId: String, base64: String): String? = runCatching {
-        val bytes = Base64.getDecoder().decode(base64)
-        if (bytes.size > MAX_COVER_BYTES) return null
-        val coversDir = context.filesDir.resolve("playlist_covers").apply { mkdirs() }
-        val target = File(coversDir, "$playlistId-${UUID.randomUUID()}.cover")
-        target.writeBytes(bytes)
-        target.absolutePath
-    }.getOrNull()
+    private fun saveCoverFromBase64(playlistId: String, base64: String): String? {
+        val bytes = runCatching { Base64.getDecoder().decode(base64) }.getOrNull() ?: return null
+        if (bytes.isEmpty() || bytes.size > MAX_COVER_BYTES) return null
+        return coverStore.write(bytes, playlistId)
+    }
 
     companion object {
-        const val BACKUP_FORMAT = "catlytics.playlists.backup"
-        const val UNIFIED_BACKUP_FORMAT = "catlytics.backup"
-        const val LEGACY_STATISTICS_FORMAT = "catlytics.statistics.backup"
-        const val SUPPORTED_SCHEMA_VERSION = 4
-        const val MIN_SUPPORTED_SCHEMA_VERSION = 1
-        internal const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
         internal const val MAX_COVER_BYTES = 2L * 1024L * 1024L
     }
+}
+
+/**
+ * Absolute file path for an M3U entry, rebuilt from the scanned location (`fileKey` is
+ * `<volume>:<folderPath>/<displayName>`). Falls back to the content URI when unknown.
+ */
+internal fun TrackEntity.m3uLocation(): String {
+    val key = fileKey ?: return mediaUri
+    val folder = folderPath ?: return mediaUri
+    val displayName = key.substringAfterLast('/')
+    val volume = key.substringBefore(':')
+    val root = when (volume) {
+        // Before Android 10 the folder path is already absolute (from MediaStore DATA).
+        "external" -> ""
+        "external_primary" -> "/storage/emulated/0"
+        else -> "/storage/${volume.uppercase(Locale.ROOT)}"
+    }
+    return "$root/$folder/$displayName"
 }
 
 internal class TrackReconciler(localTracks: List<TrackEntity>) {

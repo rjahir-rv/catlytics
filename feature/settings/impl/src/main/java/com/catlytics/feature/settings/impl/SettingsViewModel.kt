@@ -1,5 +1,6 @@
 package com.catlytics.feature.settings.impl
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.text.UiText
@@ -19,6 +20,7 @@ import com.catlytics.core.domain.usecase.backup.ExportUnifiedBackupUseCase
 import com.catlytics.core.domain.usecase.backup.ImportUnifiedBackupUseCase
 import com.catlytics.core.domain.usecase.backup.ObserveUnifiedBackupSummaryUseCase
 import com.catlytics.core.domain.usecase.backup.PreviewUnifiedBackupUseCase
+import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.EqualizerMode
@@ -263,9 +265,9 @@ internal class SettingsViewModel @Inject constructor(
                     onSuccess = { result ->
                         UnifiedBackupStatus.ExportSuccess(result)
                     },
-                    onFailure = {
+                    onFailure = { error ->
                         UnifiedBackupStatus.Error(
-                            UiText.Resource(R.string.settings_error_backup_export_failed),
+                            error.toBackupMessage(R.string.settings_error_backup_export_failed),
                         )
                     },
                 )
@@ -283,11 +285,11 @@ internal class SettingsViewModel @Inject constructor(
                         _unifiedImportPreview.value = preview
                         _unifiedBackupStatus.value = UnifiedBackupStatus.Idle
                     },
-                    onFailure = {
+                    onFailure = { error ->
                         pendingImportUri = null
                         _unifiedImportPreview.value = null
                         _unifiedBackupStatus.value = UnifiedBackupStatus.Error(
-                            UiText.Resource(R.string.settings_error_backup_read_failed),
+                            error.toBackupMessage(R.string.settings_error_backup_read_failed),
                         )
                     },
                 )
@@ -309,9 +311,9 @@ internal class SettingsViewModel @Inject constructor(
                         pendingImportUri = null
                         UnifiedBackupStatus.ImportSuccess(result)
                     },
-                    onFailure = {
+                    onFailure = { error ->
                         UnifiedBackupStatus.Error(
-                            UiText.Resource(R.string.settings_error_backup_import_failed),
+                            error.toBackupMessage(R.string.settings_error_backup_import_failed),
                         )
                     },
                 )
@@ -333,6 +335,17 @@ internal class SettingsViewModel @Inject constructor(
             status is UnifiedBackupStatus.Importing ||
             status is UnifiedBackupStatus.LoadingPreview
     }
+}
+
+private fun Throwable.toBackupMessage(@StringRes fallback: Int): UiText = when (this) {
+    is BackupException.TooLarge -> UiText.Resource(R.string.settings_error_backup_too_large)
+    is BackupException.InvalidFormat -> UiText.Resource(R.string.settings_error_backup_invalid_format)
+    is BackupException.UnsupportedVersion -> UiText.Resource(
+        R.string.settings_error_backup_unsupported_version,
+        listOf(schemaVersion),
+    )
+    is BackupException.InvalidContent -> UiText.Resource(R.string.settings_error_backup_invalid_content)
+    else -> UiText.Resource(fallback)
 }
 
 internal sealed interface MusicScanStatus {

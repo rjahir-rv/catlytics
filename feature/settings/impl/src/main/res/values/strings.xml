@@ -87,6 +87,10 @@
     <string name="settings_error_backup_export_failed">No se pudo exportar la copia de seguridad.</string>
     <string name="settings_error_backup_read_failed">No se pudo leer el archivo de respaldo.</string>
     <string name="settings_error_backup_import_failed">No se pudo importar la copia de seguridad.</string>
+    <string name="settings_error_backup_too_large">El archivo supera el límite de 64 MB.</string>
+    <string name="settings_error_backup_invalid_format">El archivo no es una copia de seguridad de Catlytics.</string>
+    <string name="settings_error_backup_unsupported_version">Esta copia de seguridad (v%1$d) no es compatible con esta versión de la app.</string>
+    <string name="settings_error_backup_invalid_content">La copia de seguridad contiene datos dañados o incompletos.</string>
 
     <!-- Ajustes: copia de seguridad -->
     <string name="settings_backup_description">Exporta un archivo de respaldo para proteger tus listas de reproducción y tu historial de escucha en caso de desinstalar la app o migrar de teléfono.</string>

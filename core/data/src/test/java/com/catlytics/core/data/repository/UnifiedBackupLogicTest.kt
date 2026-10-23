@@ -9,6 +9,7 @@ import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtworkEdit
 import com.catlytics.core.model.TrackMetadataEdit
+import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackEvent
@@ -329,6 +330,47 @@ class UnifiedBackupLogicTest {
 
         assertEquals("Editada", metadataRepository.observeOverrides().first().single().title)
         assertEquals(1, eventRepository.getAllEvents().size)
+    }
+
+    @Test
+    fun `import rejects invalid content without touching existing data`() = runTest(testDispatcher) {
+        eventRepository.insertEventsIfAbsent(listOf(sampleEvent("ms-1", "Song A", 1000L)))
+        val file = temporaryFolder.newFile("invalid.json").apply {
+            writeText(
+                """{"format":"catlytics.backup","schemaVersion":4,"exportedAtMillis":1000,""" +
+                    """"events":[{"trackId":"","trackTitle":"Song B","artistId":"a",""" +
+                    """"artistName":"Artist A","durationListenedMillis":1000,"timestamp":5000}]}""",
+            )
+        }
+
+        val result = unifiedBackupRepository.importFromUri(
+            file.toURI().toString(),
+            BackupOptions(includeStatistics = true, includePlaylists = true),
+            StatisticsImportMode.Replace,
+        )
+
+        assertTrue(result.exceptionOrNull() is BackupException.InvalidContent)
+        assertEquals(1, eventRepository.getAllEvents().size)
+    }
+
+    @Test
+    fun `preview reports unsupported schema versions`() = runTest(testDispatcher) {
+        val file = temporaryFolder.newFile("future.json").apply {
+            writeText("""{"format":"catlytics.backup","schemaVersion":99,"exportedAtMillis":1000}""")
+        }
+
+        val error = unifiedBackupRepository.previewFromUri(file.toURI().toString()).exceptionOrNull()
+
+        assertEquals(99, (error as BackupException.UnsupportedVersion).schemaVersion)
+    }
+
+    @Test
+    fun `preview reports files that are not backups`() = runTest(testDispatcher) {
+        val file = temporaryFolder.newFile("random.json").apply { writeText("no es json") }
+
+        val error = unifiedBackupRepository.previewFromUri(file.toURI().toString()).exceptionOrNull()
+
+        assertTrue(error is BackupException.InvalidFormat)
     }
 
     private fun newBackupUri(): String {
