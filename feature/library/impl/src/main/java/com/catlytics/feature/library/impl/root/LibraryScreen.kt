@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
@@ -142,7 +143,11 @@ internal fun LibraryScreen(
             ) {
                 CatlyticsEmptyState(
                     message = stringResource(LibraryR.string.library_no_search_results),
-                    modifier = modifier.padding(bottom = bottomPadding()),
+                    modifier = modifier.padding(
+                        deferredPadding(
+                            bottom = { bottomPadding() },
+                        ),
+                    ),
                     messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             } else {
@@ -207,13 +212,14 @@ private fun LibraryContent(
     }
 
     var headerHeightPx by remember { mutableIntStateOf(0) }
-    val headerHeight = if (headerHeightPx > 0) {
-        with(density) { headerHeightPx.toDp() }
-    } else {
-        HeaderHeightEstimate
+    val pageTopPadding = {
+        val headerHeight = if (headerHeightPx > 0) {
+            with(density) { headerHeightPx.toDp() }
+        } else {
+            HeaderHeightEstimate
+        }
+        scaffoldContentPadding.calculateTopPadding() + headerHeight
     }
-    val scaffoldTopPadding = scaffoldContentPadding.calculateTopPadding()
-    val pageTopPadding = scaffoldTopPadding + headerHeight
     val currentPage = pagerState.currentPage
     val currentSection = LibrarySection.entries[currentPage]
 
@@ -306,7 +312,7 @@ private fun LibraryContent(
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .fillMaxWidth()
-                .padding(top = scaffoldTopPadding),
+                .padding(deferredPadding(top = { scaffoldContentPadding.calculateTopPadding() })),
         ) {
             LibraryHeader(
                 currentSection = currentSection,

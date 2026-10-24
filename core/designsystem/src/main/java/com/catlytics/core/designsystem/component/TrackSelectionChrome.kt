@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.model.TrackSelectionSnapshot
@@ -54,8 +55,8 @@ fun TrackSelectionHost(
     selectedTracks: List<Track>,
     likedTrackIds: Set<String>,
     currentTrackId: String?,
-    topInset: Dp,
-    bottomInset: Dp,
+    topInset: () -> Dp,
+    bottomInset: () -> Dp,
     onAction: (TrackSelectionAction) -> Unit,
     modifier: Modifier = Modifier,
     showRemove: Boolean = false,
@@ -72,8 +73,12 @@ fun TrackSelectionHost(
         currentTrackId != null &&
         selectedTracks.any { it.id != currentTrackId }
 
-    val statusBarPadding = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-    val topBarPadding = maxOf(topInset, statusBarPadding + SelectionTopBarClearance)
+    val statusBars = WindowInsets.statusBars.asPaddingValues()
+    // Los insets se leen al medir: el colapso de la barra superior y el teclado no recomponen.
+    val topBarPadding = deferredPadding(
+        top = { maxOf(topInset(), statusBars.calculateTopPadding() + SelectionTopBarClearance) },
+    )
+    val actionBarPadding = deferredPadding(bottom = bottomInset)
 
     Box(modifier = modifier) {
         content()
@@ -87,7 +92,7 @@ fun TrackSelectionHost(
                 selectedCount = selection.selectedCount,
                 onClose = { onSelectionChange(selection.clear()) },
                 onSelectVisible = { onSelectionChange(selection.selectVisible(visibleIds)) },
-                modifier = Modifier.padding(top = topBarPadding),
+                modifier = Modifier.padding(topBarPadding),
             )
         }
         AnimatedVisibility(
@@ -126,7 +131,7 @@ fun TrackSelectionHost(
                     if (actionsEnabled) onAction(TrackSelectionAction.EditMetadata(selectedTracks))
                 },
                 onRemove = onRemove,
-                modifier = Modifier.padding(bottom = bottomInset),
+                modifier = Modifier.padding(actionBarPadding),
             )
         }
     }

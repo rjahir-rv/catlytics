@@ -56,6 +56,7 @@ import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.component.CollapsibleHint
 import com.catlytics.core.designsystem.component.InfoToggleButton
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.text.resolve
@@ -131,7 +132,11 @@ internal fun MetadataEditsContent(
         CatlyticsEmptyState(
             title = stringResource(SettingsR.string.settings_edits_empty_title),
             message = stringResource(SettingsR.string.settings_edits_empty_message),
-            modifier = modifier.padding(top = scaffoldContentPadding.calculateTopPadding()),
+            modifier = modifier.padding(
+                deferredPadding(
+                    top = { scaffoldContentPadding.calculateTopPadding() },
+                ),
+            ),
         )
         return
     }
@@ -140,11 +145,11 @@ internal fun MetadataEditsContent(
     LazyVerticalGrid(
         columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
+        contentPadding = deferredPadding(
             start = 20.dp,
-            top = scaffoldContentPadding.calculateTopPadding() + 16.dp,
+            top = { scaffoldContentPadding.calculateTopPadding() + 16.dp },
             end = 20.dp,
-            bottom = bottomPadding() + 80.dp,
+            bottom = { bottomPadding() + 80.dp },
         ),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),

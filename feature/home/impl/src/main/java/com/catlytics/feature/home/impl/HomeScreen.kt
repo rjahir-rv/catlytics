@@ -26,6 +26,7 @@ import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.isSearching
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Artist
@@ -125,10 +126,12 @@ internal fun HomeScreen(
             modifier = modifier
                 .fillMaxSize()
                 .padding(
-                    start = HomeDimens.ScreenPadding,
-                    top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
-                    end = HomeDimens.ScreenPadding,
-                    bottom = bottomPadding(),
+                    deferredPadding(
+                        start = HomeDimens.ScreenPadding,
+                        top = { scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding },
+                        end = HomeDimens.ScreenPadding,
+                        bottom = { bottomPadding() },
+                    ),
                 ),
         )
         return
@@ -147,22 +150,30 @@ internal fun HomeScreen(
                 modifier = modifier
                     .fillMaxSize()
                     .padding(
-                        start = HomeDimens.ScreenPadding,
-                        top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
-                        end = HomeDimens.ScreenPadding,
-                        bottom = bottomPadding(),
+                        deferredPadding(
+                            start = HomeDimens.ScreenPadding,
+                            top = { scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding },
+                            end = HomeDimens.ScreenPadding,
+                            bottom = { bottomPadding() },
+                        ),
                     ),
             )
             is HomeUiState.Error -> ErrorContent(
                 message = state.message,
                 modifier = modifier.padding(
-                    start = HomeDimens.ScreenPadding,
-                    top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
-                    end = HomeDimens.ScreenPadding,
+                    deferredPadding(
+                        start = HomeDimens.ScreenPadding,
+                        top = { scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding },
+                        end = HomeDimens.ScreenPadding,
+                    ),
                 ),
             )
             HomeUiState.Loading -> LoadingContent(
-                modifier = modifier.padding(top = scaffoldContentPadding.calculateTopPadding()),
+                modifier = modifier.padding(
+                    deferredPadding(
+                        top = { scaffoldContentPadding.calculateTopPadding() },
+                    ),
+                ),
             )
             is HomeUiState.Success -> {
                 val filteredTracks = remember(state.tracks, searchQuery) {
@@ -171,10 +182,14 @@ internal fun HomeScreen(
                 if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
                     NoSearchResultsContent(
                         modifier = modifier.padding(
-                            start = HomeDimens.ScreenPadding,
-                            top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding,
-                            end = HomeDimens.ScreenPadding,
-                            bottom = bottomPadding(),
+                            deferredPadding(
+                                start = HomeDimens.ScreenPadding,
+                                top = {
+                                    scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding
+                                },
+                                end = HomeDimens.ScreenPadding,
+                                bottom = { bottomPadding() },
+                            ),
                         ),
                     )
                 } else {
@@ -191,8 +206,8 @@ internal fun HomeScreen(
                         selectedTracks = selectedTracks,
                         likedTrackIds = likedTrackIds,
                         currentTrackId = state.currentTrackId,
-                        topInset = scaffoldContentPadding.calculateTopPadding(),
-                        bottomInset = bottomPadding(),
+                        topInset = { scaffoldContentPadding.calculateTopPadding() },
+                        bottomInset = bottomPadding,
                         onAction = onTrackSelectionAction,
                         modifier = modifier.fillMaxSize(),
                     ) {
@@ -216,11 +231,15 @@ internal fun HomeScreen(
                             onOpenRecentlyAdded = onOpenRecentlyAdded,
                             modifier = Modifier.fillMaxSize(),
                             state = trackListState,
-                            contentPadding = PaddingValues(
-                                top = scaffoldContentPadding.calculateTopPadding() + HomeDimens.TopContentInset +
-                                    if (selection.active) 64.dp else 0.dp,
-                                bottom = bottomPadding() + HomeDimens.ScreenPadding +
-                                    if (selection.active) 72.dp else 0.dp,
+                            contentPadding = deferredPadding(
+                                top = {
+                                    scaffoldContentPadding.calculateTopPadding() + HomeDimens.TopContentInset +
+                                        if (selection.active) 64.dp else 0.dp
+                                },
+                                bottom = {
+                                    bottomPadding() + HomeDimens.ScreenPadding +
+                                        if (selection.active) 72.dp else 0.dp
+                                },
                             ),
                             onTrackOptions = onTrackOptions,
                             selectedTrackIds = selection.selectedIds,

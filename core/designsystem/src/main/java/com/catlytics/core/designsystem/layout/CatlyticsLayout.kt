@@ -68,6 +68,37 @@ private class HorizontalInsetPaddingValues(
     override fun calculateBottomPadding(): Dp = base.calculateBottomPadding()
 }
 
+/**
+ * Padding cuyos lados [top] y [bottom] se leen al medir, no al componer. Es para insets que cambian
+ * a cada frame (la barra superior al colapsar, el teclado, el mini player): así solo se vuelve a
+ * medir y la pantalla no se recompone. Sirve como `contentPadding` o en `Modifier.padding`.
+ */
+fun deferredPadding(
+    start: Dp = 0.dp,
+    top: () -> Dp = NoPadding,
+    end: Dp = 0.dp,
+    bottom: () -> Dp = NoPadding,
+): PaddingValues = DeferredPaddingValues(start, top, end, bottom)
+
+private val NoPadding: () -> Dp = { 0.dp }
+
+private class DeferredPaddingValues(
+    private val start: Dp,
+    private val top: () -> Dp,
+    private val end: Dp,
+    private val bottom: () -> Dp,
+) : PaddingValues {
+    override fun calculateLeftPadding(layoutDirection: LayoutDirection): Dp =
+        if (layoutDirection == LayoutDirection.Ltr) start else end
+
+    override fun calculateTopPadding(): Dp = top()
+
+    override fun calculateRightPadding(layoutDirection: LayoutDirection): Dp =
+        if (layoutDirection == LayoutDirection.Ltr) end else start
+
+    override fun calculateBottomPadding(): Dp = bottom()
+}
+
 fun PaddingValues.withDeferredBottom(bottom: () -> Dp): PaddingValues =
     DeferredBottomPaddingValues(this, bottom)
 

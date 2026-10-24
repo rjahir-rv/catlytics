@@ -9,7 +9,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -46,6 +45,7 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.sectionLetter
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.designsystem.text.displayArtistName
@@ -67,7 +67,7 @@ internal fun LibraryArtistCollection(
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
-    topPadding: Dp = 0.dp,
+    topPadding: () -> Dp = { 0.dp },
     animateEntrance: Boolean = false,
 ) {
     val sortedArtists: List<ArtistSummary> = remember(artists, sortDirection) {
@@ -109,14 +109,14 @@ private fun ArtistList(
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
-    topPadding: Dp = 0.dp,
+    topPadding: () -> Dp = { 0.dp },
     animateEntrance: Boolean = false,
 ) {
-    val contentPadding = PaddingValues(
+    val contentPadding = deferredPadding(
         start = LibraryDimens.ScreenPadding,
-        top = topPadding + LibraryDimens.ContentTopSpacing,
+        top = { topPadding() + LibraryDimens.ContentTopSpacing },
         end = LibraryDimens.ScreenPadding,
-        bottom = bottomPadding() + LibraryDimens.ContentBottomSpacing,
+        bottom = { bottomPadding() + LibraryDimens.ContentBottomSpacing },
     )
     Box(modifier = modifier.fillMaxSize()) {
         LazyVerticalGrid(
@@ -146,7 +146,10 @@ private fun ArtistList(
             gridState = state,
             itemCount = artists.size,
             letterForVisibleTrackIndex = { index -> artists[index].artist.name.sectionLetter() },
-            contentPadding = PaddingValues(top = topPadding, bottom = bottomPadding()),
+            contentPadding = deferredPadding(
+                top = topPadding,
+                bottom = { bottomPadding() },
+            ),
         )
     }
 }
@@ -195,18 +198,18 @@ private fun ArtistGrid(
     onArtistSelected: (ArtistSummary) -> Unit,
     onAddToPlaylist: (ArtistSummary) -> Unit,
     bottomPadding: () -> Dp = { 0.dp },
-    topPadding: Dp = 0.dp,
+    topPadding: () -> Dp = { 0.dp },
     animateEntrance: Boolean = false,
 ) {
     LazyVerticalGrid(
         state = state,
         columns = GridCells.Adaptive(minSize = 144.dp),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
+        contentPadding = deferredPadding(
             start = LibraryDimens.ScreenPadding,
-            top = topPadding + LibraryDimens.ContentTopSpacing,
+            top = { topPadding() + LibraryDimens.ContentTopSpacing },
             end = LibraryDimens.ScreenPadding,
-            bottom = bottomPadding() + LibraryDimens.ContentBottomSpacing,
+            bottom = { bottomPadding() + LibraryDimens.ContentBottomSpacing },
         ),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),

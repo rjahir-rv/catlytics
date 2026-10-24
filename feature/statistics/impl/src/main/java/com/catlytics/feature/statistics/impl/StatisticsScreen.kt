@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.feature.statistics.impl.components.DashboardHeroCard
 import com.catlytics.feature.statistics.impl.components.ExploreStatsCta
@@ -190,11 +191,11 @@ internal fun StatsErrorState(contentPadding: PaddingValues) {
 internal fun statsContentPadding(
     scaffoldContentPadding: PaddingValues,
     bottomPadding: () -> Dp,
-): PaddingValues = PaddingValues(
+): PaddingValues = deferredPadding(
     start = STATS_SCREEN_PADDING,
+    top = { scaffoldContentPadding.calculateTopPadding() + 8.dp },
     end = STATS_SCREEN_PADDING,
-    top = scaffoldContentPadding.calculateTopPadding() + 8.dp,
-    bottom = bottomPadding() + 24.dp,
+    bottom = { bottomPadding() + 24.dp },
 )
 
 @Composable

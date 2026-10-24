@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
@@ -37,11 +38,11 @@ internal fun EqualizerSettingsContent(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(
+        contentPadding = deferredPadding(
             start = 20.dp,
-            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
+            top = { scaffoldContentPadding.calculateTopPadding() + 24.dp },
             end = 20.dp,
-            bottom = bottomPadding() + 80.dp,
+            bottom = { bottomPadding() + 80.dp },
         ),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.feature.settings.impl.components.SettingsSection
 import com.catlytics.core.designsystem.R as DesignR
 
@@ -54,11 +55,11 @@ internal fun AboutSettingsContent(
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Adaptive(CatlyticsLayoutTokens.CardMinColumnWidth),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
+        contentPadding = deferredPadding(
             start = 20.dp,
-            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
+            top = { scaffoldContentPadding.calculateTopPadding() + 24.dp },
             end = 20.dp,
-            bottom = bottomPadding() + 80.dp,
+            bottom = { bottomPadding() + 80.dp },
         ),
         verticalItemSpacing = 16.dp,
         horizontalArrangement = Arrangement.spacedBy(16.dp),

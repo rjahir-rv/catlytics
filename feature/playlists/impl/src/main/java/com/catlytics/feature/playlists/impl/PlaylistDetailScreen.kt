@@ -1,5 +1,6 @@
 package com.catlytics.feature.playlists.impl
 
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.layout.plusHorizontal
 import com.catlytics.core.designsystem.layout.withDeferredBottom
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
@@ -100,7 +101,7 @@ internal fun PlaylistDetailScreen(
 ) {
     when (uiState) {
         PlaylistDetailUiState.Loading -> {
-            PlaylistDetailSkeleton(topPadding = scaffoldContentPadding.calculateTopPadding())
+            PlaylistDetailSkeleton(topPadding = { scaffoldContentPadding.calculateTopPadding() })
             return
         }
         PlaylistDetailUiState.NotFound -> {
@@ -243,8 +244,8 @@ internal fun PlaylistDetailScreen(
             },
             likedTrackIds = likedTrackIds,
             currentTrackId = nowPlaying.trackId,
-            topInset = scaffoldContentPadding.calculateTopPadding(),
-            bottomInset = bottomPadding(),
+            topInset = { scaffoldContentPadding.calculateTopPadding() },
+            bottomInset = bottomPadding,
             onAction = onTrackSelectionAction,
             showRemove = !customOrdering,
             removeUnlike = isLikedPlaylist,
@@ -262,15 +263,17 @@ internal fun PlaylistDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .nestedScroll(scrollConnection),
-                contentPadding = PaddingValues(
-                    top = scaffoldContentPadding.calculateTopPadding() +
-                        if (searchVisible && content.tracks.isNotEmpty() && !customOrdering && !selection.active) {
-                            72.dp
-                        } else if (selection.active) {
-                            72.dp
-                        } else {
-                            0.dp
-                        },
+                contentPadding = deferredPadding(
+                    top = {
+                        scaffoldContentPadding.calculateTopPadding() +
+                            if (searchVisible && content.tracks.isNotEmpty() && !customOrdering && !selection.active) {
+                                72.dp
+                            } else if (selection.active) {
+                                72.dp
+                            } else {
+                                0.dp
+                            }
+                    },
                 ).plusHorizontal(horizontalInset).withDeferredBottom {
                     bottomPadding() + 20.dp + if (selection.active) 72.dp else 0.dp
                 },
@@ -404,10 +407,12 @@ internal fun PlaylistDetailScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(
-                            start = 20.dp,
-                            top = scaffoldContentPadding.calculateTopPadding() + 8.dp,
-                            end = 20.dp,
-                            bottom = 8.dp,
+                            deferredPadding(
+                                start = 20.dp,
+                                top = { scaffoldContentPadding.calculateTopPadding() + 8.dp },
+                                end = 20.dp,
+                                bottom = { 8.dp },
+                            ),
                         ),
                 )
             }

@@ -35,6 +35,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
@@ -188,19 +189,23 @@ internal fun DailyPlaylistScreen(
                 },
                 likedTrackIds = likedTrackIds,
                 currentTrackId = uiState.currentTrackId,
-                topInset = scaffoldContentPadding.calculateTopPadding(),
-                bottomInset = bottomPadding(),
+                topInset = { scaffoldContentPadding.calculateTopPadding() },
+                bottomInset = bottomPadding,
                 onAction = onTrackSelectionAction,
                 modifier = modifier.fillMaxSize(),
             ) {
                 LazyVerticalGrid(
                     columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        top = scaffoldContentPadding.calculateTopPadding() +
-                            if (selection.active) 64.dp else 0.dp,
-                        bottom = bottomPadding() + 20.dp +
-                            if (selection.active) 72.dp else 0.dp,
+                    contentPadding = deferredPadding(
+                        top = {
+                            scaffoldContentPadding.calculateTopPadding() +
+                                if (selection.active) 64.dp else 0.dp
+                        },
+                        bottom = {
+                            bottomPadding() + 20.dp +
+                                if (selection.active) 72.dp else 0.dp
+                        },
                     ),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {

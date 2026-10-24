@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.StatisticsImportMode
@@ -82,11 +83,11 @@ internal fun UnifiedBackupContent(
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Adaptive(CatlyticsLayoutTokens.CardMinColumnWidth),
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(
+        contentPadding = deferredPadding(
             start = 20.dp,
-            top = scaffoldContentPadding.calculateTopPadding() + 24.dp,
+            top = { scaffoldContentPadding.calculateTopPadding() + 24.dp },
             end = 20.dp,
-            bottom = bottomPadding() + 24.dp,
+            bottom = { bottomPadding() + 24.dp },
         ),
         verticalItemSpacing = 20.dp,
         horizontalArrangement = Arrangement.spacedBy(20.dp),

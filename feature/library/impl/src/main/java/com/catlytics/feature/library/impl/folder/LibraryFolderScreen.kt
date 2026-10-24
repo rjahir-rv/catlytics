@@ -39,6 +39,7 @@ import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.designsystem.text.displayArtistName
@@ -101,21 +102,25 @@ internal fun LibraryFolderScreen(
                     },
                     likedTrackIds = likedTrackIds,
                     currentTrackId = currentTrackId,
-                    topInset = scaffoldContentPadding.calculateTopPadding(),
-                    bottomInset = bottomPadding(),
+                    topInset = { scaffoldContentPadding.calculateTopPadding() },
+                    bottomInset = bottomPadding,
                     onAction = onTrackSelectionAction,
                     modifier = modifier.fillMaxSize(),
                 ) {
                     LazyVerticalGrid(
                         columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
+                        contentPadding = deferredPadding(
                             start = LibraryDimens.ScreenPadding,
-                            top = scaffoldContentPadding.calculateTopPadding() + 12.dp +
-                                if (selection.active) 64.dp else 0.dp,
+                            top = {
+                                scaffoldContentPadding.calculateTopPadding() + 12.dp +
+                                    if (selection.active) 64.dp else 0.dp
+                            },
                             end = LibraryDimens.ScreenPadding,
-                            bottom = bottomPadding() + LibraryDimens.ContentBottomSpacing +
-                                if (selection.active) 72.dp else 0.dp,
+                            bottom = {
+                                bottomPadding() + LibraryDimens.ContentBottomSpacing +
+                                    if (selection.active) 72.dp else 0.dp
+                            },
                         ),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),

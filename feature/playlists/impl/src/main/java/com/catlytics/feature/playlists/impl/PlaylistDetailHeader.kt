@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import coil3.request.ImageRequest
 import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.domain.usecase.playlist.PLAYLIST_COVER_MOSAIC_SIZE
 import com.catlytics.core.model.PlaybackQueueSource
@@ -314,7 +315,7 @@ private fun PlaylistPlaybackActions(
 /** Marcador de posición del encabezado mientras carga la playlist. */
 @Composable
 internal fun PlaylistDetailSkeleton(
-    topPadding: Dp,
+    topPadding: () -> Dp,
     modifier: Modifier = Modifier,
 ) {
     val transition = rememberInfiniteTransition(label = "playlistDetailSkeleton")
@@ -328,7 +329,7 @@ internal fun PlaylistDetailSkeleton(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 20.dp, top = topPadding + 12.dp)
+            .padding(deferredPadding(start = 20.dp, top = { topPadding() + 12.dp }, end = 20.dp))
             .graphicsLayer { this.alpha = alpha },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp),

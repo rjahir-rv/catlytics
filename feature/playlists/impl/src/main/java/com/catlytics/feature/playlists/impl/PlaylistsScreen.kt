@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
@@ -161,11 +162,11 @@ internal fun PlaylistsScreen(
         }
     }
 
-    val contentPadding = PaddingValues(
+    val contentPadding = deferredPadding(
         start = 20.dp,
-        top = scaffoldContentPadding.calculateTopPadding() + ControlsContentInset,
+        top = { scaffoldContentPadding.calculateTopPadding() + ControlsContentInset },
         end = 20.dp,
-        bottom = bottomPadding() + 104.dp,
+        bottom = { bottomPadding() + 104.dp },
     )
 
     fun playlistClick(summary: PlaylistSummary) = onPlaylistSelected(summary.playlist)
@@ -209,7 +210,11 @@ internal fun PlaylistsScreen(
 
                 PlaylistsStateKind.NoResults -> CatlyticsEmptyState(
                     message = stringResource(PlaylistsR.string.playlists_no_search_results),
-                    modifier = Modifier.padding(bottom = bottomPadding()),
+                    modifier = Modifier.padding(
+                        deferredPadding(
+                            bottom = { bottomPadding() },
+                        ),
+                    ),
                     messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     mascotSize = 160.dp,
                 )
@@ -276,7 +281,11 @@ internal fun PlaylistsScreen(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
                     .fillMaxWidth()
-                    .padding(top = scaffoldContentPadding.calculateTopPadding()),
+                    .padding(
+                        deferredPadding(
+                            top = { scaffoldContentPadding.calculateTopPadding() },
+                        ),
+                    ),
             ) {
                 PlaylistsControlsRow(
                     sortDirection = sortDirection,
@@ -316,8 +325,10 @@ internal fun PlaylistsScreen(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(
-                        end = 20.dp,
-                        bottom = bottomPadding() + 20.dp,
+                        deferredPadding(
+                            end = 20.dp,
+                            bottom = { bottomPadding() + 20.dp },
+                        ),
                     ),
             )
         }
