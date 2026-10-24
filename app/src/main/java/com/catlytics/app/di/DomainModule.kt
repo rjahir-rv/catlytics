@@ -7,7 +7,6 @@ import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
-import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveListeningStreakUseCase
 import com.catlytics.core.domain.usecase.statistics.ObservePeriodStatsUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
@@ -46,11 +45,6 @@ object DomainModule {
     fun provideObserveListeningStreakUseCase(
         playbackEventRepository: PlaybackEventRepository,
     ) = ObserveListeningStreakUseCase(playbackEventRepository)
-
-    @Provides
-    fun providePlayTrackUseCase(
-        playbackController: PlaybackController,
-    ) = PlayTrackUseCase(playbackController)
 
     @Provides
     fun providePlayShuffledQueueUseCase(

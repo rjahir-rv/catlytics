@@ -3,13 +3,14 @@ package com.catlytics.core.domain.usecase.playback
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.Track
-import com.catlytics.core.model.reorderedForShuffle
-import kotlinx.coroutines.flow.first
-import kotlin.random.Random
+import javax.inject.Inject
 
-class PlayTrackUseCase(
+/**
+ * Reproduce [Track] dentro de su cola en el orden original; si el modo aleatorio está activo, el
+ * controlador la mezcla y conserva ese orden para cuando se desactive.
+ */
+class PlayTrackUseCase @Inject constructor(
     private val playbackController: PlaybackController,
-    private val random: Random = Random.Default,
 ) {
     suspend operator fun invoke(
         track: Track,
@@ -21,23 +22,11 @@ class PlayTrackUseCase(
             tracks.any { it.id == track.id }
         } ?: listOf(track)
 
-        val isShuffleEnabled = playbackController.playbackState.first().isShuffleEnabled
-        if (isShuffleEnabled && playbackQueue.size > 1) {
-            val reorderedQueue = playbackQueue.reorderedForShuffle(track, random)
-            playbackController.play(
-                track = track,
-                queue = reorderedQueue,
-                startIndex = 0,
-                queueSource = queueSource,
-            )
-        } else {
-            val startIndex = playbackQueue.indexOfFirst { it.id == track.id }
-            playbackController.play(
-                track = track,
-                queue = playbackQueue,
-                startIndex = startIndex,
-                queueSource = queueSource,
-            )
-        }
+        playbackController.play(
+            track = track,
+            queue = playbackQueue,
+            startIndex = playbackQueue.indexOfFirst { it.id == track.id },
+            queueSource = queueSource,
+        )
     }
 }

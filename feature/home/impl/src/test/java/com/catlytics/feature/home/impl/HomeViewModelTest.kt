@@ -275,12 +275,13 @@ class HomeViewModelTest {
 
         viewModel.onShuffleAll()
         advanceUntilIdle()
-        assertEquals(0, playbackController.startIndex)
         assertEquals(tracks.size, playbackController.playedQueue.size)
         assertEquals(tracks.toSet(), playbackController.playedQueue.toSet())
-        assertEquals(playbackController.playedTrack, playbackController.playedQueue.first())
+        assertEquals(
+            playbackController.playedTrack,
+            playbackController.playedQueue[playbackController.startIndex],
+        )
         assertEquals(true, playbackController.shuffleEnabled)
-
     }
 
     @Test

@@ -13,7 +13,6 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.playback.AndroidEqualizerRepository
-import com.catlytics.core.playback.PlaybackShuffleOrder
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
@@ -30,9 +29,6 @@ class CatlyticsPlaybackService : MediaSessionService() {
 
     @Inject
     lateinit var playbackPreferencesRepository: PlaybackPreferencesRepository
-
-    @Inject
-    lateinit var playbackShuffleOrder: PlaybackShuffleOrder
 
     private var mediaSession: MediaSession? = null
     private var player: ExoPlayer? = null
@@ -82,7 +78,6 @@ class CatlyticsPlaybackService : MediaSessionService() {
         }
         player = exoPlayer
         crossfadePlayer = secondaryPlayer
-        playbackShuffleOrder.attach(exoPlayer)
 
         val coordinator = CrossfadeCoordinator(
             primary = exoPlayer,
@@ -134,7 +129,6 @@ class CatlyticsPlaybackService : MediaSessionService() {
         crossfadeCoordinator?.release()
         audioFocusHandler?.release()
         becomingNoisyHandler?.stop()
-        player?.let(playbackShuffleOrder::detach)
         mediaSession?.run {
             player.release()
             release()
@@ -159,7 +153,6 @@ class CatlyticsPlaybackService : MediaSessionService() {
         player?.removeListener(playerListener)
         player = active
         crossfadePlayer = standby
-        playbackShuffleOrder.attach(active)
         active.addListener(playerListener)
         mediaSession?.setPlayer(active)
     }

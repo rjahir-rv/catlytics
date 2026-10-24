@@ -3,9 +3,12 @@ package com.catlytics.core.domain.usecase.playback
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.Track
-import com.catlytics.core.model.reorderedForShuffle
 import kotlin.random.Random
 
+/**
+ * Activa el modo aleatorio y reproduce [queue] desde [startTrack] o una canción al azar. La cola se
+ * pasa en su orden original: la mezcla el controlador, que lo conserva para cuando se desactive.
+ */
 class PlayShuffledQueueUseCase(
     private val playbackController: PlaybackController,
     private val random: Random = Random.Default,
@@ -18,17 +21,16 @@ class PlayShuffledQueueUseCase(
         val playbackQueue = queue.distinctBy(Track::id)
         if (playbackQueue.isEmpty()) return
 
-        val chosenStartTrack = startTrack?.takeIf { candidate ->
-            playbackQueue.any { it.id == candidate.id }
-        } ?: playbackQueue[random.nextInt(playbackQueue.size)]
-
-        val reorderedQueue = playbackQueue.reorderedForShuffle(chosenStartTrack, random)
+        val startIndex = startTrack
+            ?.let { candidate -> playbackQueue.indexOfFirst { it.id == candidate.id } }
+            ?.takeUnless { it < 0 }
+            ?: random.nextInt(playbackQueue.size)
 
         playbackController.setShuffleEnabled(true)
         playbackController.play(
-            track = chosenStartTrack,
-            queue = reorderedQueue,
-            startIndex = 0,
+            track = playbackQueue[startIndex],
+            queue = playbackQueue,
+            startIndex = startIndex,
             queueSource = queueSource,
         )
     }

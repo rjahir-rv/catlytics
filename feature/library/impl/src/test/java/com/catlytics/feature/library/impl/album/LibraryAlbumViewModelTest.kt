@@ -146,7 +146,7 @@ class LibraryAlbumViewModelTest {
     }
 
     @Test
-    fun `playShuffled starts playback with reordered queue and enables shuffle`() = runTest {
+    fun `playShuffled enables shuffle and plays the album in its original order`() = runTest {
         val playbackController = AlbumFakePlaybackController()
         val viewModel = viewModel(AlbumFakeLibraryRepository(), playbackController)
         val queue = listOf(track("one"), track("two"), track("three"))
@@ -154,10 +154,8 @@ class LibraryAlbumViewModelTest {
         viewModel.playShuffled(queue)
         advanceUntilIdle()
 
-        assertEquals(0, playbackController.startIndex)
-        assertEquals(playbackController.playedTrack, playbackController.playedQueue.first())
-        assertEquals(3, playbackController.playedQueue.size)
-        assertEquals(queue.toSet(), playbackController.playedQueue.toSet())
+        assertEquals(queue, playbackController.playedQueue)
+        assertEquals(playbackController.playedTrack, queue[playbackController.startIndex])
         assertEquals(true, playbackController.shuffleEnabled)
     }
 
