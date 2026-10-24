@@ -70,7 +70,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
@@ -178,7 +177,6 @@ fun CatlyticsApp(
         startupViewModel.onAudioPermissionState(hasAudioPermission)
     }
 
-    val layoutDirection = LocalLayoutDirection.current
     val statusBarHeight = WindowInsets.statusBars
         .asPaddingValues()
         .calculateTopPadding()
@@ -624,7 +622,6 @@ fun CatlyticsApp(
         }
     }
 
-    val statusBarProtectionHeight = statusBarHeight
     // Cada pantalla se envuelve en su propio Scaffold con su barra superior y su estado de scroll,
     // así funcionan igual en un panel o lado a lado en lista-detalle.
     val routePane: @Composable (NavKey, @Composable () -> Unit) -> Unit = { route, content ->
@@ -633,7 +630,7 @@ fun CatlyticsApp(
             val isRouteSearchExpanded = isSearchExpanded(route)
             RoutePane(
                 chromeColor = paneChromeColor(route),
-                statusBarHeight = statusBarProtectionHeight,
+                statusBarHeight = statusBarHeight,
                 canScroll = !isRouteSearchExpanded,
                 scrollResetKey = if (route == SettingsRoute) {
                     settingsTopBarTitle to isRouteSearchExpanded

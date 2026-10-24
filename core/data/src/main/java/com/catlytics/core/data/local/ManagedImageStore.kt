@@ -83,6 +83,10 @@ internal class ManagedImageStore(
         val directory = ctx.filesDir.resolve(directoryName).apply { mkdirs() }
         return File(directory, "${ownerId.toFileNamePart()}-${UUID.randomUUID()}.cover")
     }
+
+    companion object {
+        const val MAX_IMAGE_BYTES = 2L * 1024L * 1024L
+    }
 }
 
 private val UNSAFE_FILE_NAME_CHARACTERS = Regex("[^A-Za-z0-9_.-]")

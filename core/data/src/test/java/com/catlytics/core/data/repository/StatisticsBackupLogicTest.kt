@@ -1,11 +1,14 @@
 package com.catlytics.core.data.repository
 
 import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
+import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.StatisticsImportMode
 import java.io.File
 import kotlinx.coroutines.CancellationException
@@ -15,7 +18,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
@@ -23,10 +28,14 @@ import org.robolectric.RuntimeEnvironment
 @RunWith(RobolectricTestRunner::class)
 class StatisticsBackupLogicTest {
 
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
     private lateinit var context: Context
     private lateinit var database: CatlyticsDatabase
     private lateinit var eventRepository: RoomPlaybackEventRepository
-    private lateinit var backupRepository: DefaultStatisticsBackupRepository
+    private lateinit var playlistSection: PlaylistBackupSection
+    private lateinit var backupRepository: StatisticsBackupHarness
     private lateinit var artistIdentityRepository: RoomArtistIdentityRepository
     private val temporaryFiles = mutableListOf<File>()
 
@@ -38,14 +47,31 @@ class StatisticsBackupLogicTest {
             .build()
         eventRepository = RoomPlaybackEventRepository(database.playbackEventDao())
         artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao())
-        backupRepository = DefaultStatisticsBackupRepository(
-            context,
-            eventRepository,
-            artistIdentityRepository,
-            database,
-            metadataRepository(context, database),
+        val dataStoreFile = temporaryFolder.newFile("playlists_test.preferences_pb")
+        playlistSection = PlaylistBackupSection(
+            context = context,
+            playlistRepository = DataStorePlaylistRepository(
+                dataStore = PreferenceDataStoreFactory.create(produceFile = { dataStoreFile }),
+                context = context,
+            ),
+            localDataSource = InMemoryLocalDataSource(),
         )
+        backupRepository = statisticsBackup(eventRepository)
     }
+
+    /** Respaldo solo de estadísticas, por la misma ruta unificada que usa la app. */
+    private fun statisticsBackup(events: PlaybackEventRepository) = StatisticsBackupHarness(
+        DefaultUnifiedBackupRepository(
+            context = context,
+            statisticsSection = StatisticsBackupSection(
+                playbackEventRepository = events,
+                artistIdentityRepository = artistIdentityRepository,
+                database = database,
+                trackMetadataRepository = metadataRepository(context, database),
+            ),
+            playlistSection = playlistSection,
+        ),
+    )
 
     @After
     fun tearDown() {
@@ -200,16 +226,12 @@ class StatisticsBackupLogicTest {
         eventRepository.recordEvent(event())
         val backupUri = newBackupUri()
         backupRepository.exportToUri(backupUri, "0.0.5").getOrThrow()
-        val cancellingRepository = DefaultStatisticsBackupRepository(
-            context,
+        val cancellingRepository = statisticsBackup(
             object : PlaybackEventRepository by eventRepository {
                 override suspend fun replaceEvents(events: List<PlaybackEvent>) {
                     throw CancellationException("test cancellation")
                 }
             },
-            artistIdentityRepository,
-            database,
-            metadataRepository(context, database),
         )
 
         try {
@@ -245,3 +267,17 @@ class StatisticsBackupLogicTest {
         timestamp = timestamp,
     )
 }
+
+/** Exporta, previsualiza e importa solo la sección de estadísticas del respaldo unificado. */
+private class StatisticsBackupHarness(private val unified: DefaultUnifiedBackupRepository) {
+    suspend fun exportToUri(uri: String, appVersion: String) =
+        unified.exportToUri(uri, STATISTICS_ONLY, appVersion).map { checkNotNull(it.statistics) }
+
+    suspend fun previewFromUri(uri: String) =
+        unified.previewFromUri(uri).map { checkNotNull(it.statistics) }
+
+    suspend fun importFromUri(uri: String, mode: StatisticsImportMode) =
+        unified.importFromUri(uri, STATISTICS_ONLY, mode).map { checkNotNull(it.statistics) }
+}
+
+private val STATISTICS_ONLY = BackupOptions(includeStatistics = true, includePlaylists = false)

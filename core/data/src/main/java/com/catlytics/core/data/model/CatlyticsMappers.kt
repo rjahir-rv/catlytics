@@ -18,15 +18,3 @@ internal fun TrackEntity.toDomain() = Track(
     albumTitle = albumTitle,
 )
 
-internal fun Track.toEntity() = TrackEntity(
-    id = id,
-    title = title,
-    artistId = artist.id,
-    artistName = artist.name,
-    durationMillis = durationMillis,
-    addedAtMillis = addedAtMillis,
-    mediaUri = mediaUri,
-    artworkUri = artworkUri,
-    albumId = albumId,
-    albumTitle = albumTitle,
-)

@@ -45,8 +45,8 @@ class UnifiedBackupLogicTest {
     private lateinit var localDataSource: InMemoryLocalDataSource
     private lateinit var metadataRepository: RoomTrackMetadataRepository
     private lateinit var playlistRepository: DataStorePlaylistRepository
-    private lateinit var statisticsBackupRepository: DefaultStatisticsBackupRepository
-    private lateinit var playlistBackupRepository: DefaultPlaylistBackupRepository
+    private lateinit var statisticsSection: StatisticsBackupSection
+    private lateinit var playlistSection: PlaylistBackupSection
     private lateinit var unifiedBackupRepository: DefaultUnifiedBackupRepository
     private val temporaryFiles = mutableListOf<File>()
     private val testDispatcher = StandardTestDispatcher()
@@ -66,22 +66,21 @@ class UnifiedBackupLogicTest {
             dataStore = PreferenceDataStoreFactory.create(produceFile = { dataStoreFile }),
             context = context,
         )
-        statisticsBackupRepository = DefaultStatisticsBackupRepository(
-            context = context,
+        statisticsSection = StatisticsBackupSection(
             playbackEventRepository = eventRepository,
             artistIdentityRepository = artistIdentityRepository,
             database = database,
             trackMetadataRepository = metadataRepository,
         )
-        playlistBackupRepository = DefaultPlaylistBackupRepository(
+        playlistSection = PlaylistBackupSection(
             context = context,
             playlistRepository = playlistRepository,
             localDataSource = localDataSource,
         )
         unifiedBackupRepository = DefaultUnifiedBackupRepository(
             context = context,
-            statisticsBackupRepository = statisticsBackupRepository,
-            playlistBackupRepository = playlistBackupRepository,
+            statisticsSection = statisticsSection,
+            playlistSection = playlistSection,
             ioDispatcher = testDispatcher,
         )
     }

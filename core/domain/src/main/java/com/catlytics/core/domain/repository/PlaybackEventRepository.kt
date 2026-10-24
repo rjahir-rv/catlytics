@@ -37,8 +37,6 @@ interface PlaybackEventRepository {
     /** Distinct local calendar days with activity, newest first. */
     fun observeActiveListeningDays(): Flow<List<LocalDate>>
 
-    suspend fun cleanOldEvents(beforeMillis: Long): Int
-
     /** Full event stream for backup export. */
     suspend fun getAllEvents(): List<PlaybackEvent>
 

@@ -76,10 +76,6 @@ class RoomPlaybackEventRepository @Inject constructor(
             .map { days -> days.mapNotNull { runCatching { LocalDate.parse(it) }.getOrNull() } }
     }
 
-    override suspend fun cleanOldEvents(beforeMillis: Long): Int {
-        return dao.deleteEventsBefore(beforeMillis)
-    }
-
     override suspend fun getAllEvents(): List<PlaybackEvent> {
         return dao.getAllEvents().map { it.toDomain() }
     }

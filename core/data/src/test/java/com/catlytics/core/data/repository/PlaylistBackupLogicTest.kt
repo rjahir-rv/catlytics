@@ -2,8 +2,11 @@ package com.catlytics.core.data.repository
 
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.room.Room
 import com.catlytics.core.data.local.InMemoryLocalDataSource
+import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.data.model.TrackEntity
+import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.StatisticsImportMode
 import java.io.File
@@ -29,7 +32,9 @@ class PlaylistBackupLogicTest {
     private lateinit var context: Context
     private lateinit var localDataSource: InMemoryLocalDataSource
     private lateinit var playlistRepository: DataStorePlaylistRepository
-    private lateinit var backupRepository: DefaultPlaylistBackupRepository
+    private lateinit var database: CatlyticsDatabase
+    private lateinit var backupRepository: PlaylistBackupHarness
+    private lateinit var exportRepository: M3uPlaylistExportRepository
     private val temporaryFiles = mutableListOf<File>()
 
     @Before
@@ -43,7 +48,26 @@ class PlaylistBackupLogicTest {
             ),
             context = context,
         )
-        backupRepository = DefaultPlaylistBackupRepository(
+        database = Room.inMemoryDatabaseBuilder(context, CatlyticsDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        backupRepository = PlaylistBackupHarness(
+            DefaultUnifiedBackupRepository(
+                context = context,
+                statisticsSection = StatisticsBackupSection(
+                    playbackEventRepository = RoomPlaybackEventRepository(database.playbackEventDao()),
+                    artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao()),
+                    database = database,
+                    trackMetadataRepository = metadataRepository(context, database, localDataSource),
+                ),
+                playlistSection = PlaylistBackupSection(
+                    context = context,
+                    playlistRepository = playlistRepository,
+                    localDataSource = localDataSource,
+                ),
+            ),
+        )
+        exportRepository = M3uPlaylistExportRepository(
             context = context,
             playlistRepository = playlistRepository,
             localDataSource = localDataSource,
@@ -52,6 +76,7 @@ class PlaylistBackupLogicTest {
 
     @After
     fun tearDown() {
+        database.close()
         temporaryFiles.forEach(File::delete)
     }
 
@@ -112,7 +137,6 @@ class PlaylistBackupLogicTest {
         val backupUri = newBackupUri()
         backupRepository.exportToUri(backupUri, "0.0.5").getOrThrow()
 
-        // After reinstalling on device B, Android assigns brand new IDs:
         localDataSource.replaceTracks(
             listOf(
                 track(id = "new-991", title = "Billie Jean", artist = "Michael Jackson", duration = 294000L),
@@ -211,7 +235,7 @@ class PlaylistBackupLogicTest {
         val m3uFile = File.createTempFile("playlist-", ".m3u8", context.cacheDir).also(temporaryFiles::add)
         val m3uUri = m3uFile.toURI().toString()
 
-        backupRepository.exportPlaylistToM3uUri(pl.id, m3uUri).getOrThrow()
+        exportRepository.exportPlaylistToM3uUri(pl.id, m3uUri).getOrThrow()
 
         val text = m3uFile.readText()
         assertTrue(text.startsWith("#EXTM3U"))
@@ -276,3 +300,17 @@ class PlaylistBackupLogicTest {
         folderPath = "/storage/emulated/0/Music",
     )
 }
+
+/** Exporta, previsualiza e importa solo la sección de playlists del respaldo unificado. */
+private class PlaylistBackupHarness(private val unified: DefaultUnifiedBackupRepository) {
+    suspend fun exportToUri(uri: String, appVersion: String) =
+        unified.exportToUri(uri, PLAYLISTS_ONLY, appVersion).map { checkNotNull(it.playlists) }
+
+    suspend fun previewFromUri(uri: String) =
+        unified.previewFromUri(uri).map { checkNotNull(it.playlists) }
+
+    suspend fun importFromUri(uri: String, mode: StatisticsImportMode) =
+        unified.importFromUri(uri, PLAYLISTS_ONLY, mode).map { checkNotNull(it.playlists) }
+}
+
+private val PLAYLISTS_ONLY = BackupOptions(includeStatistics = false, includePlaylists = true)

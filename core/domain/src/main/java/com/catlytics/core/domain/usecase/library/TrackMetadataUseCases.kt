@@ -11,8 +11,9 @@ import com.catlytics.core.model.TrackWithOverride
 import com.catlytics.core.model.TrackMetadataEdit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import javax.inject.Inject
 
-class ObserveEditableTrackMetadataUseCase(
+class ObserveEditableTrackMetadataUseCase @Inject constructor(
     private val metadataRepository: TrackMetadataRepository,
     private val libraryRepository: LibraryRepository,
 ) {
@@ -30,7 +31,7 @@ class ObserveEditableTrackMetadataUseCase(
     }
 }
 
-class SaveTrackMetadataUseCase(
+class SaveTrackMetadataUseCase @Inject constructor(
     private val repository: TrackMetadataRepository,
 ) {
     suspend operator fun invoke(trackId: String, edit: TrackMetadataEdit) {
@@ -39,25 +40,25 @@ class SaveTrackMetadataUseCase(
     }
 }
 
-class ResetTrackMetadataUseCase(
+class ResetTrackMetadataUseCase @Inject constructor(
     private val repository: TrackMetadataRepository,
 ) {
     suspend operator fun invoke(trackId: String) = repository.reset(trackId)
 }
 
-class WriteTrackTagsToFileUseCase(
+class WriteTrackTagsToFileUseCase @Inject constructor(
     private val repository: TrackMetadataRepository,
 ) {
     suspend operator fun invoke(trackId: String) = repository.writeTagsToFile(trackId)
 }
 
-class ObserveTrackMetadataOverridesUseCase(
+class ObserveTrackMetadataOverridesUseCase @Inject constructor(
     private val repository: TrackMetadataRepository,
 ) {
     operator fun invoke(): Flow<List<TrackMetadataOverride>> = repository.observeOverrides()
 }
 
-class SaveBulkTrackMetadataUseCase(
+class SaveBulkTrackMetadataUseCase @Inject constructor(
     private val repository: TrackMetadataRepository,
 ) {
     suspend operator fun invoke(trackIds: List<String>, edit: BulkTrackMetadataEdit): BulkEditResult {
@@ -71,19 +72,19 @@ class SaveBulkTrackMetadataUseCase(
     }
 }
 
-class ResetTracksMetadataUseCase(
+class ResetTracksMetadataUseCase @Inject constructor(
     private val repository: TrackMetadataRepository,
 ) {
     suspend operator fun invoke(trackIds: List<String>) = repository.resetMany(trackIds)
 }
 
-class WriteTracksTagsToFilesUseCase(
+class WriteTracksTagsToFilesUseCase @Inject constructor(
     private val repository: TrackMetadataRepository,
 ) {
     suspend operator fun invoke(trackIds: List<String>): Int = repository.writeTagsToFiles(trackIds)
 }
 
-class ObserveTracksWithOverridesUseCase(
+class ObserveTracksWithOverridesUseCase @Inject constructor(
     private val metadataRepository: TrackMetadataRepository,
     private val libraryRepository: LibraryRepository,
 ) {

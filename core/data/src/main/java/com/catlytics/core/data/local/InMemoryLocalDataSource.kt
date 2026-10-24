@@ -2,7 +2,6 @@ package com.catlytics.core.data.local
 
 import com.catlytics.core.data.model.TrackEntity
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -11,12 +10,6 @@ class InMemoryLocalDataSource @Inject constructor() : LocalDataSource {
     private val tracks = MutableStateFlow(emptyList<TrackEntity>())
 
     override fun observeTracks() = tracks
-
-    override suspend fun upsertTracks(tracks: List<TrackEntity>) {
-        this.tracks.update { current ->
-            (current.associateBy { it.id } + tracks.associateBy { it.id }).values.toList()
-        }
-    }
 
     override suspend fun replaceTracks(tracks: List<TrackEntity>) {
         this.tracks.value = tracks

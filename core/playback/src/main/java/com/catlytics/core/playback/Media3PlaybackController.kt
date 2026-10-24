@@ -746,20 +746,6 @@ internal fun shouldSkipToPreviousMediaItem(
 
 private const val PREVIOUS_TRACK_THRESHOLD_MILLIS = 5_000L
 
-internal fun List<Track>.withTrackAfterCurrent(
-    currentTrackId: String,
-    track: Track,
-): List<Track> {
-    if (track.id == currentTrackId) return this
-
-    val reorderedQueue = filterNot { it.id == track.id }.toMutableList()
-    val currentIndex = reorderedQueue.indexOfFirst { it.id == currentTrackId }
-    if (currentIndex < 0) return this
-
-    reorderedQueue.add(currentIndex + 1, track)
-    return reorderedQueue
-}
-
 internal fun List<Track>.withManualQueueAfterCurrent(
     currentTrackId: String,
     manualQueue: List<Track>,

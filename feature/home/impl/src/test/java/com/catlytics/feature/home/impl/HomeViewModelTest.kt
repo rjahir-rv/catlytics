@@ -584,8 +584,6 @@ private class FakeHomePlaybackEventRepository : PlaybackEventRepository {
     override fun observeActiveListeningDays(): Flow<List<java.time.LocalDate>> =
         flowOf(emptyList())
 
-    override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
-
     override suspend fun getAllEvents(): List<PlaybackEvent> = emptyList()
 
     override suspend fun replaceEvents(events: List<PlaybackEvent>) = Unit

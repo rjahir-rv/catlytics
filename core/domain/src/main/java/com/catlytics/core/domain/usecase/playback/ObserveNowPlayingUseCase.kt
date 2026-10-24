@@ -5,8 +5,9 @@ import com.catlytics.core.model.NowPlaying
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class ObserveNowPlayingUseCase(
+class ObserveNowPlayingUseCase @Inject constructor(
     private val playbackController: PlaybackController,
 ) {
     operator fun invoke(): Flow<NowPlaying> = playbackController.playbackState

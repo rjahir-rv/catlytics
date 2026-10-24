@@ -13,7 +13,7 @@ class InMemoryLocalDataSourceTest {
         val firstTrack = trackEntity(id = "track-1")
         val secondTrack = trackEntity(id = "track-2")
 
-        dataSource.upsertTracks(listOf(firstTrack))
+        dataSource.replaceTracks(listOf(firstTrack))
         dataSource.replaceTracks(listOf(secondTrack))
 
         assertEquals(listOf(secondTrack), dataSource.observeTracks().first())

@@ -16,6 +16,7 @@ hiltLifecycleViewmodelCompose = "1.4.0"
 kotlinxSerializationJson = "1.11.0"
 kotlinxCoroutines = "1.11.0"
 hilt = "2.60.1"
+javaxInject = "1"
 media3 = "1.11.1"
 ksp = "2.3.12"
 robolectric = "4.17"
@@ -67,6 +68,7 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 compose-compiler-gradle-plugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject" }
 hilt-android-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 hilt-android-gradle-plugin = { group = "com.google.dagger", name = "hilt-android-gradle-plugin", version.ref = "hilt" }
 androidx-hilt-lifecycle-viewmodel-compose = { group = "androidx.hilt", name = "hilt-lifecycle-viewmodel-compose", version.ref = "hiltLifecycleViewmodelCompose" }

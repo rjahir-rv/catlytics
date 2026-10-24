@@ -8,14 +8,15 @@ import com.catlytics.core.model.UnifiedBackupSummary
 import com.catlytics.core.model.UnifiedExportResult
 import com.catlytics.core.model.UnifiedImportResult
 import kotlinx.coroutines.flow.Flow
+import javax.inject.Inject
 
-class ObserveUnifiedBackupSummaryUseCase(
+class ObserveUnifiedBackupSummaryUseCase @Inject constructor(
     private val repository: UnifiedBackupRepository,
 ) {
     operator fun invoke(): Flow<UnifiedBackupSummary> = repository.observeSummary()
 }
 
-class ExportUnifiedBackupUseCase(
+class ExportUnifiedBackupUseCase @Inject constructor(
     private val repository: UnifiedBackupRepository,
 ) {
     suspend operator fun invoke(
@@ -25,14 +26,14 @@ class ExportUnifiedBackupUseCase(
     ): Result<UnifiedExportResult> = repository.exportToUri(uri, options, appVersion)
 }
 
-class PreviewUnifiedBackupUseCase(
+class PreviewUnifiedBackupUseCase @Inject constructor(
     private val repository: UnifiedBackupRepository,
 ) {
     suspend operator fun invoke(uri: String): Result<UnifiedBackupPreview> =
         repository.previewFromUri(uri)
 }
 
-class ImportUnifiedBackupUseCase(
+class ImportUnifiedBackupUseCase @Inject constructor(
     private val repository: UnifiedBackupRepository,
 ) {
     suspend operator fun invoke(

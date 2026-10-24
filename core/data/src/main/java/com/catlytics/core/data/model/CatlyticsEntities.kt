@@ -1,10 +1,5 @@
 package com.catlytics.core.data.model
 
-data class ArtistEntity(
-    val id: String,
-    val name: String,
-)
-
 data class TrackEntity(
     val id: String,
     val title: String,

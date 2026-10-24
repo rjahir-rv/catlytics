@@ -11,9 +11,6 @@ import com.catlytics.core.data.local.MediaStoreLibraryChangeObserver
 import com.catlytics.core.data.local.MediaStoreLibraryDataSource
 import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.mediator.OfflineFirstDataMediator
-import com.catlytics.core.data.remote.NoOpRemoteDataSource
-import com.catlytics.core.data.remote.RemoteDataSource
-import com.catlytics.core.data.repository.DefaultStatisticsRepository
 import com.catlytics.core.data.repository.DataStoreAppPreferencesRepository
 import com.catlytics.core.data.repository.DataStoreLibraryPreferencesRepository
 import com.catlytics.core.data.repository.DataStorePlaybackSessionRepository
@@ -28,15 +25,12 @@ import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
-import com.catlytics.core.domain.repository.StatisticsRepository
 import com.catlytics.core.domain.repository.PlaybackEventRepository
-import com.catlytics.core.domain.repository.StatisticsBackupRepository
-import com.catlytics.core.data.repository.DefaultStatisticsBackupRepository
 import com.catlytics.core.data.repository.RoomPlaybackEventRepository
 import com.catlytics.core.data.repository.RoomArtistIdentityRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
-import com.catlytics.core.domain.repository.PlaylistBackupRepository
-import com.catlytics.core.data.repository.DefaultPlaylistBackupRepository
+import com.catlytics.core.domain.repository.PlaylistExportRepository
+import com.catlytics.core.data.repository.M3uPlaylistExportRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -109,11 +103,6 @@ interface DataModule {
     ): LibraryChangeObserver
 
     @Binds
-    fun bindRemoteDataSource(
-        dataSource: NoOpRemoteDataSource,
-    ): RemoteDataSource
-
-    @Binds
     fun bindDataMediator(
         mediator: OfflineFirstDataMediator,
     ): DataMediator
@@ -136,26 +125,14 @@ interface DataModule {
     ): PlaybackSessionRepository
 
     @Binds
-    fun bindStatisticsRepository(
-        repository: DefaultStatisticsRepository,
-    ): StatisticsRepository
-
-    @Binds
     fun bindPlaybackEventRepository(
         repository: RoomPlaybackEventRepository,
     ): PlaybackEventRepository
 
     @Binds
-    @Singleton
-    fun bindStatisticsBackupRepository(
-        repository: DefaultStatisticsBackupRepository,
-    ): StatisticsBackupRepository
-
-    @Binds
-    @Singleton
-    fun bindPlaylistBackupRepository(
-        repository: DefaultPlaylistBackupRepository,
-    ): PlaylistBackupRepository
+    fun bindPlaylistExportRepository(
+        repository: M3uPlaylistExportRepository,
+    ): PlaylistExportRepository
 
     @Binds
     @Singleton

@@ -1,11 +1,9 @@
 package com.catlytics.core.data.repository
 
 import android.content.Context
-import androidx.core.net.toUri
 import com.catlytics.core.data.local.LocalDataSource
 import com.catlytics.core.data.local.ManagedImageStore
 import com.catlytics.core.data.model.TrackEntity
-import com.catlytics.core.domain.repository.PlaylistBackupRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
@@ -14,49 +12,27 @@ import com.catlytics.core.model.PlaylistBackupPreview
 import com.catlytics.core.model.PlaylistBackupSummary
 import com.catlytics.core.model.PlaylistExportResult
 import com.catlytics.core.model.PlaylistImportResult
-import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
 import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 import com.catlytics.core.model.artistIdentityKey
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.InputStream
-import java.io.OutputStream
 import java.util.Base64
-import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.InternalSerializationApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.decodeFromStream
-import kotlinx.serialization.json.encodeToStream
 
 @Singleton
-class DefaultPlaylistBackupRepository @Inject constructor(
-    @ApplicationContext private val context: Context,
+class PlaylistBackupSection @Inject constructor(
+    @ApplicationContext context: Context,
     private val playlistRepository: PlaylistRepository,
     private val localDataSource: LocalDataSource,
-) : PlaylistBackupRepository {
-
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-
+) {
     private val coverStore = ManagedImageStore(context, DataStorePlaylistRepository.COVER_DIRECTORY)
 
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-        prettyPrint = true
-    }
-
-    override fun observeLocalSummary(): Flow<PlaylistBackupSummary> =
+    fun observeSummary(): Flow<PlaylistBackupSummary> =
         playlistRepository.observePlaylists().map { playlists ->
             val liked = playlists.firstOrNull { it.id == LIKED_PLAYLIST_ID }
             val nonLiked = playlists.filterNot { it.id == LIKED_PLAYLIST_ID }
@@ -67,7 +43,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
             )
         }
 
-    internal suspend fun exportPlaylistDtos(): Pair<List<PlaylistBackupDto>, PlaylistExportResult> {
+    internal suspend fun export(): Pair<List<PlaylistBackupDto>, PlaylistExportResult> {
         val playlists = playlistRepository.observePlaylists().first()
         val tracksById = localDataSource.observeTracks().first().associateBy { it.id }
 
@@ -102,7 +78,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
         return playlistDtos to exportResult
     }
 
-    internal suspend fun previewFromPlaylists(
+    internal suspend fun preview(
         playlists: List<PlaylistBackupDto>,
         schemaVersion: Int,
         exportedAtMillis: Long,
@@ -117,7 +93,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
         val missingTrackNames = mutableListOf<String>()
 
         playlists.forEach { playlistDto ->
-            if (playlistDto.isLikedPlaylist || playlistDto.id == LIKED_PLAYLIST_ID) {
+            if (playlistDto.isLiked) {
                 likedTracksInBackup = playlistDto.tracks.size
             }
             totalTracksInBackup += playlistDto.tracks.size
@@ -135,9 +111,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
             }
         }
 
-        val nonLikedCount = playlists.count {
-            !it.isLikedPlaylist && it.id != LIKED_PLAYLIST_ID
-        }
+        val nonLikedCount = playlists.count { !it.isLiked }
 
         return PlaylistBackupPreview(
             schemaVersion = schemaVersion,
@@ -151,7 +125,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
         )
     }
 
-    internal suspend fun restoreFromPlaylists(
+    internal suspend fun restore(
         playlists: List<PlaylistBackupDto>,
         mode: StatisticsImportMode,
     ): PlaylistImportResult {
@@ -182,7 +156,7 @@ class DefaultPlaylistBackupRepository @Inject constructor(
                 saveCoverFromBase64(playlistDto.id, base64)
             }
 
-            val playlistId = if (playlistDto.isLikedPlaylist || playlistDto.id == LIKED_PLAYLIST_ID) {
+            val playlistId = if (playlistDto.isLiked) {
                 LIKED_PLAYLIST_ID
             } else {
                 playlistDto.id
@@ -214,132 +188,14 @@ class DefaultPlaylistBackupRepository @Inject constructor(
         )
     }
 
-    override suspend fun exportToUri(
-        uri: String,
-        appVersion: String,
-    ): Result<PlaylistExportResult> = withContext(ioDispatcher) {
-        runSuspendCatching {
-            val (playlistDtos, exportResult) = exportPlaylistDtos()
-            val document = PlaylistBackupDocument(
-                format = BackupDocumentValidator.PLAYLISTS_FORMAT,
-                schemaVersion = BackupDocumentValidator.SUPPORTED_SCHEMA_VERSION,
-                exportedAtMillis = System.currentTimeMillis(),
-                appVersion = appVersion,
-                playlists = playlistDtos,
-            )
-
-            context.contentResolver.openOutputStream(uri.toUri())?.use { output ->
-                writeDocument(document, SizeLimitedOutputStream(output, BackupDocumentValidator.MAX_BACKUP_BYTES))
-                output.flush()
-            } ?: error("No se pudo abrir el archivo de destino para exportar playlists.")
-
-            exportResult
-        }
-    }
-
-    override suspend fun previewFromUri(uri: String): Result<PlaylistBackupPreview> =
-        withContext(ioDispatcher) {
-            runSuspendCatching {
-                val document = readDocument(uri)
-                BackupDocumentValidator.validate(document)
-                previewFromPlaylists(document.playlists, document.schemaVersion, document.exportedAtMillis)
-            }
-        }
-
-    override suspend fun importFromUri(
-        uri: String,
-        mode: StatisticsImportMode,
-    ): Result<PlaylistImportResult> = withContext(ioDispatcher) {
-        runSuspendCatching {
-            val document = readDocument(uri)
-            BackupDocumentValidator.validate(document)
-            restoreFromPlaylists(document.playlists, mode)
-        }
-    }
-
-    override suspend fun exportPlaylistToM3uUri(
-        playlistId: String,
-        uri: String,
-    ): Result<Unit> = withContext(ioDispatcher) {
-        runSuspendCatching {
-            val playlists = playlistRepository.observePlaylists().first()
-            val playlist = playlists.firstOrNull { it.id == playlistId }
-                ?: error("Playlist no encontrada.")
-            val tracksById = localDataSource.observeTracks().first().associateBy { it.id }
-
-            val content = buildString {
-                appendLine("#EXTM3U")
-                appendLine("#PLAYLIST:${playlist.name}")
-                playlist.trackIds.forEach { trackId ->
-                    val track = tracksById[trackId] ?: return@forEach
-                    val durationSeconds = (track.durationMillis / 1000L).coerceAtLeast(0L)
-                    appendLine("#EXTINF:$durationSeconds,${track.artistName} - ${track.title}")
-                    appendLine(track.m3uLocation())
-                }
-            }
-
-            context.contentResolver.openOutputStream(uri.toUri())?.use { output ->
-                output.bufferedWriter(Charsets.UTF_8).use { writer ->
-                    writer.write(content)
-                }
-                output.flush()
-            } ?: error("No se pudo abrir el archivo de destino para exportar M3U8.")
-        }
-    }
-
-    private fun readDocument(uri: String): PlaylistBackupDocument {
-        return context.contentResolver.openInputStream(uri.toUri())?.use { input ->
-            decodeDocument(SizeLimitedInputStream(input, BackupDocumentValidator.MAX_BACKUP_BYTES))
-        } ?: error("No se pudo abrir el archivo de respaldo.")
-    }
-
-    @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
-    private fun writeDocument(
-        document: PlaylistBackupDocument,
-        output: OutputStream,
-    ) {
-        json.encodeToStream(document, output)
-    }
-
-    @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
-    private fun decodeDocument(input: InputStream): PlaylistBackupDocument = try {
-        json.decodeFromStream<PlaylistBackupDocument>(input)
-    } catch (error: BackupException) {
-        throw error
-    } catch (error: Exception) {
-        throw BackupException.InvalidFormat("Not a Catlytics backup document.", error)
-    }
-
     private fun tryReadCoverBase64(coverUri: String): String? =
-        coverStore.read(coverUri, MAX_COVER_BYTES)?.let(Base64.getEncoder()::encodeToString)
+        coverStore.read(coverUri, ManagedImageStore.MAX_IMAGE_BYTES)?.let(Base64.getEncoder()::encodeToString)
 
     private fun saveCoverFromBase64(playlistId: String, base64: String): String? {
         val bytes = runCatching { Base64.getDecoder().decode(base64) }.getOrNull() ?: return null
-        if (bytes.isEmpty() || bytes.size > MAX_COVER_BYTES) return null
+        if (bytes.isEmpty() || bytes.size > ManagedImageStore.MAX_IMAGE_BYTES) return null
         return coverStore.write(bytes, playlistId)
     }
-
-    companion object {
-        internal const val MAX_COVER_BYTES = 2L * 1024L * 1024L
-    }
-}
-
-/**
- * Absolute file path for an M3U entry, rebuilt from the scanned location (`fileKey` is
- * `<volume>:<folderPath>/<displayName>`). Falls back to the content URI when unknown.
- */
-internal fun TrackEntity.m3uLocation(): String {
-    val key = fileKey ?: return mediaUri
-    val folder = folderPath ?: return mediaUri
-    val displayName = key.substringAfterLast('/')
-    val volume = key.substringBefore(':')
-    val root = when (volume) {
-        // Before Android 10 the folder path is already absolute (from MediaStore DATA).
-        "external" -> ""
-        "external_primary" -> "/storage/emulated/0"
-        else -> "/storage/${volume.uppercase(Locale.ROOT)}"
-    }
-    return "$root/$folder/$displayName"
 }
 
 internal class TrackReconciler(localTracks: List<TrackEntity>) {
@@ -350,13 +206,11 @@ internal class TrackReconciler(localTracks: List<TrackEntity>) {
     private val byTitle = localTracks.groupBy { artistIdentityKey(it.title) }
 
     fun reconcile(backupTrack: PlaylistTrackBackupDto): TrackEntity? {
-        // Nivel 1: ID exacto y título coincidente
         val byExactId = byId[backupTrack.trackId]
         if (byExactId != null && artistIdentityKey(byExactId.title) == artistIdentityKey(backupTrack.title)) {
             return byExactId
         }
 
-        // Nivel 2: Artista + Título normalizado
         val artistKey = artistIdentityKey(backupTrack.artistName)
         val titleKey = artistIdentityKey(backupTrack.title)
         val candidateMatches = byArtistAndTitle[artistKey to titleKey]
@@ -366,8 +220,6 @@ internal class TrackReconciler(localTracks: List<TrackEntity>) {
                 kotlin.math.abs(it.durationMillis - backupTrack.durationMillis)
             }
         }
-
-        // Nivel 3: Título coincidente con duración cercana (±3000ms)
         val titleMatches = byTitle[titleKey]
         if (!titleMatches.isNullOrEmpty()) {
             val closeDuration = titleMatches.filter {
@@ -381,38 +233,3 @@ internal class TrackReconciler(localTracks: List<TrackEntity>) {
         return null
     }
 }
-
-@OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
-@Serializable
-internal data class PlaylistBackupDocument(
-    val format: String,
-    val schemaVersion: Int,
-    val exportedAtMillis: Long,
-    val appVersion: String = "",
-    val playlists: List<PlaylistBackupDto> = emptyList(),
-)
-
-@OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
-@Serializable
-internal data class PlaylistBackupDto(
-    val id: String,
-    val name: String,
-    val description: String = "",
-    val isLikedPlaylist: Boolean = false,
-    val coverBase64: String? = null,
-    val tracks: List<PlaylistTrackBackupDto> = emptyList(),
-)
-
-@OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
-@Serializable
-internal data class PlaylistTrackBackupDto(
-    val trackId: String,
-    val title: String,
-    val artistName: String,
-    val albumTitle: String? = null,
-    val durationMillis: Long = 0L,
-    val relativePath: String? = null,
-    val trackNumber: Int? = null,
-)
-
-

@@ -3,18 +3,14 @@ package com.catlytics.core.data.repository
 import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.artistIdentityKey
 
-/** Checks a decoded backup before anything is restored, whichever repository read it. */
 internal object BackupDocumentValidator {
-    const val UNIFIED_FORMAT = "catlytics.backup"
-    const val STATISTICS_FORMAT = "catlytics.statistics.backup"
-    const val PLAYLISTS_FORMAT = "catlytics.playlists.backup"
-    const val SUPPORTED_SCHEMA_VERSION = 4
-    const val MIN_SUPPORTED_SCHEMA_VERSION = 1
-    const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
+    private val KNOWN_FORMATS = setOf(
+        BackupCodec.UNIFIED_FORMAT,
+        BackupCodec.STATISTICS_FORMAT,
+        BackupCodec.PLAYLISTS_FORMAT,
+    )
 
-    private val KNOWN_FORMATS = setOf(UNIFIED_FORMAT, STATISTICS_FORMAT, PLAYLISTS_FORMAT)
-
-    fun validate(document: StatisticsBackupDocument) {
+    fun validate(document: BackupDocument) {
         validateHeader(document.format, document.schemaVersion, document.exportedAtMillis)
         validateEvents(document.events)
         validateArtistAliases(document.artistAliases)
@@ -22,16 +18,12 @@ internal object BackupDocumentValidator {
         validatePlaylists(document.playlists)
     }
 
-    fun validate(document: PlaylistBackupDocument) {
-        validateHeader(document.format, document.schemaVersion, document.exportedAtMillis)
-        validatePlaylists(document.playlists)
-    }
-
     private fun validateHeader(format: String, schemaVersion: Int, exportedAtMillis: Long) {
         if (format !in KNOWN_FORMATS) {
             throw BackupException.InvalidFormat("Unknown backup format '$format'.")
         }
-        if (schemaVersion !in MIN_SUPPORTED_SCHEMA_VERSION..SUPPORTED_SCHEMA_VERSION) {
+        val supportedVersions = BackupCodec.MIN_SUPPORTED_SCHEMA_VERSION..BackupCodec.SUPPORTED_SCHEMA_VERSION
+        if (schemaVersion !in supportedVersions) {
             throw BackupException.UnsupportedVersion(schemaVersion)
         }
         ensure(exportedAtMillis > 0L) { "Invalid export timestamp." }

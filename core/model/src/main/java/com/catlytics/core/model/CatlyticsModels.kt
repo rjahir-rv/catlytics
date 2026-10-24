@@ -224,12 +224,6 @@ data class PlaylistSourcePreview(
     val trackIds: List<String> = emptyList(),
 )
 
-data class ListeningStats(
-    val totalTracks: Int,
-    val totalPlaylists: Int,
-    val totalDurationMillis: Long,
-)
-
 data class ListeningTotals(
     val trackCount: Int,
     val artistCount: Int,

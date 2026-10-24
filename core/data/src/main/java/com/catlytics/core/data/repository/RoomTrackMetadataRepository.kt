@@ -158,7 +158,7 @@ class RoomTrackMetadataRepository internal constructor(
                 title = override?.title ?: original.title,
                 artist = override?.artistName ?: original.artistName,
                 album = override?.albumTitle ?: original.albumTitle,
-                frontCover = artworkStore.read(override?.artworkUri, MAX_ARTWORK_BYTES),
+                frontCover = artworkStore.read(override?.artworkUri, ManagedImageStore.MAX_IMAGE_BYTES),
             ),
         )
     }
@@ -189,7 +189,7 @@ class RoomTrackMetadataRepository internal constructor(
                     title = override.title,
                     artistName = override.artistName,
                     albumTitle = override.albumTitle,
-                    artworkBase64 = artworkStore.read(override.artworkUri, MAX_ARTWORK_BYTES)
+                    artworkBase64 = artworkStore.read(override.artworkUri, ManagedImageStore.MAX_IMAGE_BYTES)
                         ?.let(Base64.getEncoder()::encodeToString),
                     originalTitle = override.originalTitle,
                     originalArtistName = override.originalArtistName,
@@ -223,7 +223,7 @@ class RoomTrackMetadataRepository internal constructor(
             val trackId = track?.id ?: dto.trackId
             val artworkUri = dto.artworkBase64
                 ?.let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
-                ?.takeIf { it.size in 1..MAX_ARTWORK_BYTES }
+                ?.takeIf { it.size in 1..ManagedImageStore.MAX_IMAGE_BYTES }
                 ?.let { artworkStore.write(it, trackId) }
             TrackMetadataOverride(
                 trackId = trackId,
@@ -266,7 +266,6 @@ class RoomTrackMetadataRepository internal constructor(
 
     internal companion object {
         const val ARTWORK_DIRECTORY = "track_artwork"
-        const val MAX_ARTWORK_BYTES = 2L * 1024 * 1024
         const val SHARED_ARTWORK_OWNER = "shared"
     }
 }

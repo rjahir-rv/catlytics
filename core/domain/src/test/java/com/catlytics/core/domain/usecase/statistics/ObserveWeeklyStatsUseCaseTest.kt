@@ -78,8 +78,6 @@ class FakePlaybackEventRepository2 : PlaybackEventRepository {
 
     override fun observeActiveListeningDays(): Flow<List<LocalDate>> = flowOf(activeDays)
 
-    override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
-
     override suspend fun getAllEvents(): List<PlaybackEvent> = emptyList()
 
     override suspend fun replaceEvents(events: List<PlaybackEvent>) = Unit
@@ -125,9 +123,6 @@ class ObserveWeeklyStatsUseCaseTest {
     @Test
     fun `observes weekly stats for current week`() = runTest {
         val stats = useCase(weekOffset = 0).first()
-
-        // Monday of that week: June 22, 2026 00:00:00 UTC -> 1782086400000L
-        // Sunday of that week ends, so next Monday is June 29, 2026 00:00:00 UTC -> 1782691200000L.
         val expectedStart = 1782086400000L
         val expectedEnd = 1782691200000L
 
@@ -149,9 +144,6 @@ class ObserveWeeklyStatsUseCaseTest {
     @Test
     fun `observes weekly stats for previous week`() = runTest {
         val stats = useCase(weekOffset = -1).first()
-
-        // Previous week start (Monday, June 15, 2026 00:00:00 UTC) -> 1781481600000L
-        // Previous week end (Monday, June 22, 2026 00:00:00 UTC) -> 1782086400000L
         val expectedStart = 1781481600000L
         val expectedEnd = 1782086400000L
 

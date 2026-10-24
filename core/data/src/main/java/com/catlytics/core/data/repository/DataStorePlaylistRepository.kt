@@ -46,9 +46,7 @@ class DataStorePlaylistRepository internal constructor(
     override suspend fun createPlaylist(name: String, trackIds: List<String>): Playlist {
         val playlist = Playlist(UUID.randomUUID().toString(), name, trackIds.distinct())
         update { playlists ->
-            require(playlists.withLikedPlaylist().none { it.name.equals(name, ignoreCase = true) }) {
-                "Ya existe una playlist con ese nombre."
-            }
+            playlists.requireUniqueName(name)
             playlists + playlist
         }
         return playlist
@@ -56,11 +54,7 @@ class DataStorePlaylistRepository internal constructor(
 
     override suspend fun renamePlaylist(playlistId: String, name: String) = update { playlists ->
         if (playlistId == LIKED_PLAYLIST_ID) return@update playlists.withLikedPlaylist()
-        require(playlists.withLikedPlaylist().none {
-            it.id != playlistId && it.name.equals(name, ignoreCase = true)
-        }) {
-            "Ya existe una playlist con ese nombre."
-        }
+        playlists.requireUniqueName(name, exceptPlaylistId = playlistId)
         playlists.map { if (it.id == playlistId) it.copy(name = name) else it }
     }
 
@@ -70,11 +64,7 @@ class DataStorePlaylistRepository internal constructor(
         description: String,
     ) = update { playlists ->
         if (playlistId == LIKED_PLAYLIST_ID) return@update playlists.withLikedPlaylist()
-        require(playlists.withLikedPlaylist().none {
-            it.id != playlistId && it.name.equals(name, ignoreCase = true)
-        }) {
-            "Ya existe una playlist con ese nombre."
-        }
+        playlists.requireUniqueName(name, exceptPlaylistId = playlistId)
         playlists.map { playlist ->
             if (playlist.id == playlistId) {
                 playlist.copy(name = name, description = description)
@@ -181,7 +171,7 @@ class DataStorePlaylistRepository internal constructor(
 
                     val newLiked = (incomingLiked ?: currentPlaylists.firstOrNull { it.id == LIKED_PLAYLIST_ID })
                         ?.copy(name = LIKED_PLAYLIST_NAME)
-                        ?: Playlist(id = LIKED_PLAYLIST_ID, name = LIKED_PLAYLIST_NAME, trackIds = emptyList())
+                        ?: emptyLikedPlaylist()
 
                     listOf(newLiked) + incomingOther
                 }
@@ -190,7 +180,7 @@ class DataStorePlaylistRepository internal constructor(
                     val mergedLiked = if (incomingLiked != null && currentLiked != null) {
                         currentLiked.copy(trackIds = (currentLiked.trackIds + incomingLiked.trackIds).distinct())
                     } else {
-                        currentLiked ?: incomingLiked ?: Playlist(id = LIKED_PLAYLIST_ID, name = LIKED_PLAYLIST_NAME, trackIds = emptyList())
+                        currentLiked ?: incomingLiked ?: emptyLikedPlaylist()
                     }
 
                     val resultList = mutableListOf<Playlist>()
@@ -272,10 +262,23 @@ private fun List<Playlist>.encodePlaylists(): String = playlistJson.encodeToStri
     },
 )
 
+private fun emptyLikedPlaylist() =
+    Playlist(id = LIKED_PLAYLIST_ID, name = LIKED_PLAYLIST_NAME, trackIds = emptyList())
+
+/** Los nombres se comparan sin distinguir mayúsculas; "Me gusta" cuenta aunque no esté guardada. */
+private fun List<Playlist>.requireUniqueName(name: String, exceptPlaylistId: String? = null) {
+    val isTaken = withLikedPlaylist().any {
+        it.id != exceptPlaylistId && it.name.equals(name, ignoreCase = true)
+    }
+    require(!isTaken) {
+        "Ya existe una playlist con ese nombre."
+    }
+}
+
 private fun List<Playlist>.withLikedPlaylist(): List<Playlist> {
     val liked = firstOrNull { it.id == LIKED_PLAYLIST_ID }
         ?.copy(name = LIKED_PLAYLIST_NAME)
-        ?: Playlist(id = LIKED_PLAYLIST_ID, name = LIKED_PLAYLIST_NAME, trackIds = emptyList())
+        ?: emptyLikedPlaylist()
     return listOf(liked) + filterNot { it.id == LIKED_PLAYLIST_ID }
 }
 

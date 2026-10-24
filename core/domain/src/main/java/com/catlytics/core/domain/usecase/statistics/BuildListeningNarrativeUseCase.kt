@@ -3,8 +3,9 @@ package com.catlytics.core.domain.usecase.statistics
 import com.catlytics.core.model.ListeningNarrative
 import com.catlytics.core.model.ListeningNarrativeKind
 import com.catlytics.core.model.PeriodStats
+import javax.inject.Inject
 
-class BuildListeningNarrativeUseCase {
+class BuildListeningNarrativeUseCase @Inject constructor() {
 
     operator fun invoke(stats: PeriodStats): ListeningNarrative {
         val total = stats.totalListenedMillis

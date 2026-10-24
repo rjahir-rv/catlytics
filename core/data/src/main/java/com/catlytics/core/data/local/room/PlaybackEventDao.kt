@@ -30,6 +30,9 @@ data class PlaybackEventBoundsRow(
     val lastEventMillis: Long?,
 )
 
+private const val EVENTS_WITH_ARTIST_ALIASES = "resolved_playback_events " +
+    "LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key"
+
 @Dao
 interface PlaybackEventDao {
 
@@ -70,8 +73,7 @@ interface PlaybackEventDao {
                COALESCE(MAX(alias.target_artist_name), MAX(artist_name)) AS artistName,
                artwork_uri AS artworkUri,
                MAX(timestamp) AS lastListenedAtMillis
-        FROM resolved_playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
+        FROM $EVENTS_WITH_ARTIST_ALIASES
         GROUP BY track_id
         ORDER BY lastListenedAtMillis DESC
         LIMIT :limit
@@ -85,8 +87,7 @@ interface PlaybackEventDao {
                artwork_uri AS artworkUri, 
                COUNT(*) AS playCount, 
                SUM(duration_listened_millis) AS totalListenedMillis
-        FROM resolved_playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
+        FROM $EVENTS_WITH_ARTIST_ALIASES
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
         GROUP BY track_id
         ORDER BY playCount DESC, totalListenedMillis DESC
@@ -100,8 +101,7 @@ interface PlaybackEventDao {
                MAX(artwork_uri) AS artworkUri, 
                COUNT(*) AS playCount, 
                SUM(duration_listened_millis) AS totalListenedMillis
-        FROM resolved_playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
+        FROM $EVENTS_WITH_ARTIST_ALIASES
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
         GROUP BY COALESCE(alias.target_key, artist_key)
         ORDER BY totalListenedMillis DESC
@@ -116,8 +116,7 @@ interface PlaybackEventDao {
                MAX(artwork_uri) AS artworkUri,
                COUNT(*) AS playCount,
                SUM(duration_listened_millis) AS totalListenedMillis
-        FROM resolved_playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
+        FROM $EVENTS_WITH_ARTIST_ALIASES
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
           AND album_id IS NOT NULL
         GROUP BY album_id
@@ -165,8 +164,7 @@ interface PlaybackEventDao {
         SELECT COUNT(DISTINCT track_id) AS trackCount,
                COUNT(DISTINCT COALESCE(alias.target_key, artist_key)) AS artistCount,
                COUNT(DISTINCT album_id) AS albumCount
-        FROM resolved_playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
+        FROM $EVENTS_WITH_ARTIST_ALIASES
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
     """)
     fun observePeriodUniqueCounts(
@@ -178,8 +176,7 @@ interface PlaybackEventDao {
         SELECT COUNT(DISTINCT track_id) AS trackCount,
                COUNT(DISTINCT COALESCE(alias.target_key, artist_key)) AS artistCount,
                COUNT(DISTINCT album_id) AS albumCount
-        FROM resolved_playback_events
-        LEFT JOIN artist_aliases alias ON alias.source_key = resolved_playback_events.artist_key
+        FROM $EVENTS_WITH_ARTIST_ALIASES
     """)
     fun observeListeningTotals(): Flow<ListeningTotals>
 
@@ -192,9 +189,6 @@ interface PlaybackEventDao {
         ORDER BY day DESC
     """)
     fun observeActiveListeningDays(): Flow<List<String>>
-
-    @Query("DELETE FROM playback_events WHERE timestamp < :beforeMillis")
-    suspend fun deleteEventsBefore(beforeMillis: Long): Int
 
     @Query("SELECT * FROM playback_events ORDER BY timestamp ASC")
     suspend fun getAllEvents(): List<PlaybackEventEntity>

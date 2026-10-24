@@ -5,8 +5,9 @@ import com.catlytics.core.model.Track
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class ObserveLibraryTrackUseCase(
+class ObserveLibraryTrackUseCase @Inject constructor(
     private val libraryRepository: LibraryRepository,
 ) {
     operator fun invoke(trackId: String): Flow<Track?> = libraryRepository.observeAllTracks()

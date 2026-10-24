@@ -18,8 +18,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
 
-class ObservePlaylistContentUseCase(
+class ObservePlaylistContentUseCase @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val libraryRepository: LibraryRepository,
 ) {
@@ -38,7 +39,7 @@ class ObservePlaylistContentUseCase(
 
 const val PLAYLIST_COVER_MOSAIC_SIZE = 4
 
-class ObservePlaylistSummariesUseCase(
+class ObservePlaylistSummariesUseCase @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val libraryRepository: LibraryRepository,
 ) {
@@ -63,7 +64,7 @@ internal fun Playlist.toSummary(tracksById: Map<String, Track>): PlaylistSummary
     )
 }
 
-class CreatePlaylistUseCase(private val repository: PlaylistRepository) {
+class CreatePlaylistUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(
         name: String,
         trackIds: List<String> = emptyList(),
@@ -85,7 +86,7 @@ class CreatePlaylistUseCase(private val repository: PlaylistRepository) {
     }
 }
 
-class RenamePlaylistUseCase(private val repository: PlaylistRepository) {
+class RenamePlaylistUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(id: String, name: String) {
         val normalized = name.trim()
         require(normalized.isNotEmpty()) { "El nombre no puede estar vacío." }
@@ -93,7 +94,7 @@ class RenamePlaylistUseCase(private val repository: PlaylistRepository) {
     }
 }
 
-class UpdatePlaylistDetailsUseCase(private val repository: PlaylistRepository) {
+class UpdatePlaylistDetailsUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(id: String, name: String, description: String) {
         val normalizedName = name.trim()
         require(normalizedName.isNotEmpty()) { "El nombre no puede estar vacío." }
@@ -101,7 +102,7 @@ class UpdatePlaylistDetailsUseCase(private val repository: PlaylistRepository) {
     }
 }
 
-class ReorderPlaylistTracksUseCase(private val repository: PlaylistRepository) {
+class ReorderPlaylistTracksUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(playlistId: String, orderedTrackIds: List<String>) {
         require(orderedTrackIds.size == orderedTrackIds.distinct().size) {
             "El orden contiene canciones duplicadas."
@@ -110,11 +111,11 @@ class ReorderPlaylistTracksUseCase(private val repository: PlaylistRepository) {
     }
 }
 
-class DeletePlaylistUseCase(private val repository: PlaylistRepository) {
+class DeletePlaylistUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(id: String) = repository.deletePlaylist(id)
 }
 
-class AddToPlaylistUseCase(
+class AddToPlaylistUseCase @Inject constructor(
     private val playlistRepository: PlaylistRepository,
     private val libraryRepository: LibraryRepository,
 ) {
@@ -132,7 +133,7 @@ class AddToPlaylistUseCase(
     }
 }
 
-class ResolvePlaylistSourcePreviewUseCase(
+class ResolvePlaylistSourcePreviewUseCase @Inject constructor(
     private val libraryRepository: LibraryRepository,
 ) {
     suspend operator fun invoke(source: PlaylistSource): PlaylistSourcePreview {
@@ -202,7 +203,7 @@ enum class ToggleLikedTrackResult {
     Removed,
 }
 
-class ToggleLikedTrackUseCase(private val repository: PlaylistRepository) {
+class ToggleLikedTrackUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(trackId: String): ToggleLikedTrackResult {
         val likedTrackIds = repository.observePlaylists()
             .first()
@@ -220,7 +221,7 @@ class ToggleLikedTrackUseCase(private val repository: PlaylistRepository) {
     }
 }
 
-class ObserveIsTrackLikedUseCase(private val repository: PlaylistRepository) {
+class ObserveIsTrackLikedUseCase @Inject constructor(private val repository: PlaylistRepository) {
     operator fun invoke(trackId: String?): Flow<Boolean> = repository.observePlaylists()
         .map { playlists ->
             val likedTrackIds = playlists
@@ -231,7 +232,7 @@ class ObserveIsTrackLikedUseCase(private val repository: PlaylistRepository) {
         }
 }
 
-class RemoveTrackFromPlaylistUseCase(private val repository: PlaylistRepository) {
+class RemoveTrackFromPlaylistUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(playlistId: String, trackId: String): Int =
         invoke(playlistId, listOf(trackId))
 
@@ -239,7 +240,7 @@ class RemoveTrackFromPlaylistUseCase(private val repository: PlaylistRepository)
         repository.removeTracks(playlistId, trackIds)
 }
 
-class RestorePlaylistTracksUseCase(private val repository: PlaylistRepository) {
+class RestorePlaylistTracksUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(playlistId: String, previousTrackIds: List<String>) {
         val ordered = previousTrackIds.distinct()
         if (ordered.isEmpty()) return
@@ -248,12 +249,12 @@ class RestorePlaylistTracksUseCase(private val repository: PlaylistRepository) {
     }
 }
 
-class AddTracksToLikedUseCase(private val repository: PlaylistRepository) {
+class AddTracksToLikedUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(trackIds: Collection<String>): Int =
         repository.addTracks(LIKED_PLAYLIST_ID, trackIds.toList())
 }
 
-class RemoveTracksFromLikedUseCase(private val repository: PlaylistRepository) {
+class RemoveTracksFromLikedUseCase @Inject constructor(private val repository: PlaylistRepository) {
     suspend operator fun invoke(trackIds: Collection<String>): Int =
         repository.removeTracks(LIKED_PLAYLIST_ID, trackIds)
 }

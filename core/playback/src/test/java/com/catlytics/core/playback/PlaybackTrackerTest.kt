@@ -45,7 +45,6 @@ class FakePlaybackEventRepository : PlaybackEventRepository {
     ): Flow<com.catlytics.core.model.PeriodUniqueCounts> = emptyFlow()
     override fun observeListeningTotals(): Flow<ListeningTotals> = emptyFlow()
     override fun observeActiveListeningDays(): Flow<List<java.time.LocalDate>> = emptyFlow()
-    override suspend fun cleanOldEvents(beforeMillis: Long): Int = 0
     override suspend fun getAllEvents(): List<PlaybackEvent> = recordedEvents.toList()
     override suspend fun replaceEvents(events: List<PlaybackEvent>) {
         recordedEvents.clear()

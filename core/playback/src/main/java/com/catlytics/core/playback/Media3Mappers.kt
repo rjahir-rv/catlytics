@@ -95,22 +95,6 @@ private fun Player.shuffledMediaItemIndices(): List<Int>? {
 internal fun List<Track>.inPlaybackOrder(shuffledIndices: List<Int>?): List<Track> =
     shuffledIndices?.mapNotNull(::getOrNull)?.takeIf { it.size == size } ?: this
 
-internal fun shuffleIndicesFor(
-    timeline: List<Track>,
-    playbackOrder: List<Track>,
-): List<Int>? {
-    if (timeline.size != playbackOrder.size || timeline.isEmpty()) return null
-
-    val indices = playbackOrder.map { track -> timeline.indexOfFirst { it.id == track.id } }
-    return indices.takeIf { mapped ->
-        mapped.all { it >= 0 } && mapped.toSet().size == mapped.size
-    }
-}
-
-
-internal fun nextQueueIndexAfterMove(currentIndex: Int, movedIndex: Int): Int =
-    if (movedIndex < currentIndex) currentIndex else currentIndex + 1
-
 private fun Player.toPlaybackStatus(): PlaybackStatus = playbackStatusOf(playbackState, playWhenReady)
 
 internal fun playbackStatusOf(playbackState: Int, playWhenReady: Boolean): PlaybackStatus = when {
