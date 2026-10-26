@@ -130,6 +130,8 @@ internal fun LibraryArtistScreen(
     onConfirmMerge: () -> Unit = {},
     onConfirmUnmerge: () -> Unit = {},
     onShowRename: () -> Unit = {},
+    onChangeArtwork: () -> Unit = {},
+    onRestoreArtwork: () -> Unit = {},
     onRenameNameChange: (String) -> Unit = {},
     onConfirmRename: () -> Unit = {},
     onPlayShuffled: (List<Track>) -> Unit = {},
@@ -169,6 +171,8 @@ internal fun LibraryArtistScreen(
             onShowMergePicker = onShowMergePicker,
             onShowAliasManager = onShowAliasManager,
             onShowRename = onShowRename,
+            onChangeArtwork = onChangeArtwork,
+            onRestoreArtwork = onRestoreArtwork,
             onPlayShuffled = onPlayShuffled,
             trackSort = uiState.trackSort,
             albumSort = uiState.albumSort,
@@ -213,6 +217,8 @@ private fun ArtistContent(
     onShowMergePicker: () -> Unit,
     onShowAliasManager: () -> Unit,
     onShowRename: () -> Unit,
+    onChangeArtwork: () -> Unit,
+    onRestoreArtwork: () -> Unit,
     onPlayShuffled: (List<Track>) -> Unit,
     trackSort: ArtistTrackSort,
     albumSort: ArtistAlbumSort,
@@ -323,6 +329,8 @@ private fun ArtistContent(
                         onAddToPlaylist = onAddToPlaylist,
                         onSort = { section -> sortSheet = section },
                         onShowRename = onShowRename,
+                        onChangeArtwork = onChangeArtwork,
+                        onRestoreArtwork = onRestoreArtwork,
                         onShowMergePicker = onShowMergePicker,
                         onShowAliasManager = onShowAliasManager,
                     ),
@@ -485,6 +493,8 @@ private fun artistMenuEntries(
     onAddToPlaylist: (PlaylistSource) -> Unit,
     onSort: (ArtistDetailSection) -> Unit,
     onShowRename: () -> Unit,
+    onChangeArtwork: () -> Unit,
+    onRestoreArtwork: () -> Unit,
     onShowMergePicker: () -> Unit,
     onShowAliasManager: () -> Unit,
 ): List<CatlyticsMenuEntry> = buildList {
@@ -510,6 +520,7 @@ private fun artistMenuEntries(
         ),
     )
     add(CatlyticsMenuDivider)
+    // "Artista desconocido" agrupa canciones sin artista: no se renombra ni lleva imagen propia.
     if (canRename) {
         add(
             CatlyticsMenuItem(
@@ -518,6 +529,22 @@ private fun artistMenuEntries(
                 onClick = onShowRename,
             ),
         )
+        add(
+            CatlyticsMenuItem(
+                text = stringResource(LibraryR.string.library_artist_image_change),
+                icon = R.drawable.ic_image,
+                onClick = onChangeArtwork,
+            ),
+        )
+        if (content.summary.hasCustomArtwork) {
+            add(
+                CatlyticsMenuItem(
+                    text = stringResource(LibraryR.string.library_artist_image_restore),
+                    icon = R.drawable.ic_close,
+                    onClick = onRestoreArtwork,
+                ),
+            )
+        }
     }
     add(
         CatlyticsMenuItem(

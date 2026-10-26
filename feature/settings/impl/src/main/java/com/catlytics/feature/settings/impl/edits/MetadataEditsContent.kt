@@ -1,5 +1,10 @@
 package com.catlytics.feature.settings.impl.edits
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -94,6 +99,7 @@ internal fun MetadataEditsRoute(
         onRevertField = viewModel::revertField,
         onRevertTrack = viewModel::revertTrack,
         onRevertArtist = viewModel::revertArtist,
+        onRevertArtistImage = viewModel::revertArtistImage,
         onRevertSelected = viewModel::requestRevertSelected,
         onRevertFiltered = viewModel::requestRevertFiltered,
         onConfirmDialog = viewModel::confirmDialog,
@@ -116,6 +122,7 @@ internal fun MetadataEditsContent(
     onRevertField: (String, EditedField) -> Unit,
     onRevertTrack: (String) -> Unit,
     onRevertArtist: (com.catlytics.core.model.ArtistAlias) -> Unit,
+    onRevertArtistImage: (ArtistImageEditItem) -> Unit,
     onRevertSelected: () -> Unit,
     onRevertFiltered: () -> Unit,
     onConfirmDialog: () -> Unit,
@@ -246,6 +253,24 @@ internal fun MetadataEditsContent(
                     item = item,
                     enabled = !state.isBusy && !state.selectionActive,
                     onRevert = { onRevertArtist(item.alias) },
+                )
+            }
+        }
+        if (state.artistImages.isNotEmpty()) {
+            item(key = "artist-images-header", span = { GridItemSpan(maxLineSpan) }) {
+                SectionHeader(
+                    pluralStringResource(
+                        SettingsR.plurals.settings_edits_artist_images_section,
+                        state.artistImages.size,
+                        state.artistImages.size,
+                    ),
+                )
+            }
+            items(state.artistImages, key = { "artist-image-${it.artistKey}" }) { item ->
+                ArtistImageEditRow(
+                    item = item,
+                    enabled = !state.isBusy && !state.selectionActive,
+                    onRevert = { onRevertArtistImage(item) },
                 )
             }
         }
@@ -442,6 +467,47 @@ private fun ArtistEditRow(
                         },
                     ),
                 )
+            }
+        },
+        colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),
+    )
+}
+
+@Composable
+private fun ArtistImageEditRow(
+    item: ArtistImageEditItem,
+    enabled: Boolean,
+    onRevert: () -> Unit,
+) {
+    val artistName = item.artistName.displayArtistName()
+    ListItem(
+        leadingContent = {
+            CatlyticsArtwork(
+                model = item.artworkUri,
+                seed = item.artistName,
+                placeholderIcon = R.drawable.ic_artist,
+                contentDescription = stringResource(
+                    SettingsR.string.settings_edits_artist_image_content_description,
+                    artistName,
+                ),
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape),
+                contentScale = ContentScale.Crop,
+            )
+        },
+        headlineContent = { Text(artistName) },
+        supportingContent = {
+            Text(
+                stringResource(
+                    SettingsR.string.settings_edits_updated_at,
+                    item.updatedAtMillis.formatDate(),
+                ),
+            )
+        },
+        trailingContent = {
+            TextButton(onClick = onRevert, enabled = enabled) {
+                Text(stringResource(SettingsR.string.settings_edits_restore_name))
             }
         },
         colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.background),

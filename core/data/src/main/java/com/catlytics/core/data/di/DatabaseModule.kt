@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.data.local.room.PlaybackEventDao
 import com.catlytics.core.data.local.room.ArtistAliasDao
+import com.catlytics.core.data.local.room.ArtistArtworkOverrideDao
 import com.catlytics.core.data.local.room.TrackMetadataOverrideDao
 import dagger.Module
 import dagger.Provides
@@ -30,6 +31,7 @@ object DatabaseModule {
                 CatlyticsDatabase.MIGRATION_1_2,
                 CatlyticsDatabase.MIGRATION_2_3,
                 CatlyticsDatabase.MIGRATION_3_4,
+                CatlyticsDatabase.MIGRATION_4_5,
             )
         .build()
     }
@@ -51,4 +53,9 @@ object DatabaseModule {
     @Singleton
     fun provideTrackMetadataOverrideDao(database: CatlyticsDatabase): TrackMetadataOverrideDao =
         database.trackMetadataOverrideDao()
+
+    @Provides
+    @Singleton
+    fun provideArtistArtworkOverrideDao(database: CatlyticsDatabase): ArtistArtworkOverrideDao =
+        database.artistArtworkOverrideDao()
 }

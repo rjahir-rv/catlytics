@@ -19,7 +19,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
+import androidx.compose.material3.TriStateCheckbox
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -40,6 +41,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -83,6 +85,19 @@ internal fun pendingTrackCount(playlist: Playlist, sourceTrackIds: List<String>)
 
 internal fun isPlaylistFullyAdded(playlist: Playlist, sourceTrackIds: List<String>): Boolean =
     sourceTrackIds.isNotEmpty() && pendingTrackCount(playlist, sourceTrackIds) == 0
+
+internal fun playlistCheckboxState(
+    playlist: Playlist,
+    sourceTrackIds: List<String>,
+    isSelected: Boolean,
+): ToggleableState {
+    val pendingCount = pendingTrackCount(playlist, sourceTrackIds)
+    return when {
+        isSelected || isPlaylistFullyAdded(playlist, sourceTrackIds) -> ToggleableState.On
+        pendingCount < sourceTrackIds.size -> ToggleableState.Indeterminate
+        else -> ToggleableState.Off
+    }
+}
 
 internal fun togglePlaylistSelectionState(
     selectedIds: Set<String>,
@@ -242,13 +257,15 @@ fun AddToPlaylistSheet(
                         )
                     },
                     trailingContent = {
-                        Checkbox(
-                            checked = isSelected,
-                            onCheckedChange = if (isFullyAdded) {
+                        TriStateCheckbox(
+                            state = playlistCheckboxState(playlist, sourceTrackIds, isSelected),
+                            onClick = if (isFullyAdded) {
                                 null
                             } else {
                                 { togglePlaylistSelection(playlist.id) }
                             },
+                            // Sin onClick pierde el área táctil mínima y queda más chica que las demás.
+                            modifier = Modifier.minimumInteractiveComponentSize(),
                         )
                     },
                     modifier = Modifier

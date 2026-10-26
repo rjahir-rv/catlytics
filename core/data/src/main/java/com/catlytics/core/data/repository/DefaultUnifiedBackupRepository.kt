@@ -63,6 +63,7 @@ class DefaultUnifiedBackupRepository @Inject constructor(
                 events = statistics?.events.orEmpty(),
                 artistAliases = statistics?.artistAliases.orEmpty(),
                 trackMetadataOverrides = statistics?.trackMetadataOverrides.orEmpty(),
+                artistArtworks = statistics?.artistArtworks.orEmpty(),
                 playlists = playlists?.first.orEmpty(),
             )
             BackupCodec.write(context, uri, document)

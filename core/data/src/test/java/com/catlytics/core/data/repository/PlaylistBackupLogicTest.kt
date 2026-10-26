@@ -55,10 +55,19 @@ class PlaylistBackupLogicTest {
             DefaultUnifiedBackupRepository(
                 context = context,
                 statisticsSection = StatisticsBackupSection(
-                    playbackEventRepository = RoomPlaybackEventRepository(database.playbackEventDao()),
+                    playbackEventRepository = RoomPlaybackEventRepository(
+                        database.playbackEventDao(),
+                        database.artistArtworkOverrideDao(),
+                        database.artistAliasDao(),
+                    ),
                     artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao()),
                     database = database,
                     trackMetadataRepository = metadataRepository(context, database, localDataSource),
+                    artistArtworkRepository = RoomArtistArtworkRepository(
+                        database.artistArtworkOverrideDao(),
+                        database.artistAliasDao(),
+                        context,
+                    ),
                 ),
                 playlistSection = PlaylistBackupSection(
                     context = context,

@@ -1,10 +1,13 @@
 package com.catlytics.feature.settings.impl.edits
 
 import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.domain.repository.ArtistArtworkRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistArtworkOverridesUseCase
+import com.catlytics.core.domain.usecase.library.RemoveArtistArtworkUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTrackMetadataOverridesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTracksWithOverridesUseCase
 import com.catlytics.core.domain.usecase.library.ResetTracksMetadataUseCase
@@ -14,6 +17,7 @@ import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
+import com.catlytics.core.model.ArtistArtworkOverride
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.BulkEditResult
@@ -50,6 +54,7 @@ class MetadataEditsViewModelTest {
     private val metadataRepository = EditsFakeTrackMetadataRepository()
     private val libraryRepository = EditsFakeLibraryRepository()
     private val identityRepository = EditsFakeArtistIdentityRepository()
+    private val artworkRepository = EditsFakeArtistArtworkRepository()
 
     @Test
     fun `lists track edits newest first with their changes and missing tracks`() = runTest {
@@ -206,6 +211,30 @@ class MetadataEditsViewModelTest {
         assertEquals(listOf(UiText.Resource(R.string.settings_edits_artist_reverted, listOf("Felix"))), messages)
     }
 
+    @Test
+    fun `artist images are listed with the artist filter and reverted with the filtered edits`() = runTest {
+        artworkRepository.overrides.value = listOf(
+            ArtistArtworkOverride("nova", "Nova", "/files/nova.cover", 1L),
+        )
+        val viewModel = openedViewModel()
+
+        assertEquals(listOf("Nova"), viewModel.uiState.value.artistImages.map { it.artistName })
+        viewModel.onFilterChange(MetadataEditFilter.Title)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.artistImages.isEmpty())
+
+        viewModel.onFilterChange(MetadataEditFilter.Artists)
+        advanceUntilIdle()
+        viewModel.requestRevertFiltered()
+        advanceUntilIdle()
+        assertEquals(MetadataEditsDialog.ConfirmRevertFiltered(0, 1), viewModel.uiState.value.dialog)
+        viewModel.confirmDialog()
+        advanceUntilIdle()
+
+        assertTrue(artworkRepository.overrides.value.isEmpty())
+        assertFalse(viewModel.uiState.value.hasAnyEdits)
+    }
+
     private fun TestScope.openedViewModel(): MetadataEditsViewModel {
         val viewModel = MetadataEditsViewModel(
             observeTrackMetadataOverrides = ObserveTrackMetadataOverridesUseCase(metadataRepository),
@@ -214,6 +243,8 @@ class MetadataEditsViewModelTest {
             saveBulkTrackMetadata = SaveBulkTrackMetadataUseCase(metadataRepository),
             resetTracksMetadata = ResetTracksMetadataUseCase(metadataRepository),
             unmergeArtist = UnmergeArtistUseCase(identityRepository),
+            observeArtistArtworkOverrides = ObserveArtistArtworkOverridesUseCase(artworkRepository),
+            removeArtistArtwork = RemoveArtistArtworkUseCase(artworkRepository),
         )
         backgroundScope.launch { viewModel.uiState.collect {} }
         advanceUntilIdle()
@@ -275,6 +306,16 @@ private class EditsFakeTrackMetadataRepository : TrackMetadataRepository {
     }
     override suspend fun writeTagsToFile(trackId: String) = Unit
     override suspend fun writeTagsToFiles(trackIds: List<String>) = 0
+}
+
+private class EditsFakeArtistArtworkRepository : ArtistArtworkRepository {
+    val overrides = MutableStateFlow(emptyList<ArtistArtworkOverride>())
+    override fun observeOverrides() = overrides
+    override suspend fun setArtwork(artist: Artist, sourceUri: String) = Unit
+    override suspend fun restoreArtwork(artist: Artist) = Unit
+    override suspend fun removeArtwork(artistKey: String) {
+        overrides.value = overrides.value.filterNot { it.artistKey == artistKey }
+    }
 }
 
 private class EditsFakeArtistIdentityRepository : ArtistIdentityRepository {

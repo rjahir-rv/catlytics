@@ -31,6 +31,14 @@ internal data class ArtistEditItem(
     val kind: ArtistEditKind,
 )
 
+/** Imagen elegida para un artista; [artistKey] la identifica para restaurarla. */
+internal data class ArtistImageEditItem(
+    val artistKey: String,
+    val artistName: String,
+    val artworkUri: String,
+    val updatedAtMillis: Long,
+)
+
 internal sealed interface MetadataEditsDialog {
     data object Hidden : MetadataEditsDialog
 
@@ -46,8 +54,10 @@ internal data class MetadataEditsUiState(
     val filter: MetadataEditFilter = MetadataEditFilter.All,
     val tracks: List<TrackEditItem> = emptyList(),
     val artists: List<ArtistEditItem> = emptyList(),
+    val artistImages: List<ArtistImageEditItem> = emptyList(),
     val totalTrackEdits: Int = 0,
     val totalArtistEdits: Int = 0,
+    val totalArtistImageEdits: Int = 0,
     val selectedTrackIds: Set<String> = emptySet(),
     val selectionMode: Boolean = false,
     val dialog: MetadataEditsDialog = MetadataEditsDialog.Hidden,
@@ -55,7 +65,7 @@ internal data class MetadataEditsUiState(
 ) {
     val selectionActive: Boolean get() = selectionMode || selectedTrackIds.isNotEmpty()
 
-    val hasAnyEdits: Boolean get() = totalTrackEdits + totalArtistEdits > 0
+    val hasAnyEdits: Boolean get() = totalTrackEdits + totalArtistEdits + totalArtistImageEdits > 0
 
-    val hasResults: Boolean get() = tracks.isNotEmpty() || artists.isNotEmpty()
+    val hasResults: Boolean get() = tracks.isNotEmpty() || artists.isNotEmpty() || artistImages.isNotEmpty()
 }

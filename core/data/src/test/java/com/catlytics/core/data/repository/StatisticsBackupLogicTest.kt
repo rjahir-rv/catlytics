@@ -45,7 +45,11 @@ class StatisticsBackupLogicTest {
         database = Room.inMemoryDatabaseBuilder(context, CatlyticsDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        eventRepository = RoomPlaybackEventRepository(database.playbackEventDao())
+        eventRepository = RoomPlaybackEventRepository(
+            database.playbackEventDao(),
+            database.artistArtworkOverrideDao(),
+            database.artistAliasDao(),
+        )
         artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao())
         val dataStoreFile = temporaryFolder.newFile("playlists_test.preferences_pb")
         playlistSection = PlaylistBackupSection(
@@ -68,6 +72,11 @@ class StatisticsBackupLogicTest {
                 artistIdentityRepository = artistIdentityRepository,
                 database = database,
                 trackMetadataRepository = metadataRepository(context, database),
+                artistArtworkRepository = RoomArtistArtworkRepository(
+                    database.artistArtworkOverrideDao(),
+                    database.artistAliasDao(),
+                    context,
+                ),
             ),
             playlistSection = playlistSection,
         ),

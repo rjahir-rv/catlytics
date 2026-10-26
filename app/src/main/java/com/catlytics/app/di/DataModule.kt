@@ -27,7 +27,9 @@ import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.data.repository.RoomPlaybackEventRepository
+import com.catlytics.core.data.repository.RoomArtistArtworkRepository
 import com.catlytics.core.data.repository.RoomArtistIdentityRepository
+import com.catlytics.core.domain.repository.ArtistArtworkRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.PlaylistExportRepository
 import com.catlytics.core.data.repository.M3uPlaylistExportRepository
@@ -54,6 +56,12 @@ interface DataModule {
     fun bindArtistIdentityRepository(
         repository: RoomArtistIdentityRepository,
     ): ArtistIdentityRepository
+
+    @Binds
+    @Singleton
+    fun bindArtistArtworkRepository(
+        repository: RoomArtistArtworkRepository,
+    ): ArtistArtworkRepository
 
     @Binds
     @Singleton

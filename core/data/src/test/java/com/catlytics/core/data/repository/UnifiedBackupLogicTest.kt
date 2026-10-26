@@ -44,6 +44,7 @@ class UnifiedBackupLogicTest {
     private lateinit var artistIdentityRepository: RoomArtistIdentityRepository
     private lateinit var localDataSource: InMemoryLocalDataSource
     private lateinit var metadataRepository: RoomTrackMetadataRepository
+    private lateinit var artistArtworkRepository: RoomArtistArtworkRepository
     private lateinit var playlistRepository: DataStorePlaylistRepository
     private lateinit var statisticsSection: StatisticsBackupSection
     private lateinit var playlistSection: PlaylistBackupSection
@@ -57,10 +58,19 @@ class UnifiedBackupLogicTest {
         database = Room.inMemoryDatabaseBuilder(context, CatlyticsDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        eventRepository = RoomPlaybackEventRepository(database.playbackEventDao())
+        eventRepository = RoomPlaybackEventRepository(
+            database.playbackEventDao(),
+            database.artistArtworkOverrideDao(),
+            database.artistAliasDao(),
+        )
         artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao())
         localDataSource = InMemoryLocalDataSource()
         metadataRepository = metadataRepository(context, database, localDataSource)
+        artistArtworkRepository = RoomArtistArtworkRepository(
+            database.artistArtworkOverrideDao(),
+            database.artistAliasDao(),
+            context,
+        )
         val dataStoreFile = temporaryFolder.newFile("playlists_test.preferences_pb")
         playlistRepository = DataStorePlaylistRepository(
             dataStore = PreferenceDataStoreFactory.create(produceFile = { dataStoreFile }),
@@ -71,6 +81,7 @@ class UnifiedBackupLogicTest {
             artistIdentityRepository = artistIdentityRepository,
             database = database,
             trackMetadataRepository = metadataRepository,
+            artistArtworkRepository = artistArtworkRepository,
         )
         playlistSection = PlaylistBackupSection(
             context = context,
@@ -282,6 +293,41 @@ class UnifiedBackupLogicTest {
         assertEquals("Canción A", restored.title)
         assertEquals("Artista A", restored.artistName)
         assertArrayEquals(byteArrayOf(9, 8, 7), File(restored.artworkUri!!).readBytes())
+    }
+
+    @Test
+    fun `artist images round-trip and a v4 backup keeps the local ones`() = runTest(testDispatcher) {
+        val picked = temporaryFolder.newFile("artist.jpg").apply { writeBytes(byteArrayOf(4, 5, 6)) }
+        artistArtworkRepository.setArtwork(Artist("a1", "Nova"), picked.toURI().toString())
+        val backupUri = newBackupUri()
+        val export = unifiedBackupRepository.exportToUri(
+            backupUri,
+            BackupOptions(includeStatistics = true, includePlaylists = false),
+            "1.0.0",
+        ).getOrThrow()
+        assertEquals(1, export.statistics?.metadataEditCount)
+
+        artistArtworkRepository.restoreArtwork(Artist("a1", "Nova"))
+        val result = unifiedBackupRepository.importFromUri(
+            backupUri,
+            BackupOptions(includeStatistics = true, includePlaylists = false),
+            StatisticsImportMode.Replace,
+        ).getOrThrow()
+
+        assertEquals(1, result.statistics?.importedMetadataEditCount)
+        val restored = artistArtworkRepository.observeOverrides().first().single()
+        assertEquals("nova", restored.artistKey)
+        assertArrayEquals(byteArrayOf(4, 5, 6), File(restored.artworkUri).readBytes())
+
+        val v4 = temporaryFolder.newFile("v4.json").apply {
+            writeText("""{"format":"catlytics.backup","schemaVersion":4,"exportedAtMillis":1000}""")
+        }
+        unifiedBackupRepository.importFromUri(
+            v4.toURI().toString(),
+            BackupOptions(includeStatistics = true, includePlaylists = false),
+            StatisticsImportMode.Replace,
+        ).getOrThrow()
+        assertEquals(restored, artistArtworkRepository.observeOverrides().first().single())
     }
 
     @Test

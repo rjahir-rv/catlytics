@@ -1,5 +1,9 @@
 package com.catlytics.core.data.repository
 
+import com.catlytics.core.data.local.room.ArtistAliasDao
+import com.catlytics.core.data.local.room.ArtistAliasEntity
+import com.catlytics.core.data.local.room.ArtistArtworkOverrideDao
+import com.catlytics.core.data.local.room.ArtistArtworkOverrideEntity
 import com.catlytics.core.data.local.room.PlaybackEventDao
 import com.catlytics.core.data.local.room.PlaybackEventEntity
 import com.catlytics.core.domain.repository.PlaybackEventRepository
@@ -14,12 +18,15 @@ import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.artistIdentityKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
 
 class RoomPlaybackEventRepository @Inject constructor(
-    private val dao: PlaybackEventDao
+    private val dao: PlaybackEventDao,
+    private val artistArtworkDao: ArtistArtworkOverrideDao,
+    private val artistAliasDao: ArtistAliasDao,
 ) : PlaybackEventRepository {
     override suspend fun recordEvent(event: PlaybackEvent) {
         dao.insert(event.toEntity())
@@ -37,8 +44,19 @@ class RoomPlaybackEventRepository @Inject constructor(
         return dao.observeTrackPlayCounts().map { rows -> rows.associate { it.trackId to it.playCount } }
     }
 
-    override fun observeTopArtists(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopArtist>> {
-        return dao.observeTopArtists(startMillis, endMillis, limit)
+    override fun observeTopArtists(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopArtist>> = combine(
+        dao.observeTopArtists(startMillis, endMillis, limit),
+        artistArtworkDao.observeAll(),
+        artistAliasDao.observeAll(),
+    ) { artists, artworkOverrides, aliases ->
+        if (artworkOverrides.isEmpty()) return@combine artists
+        val artwork = ArtistArtworkLookup(
+            overrides = artworkOverrides.map(ArtistArtworkOverrideEntity::toDomain),
+            aliases = aliases.map(ArtistAliasEntity::toDomain),
+        )
+        artists.map { artist ->
+            artwork.artworkFor(artist.name)?.let { artist.copy(artworkUri = it.artworkUri) } ?: artist
+        }
     }
 
     override fun observeTopAlbums(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopAlbum>> {

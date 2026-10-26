@@ -86,6 +86,7 @@ import com.catlytics.core.model.Track
 fun NowPlayingScreen(
     playbackState: PlaybackState,
     modifier: Modifier = Modifier,
+    isOpen: Boolean = true,
     progress: () -> PlaybackProgress = { playbackState.toProgress() },
     onBack: () -> Unit,
     onTogglePlayback: () -> Unit,
@@ -176,6 +177,10 @@ fun NowPlayingScreen(
     }
 
     val dismissState = rememberSwipeToDismissState(onDismiss = onBack)
+    // Si se vuelve a abrir mientras baja tras arrastrarla, recupera el gesto y su posición.
+    LaunchedEffect(isOpen) {
+        if (isOpen) dismissState.restore()
+    }
 
     Box(
         modifier = modifier
@@ -578,6 +583,15 @@ private class SwipeToDismissState(
     var offset by mutableFloatStateOf(0f)
         private set
     private var dismissed = false
+
+    suspend fun restore() {
+        dismissed = false
+        if (offset != 0f) {
+            animate(initialValue = offset, targetValue = 0f, animationSpec = spring()) { value, _ ->
+                offset = value
+            }
+        }
+    }
 
     val connection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {

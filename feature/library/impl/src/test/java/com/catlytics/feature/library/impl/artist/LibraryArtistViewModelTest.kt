@@ -1,6 +1,8 @@
 package com.catlytics.feature.library.impl.artist
 
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.domain.repository.ArtistArtworkRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
@@ -9,16 +11,20 @@ import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
 import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryTrackUseCase
 import com.catlytics.core.domain.usecase.library.RenameArtistUseCase
+import com.catlytics.core.domain.usecase.library.RestoreArtistArtworkUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistArtworkUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.model.ArtistAlbumSort
 import com.catlytics.core.model.ArtistTrackSort
+import com.catlytics.feature.library.impl.R
 import com.catlytics.feature.library.impl.collection.SortTestFakes
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
+import com.catlytics.core.model.ArtistArtworkOverride
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
@@ -32,6 +38,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -176,6 +183,38 @@ class LibraryArtistViewModelTest {
     }
 
     @Test
+    fun `changing and restoring the image apply to the current artist`() = runTest {
+        val repository = ArtistFakeLibraryRepository()
+        repository.content.value = artistContent()
+        val artworkRepository = FakeArtistArtworkRepository()
+        val viewModel = viewModel(
+            repository,
+            ArtistFakePlaybackController(),
+            artworkRepository = artworkRepository,
+        )
+        val messages = mutableListOf<UiText>()
+        backgroundScope.launch { viewModel.uiState.collect {} }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.messages.collect(messages::add) }
+        viewModel.openArtist(ARTIST_ID)
+        advanceUntilIdle()
+
+        viewModel.changeArtwork("content://picker/image")
+        advanceUntilIdle()
+        viewModel.restoreArtwork()
+        advanceUntilIdle()
+
+        assertEquals(Artist(ARTIST_ID, "Artist") to "content://picker/image", artworkRepository.changed)
+        assertEquals(Artist(ARTIST_ID, "Artist"), artworkRepository.restored)
+        assertEquals(
+            listOf(
+                UiText.Resource(R.string.library_artist_image_changed),
+                UiText.Resource(R.string.library_artist_image_restored),
+            ),
+            messages,
+        )
+    }
+
+    @Test
     fun `renaming to an existing artist asks to merge instead`() = runTest {
         val repository = ArtistFakeLibraryRepository()
         repository.content.value = artistContent()
@@ -269,6 +308,7 @@ class LibraryArtistViewModelTest {
         repository: ArtistFakeLibraryRepository,
         playbackController: ArtistFakePlaybackController,
         identityRepository: FakeArtistIdentityRepository = FakeArtistIdentityRepository(),
+        artworkRepository: FakeArtistArtworkRepository = FakeArtistArtworkRepository(),
     ) = LibraryArtistViewModel(
         observeArtistContentUseCase = ObserveArtistContentUseCase(repository),
         observeArtistsUseCase = ObserveArtistsUseCase(repository),
@@ -283,6 +323,8 @@ class LibraryArtistViewModelTest {
         observeTrackPlayCounts = sort.observePlayCounts,
         setArtistTrackSort = sort.setArtistTrackSort,
         setArtistAlbumSort = sort.setArtistAlbumSort,
+        setArtistArtwork = SetArtistArtworkUseCase(artworkRepository),
+        restoreArtistArtwork = RestoreArtistArtworkUseCase(artworkRepository),
     )
 
     private fun artistContent(): ArtistContent {
@@ -305,6 +347,19 @@ class LibraryArtistViewModelTest {
     private companion object {
         const val ARTIST_ID = "artist-1"
     }
+}
+
+private class FakeArtistArtworkRepository : ArtistArtworkRepository {
+    var changed: Pair<Artist, String>? = null
+    var restored: Artist? = null
+    override fun observeOverrides() = MutableStateFlow(emptyList<ArtistArtworkOverride>())
+    override suspend fun setArtwork(artist: Artist, sourceUri: String) {
+        changed = artist to sourceUri
+    }
+    override suspend fun restoreArtwork(artist: Artist) {
+        restored = artist
+    }
+    override suspend fun removeArtwork(artistKey: String) = Unit
 }
 
 private class FakeArtistIdentityRepository : ArtistIdentityRepository {

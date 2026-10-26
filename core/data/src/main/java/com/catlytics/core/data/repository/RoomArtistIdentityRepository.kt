@@ -132,7 +132,7 @@ private fun List<ArtistAlias>.flattened(): List<ArtistAlias> {
     }
 }
 
-private fun ArtistAliasEntity.toDomain() = ArtistAlias(
+internal fun ArtistAliasEntity.toDomain() = ArtistAlias(
     source = Artist(sourceArtistId, sourceArtistName),
     target = Artist(targetArtistId, targetArtistName),
 )

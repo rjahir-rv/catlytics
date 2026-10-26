@@ -73,18 +73,21 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.entryProvider
-import androidx.navigation3.runtime.metadata
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
+import androidx.navigationevent.compose.LocalNavigationEventDispatcherOwner
+import androidx.navigationevent.compose.rememberNavigationEventDispatcherOwner
 import com.catlytics.app.R
 import com.catlytics.app.navigation.TopLevelDestination
+import com.catlytics.app.playback.NowPlayingOverlay
 import com.catlytics.app.playback.NowPlayingRoute
 import com.catlytics.app.playback.NowPlayingScreen
 import com.catlytics.app.playback.PlaybackArtwork
@@ -112,8 +115,6 @@ import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.navigation.rememberTopLevelBackStack
 import com.catlytics.core.navigation.navigationBackTransition
 import com.catlytics.core.navigation.navigationForwardTransition
-import com.catlytics.core.navigation.verticalSheetEnterTransition
-import com.catlytics.core.navigation.verticalSheetExitTransition
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.home.api.DailyPlaylistRoute
 import com.catlytics.feature.home.api.RecentlyAddedRoute
@@ -229,12 +230,13 @@ fun CatlyticsApp(
     val likedTrackIds by playbackViewModel.likedTrackIds.collectAsStateWithLifecycle()
     val queueSourcePlaylist by playbackViewModel.queueSourcePlaylist.collectAsStateWithLifecycle()
     val sleepTimerState by playbackViewModel.sleepTimerState.collectAsStateWithLifecycle()
-    val currentRoute = topLevelBackStack.backStack.lastOrNull()
+    val isNowPlayingOpen = topLevelBackStack.backStack.lastOrNull() == NowPlayingRoute
+    val contentBackStack = topLevelBackStack.backStack.filter { it != NowPlayingRoute }
+    val currentRoute = contentBackStack.lastOrNull()
     val windowAdaptiveInfo = currentWindowAdaptiveInfoV2()
     val navigationSuiteType = NavigationSuiteScaffoldDefaults.navigationSuiteType(windowAdaptiveInfo)
     val isNavigationRail = navigationSuiteType == NavigationSuiteType.WideNavigationRailCollapsed ||
         navigationSuiteType == NavigationSuiteType.WideNavigationRailExpanded
-    // Sin espacio entre paneles: cada uno pinta su propio fondo de borde a borde.
     val paneScaffoldDirective = remember(windowAdaptiveInfo) {
         calculatePaneScaffoldDirective(windowAdaptiveInfo).copy(horizontalPartitionSpacerSize = 0.dp)
     }
@@ -243,16 +245,15 @@ fun CatlyticsApp(
     // Lista y detalle visibles a la vez en ventanas anchas (ver ListDetailSceneStrategy).
     val listDetailIndices = if (isTwoPane) {
         findListDetailIndices(
-            items = topLevelBackStack.backStack,
+            items = contentBackStack,
             isList = ::isListPaneRoute,
             isDetail = ::isDetailPaneRoute,
         )
     } else {
         null
     }
-    val listPaneRoute = listDetailIndices?.let { topLevelBackStack.backStack[it.listIndex] }
-    val detailPaneRoute = listDetailIndices?.detailIndex?.let { topLevelBackStack.backStack[it] }
-    // Ruta cuya lista sigue en pantalla: en dos paneles es la del panel izquierdo.
+    val listPaneRoute = listDetailIndices?.let { contentBackStack[it.listIndex] }
+    val detailPaneRoute = listDetailIndices?.detailIndex?.let { contentBackStack[it] }
     val visibleListRoute = listPaneRoute ?: currentRoute
     val listPaneSearchFocusRequester = remember { FocusRequester() }
     val isWaitingForHomeContent = hasAudioPermission &&
@@ -273,9 +274,8 @@ fun CatlyticsApp(
         StatisticsExploreRoute -> TopLevelDestination.Statistics
         else -> currentTopLevelDestination
     }
-    val isNowPlayingVisible = currentRoute == NowPlayingRoute
-    val isCreatePlaylistVisible = currentRoute is CreatePlaylistRoute
-    val isFullScreenRoute = isNowPlayingVisible || isCreatePlaylistVisible
+    // Now Playing no cuenta: tapa la barra de navegación y el mini reproductor sin ocultarlos.
+    val isFullScreenRoute = currentRoute is CreatePlaylistRoute
     // En pantallas grandes la navegación nunca se oculta (tampoco en pantallas completas).
     val isNavigationVisible = isNavigationRail ||
         (!isFullScreenRoute && selectedTopLevelDestination != null)
@@ -342,16 +342,31 @@ fun CatlyticsApp(
         playlistSource = source
     }
 
+    fun openNowPlaying() {
+        if (topLevelBackStack.backStack.lastOrNull() != NowPlayingRoute) {
+            topLevelBackStack.add(NowPlayingRoute)
+        }
+    }
+
+    // También se llama al ir a un álbum o artista: así atrás desde allí no vuelve a abrirla.
+    fun closeNowPlaying() {
+        if (topLevelBackStack.backStack.lastOrNull() == NowPlayingRoute) {
+            topLevelBackStack.removeLast()
+        }
+    }
+
     fun navigateToAlbum(track: Track) {
         val albumId = track.albumId ?: return
         val albumTitle = track.albumTitle ?: return
         trackOptionsRequest = null
+        closeNowPlaying()
         topLevelBackStack.addTopLevel(LibraryRoute)
         topLevelBackStack.add(LibraryAlbumRoute(albumId, resources.displayAlbumTitle(albumTitle)))
     }
 
     fun navigateToArtist(track: Track) {
         trackOptionsRequest = null
+        closeNowPlaying()
         topLevelBackStack.addTopLevel(LibraryRoute)
         topLevelBackStack.add(
             LibraryArtistRoute(
@@ -391,7 +406,11 @@ fun CatlyticsApp(
         }
     }
 
-    BackHandler(enabled = (isOnHomeRoot && isHomeSearchExpanded) || (isOnLibraryRoot && isLibrarySearchExpanded) || (isOnPlaylistsRoot && isPlaylistsSearchExpanded) || isArtistSearchExpanded) {
+    val isAnySearchOpen = (isOnHomeRoot && isHomeSearchExpanded) ||
+        (isOnLibraryRoot && isLibrarySearchExpanded) ||
+        (isOnPlaylistsRoot && isPlaylistsSearchExpanded) ||
+        isArtistSearchExpanded
+    BackHandler(enabled = !isNowPlayingOpen && isAnySearchOpen) {
         if (isOnHomeRoot && isHomeSearchExpanded) {
             closeHomeSearch()
         } else if (isOnLibraryRoot && isLibrarySearchExpanded) {
@@ -432,9 +451,7 @@ fun CatlyticsApp(
     LaunchedEffect(deepLinkUri) {
         if (deepLinkUri != null) {
             if (deepLinkUri.scheme == "catlytics" && deepLinkUri.host == "nowplaying") {
-                if (topLevelBackStack.backStack.lastOrNull() != NowPlayingRoute) {
-                    topLevelBackStack.add(NowPlayingRoute)
-                }
+                openNowPlaying()
             }
             onDeepLinkHandled()
         }
@@ -445,7 +462,7 @@ fun CatlyticsApp(
     }
 
     fun openFromListPane(key: NavKey) {
-        val backStack = topLevelBackStack.backStack
+        val backStack = topLevelBackStack.backStack.filter { it != NowPlayingRoute }
         val indices = if (currentIsTwoPane) {
             findListDetailIndices(
                 items = backStack,
@@ -468,8 +485,6 @@ fun CatlyticsApp(
         queue = playbackState.queue,
         currentIndex = playbackState.currentIndex,
     )
-    // Barra superior de cada pantalla, con su propio estado de scroll. En lista-detalle el detalle
-    // no muestra la flecha atrás: la lista sigue visible al lado.
     val routeTopBar: @Composable (NavKey, TopAppBarScrollBehavior) -> Unit = { route, scrollBehavior ->
         val routeTopLevelDestination = TopLevelDestination.entries.firstOrNull { it.route == route }
         val onBack: (() -> Unit)? = if (isTwoPane && route == detailPaneRoute) {
@@ -625,7 +640,7 @@ fun CatlyticsApp(
     // Cada pantalla se envuelve en su propio Scaffold con su barra superior y su estado de scroll,
     // así funcionan igual en un panel o lado a lado en lista-detalle.
     val routePane: @Composable (NavKey, @Composable () -> Unit) -> Unit = { route, content ->
-        val hasTopBar = route != NowPlayingRoute && route !is CreatePlaylistRoute
+        val hasTopBar = route !is CreatePlaylistRoute
         if (hasTopBar) {
             val isRouteSearchExpanded = isSearchExpanded(route)
             RoutePane(
@@ -656,8 +671,6 @@ fun CatlyticsApp(
     }
 
     val listDetailSceneStrategy = rememberListDetailSceneStrategy<NavKey>(
-        // Atrás quita solo el detalle y vuelve a la lista con el placeholder: con el
-        // comportamiento por defecto seguiría quitando entradas hasta cambiar de pestaña.
         backNavigationBehavior = BackNavigationBehavior.PopLatest,
         directive = paneScaffoldDirective,
     )
@@ -676,7 +689,10 @@ fun CatlyticsApp(
             onDestinationSelected = topLevelBackStack::addTopLevel,
             navigationSuiteType = navigationSuiteType,
             state = navigationSuiteState,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                // Con Now Playing abierta, TalkBack no recorre lo que queda tapado debajo.
+                .then(if (isNowPlayingOpen) Modifier.clearAndSetSemantics {} else Modifier),
         ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -702,11 +718,7 @@ fun CatlyticsApp(
                             onTogglePlayback = playbackViewModel::togglePlayback,
                             onSkipPrevious = playbackViewModel::skipPrevious,
                             onSkipNext = playbackViewModel::skipNext,
-                            onClick = {
-                                if (topLevelBackStack.backStack.lastOrNull() != NowPlayingRoute) {
-                                    topLevelBackStack.add(NowPlayingRoute)
-                                }
-                            },
+                            onClick = ::openNowPlaying,
                             hazeState = hazeState,
                             accentColor = miniPlayerAccent
                                 ?.takeIf { (uri, _) -> uri == track.artworkUri && uri != null }
@@ -737,8 +749,8 @@ fun CatlyticsApp(
         },
     ) { innerPadding ->
         // Las pantallas se dibujan detrás del mini reproductor y reciben su alto como padding.
-        // Se congela mientras hay una ruta a pantalla completa para que la pantalla de abajo no
-        // salte durante la transición.
+        // Se congela mientras se crea una playlist (pantalla completa, sin mini reproductor) para
+        // que la pantalla de abajo no salte durante la transición.
         var lastBottomPadding by remember { mutableStateOf(0.dp) }
         val currentBottomPadding = innerPadding.calculateBottomPadding()
         SideEffect {
@@ -748,230 +760,221 @@ fun CatlyticsApp(
         }
         val bottomPaddingToUse = if (isFullScreenRoute) lastBottomPadding else currentBottomPadding
         val bottomPaddingState = rememberUpdatedState(bottomPaddingToUse)
-        // Con el teclado abierto las listas terminan encima de él (tapa al mini reproductor). Se
-        // lee al usar el padding, así su animación no recompone toda la app.
         val imePadding = WindowInsets.ime.asPaddingValues()
         val screenBottomPadding: () -> Dp = remember(bottomPaddingState, imePadding) {
             { maxOf(bottomPaddingState.value, imePadding.calculateBottomPadding()) }
         }
-
+        val contentBackDispatcherOwner = rememberNavigationEventDispatcherOwner(
+            enabled = !isNowPlayingOpen,
+        )
         Box(modifier = Modifier.fillMaxSize()) {
-            NavDisplay(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .hazeSource(hazeState)
-                    .background(MaterialTheme.colorScheme.background),
-                backStack = topLevelBackStack.backStack,
-                onBack = ::closeCurrentDestination,
-                sceneStrategies = listOf(listDetailSceneStrategy, SinglePaneSceneStrategy()),
-                // Cada entrada tiene su propio ViewModelStore: se crea un ViewModel por ruta y se
-                // limpia cuando la ruta sale del back stack.
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                    pruneDetailTopBarState,
-                ),
+            CompositionLocalProvider(LocalNavigationEventDispatcherOwner provides contentBackDispatcherOwner) {
+                NavDisplay(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .hazeSource(hazeState)
+                        .background(MaterialTheme.colorScheme.background),
+                    backStack = contentBackStack,
+                    onBack = ::closeCurrentDestination,
+                    sceneStrategies = listOf(listDetailSceneStrategy, SinglePaneSceneStrategy()),
+                    entryDecorators = listOf(
+                        rememberSaveableStateHolderNavEntryDecorator(),
+                        rememberViewModelStoreNavEntryDecorator(),
+                        pruneDetailTopBarState,
+                    ),
 
-                transitionSpec = {
-                    navigationForwardTransition()
-                },
-                popTransitionSpec = {
-                    navigationBackTransition()
-                },
-                predictivePopTransitionSpec = {
-                    navigationBackTransition()
-                },
-                entryProvider = withRoutePanes(entryProvider {
-                    homeEntry(
-                        searchQuery = { homeSearchQuery },
-                        isSearchActive = { isHomeSearchExpanded },
-                        onTrackOptions = { track -> openTrackOptions(track) },
-                        likedTrackIds = { likedTrackIds },
-                        onTrackSelectionAction = ::handleTrackSelectionAction,
-                        onNavigateToStatistics = {
-                            topLevelBackStack.addTopLevel(StatisticsRoute)
-                        },
-                        onNavigateToDailyPlaylist = {
-                            topLevelBackStack.add(DailyPlaylistRoute)
-                        },
-                        onNavigateToRecentlyAdded = {
-                            topLevelBackStack.add(RecentlyAddedRoute)
-                        },
-                        onNavigateToFavorites = {
-                            topLevelBackStack.addTopLevel(PlaylistsRoute)
-                            topLevelBackStack.add(
-                                PlaylistDetailRoute(
-                                    playlistId = LIKED_PLAYLIST_ID,
-                                    playlistName = likedPlaylistName,
-                                ),
-                            )
-                        },
-                        hasAudioPermission = { hasAudioPermission },
-                        onRequestAudioPermission = {
-                            audioPermissionLauncher.launch(audioPermission)
-                        },
-                        startupError = { startupError },
-                        onContentReady = { isHomeContentReady = true },
-                        bottomPadding = screenBottomPadding,
-                    )
-                    libraryEntry(
-                        searchQuery = { librarySearchQuery },
-                        artistSearchQuery = { artistSearchQuery },
-                        isArtistSearchActive = { isArtistSearchExpanded },
-                        onArtistSearchQueryChange = { artistSearchQuery = it },
-                        onDestinationSelected = topLevelBackStack::add,
-                        onListDestinationSelected = ::openFromListPane,
-                        onAddToPlaylist = ::openAddToPlaylist,
-                        onTrackOptions = { track -> openTrackOptions(track) },
-                        likedTrackIds = { likedTrackIds },
-                        currentTrackId = { playbackState.currentTrack?.id },
-                        isCurrentTrackPlaying = {
-                            playbackState.status == PlaybackStatus.Playing
-                        },
-                        onTrackSelectionAction = ::handleTrackSelectionAction,
-                        onLibraryDetailTopBarColorChange = { route, color ->
-                            detailTopBarColors[route] = color
-                        },
-                        onLibraryDetailTitleChange = { route, title ->
-                            detailTopBarTitles[route] = title
-                        },
-                        hasAudioPermission = { hasAudioPermission },
-                        onRequestAudioPermission = {
-                            audioPermissionLauncher.launch(audioPermission)
-                        },
-                        bottomPadding = screenBottomPadding,
-                    )
-                    playlistsEntry(
-                        searchQuery = { playlistsSearchQuery },
-                        onDestinationSelected = topLevelBackStack::add,
-                        onListDestinationSelected = ::openFromListPane,
-                        onPlaylistDeleted = ::closeCurrentDestination,
-                        onTrackOptions = { track, onRemoveFromPlaylist ->
-                            openTrackOptions(track, onRemoveFromPlaylist)
-                        },
-                        likedTrackIds = { likedTrackIds },
-                        onTrackSelectionAction = ::handleTrackSelectionAction,
-                        bottomPadding = screenBottomPadding,
-                        onPlaylistDetailTopBarColorChange = { route, color ->
-                            detailTopBarColors[route] = color
-                        },
-                        onCloseCreatePlaylist = ::closeCurrentDestination,
-                        onPlaylistCreated = { route, playlist ->
-                            closeCurrentDestination()
-                            if (route.openDetailOnCreate) {
+                    transitionSpec = {
+                        navigationForwardTransition()
+                    },
+                    popTransitionSpec = {
+                        navigationBackTransition()
+                    },
+                    predictivePopTransitionSpec = {
+                        navigationBackTransition()
+                    },
+                    entryProvider = withRoutePanes(entryProvider {
+                        homeEntry(
+                            searchQuery = { homeSearchQuery },
+                            isSearchActive = { isHomeSearchExpanded },
+                            onTrackOptions = { track -> openTrackOptions(track) },
+                            likedTrackIds = { likedTrackIds },
+                            onTrackSelectionAction = ::handleTrackSelectionAction,
+                            onNavigateToStatistics = {
+                                topLevelBackStack.addTopLevel(StatisticsRoute)
+                            },
+                            onNavigateToDailyPlaylist = {
+                                topLevelBackStack.add(DailyPlaylistRoute)
+                            },
+                            onNavigateToRecentlyAdded = {
+                                topLevelBackStack.add(RecentlyAddedRoute)
+                            },
+                            onNavigateToFavorites = {
+                                topLevelBackStack.addTopLevel(PlaylistsRoute)
                                 topLevelBackStack.add(
                                     PlaylistDetailRoute(
-                                        playlistId = playlist.id,
-                                        playlistName = playlist.name,
+                                        playlistId = LIKED_PLAYLIST_ID,
+                                        playlistName = likedPlaylistName,
                                     ),
                                 )
-                            } else {
-                                appFeedback.show(
-                                    UiText.Plural(
-                                        id = PlaylistsR.plurals.create_playlist_toast_created,
-                                        count = playlist.trackIds.size,
-                                        args = listOf(playlist.trackIds.size, playlist.name),
-                                    ),
-                                )
-                            }
-                        },
-                    )
-                    settingsEntry(
-                        appVersion = appVersion,
-                        librariesRes = R.raw.aboutlibraries,
-                        hasAudioPermission = { hasAudioPermission },
-                        onRequestAudioPermission = {
-                            audioPermissionLauncher.launch(audioPermission)
-                        },
-                        bottomPadding = screenBottomPadding,
-                        onTopBarTitleChange = { title -> settingsTopBarTitle = title },
-                        onTopBarBackActionChange = { action -> settingsTopBarBackAction = action },
-                    )
-                    statisticsEntry(
-                        bottomPadding = screenBottomPadding,
-                        onNavigateToExplore = {
-                            if (topLevelBackStack.backStack.lastOrNull() != StatisticsExploreRoute) {
-                                topLevelBackStack.add(StatisticsExploreRoute)
-                            }
-                        },
-                    )
-                    entry<NowPlayingRoute>(
-                        metadata = metadata {
-                            put(NavDisplay.TransitionKey) {
-                                verticalSheetEnterTransition()
-                            }
-                            put(NavDisplay.PopTransitionKey) {
-                                verticalSheetExitTransition()
-                            }
-                            put(NavDisplay.PredictivePopTransitionKey) { _ ->
-                                verticalSheetExitTransition()
-                            }
-                        },
-                    ) {
-                        NowPlayingScreen(
-                            playbackState = playbackState,
-                            progress = { playbackProgress.value },
-                            onBack = ::closeCurrentDestination,
-                            onTogglePlayback = playbackViewModel::togglePlayback,
-                            onSkipPrevious = playbackViewModel::skipPrevious,
-                            onSkipNext = playbackViewModel::skipNext,
-                            onSeekTo = playbackViewModel::seekTo,
-                            onSeekBackward10Seconds = playbackViewModel::seekBackward10Seconds,
-                            onSeekForward10Seconds = playbackViewModel::seekForward10Seconds,
-                            onToggleShuffle = playbackViewModel::toggleShuffle,
-                            onCycleRepeatMode = playbackViewModel::cycleRepeatMode,
-                            onShareTrack = context::shareTrack,
-                            onPlayQueueItem = playbackViewModel::playQueueItem,
-                            onMoveQueueItem = playbackViewModel::moveQueueItem,
-                            onRemoveQueueItem = playbackViewModel::removeQueueItem,
-                            onTrackOptions = { track -> openTrackOptions(track) },
-                            canAddCurrentTrackToQueue = playbackState.currentTrack
-                                ?.let(::canAddTrackToQueue)
-                                ?: false,
-                            onAddCurrentTrackToPlaylist = {
-                                playbackState.currentTrack?.let { track ->
-                                    openAddToPlaylist(PlaylistSource.TrackSource(track.id))
-                                }
                             },
-                            onToggleCurrentTrackLikedFromOptions = {
-                                playbackState.currentTrack?.let { track ->
-                                    playbackViewModel.toggleTrackLiked(track.id)
-                                }
+                            hasAudioPermission = { hasAudioPermission },
+                            onRequestAudioPermission = {
+                                audioPermissionLauncher.launch(audioPermission)
                             },
-                            onPlayNextCurrentTrack = {
-                                playbackState.currentTrack?.let(playbackViewModel::playNext)
-                            },
-                            onAddCurrentTrackToQueue = {
-                                playbackState.currentTrack?.let(playbackViewModel::addQueueItem)
-                            },
-                            onGoToCurrentTrackAlbum = {
-                                playbackState.currentTrack?.let(::navigateToAlbum)
-                            },
-                            onGoToCurrentTrackArtist = {
-                                playbackState.currentTrack?.let(::navigateToArtist)
-                            },
-                            onEditCurrentTrackMetadata = {
-                                editMetadataTrackId = playbackState.currentTrack?.id
-                            },
-                            isCurrentTrackLiked = isCurrentTrackLiked,
-                            queueSourceTitle = queueSourcePlaylist?.let { (id, name) ->
-                                if (id == LIKED_PLAYLIST_ID) {
-                                    stringResource(R.string.app_playlist_liked_name)
-                                } else {
-                                    name
-                                }
-                            } ?: stringResource(R.string.app_now_playing_from_library),
-                            sleepTimerState = sleepTimerState,
-                            onStartSleepTimer = playbackViewModel::startSleepTimer,
-                            onCancelSleepTimer = playbackViewModel::cancelSleepTimer,
-                            onAddCurrentTrackToLiked = playbackViewModel::toggleCurrentTrackLiked,
+                            startupError = { startupError },
+                            onContentReady = { isHomeContentReady = true },
+                            bottomPadding = screenBottomPadding,
                         )
-                    }
-                }),
-            )
-
+                        libraryEntry(
+                            searchQuery = { librarySearchQuery },
+                            artistSearchQuery = { artistSearchQuery },
+                            isArtistSearchActive = { isArtistSearchExpanded },
+                            onArtistSearchQueryChange = { artistSearchQuery = it },
+                            onDestinationSelected = topLevelBackStack::add,
+                            onListDestinationSelected = ::openFromListPane,
+                            onAddToPlaylist = ::openAddToPlaylist,
+                            onTrackOptions = { track -> openTrackOptions(track) },
+                            likedTrackIds = { likedTrackIds },
+                            currentTrackId = { playbackState.currentTrack?.id },
+                            isCurrentTrackPlaying = {
+                                playbackState.status == PlaybackStatus.Playing
+                            },
+                            onTrackSelectionAction = ::handleTrackSelectionAction,
+                            onLibraryDetailTopBarColorChange = { route, color ->
+                                detailTopBarColors[route] = color
+                            },
+                            onLibraryDetailTitleChange = { route, title ->
+                                detailTopBarTitles[route] = title
+                            },
+                            hasAudioPermission = { hasAudioPermission },
+                            onRequestAudioPermission = {
+                                audioPermissionLauncher.launch(audioPermission)
+                            },
+                            bottomPadding = screenBottomPadding,
+                        )
+                        playlistsEntry(
+                            searchQuery = { playlistsSearchQuery },
+                            onDestinationSelected = topLevelBackStack::add,
+                            onListDestinationSelected = ::openFromListPane,
+                            onPlaylistDeleted = ::closeCurrentDestination,
+                            onTrackOptions = { track, onRemoveFromPlaylist ->
+                                openTrackOptions(track, onRemoveFromPlaylist)
+                            },
+                            likedTrackIds = { likedTrackIds },
+                            onTrackSelectionAction = ::handleTrackSelectionAction,
+                            bottomPadding = screenBottomPadding,
+                            onPlaylistDetailTopBarColorChange = { route, color ->
+                                detailTopBarColors[route] = color
+                            },
+                            onCloseCreatePlaylist = ::closeCurrentDestination,
+                            onPlaylistCreated = { route, playlist ->
+                                closeCurrentDestination()
+                                if (route.openDetailOnCreate) {
+                                    topLevelBackStack.add(
+                                        PlaylistDetailRoute(
+                                            playlistId = playlist.id,
+                                            playlistName = playlist.name,
+                                        ),
+                                    )
+                                } else {
+                                    appFeedback.show(
+                                        UiText.Plural(
+                                            id = PlaylistsR.plurals.create_playlist_toast_created,
+                                            count = playlist.trackIds.size,
+                                            args = listOf(playlist.trackIds.size, playlist.name),
+                                        ),
+                                    )
+                                }
+                            },
+                        )
+                        settingsEntry(
+                            appVersion = appVersion,
+                            librariesRes = R.raw.aboutlibraries,
+                            hasAudioPermission = { hasAudioPermission },
+                            onRequestAudioPermission = {
+                                audioPermissionLauncher.launch(audioPermission)
+                            },
+                            bottomPadding = screenBottomPadding,
+                            onTopBarTitleChange = { title -> settingsTopBarTitle = title },
+                            onTopBarBackActionChange = { action -> settingsTopBarBackAction = action },
+                        )
+                        statisticsEntry(
+                            bottomPadding = screenBottomPadding,
+                            onNavigateToExplore = {
+                                if (topLevelBackStack.backStack.lastOrNull() != StatisticsExploreRoute) {
+                                    topLevelBackStack.add(StatisticsExploreRoute)
+                                }
+                            },
+                        )
+                    }),
+                )
+            }
         }
     }
+        }
+        NowPlayingOverlay(
+            isOpen = isNowPlayingOpen,
+            onClose = ::closeNowPlaying,
+        ) {
+            NowPlayingScreen(
+                playbackState = playbackState,
+                isOpen = isNowPlayingOpen,
+                progress = { playbackProgress.value },
+                onBack = ::closeNowPlaying,
+                onTogglePlayback = playbackViewModel::togglePlayback,
+                onSkipPrevious = playbackViewModel::skipPrevious,
+                onSkipNext = playbackViewModel::skipNext,
+                onSeekTo = playbackViewModel::seekTo,
+                onSeekBackward10Seconds = playbackViewModel::seekBackward10Seconds,
+                onSeekForward10Seconds = playbackViewModel::seekForward10Seconds,
+                onToggleShuffle = playbackViewModel::toggleShuffle,
+                onCycleRepeatMode = playbackViewModel::cycleRepeatMode,
+                onShareTrack = context::shareTrack,
+                onPlayQueueItem = playbackViewModel::playQueueItem,
+                onMoveQueueItem = playbackViewModel::moveQueueItem,
+                onRemoveQueueItem = playbackViewModel::removeQueueItem,
+                onTrackOptions = { track -> openTrackOptions(track) },
+                canAddCurrentTrackToQueue = playbackState.currentTrack
+                    ?.let(::canAddTrackToQueue)
+                    ?: false,
+                onAddCurrentTrackToPlaylist = {
+                    playbackState.currentTrack?.let { track ->
+                        openAddToPlaylist(PlaylistSource.TrackSource(track.id))
+                    }
+                },
+                onToggleCurrentTrackLikedFromOptions = {
+                    playbackState.currentTrack?.let { track ->
+                        playbackViewModel.toggleTrackLiked(track.id)
+                    }
+                },
+                onPlayNextCurrentTrack = {
+                    playbackState.currentTrack?.let(playbackViewModel::playNext)
+                },
+                onAddCurrentTrackToQueue = {
+                    playbackState.currentTrack?.let(playbackViewModel::addQueueItem)
+                },
+                onGoToCurrentTrackAlbum = {
+                    playbackState.currentTrack?.let(::navigateToAlbum)
+                },
+                onGoToCurrentTrackArtist = {
+                    playbackState.currentTrack?.let(::navigateToArtist)
+                },
+                onEditCurrentTrackMetadata = {
+                    editMetadataTrackId = playbackState.currentTrack?.id
+                },
+                isCurrentTrackLiked = isCurrentTrackLiked,
+                queueSourceTitle = queueSourcePlaylist?.let { (id, name) ->
+                    if (id == LIKED_PLAYLIST_ID) {
+                        stringResource(R.string.app_playlist_liked_name)
+                    } else {
+                        name
+                    }
+                } ?: stringResource(R.string.app_now_playing_from_library),
+                sleepTimerState = sleepTimerState,
+                onStartSleepTimer = playbackViewModel::startSleepTimer,
+                onCancelSleepTimer = playbackViewModel::cancelSleepTimer,
+                onAddCurrentTrackToLiked = playbackViewModel::toggleCurrentTrackLiked,
+            )
         }
         CatlyticsAppSheets(
             trackOptionsRequest = trackOptionsRequest,

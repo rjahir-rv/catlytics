@@ -19,6 +19,9 @@ abstract class ArtistAliasDao {
     @Query("SELECT * FROM artist_aliases WHERE source_key = :sourceKey")
     abstract suspend fun getBySourceKey(sourceKey: String): ArtistAliasEntity?
 
+    @Query("SELECT source_key FROM artist_aliases WHERE target_key = :targetKey")
+    abstract suspend fun getSourceKeys(targetKey: String): List<String>
+
     @Upsert
     abstract suspend fun upsert(alias: ArtistAliasEntity)
 

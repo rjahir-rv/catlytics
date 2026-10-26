@@ -4,6 +4,7 @@ import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.domain.repository.ArtistArtworkRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.model.Track
@@ -11,6 +12,7 @@ import com.catlytics.core.model.TrackMetadataEdit
 import com.catlytics.core.model.TrackMetadataOverride
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
+import com.catlytics.core.model.ArtistArtworkOverride
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
@@ -20,6 +22,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class OfflineFirstLibraryRepositoryTest {
@@ -27,12 +31,14 @@ class OfflineFirstLibraryRepositoryTest {
     private val preferencesRepository = FakeLibraryPreferencesRepository()
     private val artistIdentityRepository = FakeArtistIdentityRepository()
     private val trackMetadataRepository = FakeTrackMetadataRepository()
+    private val artistArtworkRepository = FakeArtistArtworkRepository()
     private val repository = OfflineFirstLibraryRepository(
         localDataSource = localDataSource,
         mediator = NoOpDataMediator,
         preferencesRepository = preferencesRepository,
         artistIdentityRepository = artistIdentityRepository,
         trackMetadataRepository = trackMetadataRepository,
+        artistArtworkRepository = artistArtworkRepository,
     )
 
     @Test
@@ -50,6 +56,7 @@ class OfflineFirstLibraryRepositoryTest {
             preferencesRepository = preferencesRepository,
             artistIdentityRepository = artistIdentityRepository,
             trackMetadataRepository = trackMetadataRepository,
+            artistArtworkRepository = artistArtworkRepository,
         )
 
         assertEquals(1, refreshingRepository.refreshTracks())
@@ -483,6 +490,47 @@ class OfflineFirstLibraryRepositoryTest {
         updatedAtMillis = 1L,
     )
 
+    @Test
+    fun `custom artist image replaces the track artwork in the list and the detail`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("one", artistId = "nova", artistName = "Nova", artworkUri = "content://cover/one"),
+                track("two", artistId = "luz", artistName = "Luz", artworkUri = "content://cover/two"),
+            ),
+        )
+        artistArtworkRepository.overrides.value = listOf(
+            ArtistArtworkOverride("nova", "NOVA", "/files/artist_artwork/nova.cover", 1L),
+        )
+
+        val artists = repository.observeArtists().first().associateBy { it.artist.id }
+        assertEquals("/files/artist_artwork/nova.cover", artists.getValue("nova").artworkUri)
+        assertTrue(artists.getValue("nova").hasCustomArtwork)
+        assertEquals("content://cover/two", artists.getValue("luz").artworkUri)
+        assertFalse(artists.getValue("luz").hasCustomArtwork)
+        val detail = repository.observeArtistContent("nova").first()
+        assertEquals("/files/artist_artwork/nova.cover", detail?.summary?.artworkUri)
+    }
+
+    @Test
+    fun `merged artist keeps its own image and falls back to a merged artist image`() = runTest {
+        localDataSource.replaceTracks(
+            listOf(
+                track("one", artistId = "main", artistName = "Main"),
+                track("two", artistId = "feat", artistName = "Main feat. Guest"),
+            ),
+        )
+        artistIdentityRepository.merge(Artist("feat", "Main feat. Guest"), Artist("main", "Main"))
+        artistArtworkRepository.overrides.value = listOf(
+            ArtistArtworkOverride("main feat. guest", "Main feat. Guest", "/files/feat.cover", 1L),
+        )
+
+        assertEquals("/files/feat.cover", repository.observeArtistContent("main").first()?.summary?.artworkUri)
+
+        artistArtworkRepository.overrides.value += ArtistArtworkOverride("main", "Main", "/files/main.cover", 2L)
+
+        assertEquals("/files/main.cover", repository.observeArtistContent("main").first()?.summary?.artworkUri)
+    }
+
     private fun track(
         id: String,
         folderId: String? = null,
@@ -547,6 +595,15 @@ private class FakeArtistIdentityRepository : ArtistIdentityRepository {
         this.aliases.value += newAliases
         return newAliases.size
     }
+}
+
+internal class FakeArtistArtworkRepository : ArtistArtworkRepository {
+    val overrides = MutableStateFlow(emptyList<ArtistArtworkOverride>())
+
+    override fun observeOverrides() = overrides
+    override suspend fun setArtwork(artist: Artist, sourceUri: String) = Unit
+    override suspend fun restoreArtwork(artist: Artist) = Unit
+    override suspend fun removeArtwork(artistKey: String) = Unit
 }
 
 private class FakeTrackMetadataRepository : TrackMetadataRepository {

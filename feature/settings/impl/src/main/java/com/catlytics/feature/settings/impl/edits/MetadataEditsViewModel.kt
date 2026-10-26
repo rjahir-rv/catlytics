@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistArtworkOverridesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTrackMetadataOverridesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTracksWithOverridesUseCase
+import com.catlytics.core.domain.usecase.library.RemoveArtistArtworkUseCase
 import com.catlytics.core.domain.usecase.library.ResetTracksMetadataUseCase
 import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
@@ -34,7 +36,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-/** Lists every metadata edit and artist merge/rename, and reverts them one by one or in bulk. */
+/** Lists every metadata edit, artist merge/rename and artist image, and reverts them one by one or in bulk. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 internal class MetadataEditsViewModel @Inject constructor(
@@ -44,6 +46,8 @@ internal class MetadataEditsViewModel @Inject constructor(
     private val saveBulkTrackMetadata: SaveBulkTrackMetadataUseCase,
     private val resetTracksMetadata: ResetTracksMetadataUseCase,
     private val unmergeArtist: UnmergeArtistUseCase,
+    observeArtistArtworkOverrides: ObserveArtistArtworkOverridesUseCase,
+    private val removeArtistArtwork: RemoveArtistArtworkUseCase,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val filter = MutableStateFlow(MetadataEditFilter.All)
@@ -68,8 +72,14 @@ internal class MetadataEditsViewModel @Inject constructor(
         aliases.map { alias -> ArtistEditItem(alias, alias.kind) }
     }
 
-    private val edits = combine(trackItems, artistItems, ::Pair)
-        .catch { emit(emptyList<TrackEditItem>() to emptyList()) }
+    private val artistImageItems = observeArtistArtworkOverrides().map { overrides ->
+        overrides
+            .map { ArtistImageEditItem(it.artistKey, it.artistName, it.artworkUri, it.updatedAtMillis) }
+            .sortedByDescending(ArtistImageEditItem::updatedAtMillis)
+    }
+
+    private val edits = combine(trackItems, artistItems, artistImageItems, ::Triple)
+        .catch { emit(Triple(emptyList(), emptyList(), emptyList())) }
 
     private val selection = combine(selectedTrackIds, selectionMode, ::Pair)
 
@@ -85,13 +95,15 @@ internal class MetadataEditsViewModel @Inject constructor(
         )
     }
 
-    val uiState: StateFlow<MetadataEditsUiState> = combine(edits, controls) { (tracks, artists), controls ->
+    val uiState: StateFlow<MetadataEditsUiState> = combine(edits, controls) { (tracks, artists, images), controls ->
         val visibleTracks = tracks.filter { it.matches(controls.filter, controls.query) }
         controls.copy(
             tracks = visibleTracks,
             artists = artists.filter { it.matches(controls.filter, controls.query) },
+            artistImages = images.filter { it.matches(controls.filter, controls.query) },
             totalTrackEdits = tracks.size,
             totalArtistEdits = artists.size,
+            totalArtistImageEdits = images.size,
             // Edits reverted elsewhere leave the selection.
             selectedTrackIds = controls.selectedTrackIds.intersect(tracks.mapTo(HashSet(), TrackEditItem::trackId)),
         )
@@ -147,6 +159,12 @@ internal class MetadataEditsViewModel @Inject constructor(
         }
     }
 
+    fun revertArtistImage(item: ArtistImageEditItem) {
+        runAction(UiText.Resource(R.string.settings_edits_artist_image_reverted, listOf(item.artistName))) {
+            removeArtistArtwork(item.artistKey)
+        }
+    }
+
     fun requestRevertSelected() {
         val count = uiState.value.selectedTrackIds.size
         if (count > 0) dialog.value = MetadataEditsDialog.ConfirmRevertSelected(count)
@@ -155,7 +173,10 @@ internal class MetadataEditsViewModel @Inject constructor(
     fun requestRevertFiltered() {
         val state = uiState.value
         if (state.hasResults) {
-            dialog.value = MetadataEditsDialog.ConfirmRevertFiltered(state.tracks.size, state.artists.size)
+            dialog.value = MetadataEditsDialog.ConfirmRevertFiltered(
+                trackCount = state.tracks.size,
+                artistCount = state.artists.size + state.artistImages.size,
+            )
         }
     }
 
@@ -177,9 +198,11 @@ internal class MetadataEditsViewModel @Inject constructor(
             is MetadataEditsDialog.ConfirmRevertFiltered -> {
                 val trackIds = state.tracks.map(TrackEditItem::trackId)
                 val aliases = state.artists.map(ArtistEditItem::alias)
+                val artistImageKeys = state.artistImages.map(ArtistImageEditItem::artistKey)
                 runAction(UiText.Resource(R.string.settings_edits_filtered_reverted)) {
                     if (trackIds.isNotEmpty()) resetTracksMetadata(trackIds)
                     aliases.forEach { unmergeArtist(it.source) }
+                    artistImageKeys.forEach { removeArtistArtwork(it) }
                     clearSelection()
                 }
             }
@@ -246,6 +269,14 @@ private fun TrackEditItem.matches(filter: MetadataEditFilter, query: String): Bo
     return sequenceOf(title, artistName)
         .plus(changes.asSequence().flatMap { sequenceOf(it.original, it.edited) })
         .any { it?.contains(text, ignoreCase = true) == true }
+}
+
+private fun ArtistImageEditItem.matches(filter: MetadataEditFilter, query: String): Boolean {
+    val visible = filter == MetadataEditFilter.All ||
+        filter == MetadataEditFilter.Artists ||
+        filter == MetadataEditFilter.Artwork
+    val text = query.trim()
+    return visible && (text.isEmpty() || artistName.contains(text, ignoreCase = true))
 }
 
 private fun ArtistEditItem.matches(filter: MetadataEditFilter, query: String): Boolean {

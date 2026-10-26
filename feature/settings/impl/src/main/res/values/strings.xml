@@ -244,12 +244,14 @@
     <string name="settings_edits_revert_filtered">Revertir todo</string>
     <string name="settings_edits_no_results">Ninguna edición coincide con la búsqueda o el filtro.</string>
     <string name="settings_edits_empty_title">Sin ediciones</string>
-    <string name="settings_edits_empty_message">Aquí aparecerán las canciones que edites y los artistas que unifiques o renombres.</string>
+    <string name="settings_edits_empty_message">Aquí aparecerán las canciones que edites, los artistas que unifiques o renombres y las imágenes de artista que cambies.</string>
     <string name="settings_edits_confirm_title">¿Revertir ediciones?</string>
     <string name="settings_edits_confirm_filtered_one">Se revertirán las ediciones de %1$s que se muestran ahora. Esta acción no se puede deshacer.</string>
     <string name="settings_edits_confirm_filtered">Se revertirán %1$s y %2$s que se muestran ahora. Esta acción no se puede deshacer.</string>
     <string name="settings_edits_field_reverted">Campo restaurado</string>
     <string name="settings_edits_artist_reverted">«%1$s» vuelve a aparecer con su nombre original</string>
+    <string name="settings_edits_artist_image_reverted">«%1$s» vuelve a usar la portada de sus canciones</string>
+    <string name="settings_edits_artist_image_content_description">Imagen de %1$s</string>
     <string name="settings_edits_filtered_reverted">Ediciones revertidas</string>
     <string name="settings_edits_error">No se pudieron revertir las ediciones.</string>
     <string name="settings_backup_view_edits">Ver y revertir ediciones</string>
@@ -260,6 +262,10 @@
     <plurals name="settings_edits_artists_section">
         <item quantity="one">%1$d artista unificado o renombrado</item>
         <item quantity="other">%1$d artistas unificados o renombrados</item>
+    </plurals>
+    <plurals name="settings_edits_artist_images_section">
+        <item quantity="one">%1$d imagen de artista</item>
+        <item quantity="other">%1$d imágenes de artista</item>
     </plurals>
     <plurals name="settings_edits_selected">
         <item quantity="one">%1$d seleccionada</item>

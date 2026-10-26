@@ -20,9 +20,13 @@ internal data class BackupDocument(
     val artistAliases: List<ArtistAliasDto> = emptyList(),
     val playlists: List<PlaylistBackupDto> = emptyList(),
     val trackMetadataOverrides: List<TrackMetadataOverrideDto> = emptyList(),
+    val artistArtworks: List<ArtistArtworkDto> = emptyList(),
 ) {
     val hasStatistics: Boolean
-        get() = events.isNotEmpty() || artistAliases.isNotEmpty() || trackMetadataOverrides.isNotEmpty()
+        get() = events.isNotEmpty() ||
+            artistAliases.isNotEmpty() ||
+            trackMetadataOverrides.isNotEmpty() ||
+            artistArtworks.isNotEmpty()
 }
 
 @Serializable
@@ -45,6 +49,13 @@ internal data class ArtistAliasDto(
     val sourceArtistName: String,
     val targetArtistId: String,
     val targetArtistName: String,
+)
+
+@Serializable
+internal data class ArtistArtworkDto(
+    val artistName: String,
+    val artworkBase64: String,
+    val updatedAtMillis: Long = 0L,
 )
 
 @Serializable

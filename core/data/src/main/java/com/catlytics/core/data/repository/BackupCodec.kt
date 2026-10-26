@@ -21,10 +21,11 @@ internal object BackupCodec {
     const val STATISTICS_FORMAT = "catlytics.statistics.backup"
     const val PLAYLISTS_FORMAT = "catlytics.playlists.backup"
 
-    const val SUPPORTED_SCHEMA_VERSION = 4
+    const val SUPPORTED_SCHEMA_VERSION = 5
     const val MIN_SUPPORTED_SCHEMA_VERSION = 1
     const val ALIAS_SCHEMA_VERSION = 2
     const val METADATA_SCHEMA_VERSION = 4
+    const val ARTIST_ARTWORK_SCHEMA_VERSION = 5
     const val MAX_BACKUP_BYTES = 64L * 1024L * 1024L
 
     private val json = Json {

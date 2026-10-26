@@ -36,6 +36,19 @@ data class ArtistSummary(
     val artworkUri: String? = null,
     val albumCount: Int,
     val trackCount: Int,
+    val hasCustomArtwork: Boolean = false,
+)
+
+/**
+ * Imagen elegida por el usuario para un artista. Va ligada a la clave de identidad del nombre
+ * ([artistIdentityKey]), como las fusiones, porque el id de MediaStore cambia al reindexar.
+ * [artistName] es el nombre con el que se eligió, para mostrarlo en la lista de ediciones.
+ */
+data class ArtistArtworkOverride(
+    val artistKey: String,
+    val artistName: String,
+    val artworkUri: String,
+    val updatedAtMillis: Long,
 )
 
 data class ArtistContent(

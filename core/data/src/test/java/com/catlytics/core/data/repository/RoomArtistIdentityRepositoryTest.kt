@@ -29,7 +29,11 @@ class RoomArtistIdentityRepositoryTest {
             .allowMainThreadQueries()
             .build()
         identityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao())
-        eventRepository = RoomPlaybackEventRepository(database.playbackEventDao())
+        eventRepository = RoomPlaybackEventRepository(
+            database.playbackEventDao(),
+            database.artistArtworkOverrideDao(),
+            database.artistAliasDao(),
+        )
     }
 
     @After

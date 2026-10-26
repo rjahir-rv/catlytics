@@ -240,12 +240,14 @@
     <string name="settings_edits_revert_filtered">Revert all</string>
     <string name="settings_edits_no_results">No edits match the search or filter.</string>
     <string name="settings_edits_empty_title">No edits</string>
-    <string name="settings_edits_empty_message">Songs you edit and artists you merge or rename will appear here.</string>
+    <string name="settings_edits_empty_message">Songs you edit, artists you merge or rename and artist images you change will appear here.</string>
     <string name="settings_edits_confirm_title">Revert edits?</string>
     <string name="settings_edits_confirm_filtered_one">The edits for %1$s shown now will be reverted. This can\'t be undone.</string>
     <string name="settings_edits_confirm_filtered">%1$s and %2$s shown now will be reverted. This can\'t be undone.</string>
     <string name="settings_edits_field_reverted">Field restored</string>
     <string name="settings_edits_artist_reverted">“%1$s” will appear under its original name again</string>
+    <string name="settings_edits_artist_image_reverted">“%1$s” uses the artwork of its songs again</string>
+    <string name="settings_edits_artist_image_content_description">Image of %1$s</string>
     <string name="settings_edits_filtered_reverted">Edits reverted</string>
     <string name="settings_edits_error">Couldn\'t revert the edits.</string>
     <string name="settings_backup_view_edits">View and revert edits</string>
@@ -256,6 +258,10 @@
     <plurals name="settings_edits_artists_section">
         <item quantity="one">%1$d merged or renamed artist</item>
         <item quantity="other">%1$d merged or renamed artists</item>
+    </plurals>
+    <plurals name="settings_edits_artist_images_section">
+        <item quantity="one">%1$d artist image</item>
+        <item quantity="other">%1$d artist images</item>
     </plurals>
     <plurals name="settings_edits_selected">
         <item quantity="one">%1$d selected</item>

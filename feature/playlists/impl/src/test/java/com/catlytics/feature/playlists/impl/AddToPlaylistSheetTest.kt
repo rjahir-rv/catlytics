@@ -1,5 +1,6 @@
 package com.catlytics.feature.playlists.impl
 
+import androidx.compose.ui.state.ToggleableState
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import org.junit.Assert.assertEquals
@@ -60,5 +61,19 @@ class AddToPlaylistSheetTest {
         )
 
         assertTrue(isPlaylistFullyAdded(playlist, listOf("track-1")))
+    }
+
+    @Test
+    fun `checkbox shows playlists that already have the tracks`() {
+        val playlist = Playlist(id = "playlist-1", name = "Rock", trackIds = listOf("track-1", "track-2"))
+
+        assertEquals(ToggleableState.On, playlistCheckboxState(playlist, listOf("track-1"), isSelected = false))
+        assertEquals(
+            ToggleableState.Indeterminate,
+            playlistCheckboxState(playlist, listOf("track-1", "track-3"), isSelected = false),
+        )
+        assertEquals(ToggleableState.On, playlistCheckboxState(playlist, listOf("track-1", "track-3"), isSelected = true))
+        assertEquals(ToggleableState.Off, playlistCheckboxState(playlist, listOf("track-3"), isSelected = false))
+        assertEquals(ToggleableState.Off, playlistCheckboxState(playlist, emptyList(), isSelected = false))
     }
 }

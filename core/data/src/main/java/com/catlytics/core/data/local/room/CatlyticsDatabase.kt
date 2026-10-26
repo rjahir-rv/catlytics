@@ -10,15 +10,17 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PlaybackEventEntity::class,
         ArtistAliasEntity::class,
         TrackMetadataOverrideEntity::class,
+        ArtistArtworkOverrideEntity::class,
     ],
     views = [ResolvedPlaybackEventView::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class CatlyticsDatabase : RoomDatabase() {
     abstract fun playbackEventDao(): PlaybackEventDao
     abstract fun artistAliasDao(): ArtistAliasDao
     abstract fun trackMetadataOverrideDao(): TrackMetadataOverrideDao
+    abstract fun artistArtworkOverrideDao(): ArtistArtworkOverrideDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -96,6 +98,22 @@ abstract class CatlyticsDatabase : RoomDatabase() {
                 )
                 db.execSQL(
                     "CREATE VIEW `$RESOLVED_PLAYBACK_EVENTS_VIEW` AS $RESOLVED_PLAYBACK_EVENTS_QUERY",
+                )
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `$ARTIST_ARTWORK_OVERRIDES_TABLE` (
+                        `artist_key` TEXT NOT NULL,
+                        `artist_name` TEXT NOT NULL,
+                        `artwork_uri` TEXT NOT NULL,
+                        `updated_at` INTEGER NOT NULL,
+                        PRIMARY KEY(`artist_key`)
+                    )
+                    """.trimIndent(),
                 )
             }
         }

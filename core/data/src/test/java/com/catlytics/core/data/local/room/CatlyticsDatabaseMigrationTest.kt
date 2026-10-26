@@ -29,7 +29,7 @@ class CatlyticsDatabaseMigrationTest {
     }
 
     @Test
-    fun `migration 3 to 4 keeps events and adds overrides with the resolved view`() = runTest {
+    fun `migrations from 3 keep events and add overrides, the resolved view and artist images`() = runTest {
         createVersion3Database()
 
         val database = Room.databaseBuilder(context, CatlyticsDatabase::class.java, DB_NAME)
@@ -37,6 +37,7 @@ class CatlyticsDatabaseMigrationTest {
                 CatlyticsDatabase.MIGRATION_1_2,
                 CatlyticsDatabase.MIGRATION_2_3,
                 CatlyticsDatabase.MIGRATION_3_4,
+                CatlyticsDatabase.MIGRATION_4_5,
             )
             .allowMainThreadQueries()
             .build()
@@ -62,6 +63,10 @@ class CatlyticsDatabaseMigrationTest {
 
             val topTracks = database.playbackEventDao().observeTopTracks(0L, 10_000L, 10).first()
             assertEquals(listOf("Editada"), topTracks.map { it.title })
+
+            val artwork = ArtistArtworkOverrideEntity("artista", "Artista", "/files/artista.cover", 1L)
+            database.artistArtworkOverrideDao().upsert(artwork)
+            assertEquals(listOf(artwork), database.artistArtworkOverrideDao().getAll())
         } finally {
             database.close()
         }

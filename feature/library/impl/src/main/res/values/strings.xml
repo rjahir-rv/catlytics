@@ -86,6 +86,10 @@
     <string name="library_artist_rename_field">Nombre</string>
     <string name="library_artist_rename_existing">Ya existe «%1$s»: se unificará con él</string>
     <string name="library_artist_rename_success">Artista renombrado</string>
+    <string name="library_artist_image_change">Cambiar imagen</string>
+    <string name="library_artist_image_restore">Restaurar imagen</string>
+    <string name="library_artist_image_changed">Imagen del artista actualizada</string>
+    <string name="library_artist_image_restored">Imagen original restaurada</string>
     <string name="library_artist_alias_original_name">Nombre original</string>
     <string name="library_action_unmerging">Separando…</string>
     <string name="library_action_cancel">Cancelar</string>

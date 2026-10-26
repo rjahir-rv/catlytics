@@ -15,6 +15,7 @@ internal object BackupDocumentValidator {
         validateEvents(document.events)
         validateArtistAliases(document.artistAliases)
         validateMetadataEdits(document.trackMetadataOverrides)
+        validateArtistArtworks(document.artistArtworks)
         validatePlaylists(document.playlists)
     }
 
@@ -61,6 +62,15 @@ internal object BackupDocumentValidator {
             ensure(edit.originalTitle.isNotBlank()) { "Edit $index: blank original title." }
             ensure(edit.hasEdits) { "Edit $index: contains no changes." }
         }
+    }
+
+    private fun validateArtistArtworks(artworks: List<ArtistArtworkDto>) {
+        artworks.forEachIndexed { index, artwork ->
+            ensure(artwork.artistName.isNotBlank()) { "Artist image $index: blank artist." }
+            ensure(artwork.artworkBase64.isNotBlank()) { "Artist image $index: no image." }
+        }
+        val distinctArtists = artworks.map { artistIdentityKey(it.artistName) }.distinct()
+        ensure(distinctArtists.size == artworks.size) { "Duplicate artist images." }
     }
 
     private fun validatePlaylists(playlists: List<PlaylistBackupDto>) {

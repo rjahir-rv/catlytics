@@ -51,7 +51,11 @@ class RoomTrackMetadataRepositoryTest {
             artworkStore = ManagedImageStore(context, "track_artwork"),
             clock = { 42L },
         )
-        eventRepository = RoomPlaybackEventRepository(database.playbackEventDao())
+        eventRepository = RoomPlaybackEventRepository(
+            database.playbackEventDao(),
+            database.artistArtworkOverrideDao(),
+            database.artistAliasDao(),
+        )
     }
 
     @After
@@ -243,6 +247,7 @@ class RoomTrackMetadataRepositoryTest {
             preferencesRepository = FakeLibraryPreferencesRepository(),
             artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao()),
             trackMetadataRepository = repository,
+            artistArtworkRepository = FakeArtistArtworkRepository(),
         )
 
         repository.saveBulkEdit(

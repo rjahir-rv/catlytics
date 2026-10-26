@@ -14,6 +14,8 @@ import com.catlytics.core.domain.usecase.library.SetArtistAlbumSortUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistTrackSortUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.library.RenameArtistUseCase
+import com.catlytics.core.domain.usecase.library.RestoreArtistArtworkUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistArtworkUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
@@ -63,6 +65,8 @@ internal class LibraryArtistViewModel @Inject constructor(
     observeTrackPlayCounts: ObserveTrackPlayCountsUseCase,
     private val setArtistTrackSort: SetArtistTrackSortUseCase,
     private val setArtistAlbumSort: SetArtistAlbumSortUseCase,
+    private val setArtistArtwork: SetArtistArtworkUseCase,
+    private val restoreArtistArtwork: RestoreArtistArtworkUseCase,
 ) : ViewModel() {
     private val artistId = MutableStateFlow<String?>(null)
     private val searchQuery = MutableStateFlow("")
@@ -219,6 +223,21 @@ internal class LibraryArtistViewModel @Inject constructor(
         }
         runMergeAction(UiText.Resource(R.string.library_artist_rename_success)) {
             renameArtistUseCase(artist, name)
+        }
+    }
+
+    fun changeArtwork(sourceUri: String) {
+        val state = uiState.value as? LibraryArtistUiState.Success ?: return
+        if (!state.canRename) return
+        runMergeAction(UiText.Resource(R.string.library_artist_image_changed)) {
+            setArtistArtwork(state.content.summary.artist, sourceUri)
+        }
+    }
+
+    fun restoreArtwork() {
+        val state = uiState.value as? LibraryArtistUiState.Success ?: return
+        runMergeAction(UiText.Resource(R.string.library_artist_image_restored)) {
+            restoreArtistArtwork(state.content.summary.artist)
         }
     }
 

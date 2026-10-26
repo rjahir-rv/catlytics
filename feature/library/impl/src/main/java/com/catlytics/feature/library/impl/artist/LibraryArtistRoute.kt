@@ -1,5 +1,9 @@
 package com.catlytics.feature.library.impl.artist
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +46,12 @@ internal fun LibraryArtistRoute(
     val context = LocalContext.current
     val resources = LocalResources.current
 
+    val artworkPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+    ) { uri: Uri? ->
+        uri?.let { viewModel.changeArtwork(it.toString()) }
+    }
+
     LaunchedEffect(route.artistId) {
         viewModel.openArtist(route.artistId)
     }
@@ -79,6 +89,10 @@ internal fun LibraryArtistRoute(
         onConfirmMerge = viewModel::confirmMerge,
         onConfirmUnmerge = viewModel::confirmUnmerge,
         onShowRename = viewModel::showRename,
+        onChangeArtwork = {
+            artworkPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        },
+        onRestoreArtwork = viewModel::restoreArtwork,
         onRenameNameChange = viewModel::updateRenameName,
         onConfirmRename = viewModel::confirmRename,
         onPlayShuffled = viewModel::playShuffled,

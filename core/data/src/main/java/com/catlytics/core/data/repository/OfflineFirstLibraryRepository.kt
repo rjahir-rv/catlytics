@@ -6,6 +6,7 @@ import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.data.model.toDomain
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.ArtistArtworkRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.model.Album
@@ -37,6 +38,7 @@ class OfflineFirstLibraryRepository @Inject constructor(
     private val preferencesRepository: LibraryPreferencesRepository,
     private val artistIdentityRepository: ArtistIdentityRepository,
     private val trackMetadataRepository: TrackMetadataRepository,
+    private val artistArtworkRepository: ArtistArtworkRepository,
 ) : LibraryRepository {
     private val resolvedTracksCache = ResolvedTracksCache()
 
@@ -48,20 +50,23 @@ class OfflineFirstLibraryRepository @Inject constructor(
         .map { tracks -> tracks.toAlbumContent(albumId) }
         .offMain()
 
-    override fun observeArtists(): Flow<List<ArtistSummary>> = observeVisibleTracks()
-        .map { tracks -> tracks.toArtists() }
+    override fun observeArtists(): Flow<List<ArtistSummary>> = combine(
+        observeVisibleTracks(),
+        observeArtistArtwork(),
+    ) { tracks, artwork -> tracks.toArtists(artwork) }
         .offMain()
 
     override fun observeArtistContent(artistId: String): Flow<ArtistContent?> = combine(
         observeVisibleTracks(),
         artistIdentityRepository.observeAliases(),
-    ) { tracks, aliases ->
+        artistArtworkRepository.observeOverrides(),
+    ) { tracks, aliases, artworkOverrides ->
         val resolvedArtistId = aliases
             .firstOrNull { it.source.id == artistId }
             ?.let(tracks::resolveTargetArtist)
             ?.id
             ?: artistId
-        tracks.toArtistContent(resolvedArtistId)
+        tracks.toArtistContent(resolvedArtistId, ArtistArtworkLookup(artworkOverrides, aliases))
     }.offMain()
 
     override fun observeTracks(): Flow<List<Track>> = observeVisibleTracks()
@@ -122,6 +127,13 @@ class OfflineFirstLibraryRepository @Inject constructor(
         artistIdentityRepository.observeAliases(),
         resolvedTracksCache::resolve,
     ).flowOn(Dispatchers.Default)
+
+    /** Artist images chosen by the user, applied after aliases (see [ArtistArtworkLookup]). */
+    private fun observeArtistArtwork(): Flow<ArtistArtworkLookup> = combine(
+        artistArtworkRepository.observeOverrides(),
+        artistIdentityRepository.observeAliases(),
+        ::ArtistArtworkLookup,
+    )
 
     private fun observeVisibleTracks(): Flow<List<TrackEntity>> = combine(
         observeResolvedTracks(),
@@ -226,22 +238,30 @@ private fun List<TrackEntity>.toAlbums(): List<Album> = mapNotNull { track ->
     }
     .sortedWith(compareBy({ it.title.lowercase() }, { it.artist.name.lowercase() }))
 
-private fun List<TrackEntity>.toArtists(): List<ArtistSummary> = groupBy(TrackEntity::artistId)
+private fun List<TrackEntity>.toArtists(
+    artwork: ArtistArtworkLookup,
+): List<ArtistSummary> = groupBy(TrackEntity::artistId)
     .map { (artistId, tracks) ->
+        val artistName = tracks.first().artistName
+        val customArtworkUri = artwork.artworkFor(artistName)?.artworkUri
         ArtistSummary(
-            artist = Artist(artistId, tracks.first().artistName),
-            artworkUri = tracks.groupArtworkUri(),
+            artist = Artist(artistId, artistName),
+            artworkUri = customArtworkUri ?: tracks.groupArtworkUri(),
             albumCount = tracks.mapNotNull(TrackEntity::albumId).distinct().size,
             trackCount = tracks.size,
+            hasCustomArtwork = customArtworkUri != null,
         )
     }
     .sortedBy { it.artist.name.lowercase() }
 
-private fun List<TrackEntity>.toArtistContent(artistId: String): ArtistContent? {
+private fun List<TrackEntity>.toArtistContent(
+    artistId: String,
+    artwork: ArtistArtworkLookup,
+): ArtistContent? {
     val artistTracks = filter { it.artistId == artistId }
     if (artistTracks.isEmpty()) return null
 
-    val summary = artistTracks.toArtists().single()
+    val summary = artistTracks.toArtists(artwork).single()
     return ArtistContent(
         summary = summary,
         albums = artistTracks.toAlbums(),

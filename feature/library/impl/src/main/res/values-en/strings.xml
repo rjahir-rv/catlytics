@@ -86,6 +86,10 @@
     <string name="library_artist_rename_field">Name</string>
     <string name="library_artist_rename_existing">“%1$s” already exists: it will be merged with it</string>
     <string name="library_artist_rename_success">Artist renamed</string>
+    <string name="library_artist_image_change">Change image</string>
+    <string name="library_artist_image_restore">Restore image</string>
+    <string name="library_artist_image_changed">Artist image updated</string>
+    <string name="library_artist_image_restored">Original image restored</string>
     <string name="library_artist_alias_original_name">Original name</string>
     <string name="library_action_unmerging">Separating…</string>
     <string name="library_action_cancel">Cancel</string>

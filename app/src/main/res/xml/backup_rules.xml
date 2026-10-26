@@ -6,6 +6,7 @@
     <include domain="file" path="datastore/playlists.preferences_pb" />
     <include domain="file" path="playlist_covers/" />
     <include domain="file" path="track_artwork/" />
+    <include domain="file" path="artist_artwork/" />
     <exclude domain="file" path="datastore/playback_session.preferences_pb" />
     <exclude domain="file" path="datastore/now_playing_widget.preferences_pb" />
 </full-backup-content>
