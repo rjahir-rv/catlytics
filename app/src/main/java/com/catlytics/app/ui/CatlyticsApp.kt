@@ -423,7 +423,6 @@ fun CatlyticsApp(
             state = navigationSuiteState,
             modifier = Modifier
                 .fillMaxSize()
-                // Con Now Playing abierta, TalkBack no recorre lo que queda tapado debajo.
                 .then(if (isNowPlayingOpen) Modifier.clearAndSetSemantics {} else Modifier),
         ) {
             Scaffold(
@@ -446,8 +445,6 @@ fun CatlyticsApp(
                 },
             ) { innerPadding ->
                 // Las pantallas se dibujan detrás del mini reproductor y reciben su alto como padding.
-                // Se congela mientras se crea una playlist (pantalla completa, sin mini reproductor) para
-                // que la pantalla de abajo no salte durante la transición.
                 var lastBottomPadding by remember { mutableStateOf(0.dp) }
                 val currentBottomPadding = innerPadding.calculateBottomPadding()
                 SideEffect {

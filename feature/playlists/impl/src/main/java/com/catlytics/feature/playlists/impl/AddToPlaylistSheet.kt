@@ -45,40 +45,17 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.designsystem.text.resolve
-import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
-import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
-import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUseCase
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.PlaylistSourceKind
 import com.catlytics.core.model.PlaylistSourcePreview
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
-import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-
-data class PlaylistRef(
-    val id: String,
-    val name: String,
-)
-
-data class AddToPlaylistResult(
-    val totalAdded: Int,
-    val playlists: List<PlaylistRef>,
-)
 
 internal fun pendingTrackCount(playlist: Playlist, sourceTrackIds: List<String>): Int =
     sourceTrackIds.count { it !in playlist.trackIds }
@@ -108,62 +85,6 @@ internal fun togglePlaylistSelectionState(
     selectedIds + playlistId
 }
 
-@HiltViewModel
-class AddToPlaylistViewModel @Inject constructor(
-    observePlaylists: ObservePlaylistsUseCase,
-    private val addToPlaylist: AddToPlaylistUseCase,
-    private val resolvePreview: ResolvePlaylistSourcePreviewUseCase,
-) : ViewModel() {
-    val playlists = observePlaylists().stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        emptyList(),
-    )
-
-    private val _preview = MutableStateFlow<PlaylistSourcePreview?>(null)
-    val preview: StateFlow<PlaylistSourcePreview?> = _preview.asStateFlow()
-
-    fun loadPreview(source: PlaylistSource) {
-        viewModelScope.launch {
-            _preview.value = resolvePreview(source)
-        }
-    }
-
-    fun applyToPlaylists(
-        playlistIds: Set<String>,
-        source: PlaylistSource,
-        sourceTrackIds: List<String>,
-        onComplete: (AddToPlaylistResult?) -> Unit,
-    ) {
-        viewModelScope.launch {
-            if (playlistIds.isEmpty()) {
-                onComplete(null)
-                return@launch
-            }
-            val targetPlaylistIds = playlistIds.filter { playlistId ->
-                val playlist = playlists.value.firstOrNull { it.id == playlistId } ?: return@filter false
-                !isPlaylistFullyAdded(playlist, sourceTrackIds)
-            }
-            if (targetPlaylistIds.isEmpty()) {
-                onComplete(AddToPlaylistResult(totalAdded = 0, playlists = emptyList()))
-                return@launch
-            }
-            val addedByPlaylist = addToPlaylist.addToPlaylists(targetPlaylistIds, source)
-            var totalAdded = 0
-            val addedPlaylists = mutableListOf<PlaylistRef>()
-            addedByPlaylist.forEach { (playlistId, addedCount) ->
-                totalAdded += addedCount
-                if (addedCount > 0) {
-                    playlists.value.firstOrNull { it.id == playlistId }?.let { playlist ->
-                        addedPlaylists += PlaylistRef(id = playlist.id, name = playlist.name)
-                    }
-                }
-            }
-            onComplete(AddToPlaylistResult(totalAdded = totalAdded, playlists = addedPlaylists))
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddToPlaylistSheet(
@@ -172,8 +93,8 @@ fun AddToPlaylistSheet(
     excludedPlaylistIds: Set<String> = emptySet(),
     allowCreate: Boolean = true,
     onCreatePlaylist: (trackIds: List<String>) -> Unit = {},
-    viewModel: AddToPlaylistViewModel = hiltViewModel(),
 ) {
+    val viewModel: AddToPlaylistViewModel = hiltViewModel()
     val context = LocalContext.current
     val resources = LocalResources.current
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
