@@ -23,13 +23,5 @@ object TrackDurationFormat {
         }
     }
 
-    /** Formato `mm:ss` acumulando minutos totales (p. ej. `75:03`). */
-    fun formatMinutesSeconds(durationMillis: Long): String {
-        val totalSeconds = durationMillis.millisecondsToSeconds()
-        val minutes = totalSeconds / 60
-        val seconds = totalSeconds % 60
-        return String.format(Locale.US, "%d:%02d", minutes, seconds)
-    }
-
     private fun Long.millisecondsToSeconds(): Long = this / 1_000L
 }

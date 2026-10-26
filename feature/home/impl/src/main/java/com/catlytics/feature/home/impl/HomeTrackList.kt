@@ -63,6 +63,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.component.TrackListRow
 import com.catlytics.core.designsystem.layout.plusHorizontal
 import com.catlytics.core.designsystem.layout.CenteredListContainer
 import com.catlytics.core.designsystem.R
@@ -197,7 +198,7 @@ internal fun HomeTrackList(
                             )
                             Text(
                                 text = pluralStringResource(
-                                    HomeR.plurals.home_all_tracks_count,
+                                    R.plurals.ds_track_count,
                                     tracks.size,
                                     tracks.size,
                                 ),
@@ -210,19 +211,23 @@ internal fun HomeTrackList(
                 }
             }
             items(items = tracks, key = Track::id) { track ->
-                TrackRow(
+                TrackListRow(
                     track = track,
                     isCurrent = track.id == currentTrackId,
                     isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
-                    isNew = track.id in newTrackIds,
-                    onTrackSelected = {
+                    badgeLabel = if (track.id in newTrackIds) {
+                        stringResource(HomeR.string.home_new_track_badge)
+                    } else {
+                        null
+                    },
+                    onClick = {
                         if (selectionActive) {
                             onTrackLongClick(track)
                         } else {
                             onTrackSelected(track, playbackQueue)
                         }
                     },
-                    onTrackOptions = { onTrackOptions(track) },
+                    onOptions = { onTrackOptions(track) },
                     modifier = Modifier
                         .animateItem()
                         .padding(horizontal = HomeDimens.ScreenPadding),
@@ -383,7 +388,7 @@ private fun HomeQuickActions(
                         ),
                         title = stringResource(HomeR.string.home_quick_action_favorites_title),
                         subtitle = pluralStringResource(
-                            HomeR.plurals.home_quick_action_favorites_subtitle,
+                            R.plurals.ds_track_count,
                             favoriteTrackCount,
                             favoriteTrackCount,
                         ),
@@ -676,7 +681,7 @@ private fun TopTrackRow(
         }
         Text(
             text = pluralStringResource(
-                HomeR.plurals.home_top_track_play_count,
+                R.plurals.ds_play_count,
                 track.playCount,
                 track.playCount,
             ),

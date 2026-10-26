@@ -1,11 +1,11 @@
 package com.catlytics.feature.playlists.impl
 
+import com.catlytics.core.designsystem.component.rememberArtworkGradient
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.layout.plusHorizontal
 import com.catlytics.core.designsystem.layout.withDeferredBottom
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import androidx.compose.foundation.layout.BoxWithConstraints
-import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -53,9 +53,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
@@ -63,7 +60,6 @@ import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.isSearching
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
-import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
@@ -167,14 +163,7 @@ internal fun PlaylistDetailScreen(
         }
     }
 
-    val platformContext = LocalPlatformContext.current
     val fallbackGradient = rememberFallbackArtworkGradientColors()
-    val artworkRequest = remember(platformContext, playlist.artworkUri) {
-        ImageRequest.Builder(platformContext)
-            .data(playlist.artworkUri)
-            .allowHardware(false)
-            .build()
-    }
     // Sin portada propia el fondo toma el color de identidad de la playlist (el mismo de su
     // portada generada); con portada se espera a extraer la paleta de la imagen.
     val colorScheme = MaterialTheme.colorScheme
@@ -193,23 +182,20 @@ internal fun PlaylistDetailScreen(
             end = surface,
         )
     }
-    val noArtworkGradient = if (playlist.artworkUri != null) fallbackGradient else identityGradient
-    var artworkBitmap by remember(playlist.artworkUri) { mutableStateOf<Bitmap?>(null) }
-    var gradientColors by remember { mutableStateOf(noArtworkGradient) }
+    val artworkGradient = rememberArtworkGradient(
+        artworkUri = playlist.artworkUri,
+        fallback = fallbackGradient,
+        noArtwork = if (playlist.artworkUri != null) fallbackGradient else identityGradient,
+        surfaceBlend = PLAYLIST_ARTWORK_SURFACE_BLEND,
+    )
     val animatedGradientColors = animateArtworkGradientColors(
-        target = gradientColors,
+        target = artworkGradient.colors,
         labelPrefix = "PlaylistDetailGradient",
     )
 
     // Se reporta el color destino; la barra superior lo anima por su cuenta.
-    LaunchedEffect(gradientColors.start) {
-        onTopBarColorChange(gradientColors.start)
-    }
-    LaunchedEffect(playlist.artworkUri, artworkBitmap, fallbackGradient, noArtworkGradient) {
-        gradientColors = artworkBitmap?.extractArtworkGradientColors(
-            fallback = fallbackGradient,
-            surfaceBlend = PLAYLIST_ARTWORK_SURFACE_BLEND,
-        ) ?: noArtworkGradient
+    LaunchedEffect(artworkGradient.colors.start) {
+        onTopBarColorChange(artworkGradient.colors.start)
     }
     var entranceDone by rememberSaveable(playlist.id) { mutableStateOf(false) }
     LaunchedEffect(playlist.id) {
@@ -283,10 +269,10 @@ internal fun PlaylistDetailScreen(
                         PlaylistHeader(
                             playlist = playlist,
                             tracks = content.tracks,
-                            artworkRequest = artworkRequest,
+                            artworkRequest = artworkGradient.artworkRequest,
                             nowPlaying = nowPlaying,
                             customOrdering = customOrdering,
-                            onArtworkLoaded = { artworkBitmap = it },
+                            onArtworkLoaded = artworkGradient::onArtworkLoaded,
                             onPlay = onPlay,
                             onPlayShuffled = onPlayShuffled,
                             onTogglePlayback = onTogglePlayback,

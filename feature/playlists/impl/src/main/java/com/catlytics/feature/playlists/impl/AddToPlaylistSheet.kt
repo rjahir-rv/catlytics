@@ -227,7 +227,7 @@ fun AddToPlaylistSheet(
                                     )
                                 }
                                 else -> pluralStringResource(
-                                    PlaylistsR.plurals.playlists_track_count,
+                                    R.plurals.ds_track_count,
                                     playlist.trackIds.size,
                                     playlist.trackIds.size,
                                 )
@@ -352,7 +352,7 @@ private fun AddToPlaylistHeader(
 ) {
     val title = preview?.let { it.title ?: stringResource(it.kind.fallbackTitleRes()) }
     val subtitle = preview?.albumCount
-        ?.let { pluralStringResource(PlaylistsR.plurals.playlists_album_count, it, it) }
+        ?.let { pluralStringResource(R.plurals.ds_album_count, it, it) }
         ?: preview?.subtitle
     Row(
         modifier = modifier
@@ -389,7 +389,7 @@ private fun AddToPlaylistHeader(
             preview?.itemCount?.takeIf { it > 0 }?.let { count ->
                 Text(
                     text = pluralStringResource(
-                        PlaylistsR.plurals.playlists_track_count,
+                        R.plurals.ds_track_count,
                         count,
                         count,
                     ),

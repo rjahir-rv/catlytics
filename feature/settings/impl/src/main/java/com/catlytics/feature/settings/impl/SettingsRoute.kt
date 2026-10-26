@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.designsystem.R as DesignSystemR
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.UnifiedExportResult
 import java.time.LocalDate
@@ -152,7 +153,7 @@ private fun Resources.backupExportedMessage(result: UnifiedExportResult): String
         result.statistics?.let { stats ->
             add(
                 getQuantityString(
-                    R.plurals.settings_backup_export_toast_listens,
+                    DesignSystemR.plurals.ds_play_count,
                     stats.eventCount,
                     stats.eventCount,
                 ),

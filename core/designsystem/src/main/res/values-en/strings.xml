@@ -7,6 +7,7 @@
     <string name="ds_action_next">Next</string>
     <string name="ds_action_play">Play</string>
     <string name="ds_action_pause">Pause</string>
+    <string name="ds_action_play_shuffled">Play shuffled</string>
     <string name="ds_mini_player_progress_content_description">Playback progress</string>
 
     <!-- Alphabetical index -->
@@ -37,4 +38,21 @@
     <string name="ds_unknown_artist">Unknown artist</string>
     <string name="ds_unknown_album">Unknown album</string>
     <string name="ds_untitled_track">Untitled track</string>
+
+    <!-- Shared across screens -->
+    <string name="ds_options_content_description">Options for %1$s</string>
+    <string name="ds_add_to_playlist_content_description">Add %1$s to a playlist</string>
+    <string name="ds_metadata_pair">%1$s · %2$s</string>
+    <plurals name="ds_track_count">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <plurals name="ds_album_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
+    <plurals name="ds_play_count">
+        <item quantity="one">%1$d play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
 </resources>

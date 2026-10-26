@@ -23,7 +23,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,12 +36,17 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
+import com.catlytics.core.model.Track
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -123,6 +130,78 @@ fun CatlyticsTrackRow(
         if (!selectionActive) {
             trailing()
         }
+    }
+}
+
+/**
+ * [CatlyticsTrackRow] de una canción: título, "artista · duración" y, por defecto, el botón de
+ * opciones. [trailing] lo reemplaza, p. ej. por el asa para reordenar una playlist.
+ */
+@Composable
+fun TrackListRow(
+    track: Track,
+    isCurrent: Boolean,
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    onOptions: () -> Unit,
+    modifier: Modifier = Modifier,
+    badgeLabel: String? = null,
+    clickEnabled: Boolean = true,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {
+        CatlyticsOptionsButton(label = track.title.displayTrackTitle(), onClick = onOptions)
+    },
+) {
+    CatlyticsTrackRow(
+        title = track.title.displayTrackTitle(),
+        subtitle = stringResource(
+            R.string.ds_metadata_pair,
+            track.artist.name.displayArtistName(),
+            TrackDurationFormat.format(track.durationMillis),
+        ),
+        artworkUri = track.artworkUri,
+        isCurrent = isCurrent,
+        isPlaying = isPlaying,
+        onClick = onClick,
+        trailing = trailing,
+        modifier = modifier,
+        badgeLabel = badgeLabel,
+        clickEnabled = clickEnabled,
+        selected = selected,
+        selectionActive = selectionActive,
+        onLongClick = onLongClick,
+    )
+}
+
+@Composable
+fun CatlyticsOptionsButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(onClick = onClick, modifier = modifier) {
+        Icon(
+            painter = painterResource(R.drawable.ic_options),
+            contentDescription = stringResource(R.string.ds_options_content_description, label),
+        )
+    }
+}
+
+/** Botón de reproducir en orden aleatorio que acompaña a los de reproducir en las colecciones. */
+@Composable
+fun CatlyticsShuffleButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    FilledTonalIconButton(onClick = onClick, enabled = enabled, modifier = modifier.size(48.dp)) {
+        Icon(
+            painter = painterResource(R.drawable.ic_shuffle),
+            contentDescription = stringResource(R.string.ds_action_play_shuffled),
+            modifier = Modifier.size(24.dp),
+        )
     }
 }
 

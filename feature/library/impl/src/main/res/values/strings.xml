@@ -17,7 +17,6 @@
     <!-- Biblioteca: carpetas -->
     <string name="library_folders_title">Carpetas musicales</string>
     <string name="library_folders_subtitle">Elige qué carpetas forman parte de tu biblioteca.</string>
-    <string name="library_folder_options_content_description">Opciones de %1$s</string>
     <string name="library_action_add_to_playlist">Agregar a playlist</string>
     <string name="library_collection_play_next">Reproducir siguiente</string>
     <string name="library_collection_add_to_queue">Agregar a la fila</string>
@@ -48,22 +47,10 @@
     </plurals>
 
     <!-- Biblioteca: contenido compartido -->
-    <plurals name="library_track_count">
-        <item quantity="one">1 canción</item>
-        <item quantity="other">%1$d canciones</item>
-    </plurals>
-    <plurals name="library_album_count">
-        <item quantity="one">1 álbum</item>
-        <item quantity="other">%1$d álbumes</item>
-    </plurals>
     <string name="library_album_cover_content_description">Portada de %1$s</string>
-    <string name="library_album_options_content_description">Opciones de %1$s</string>
-    <string name="library_track_metadata">%1$s · %2$s</string>
-    <string name="library_track_options_content_description">Opciones de %1$s</string>
     <string name="library_track_selected_content_description">Seleccionada</string>
 
     <!-- Biblioteca: artistas -->
-    <string name="library_artist_options_content_description">Opciones de %1$s</string>
     <string name="library_artist_image_content_description">Imagen de %1$s</string>
     <string name="library_artist_metadata">%1$s · %2$s</string>
     <string name="library_artist_tab_songs">Canciones</string>
@@ -105,8 +92,6 @@
 
     <!-- Biblioteca: álbum -->
     <string name="library_album_not_found_message">Este álbum ya no está disponible.</string>
-    <string name="library_album_play_shuffled_content_description">Reproducir aleatoriamente</string>
-    <string name="library_album_play_content_description">Reproducir</string>
     <string name="library_album_load_error">No se pudo cargar el contenido del álbum.</string>
 
     <!-- Biblioteca: carpeta -->

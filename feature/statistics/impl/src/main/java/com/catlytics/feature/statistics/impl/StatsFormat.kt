@@ -3,13 +3,8 @@ package com.catlytics.feature.statistics.impl
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.catlytics.core.designsystem.R as DesignSystemR
 
-/**
- * Duración legible con unidades traducibles (`Xh Ym`, `Xh`, `Y min`).
- *
- * Es `@Composable` porque las unidades (`h`, `m`, `min`) son copy y se resuelven con
- * recursos; todas las llamadas actuales ocurren dentro de composición.
- */
 @Composable
 internal fun formatListeningDuration(millis: Long): String {
     val totalMinutes = millis / 60_000
@@ -28,4 +23,4 @@ internal fun formatListeningDuration(millis: Long): String {
 
 @Composable
 internal fun formatPlayCountLabel(count: Int): String =
-    pluralStringResource(R.plurals.stats_play_count, count, count)
+    pluralStringResource(DesignSystemR.plurals.ds_play_count, count, count)

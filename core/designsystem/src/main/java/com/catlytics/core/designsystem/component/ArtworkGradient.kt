@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,6 +21,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.palette.graphics.Palette
+import coil3.compose.LocalPlatformContext
+import coil3.request.ImageRequest
+import coil3.request.allowHardware
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -126,6 +130,50 @@ fun nameSeededGradient(
             end = surface,
         )
     }
+}
+
+/**
+ * Degradado de fondo de una pantalla de detalle a partir de su carátula. Empieza en `noArtwork` y,
+ * cuando la carátula carga ([onArtworkLoaded]), pasa a los colores de su paleta. [colors] es el
+ * destino sin animar: la pantalla lo anima con [animateArtworkGradientColors].
+ */
+@Stable
+class ArtworkGradientState internal constructor(
+    val artworkRequest: ImageRequest,
+    initialColors: ArtworkGradientColors,
+) {
+    internal var bitmap by mutableStateOf<Bitmap?>(null)
+
+    var colors by mutableStateOf(initialColors)
+        internal set
+
+    fun onArtworkLoaded(bitmap: Bitmap) {
+        this.bitmap = bitmap
+    }
+}
+
+@Composable
+fun rememberArtworkGradient(
+    artworkUri: String?,
+    fallback: ArtworkGradientColors = rememberFallbackArtworkGradientColors(),
+    noArtwork: ArtworkGradientColors = fallback,
+    surfaceBlend: Float = ARTWORK_GRADIENT_SURFACE_BLEND,
+): ArtworkGradientState {
+    val platformContext = LocalPlatformContext.current
+    val state = remember(platformContext, artworkUri) {
+        ArtworkGradientState(
+            artworkRequest = ImageRequest.Builder(platformContext)
+                .data(artworkUri)
+                .allowHardware(false)
+                .build(),
+            initialColors = noArtwork,
+        )
+    }
+    val bitmap = state.bitmap
+    LaunchedEffect(state, bitmap, fallback, noArtwork, surfaceBlend) {
+        state.colors = bitmap?.extractArtworkGradientColors(fallback, surfaceBlend) ?: noArtwork
+    }
+    return state
 }
 
 suspend fun Bitmap.extractArtworkGradientColors(

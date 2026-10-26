@@ -254,7 +254,7 @@ internal fun CreatePlaylistScreen(
                     ) {
                         Text(
                             text = pluralStringResource(
-                                PlaylistsR.plurals.playlists_track_count,
+                                R.plurals.ds_track_count,
                                 initialTrackCount,
                                 initialTrackCount,
                             ),

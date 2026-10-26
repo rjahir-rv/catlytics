@@ -342,7 +342,7 @@ private fun FolderDetails(
         )
         Text(
             text = pluralStringResource(
-                LibraryR.plurals.library_track_count,
+                R.plurals.ds_track_count,
                 folder.trackCount,
                 folder.trackCount,
             ),
@@ -410,7 +410,7 @@ private fun FolderOptionsMenu(
                 onClick = { onVisibilityChange(false) },
             ),
         ),
-        contentDescription = stringResource(LibraryR.string.library_folder_options_content_description, folder.name),
+        contentDescription = stringResource(R.string.ds_options_content_description, folder.name),
         expanded = expanded,
         onExpandedChange = onExpandedChange,
     )

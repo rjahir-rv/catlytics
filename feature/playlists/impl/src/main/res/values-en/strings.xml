@@ -3,7 +3,6 @@
     <!-- Playlists: shared -->
     <string name="playlist_liked_name">Liked songs</string>
     <string name="playlists_artwork_content_description">Cover of %1$s</string>
-    <string name="playlists_options_content_description">Options for %1$s</string>
     <string name="playlists_name_label">Name</string>
     <string name="playlists_clear_search_content_description">Clear search</string>
     <string name="playlists_already_added">Already added</string>
@@ -11,15 +10,7 @@
     <string name="playlists_action_delete">Delete</string>
     <string name="playlists_action_cancel">Cancel</string>
     <string name="playlists_action_save">Save</string>
-    <plurals name="playlists_track_count">
-        <item quantity="one">1 song</item>
-        <item quantity="other">%1$d songs</item>
-    </plurals>
 
-    <plurals name="playlists_album_count">
-        <item quantity="one">1 album</item>
-        <item quantity="other">%1$d albums</item>
-    </plurals>
     <string name="playlists_source_track">Song</string>
     <string name="playlists_source_album">Album</string>
     <string name="playlists_source_artist">Artist</string>
@@ -52,12 +43,9 @@
     <string name="playlist_detail_no_search_results">We couldn\'t find songs matching your search.</string>
     <string name="playlist_detail_delete_message">This can\'t be undone. Songs will remain on your device.</string>
     <string name="playlist_detail_options_content_description">Playlist options</string>
-    <string name="playlist_detail_shuffle_content_description">Play shuffled</string>
     <string name="playlist_detail_pause_content_description">Pause</string>
     <string name="playlist_detail_search_placeholder">Search songs</string>
     <string name="playlist_detail_summary">%1$s · %2$s</string>
-    <string name="playlist_detail_track_metadata">%1$s · %2$s</string>
-    <string name="playlist_detail_track_options_content_description">Options for %1$s</string>
     <string name="playlist_detail_drag_content_description">Drag %1$s</string>
     <string name="playlist_detail_ordering_hint">Tap and hold the handle and drag</string>
     <string name="playlist_detail_order">Sort songs</string>

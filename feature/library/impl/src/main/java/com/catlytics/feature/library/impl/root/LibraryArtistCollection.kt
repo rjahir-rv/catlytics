@@ -290,7 +290,7 @@ private fun ArtistOptionsButton(
         Icon(
             painter = painterResource(R.drawable.ic_options),
             contentDescription = stringResource(
-                LibraryR.string.library_artist_options_content_description,
+                R.string.ds_add_to_playlist_content_description,
                 artist.artist.name.displayArtistName(),
             ),
             modifier = if (tonal) Modifier.size(18.dp) else Modifier,
@@ -368,12 +368,12 @@ private fun ArtistSummary.metadataLabel(): String =
     stringResource(
         LibraryR.string.library_artist_metadata,
         pluralStringResource(
-            LibraryR.plurals.library_album_count,
+            R.plurals.ds_album_count,
             albumCount,
             albumCount,
         ),
         pluralStringResource(
-            LibraryR.plurals.library_track_count,
+            R.plurals.ds_track_count,
             trackCount,
             trackCount,
         ),

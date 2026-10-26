@@ -29,7 +29,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,9 +62,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
+import com.catlytics.core.designsystem.component.TrackListRow
+import com.catlytics.core.designsystem.component.rememberArtworkGradient
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
 import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
@@ -73,19 +71,14 @@ import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
-import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
-import com.catlytics.core.designsystem.component.extractArtworkGradientColors
-import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
-import com.catlytics.core.designsystem.format.TrackDurationFormat
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.designsystem.text.displayAlbumTitle
 import com.catlytics.core.designsystem.text.displayArtistName
-import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
@@ -98,6 +91,7 @@ import com.catlytics.core.model.ArtistAlbumSort
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistTrackSort
 import com.catlytics.feature.library.impl.collection.CollectionPlaybackRow
+import com.catlytics.feature.library.impl.collection.LibraryMessage
 import com.catlytics.feature.library.impl.collection.SortOption
 import com.catlytics.feature.library.impl.collection.SortOptionsSheet
 import com.catlytics.feature.library.impl.collection.collectionMenuEntries
@@ -149,11 +143,11 @@ internal fun LibraryArtistScreen(
         ) {
             CircularProgressIndicator()
         }
-        LibraryArtistUiState.NotFound -> ArtistMessage(
+        LibraryArtistUiState.NotFound -> LibraryMessage(
             message = stringResource(LibraryR.string.library_artist_not_found_message),
             modifier = modifier,
         )
-        is LibraryArtistUiState.Error -> ArtistMessage(uiState.message.asString(), modifier)
+        is LibraryArtistUiState.Error -> LibraryMessage(uiState.message.asString(), modifier)
         is LibraryArtistUiState.Success -> ArtistContent(
             content = uiState.content,
             playbackQueue = uiState.playbackQueue,
@@ -255,25 +249,14 @@ private fun ArtistContent(
     val albumsGridState = remember(content.summary.artist.id) {
         LazyGridState()
     }
-    val platformContext = LocalPlatformContext.current
-    val fallbackGradient = rememberFallbackArtworkGradientColors()
-    val artworkRequest = remember(platformContext, content.summary.artworkUri) {
-        ImageRequest.Builder(platformContext)
-            .data(content.summary.artworkUri)
-            .allowHardware(false)
-            .build()
-    }
-    var artworkBitmap by remember(content.summary.artworkUri) { mutableStateOf<Bitmap?>(null) }
-    var gradientColors by remember(content.summary.artworkUri, fallbackGradient) {
-        mutableStateOf(fallbackGradient)
-    }
+    val artworkGradient = rememberArtworkGradient(content.summary.artworkUri)
     val animatedGradientColors = animateArtworkGradientColors(
-        target = gradientColors,
+        target = artworkGradient.colors,
         labelPrefix = "LibraryArtistGradient",
     )
 
-    LaunchedEffect(gradientColors.start) {
-        onTopBarColorChange(gradientColors.start)
+    LaunchedEffect(artworkGradient.colors.start) {
+        onTopBarColorChange(artworkGradient.colors.start)
     }
 
     LaunchedEffect(pagerState.currentPage) {
@@ -286,10 +269,6 @@ private fun ArtistContent(
             songsListState.scrollToItem(0)
             albumsGridState.scrollToItem(0)
         }
-    }
-
-    LaunchedEffect(content.summary.artworkUri, artworkBitmap, fallbackGradient) {
-        gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
     }
 
     val selectionState = rememberTrackSelectionState()
@@ -324,8 +303,8 @@ private fun ArtistContent(
             SearchCollapsibleHeader(isSearching = isSearching) {
                 ArtistHeader(
                     content = content,
-                    artworkModel = artworkRequest,
-                    onArtworkLoaded = { artworkBitmap = it },
+                    artworkModel = artworkGradient.artworkRequest,
+                    onArtworkLoaded = artworkGradient::onArtworkLoaded,
                     sortLabel = when (ArtistDetailSection.entries[pagerState.currentPage]) {
                         ArtistDetailSection.Songs -> trackSort.takeIf { it != ArtistTrackSort.Album }?.label()
                         ArtistDetailSection.Albums -> albumSort.takeIf { it != ArtistAlbumSort.Title }?.label()
@@ -452,12 +431,12 @@ private fun ArtistHeader(
                 overflow = TextOverflow.Ellipsis,
             )
             val albumCountText = pluralStringResource(
-                LibraryR.plurals.library_album_count,
+                R.plurals.ds_album_count,
                 content.summary.albumCount,
                 content.summary.albumCount,
             )
             val trackCountText = pluralStringResource(
-                LibraryR.plurals.library_track_count,
+                R.plurals.ds_track_count,
                 content.summary.trackCount,
                 content.summary.trackCount,
             )
@@ -483,7 +462,7 @@ private fun ArtistHeader(
                 onPlayAll = onPlayAll,
                 menuEntries = menuEntries,
                 menuContentDescription = stringResource(
-                    LibraryR.string.library_artist_options_content_description,
+                    R.string.ds_options_content_description,
                     content.summary.artist.name.displayArtistName(),
                 ),
             )
@@ -840,13 +819,13 @@ private fun ArtistSongsPage(
         horizontalArrangement = Arrangement.spacedBy(24.dp),
     ) {
         gridItems(items = tracks, key = Track::id) { track ->
-            ArtistTrackRow(
+            TrackListRow(
                 track = track,
                 modifier = Modifier.animateItem(),
                 isCurrent = track.id == currentTrackId,
                 isPlaying = track.id == currentTrackId && isCurrentTrackPlaying,
                 onClick = { onTrackSelected(track) },
-                onTrackOptions = { onTrackOptions(track) },
+                onOptions = { onTrackOptions(track) },
                 selected = track.id in selection.selectedIds,
                 selectionActive = selection.active,
                 onLongClick = { onTrackLongClick(track) },
@@ -939,7 +918,7 @@ private fun ArtistAlbumCard(
                 )
                 Text(
                     text = pluralStringResource(
-                        LibraryR.plurals.library_track_count,
+                        R.plurals.ds_track_count,
                         album.trackCount,
                         album.trackCount,
                     ),
@@ -953,72 +932,12 @@ private fun ArtistAlbumCard(
                 Icon(
                     painterResource(R.drawable.ic_options),
                     stringResource(
-                        LibraryR.string.library_album_options_content_description,
+                        R.string.ds_add_to_playlist_content_description,
                         album.title.displayAlbumTitle(),
                     ),
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun ArtistTrackRow(
-    track: Track,
-    modifier: Modifier = Modifier,
-    isCurrent: Boolean,
-    isPlaying: Boolean,
-    onClick: () -> Unit,
-    onTrackOptions: () -> Unit,
-    selected: Boolean = false,
-    selectionActive: Boolean = false,
-    onLongClick: (() -> Unit)? = null,
-) {
-    CatlyticsTrackRow(
-        title = track.title.displayTrackTitle(),
-        subtitle = stringResource(
-            LibraryR.string.library_track_metadata,
-            track.artist.name.displayArtistName(),
-            TrackDurationFormat.formatMinutesSeconds(track.durationMillis),
-        ),
-        artworkUri = track.artworkUri,
-        isCurrent = isCurrent,
-        isPlaying = isPlaying,
-        onClick = onClick,
-        selected = selected,
-        selectionActive = selectionActive,
-        onLongClick = onLongClick,
-        trailing = {
-            IconButton(onClick = onTrackOptions) {
-                Icon(
-                    painter = painterResource(R.drawable.ic_options),
-                    contentDescription = stringResource(
-                        LibraryR.string.library_track_options_content_description,
-                        track.title.displayTrackTitle(),
-                    ),
-                )
-            }
-        },
-        modifier = modifier,
-    )
-}
-
-@Composable
-private fun ArtistMessage(
-    message: String,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 

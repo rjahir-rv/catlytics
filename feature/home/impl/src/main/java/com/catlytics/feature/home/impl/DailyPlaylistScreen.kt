@@ -1,31 +1,9 @@
 package com.catlytics.feature.home.impl
 
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
@@ -34,15 +12,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
-import com.catlytics.core.designsystem.R
-import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
-import com.catlytics.core.designsystem.component.TrackSelectionHost
-import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.home.impl.R as HomeR
@@ -157,136 +131,32 @@ internal fun DailyPlaylistScreen(
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
     when (uiState) {
-        DailyPlaylistUiState.Loading -> Box(
-            modifier = modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator()
-        }
+        DailyPlaylistUiState.Loading -> TrackCollectionLoading(modifier)
 
-        DailyPlaylistUiState.Empty -> Box(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(20.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = stringResource(HomeR.string.daily_playlist_empty_message),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        DailyPlaylistUiState.Empty -> TrackCollectionEmpty(
+            message = stringResource(HomeR.string.daily_playlist_empty_message),
+            modifier = modifier,
+        )
 
-        is DailyPlaylistUiState.Success -> {
-            val selectionState = rememberTrackSelectionState()
-            val selection = selectionState.value
-            TrackSelectionHost(
-                selection = selection,
-                onSelectionChange = { selectionState.value = it },
-                visibleIds = remember(uiState.tracks) { uiState.tracks.map(Track::id) },
-                selectedTracks = remember(selection, uiState.tracks) {
-                    selection.selectedTracks(uiState.tracks)
-                },
-                likedTrackIds = likedTrackIds,
-                currentTrackId = uiState.currentTrackId,
-                topInset = { scaffoldContentPadding.calculateTopPadding() },
-                bottomInset = bottomPadding,
-                onAction = onTrackSelectionAction,
-                modifier = modifier.fillMaxSize(),
-            ) {
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(CatlyticsLayoutTokens.ListItemMinColumnWidth),
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = deferredPadding(
-                        top = {
-                            scaffoldContentPadding.calculateTopPadding() +
-                                if (selection.active) 64.dp else 0.dp
-                        },
-                        bottom = {
-                            bottomPadding() + 20.dp +
-                                if (selection.active) 72.dp else 0.dp
-                        },
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    item(key = "daily-playlist-header", span = { GridItemSpan(maxLineSpan) }) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 20.dp, top = 20.dp, end = 20.dp, bottom = 12.dp),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
-                        ) {
-                            Text(
-                                text = stringResource(HomeR.string.daily_playlist_title),
-                                style = MaterialTheme.typography.headlineSmall,
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Text(
-                                    text = pluralStringResource(
-                                        HomeR.plurals.daily_playlist_tracks_count,
-                                        uiState.tracks.size,
-                                        uiState.tracks.size,
-                                    ),
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                                FilledTonalIconButton(
-                                    onClick = onShuffle,
-                                    enabled = uiState.tracks.size >= MIN_SHUFFLE_TRACK_COUNT,
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_shuffle),
-                                        contentDescription = stringResource(
-                                            HomeR.string.daily_playlist_shuffle_content_description,
-                                        ),
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
-                                FilledIconButton(
-                                    onClick = onPlayAll,
-                                    modifier = Modifier.size(48.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.ic_play),
-                                        contentDescription = stringResource(
-                                            HomeR.string.daily_playlist_play_all_content_description,
-                                        ),
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    items(items = uiState.tracks, key = Track::id) { track ->
-                        TrackRow(
-                            track = track,
-                            isCurrent = track.id == uiState.currentTrackId,
-                            isPlaying = track.id == uiState.currentTrackId &&
-                                uiState.isCurrentTrackPlaying,
-                            onTrackSelected = {
-                                if (selection.active) {
-                                    selectionState.value = selection.onTrackLongClick(track.id)
-                                } else {
-                                    onTrackSelected(track, uiState.tracks)
-                                }
-                            },
-                            onTrackOptions = { onTrackOptions(track) },
-                            modifier = Modifier.padding(horizontal = 20.dp),
-                            selected = track.id in selection.selectedIds,
-                            selectionActive = selection.active,
-                            onLongClick = {
-                                selectionState.value = selection.onTrackLongClick(track.id)
-                            },
-                        )
-                    }
-                }
-            }
-        }
+        is DailyPlaylistUiState.Success -> TrackCollectionContent(
+            tracks = uiState.tracks,
+            currentTrackId = uiState.currentTrackId,
+            isCurrentTrackPlaying = uiState.isCurrentTrackPlaying,
+            title = stringResource(HomeR.string.daily_playlist_title),
+            summary = pluralStringResource(
+                HomeR.plurals.daily_playlist_tracks_count,
+                uiState.tracks.size,
+                uiState.tracks.size,
+            ),
+            onTrackSelected = onTrackSelected,
+            onTrackOptions = onTrackOptions,
+            onPlayAll = onPlayAll,
+            onShuffle = onShuffle,
+            likedTrackIds = likedTrackIds,
+            onTrackSelectionAction = onTrackSelectionAction,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = scaffoldContentPadding,
+            modifier = modifier,
+        )
     }
 }

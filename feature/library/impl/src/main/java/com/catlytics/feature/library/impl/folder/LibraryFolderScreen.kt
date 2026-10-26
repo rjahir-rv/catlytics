@@ -34,16 +34,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
-import com.catlytics.core.designsystem.component.CatlyticsEmptyState
-import com.catlytics.core.designsystem.component.CatlyticsTrackRow
+import com.catlytics.core.designsystem.component.TrackListRow
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
-import com.catlytics.core.designsystem.format.TrackDurationFormat
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
-import com.catlytics.core.designsystem.text.displayArtistName
-import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.LibraryFolder
@@ -53,6 +49,7 @@ import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.impl.LibraryDimens
 import com.catlytics.feature.library.impl.R as LibraryR
+import com.catlytics.feature.library.impl.collection.LibraryMessage
 import com.catlytics.feature.library.impl.root.FolderIcon
 
 @Composable
@@ -78,15 +75,15 @@ internal fun LibraryFolderScreen(
         ) {
             CircularProgressIndicator()
         }
-        LibraryFolderUiState.NotFound -> FolderMessage(
+        LibraryFolderUiState.NotFound -> LibraryMessage(
             message = stringResource(LibraryR.string.library_folder_not_found_message),
             modifier = modifier,
         )
-        is LibraryFolderUiState.Error -> FolderMessage(uiState.message.asString(), modifier)
+        is LibraryFolderUiState.Error -> LibraryMessage(uiState.message.asString(), modifier)
         is LibraryFolderUiState.Success -> {
             val content = uiState.content
             if (content.subfolders.isEmpty() && content.tracks.isEmpty()) {
-                FolderMessage(
+                LibraryMessage(
                     stringResource(LibraryR.string.library_folder_empty_message),
                     modifier,
                 )
@@ -142,14 +139,8 @@ internal fun LibraryFolderScreen(
                         }
                         items(content.tracks, key = Track::id) { track ->
                             val isCurrent = track.id == currentTrackId
-                            CatlyticsTrackRow(
-                                title = track.title.displayTrackTitle(),
-                                subtitle = stringResource(
-                                    LibraryR.string.library_track_metadata,
-                                    track.artist.name.displayArtistName(),
-                                    TrackDurationFormat.format(track.durationMillis),
-                                ),
-                                artworkUri = track.artworkUri,
+                            TrackListRow(
+                                track = track,
                                 isCurrent = isCurrent,
                                 isPlaying = isCurrent && isCurrentTrackPlaying,
                                 onClick = {
@@ -159,22 +150,12 @@ internal fun LibraryFolderScreen(
                                         onTrackSelected(track, content.tracks)
                                     }
                                 },
+                                onOptions = { onTrackOptions(track) },
                                 onLongClick = {
                                     selectionState.value = selection.onTrackLongClick(track.id)
                                 },
                                 selected = track.id in selection.selectedIds,
                                 selectionActive = selection.active,
-                                trailing = {
-                                    IconButton(onClick = { onTrackOptions(track) }) {
-                                        Icon(
-                                            painterResource(R.drawable.ic_options),
-                                            stringResource(
-                                                LibraryR.string.library_track_options_content_description,
-                                                track.title.displayTrackTitle(),
-                                            ),
-                                        )
-                                    }
-                                },
                             )
                         }
                     }
@@ -202,7 +183,7 @@ private fun FolderHeader(
         if (content.tracks.isNotEmpty()) {
             add(
                 pluralStringResource(
-                    LibraryR.plurals.library_track_count,
+                    R.plurals.ds_track_count,
                     content.tracks.size,
                     content.tracks.size,
                 ),
@@ -221,7 +202,9 @@ private fun FolderHeader(
             overflow = TextOverflow.Ellipsis,
         )
         Text(
-            text = counts.joinToString(separator = " · "),
+            text = counts.reduceOrNull { first, second ->
+                stringResource(R.string.ds_metadata_pair, first, second)
+            }.orEmpty(),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -260,7 +243,7 @@ private fun SubfolderRow(
             )
             Text(
                 text = pluralStringResource(
-                    LibraryR.plurals.library_track_count,
+                    R.plurals.ds_track_count,
                     folder.trackCount,
                     folder.trackCount,
                 ),
@@ -272,7 +255,7 @@ private fun SubfolderRow(
             Icon(
                 painterResource(R.drawable.ic_options),
                 stringResource(
-                    LibraryR.string.library_folder_options_content_description,
+                    R.string.ds_add_to_playlist_content_description,
                     folder.name,
                 ),
             )
@@ -283,15 +266,6 @@ private fun SubfolderRow(
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-}
-
-@Composable
-private fun FolderMessage(message: String, modifier: Modifier = Modifier) {
-    CatlyticsEmptyState(
-        message = message,
-        modifier = modifier,
-        messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 @FormFactorPreviews

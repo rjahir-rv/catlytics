@@ -146,10 +146,10 @@ private fun AlbumCard(
                 )
                 Text(
                     text = stringResource(
-                        LibraryR.string.library_track_metadata,
+                        R.string.ds_metadata_pair,
                         album.artist.name.displayArtistName(),
                         pluralStringResource(
-                            LibraryR.plurals.library_track_count,
+                            R.plurals.ds_track_count,
                             album.trackCount,
                             album.trackCount,
                         ),
@@ -164,7 +164,7 @@ private fun AlbumCard(
                 Icon(
                     painterResource(R.drawable.ic_options),
                     stringResource(
-                        LibraryR.string.library_album_options_content_description,
+                        R.string.ds_add_to_playlist_content_description,
                         album.title.displayAlbumTitle(),
                     ),
                 )

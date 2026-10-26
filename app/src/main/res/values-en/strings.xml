@@ -91,7 +91,6 @@
     <string name="app_track_option_go_to_artist">Go to artist</string>
     <string name="app_track_option_remove_from_playlist">Remove from playlist</string>
     <string name="app_track_option_edit_metadata">Edit info</string>
-    <string name="app_content_description_track_options">Options for %1$s</string>
 
     <!-- System playlist -->
     <string name="app_playlist_liked_name">Liked songs</string>

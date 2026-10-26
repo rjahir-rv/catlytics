@@ -2,11 +2,10 @@ package com.catlytics.feature.playlists.impl
 
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.LocalPaneChrome
-import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.component.CatlyticsDetailPlaceholder
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -127,10 +126,8 @@ fun EntryProviderScope<NavKey>.playlistsEntry(
 
 @Composable
 private fun PlaylistDetailPlaceholder() {
-    CatlyticsEmptyState(
+    CatlyticsDetailPlaceholder(
         title = stringResource(R.string.playlists_detail_placeholder_title),
         message = stringResource(R.string.playlists_detail_placeholder_message),
-        messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        mascotSize = 160.dp,
     )
 }

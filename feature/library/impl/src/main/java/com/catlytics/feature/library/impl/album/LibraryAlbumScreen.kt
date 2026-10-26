@@ -1,5 +1,7 @@
 package com.catlytics.feature.library.impl.album
 
+import com.catlytics.core.designsystem.component.CatlyticsOptionsButton
+import com.catlytics.core.designsystem.component.rememberArtworkGradient
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -26,7 +28,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,18 +48,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.LocalPlatformContext
-import coil3.request.ImageRequest
-import coil3.request.allowHardware
 import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsPlayingBarsOverlay
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
-import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.TrackSelectionHost
-import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.format.TrackDurationFormat
 import com.catlytics.core.designsystem.layout.deferredPadding
@@ -74,6 +70,7 @@ import com.catlytics.core.model.AlbumTrackSort
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.feature.library.impl.collection.CollectionPlaybackRow
+import com.catlytics.feature.library.impl.collection.LibraryMessage
 import com.catlytics.feature.library.impl.collection.SortOption
 import com.catlytics.feature.library.impl.collection.SortOptionsSheet
 import com.catlytics.feature.library.impl.collection.collectionMenuEntries
@@ -107,37 +104,22 @@ internal fun LibraryAlbumScreen(
         ) {
             CircularProgressIndicator()
         }
-        LibraryAlbumUiState.NotFound -> AlbumMessage(
+        LibraryAlbumUiState.NotFound -> LibraryMessage(
             message = stringResource(LibraryR.string.library_album_not_found_message),
             modifier = modifier,
         )
-        is LibraryAlbumUiState.Error -> AlbumMessage(uiState.message.asString(), modifier)
+        is LibraryAlbumUiState.Error -> LibraryMessage(uiState.message.asString(), modifier)
         is LibraryAlbumUiState.Success -> {
             val content = uiState.content
-            val platformContext = LocalPlatformContext.current
-            val fallbackGradient = rememberFallbackArtworkGradientColors()
-            val artworkRequest = remember(platformContext, content.album.artworkUri) {
-                ImageRequest.Builder(platformContext)
-                    .data(content.album.artworkUri)
-                    .allowHardware(false)
-                    .build()
-            }
-            var artworkBitmap by remember(content.album.artworkUri) { mutableStateOf<Bitmap?>(null) }
-            var gradientColors by remember(content.album.artworkUri, fallbackGradient) {
-                mutableStateOf(fallbackGradient)
-            }
+            val artworkGradient = rememberArtworkGradient(content.album.artworkUri)
             val listState = remember(content.album.id) { LazyGridState() }
             val animatedGradientColors = animateArtworkGradientColors(
-                target = gradientColors,
+                target = artworkGradient.colors,
                 labelPrefix = "LibraryAlbumGradient",
             )
 
-            LaunchedEffect(gradientColors.start) {
-                onTopBarColorChange(gradientColors.start)
-            }
-
-            LaunchedEffect(content.album.artworkUri, artworkBitmap, fallbackGradient) {
-                gradientColors = artworkBitmap?.extractArtworkGradientColors(fallbackGradient) ?: fallbackGradient
+            LaunchedEffect(artworkGradient.colors.start) {
+                onTopBarColorChange(artworkGradient.colors.start)
             }
 
             var showSortSheet by rememberSaveable { mutableStateOf(false) }
@@ -190,8 +172,8 @@ internal fun LibraryAlbumScreen(
                             AlbumHeader(
                                 album = content.album,
                                 tracks = content.tracks,
-                                artworkModel = artworkRequest,
-                                onArtworkLoaded = { artworkBitmap = it },
+                                artworkModel = artworkGradient.artworkRequest,
+                                onArtworkLoaded = artworkGradient::onArtworkLoaded,
                                 onPlayShuffled = onPlayShuffled,
                                 onPlayAll = { tracks ->
                                     tracks.firstOrNull()?.let { onTrackSelected(it, tracks) }
@@ -300,7 +282,7 @@ private fun AlbumHeader(
             )
             Text(
                 text = pluralStringResource(
-                    LibraryR.plurals.library_track_count,
+                    R.plurals.ds_track_count,
                     album.trackCount,
                     album.trackCount,
                 ),
@@ -320,7 +302,7 @@ private fun AlbumHeader(
                 onPlayAll = { onPlayAll(tracks) },
                 menuEntries = menuEntries,
                 menuContentDescription = stringResource(
-                    LibraryR.string.library_album_options_content_description,
+                    R.string.ds_options_content_description,
                     album.title.displayAlbumTitle(),
                 ),
             )
@@ -475,34 +457,7 @@ private fun AlbumTrackRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         if (!selectionActive) {
-            IconButton(onClick = onTrackOptions) {
-                Icon(
-                    painterResource(R.drawable.ic_options),
-                    stringResource(
-                        LibraryR.string.library_track_options_content_description,
-                        track.title.displayTrackTitle(),
-                    ),
-                )
-            }
+            CatlyticsOptionsButton(label = track.title.displayTrackTitle(), onClick = onTrackOptions)
         }
-    }
-}
-
-@Composable
-private fun AlbumMessage(
-    message: String,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }

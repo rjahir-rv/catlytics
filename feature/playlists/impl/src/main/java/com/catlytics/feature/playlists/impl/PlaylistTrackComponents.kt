@@ -32,9 +32,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.catlytics.core.designsystem.R
-import com.catlytics.core.designsystem.component.CatlyticsTrackRow
+import com.catlytics.core.designsystem.component.CatlyticsOptionsButton
+import com.catlytics.core.designsystem.component.TrackListRow
 import com.catlytics.core.designsystem.format.TrackDurationFormat
-import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
@@ -70,17 +70,12 @@ internal fun PlaylistTrackRow(
     val dragShape = CatlyticsCorners.Small
     val dragSurface = MaterialTheme.colorScheme.surfaceContainerHigh
 
-    CatlyticsTrackRow(
-        title = track.title.displayTrackTitle(),
-        subtitle = stringResource(
-            PlaylistsR.string.playlist_detail_track_metadata,
-            track.artist.name.displayArtistName(),
-            TrackDurationFormat.format(track.durationMillis),
-        ),
-        artworkUri = track.artworkUri,
+    TrackListRow(
+        track = track,
         isCurrent = isCurrent,
         isPlaying = isPlaying,
         onClick = onClick,
+        onOptions = onOptions,
         clickEnabled = !customOrdering || selectionActive,
         selected = selected,
         selectionActive = selectionActive && !customOrdering,
@@ -119,15 +114,7 @@ internal fun PlaylistTrackRow(
                         },
                 )
             } else {
-                IconButton(onClick = onOptions) {
-                    Icon(
-                        painterResource(R.drawable.ic_options),
-                        contentDescription = stringResource(
-                            PlaylistsR.string.playlist_detail_track_options_content_description,
-                            track.title.displayTrackTitle(),
-                        ),
-                    )
-                }
+                CatlyticsOptionsButton(label = track.title.displayTrackTitle(), onClick = onOptions)
             }
         },
         modifier = modifier
@@ -243,7 +230,7 @@ internal fun playlistSummaryLabel(tracks: List<Track>): String =
 @Composable
 internal fun playlistSummaryLabel(trackCount: Int, totalDurationMillis: Long): String {
     val countLabel = pluralStringResource(
-        PlaylistsR.plurals.playlists_track_count,
+        R.plurals.ds_track_count,
         trackCount,
         trackCount,
     )

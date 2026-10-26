@@ -17,7 +17,6 @@
     <!-- Library: folders -->
     <string name="library_folders_title">Music folders</string>
     <string name="library_folders_subtitle">Choose which folders are part of your library.</string>
-    <string name="library_folder_options_content_description">Options for %1$s</string>
     <string name="library_action_add_to_playlist">Add to playlist</string>
     <string name="library_collection_play_next">Play next</string>
     <string name="library_collection_add_to_queue">Add to queue</string>
@@ -48,22 +47,10 @@
     </plurals>
 
     <!-- Library: shared content -->
-    <plurals name="library_track_count">
-        <item quantity="one">1 song</item>
-        <item quantity="other">%1$d songs</item>
-    </plurals>
-    <plurals name="library_album_count">
-        <item quantity="one">1 album</item>
-        <item quantity="other">%1$d albums</item>
-    </plurals>
     <string name="library_album_cover_content_description">Cover of %1$s</string>
-    <string name="library_album_options_content_description">Options for %1$s</string>
-    <string name="library_track_metadata">%1$s · %2$s</string>
-    <string name="library_track_options_content_description">Options for %1$s</string>
     <string name="library_track_selected_content_description">Selected</string>
 
     <!-- Library: artists -->
-    <string name="library_artist_options_content_description">Options for %1$s</string>
     <string name="library_artist_image_content_description">Image of %1$s</string>
     <string name="library_artist_metadata">%1$s · %2$s</string>
     <string name="library_artist_tab_songs">Songs</string>
@@ -105,8 +92,6 @@
 
     <!-- Library: album -->
     <string name="library_album_not_found_message">This album is no longer available.</string>
-    <string name="library_album_play_shuffled_content_description">Play shuffled</string>
-    <string name="library_album_play_content_description">Play</string>
     <string name="library_album_load_error">Couldn\'t load the album content.</string>
 
     <!-- Library: folder -->

@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
@@ -29,7 +28,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.component.CatlyticsMenuEntry
+import com.catlytics.core.designsystem.component.CatlyticsShuffleButton
 import com.catlytics.core.designsystem.component.CatlyticsMenuItem
 import com.catlytics.core.designsystem.component.CatlyticsOptionsMenu
 import com.catlytics.core.model.Track
@@ -51,17 +52,11 @@ internal fun CollectionPlaybackRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilledTonalIconButton(onClick = onPlayShuffled, enabled = enabled, modifier = Modifier.size(48.dp)) {
-            Icon(
-                painterResource(R.drawable.ic_shuffle),
-                contentDescription = stringResource(LibraryR.string.library_album_play_shuffled_content_description),
-                modifier = Modifier.size(24.dp),
-            )
-        }
+        CatlyticsShuffleButton(onClick = onPlayShuffled, enabled = enabled)
         Button(onClick = onPlayAll, enabled = enabled, modifier = Modifier.height(48.dp)) {
             Icon(painterResource(R.drawable.ic_play), contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
-            Text(stringResource(LibraryR.string.library_album_play_content_description))
+            Text(stringResource(R.string.ds_action_play))
         }
         CatlyticsOptionsMenu(
             entries = menuEntries,
@@ -147,4 +142,13 @@ internal fun <T> SortOptionsSheet(
             }
         }
     }
+}
+
+@Composable
+internal fun LibraryMessage(message: String, modifier: Modifier = Modifier) {
+    CatlyticsEmptyState(
+        message = message,
+        modifier = modifier,
+        messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }

@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -32,6 +31,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsOptionsButton
 import com.catlytics.core.designsystem.component.CatlyticsPlayingBarsOverlay
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
@@ -68,7 +68,7 @@ internal fun PlaylistListRow(
                 indication = LocalIndication.current,
                 role = Role.Button,
                 onLongClickLabel = stringResource(
-                    PlaylistsR.string.playlists_options_content_description,
+                    R.string.ds_options_content_description,
                     playlist.displayName(),
                 ),
                 onLongClick = onLongClick,
@@ -108,7 +108,7 @@ internal fun PlaylistListRow(
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        PlaylistOptionsButton(playlistName = playlist.displayName(), onClick = onOptionsClick)
+        CatlyticsOptionsButton(label = playlist.displayName(), onClick = onOptionsClick)
     }
 }
 
@@ -136,7 +136,7 @@ internal fun PlaylistGridCard(
                 indication = LocalIndication.current,
                 role = Role.Button,
                 onLongClickLabel = stringResource(
-                    PlaylistsR.string.playlists_options_content_description,
+                    R.string.ds_options_content_description,
                     playlist.displayName(),
                 ),
                 onLongClick = onLongClick,
@@ -205,7 +205,7 @@ internal fun PlaylistGridCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            PlaylistOptionsButton(playlistName = playlist.displayName(), onClick = onOptionsClick)
+            CatlyticsOptionsButton(label = playlist.displayName(), onClick = onOptionsClick)
         }
     }
 }
@@ -237,22 +237,6 @@ internal fun PlaylistCoverWithPlayback(
                     .clip(shape),
             )
         }
-    }
-}
-
-@Composable
-private fun PlaylistOptionsButton(
-    playlistName: String,
-    onClick: () -> Unit,
-) {
-    IconButton(onClick = onClick) {
-        Icon(
-            painter = painterResource(R.drawable.ic_options),
-            contentDescription = stringResource(
-                PlaylistsR.string.playlists_options_content_description,
-                playlistName,
-            ),
-        )
     }
 }
 

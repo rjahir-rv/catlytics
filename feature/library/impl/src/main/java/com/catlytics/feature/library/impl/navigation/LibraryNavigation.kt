@@ -3,12 +3,11 @@ package com.catlytics.feature.library.impl.navigation
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.LocalPaneChrome
 import com.catlytics.feature.library.impl.R
-import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.component.CatlyticsDetailPlaceholder
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -133,10 +132,8 @@ fun EntryProviderScope<NavKey>.libraryEntry(
 
 @Composable
 private fun LibraryDetailPlaceholder() {
-    CatlyticsEmptyState(
+    CatlyticsDetailPlaceholder(
         title = stringResource(R.string.library_detail_placeholder_title),
         message = stringResource(R.string.library_detail_placeholder_message),
-        messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        mascotSize = 160.dp,
     )
 }

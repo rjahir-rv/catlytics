@@ -72,10 +72,6 @@
     <string name="stats_error_loading">There was an error loading statistics.</string>
 
     <!-- Statistics: formats -->
-    <plurals name="stats_play_count">
-        <item quantity="one">1 play</item>
-        <item quantity="other">%1$d plays</item>
-    </plurals>
     <string name="stats_duration_hours_minutes">%1$dh %2$dm</string>
     <string name="stats_duration_hours">%1$dh</string>
     <string name="stats_duration_minutes">%1$d min</string>

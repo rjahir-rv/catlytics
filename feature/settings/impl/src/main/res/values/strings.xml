@@ -142,10 +142,6 @@
         <item quantity="one">%1$d playlists</item>
         <item quantity="other">%1$d playlists</item>
     </plurals>
-    <plurals name="settings_backup_export_toast_listens">
-        <item quantity="one">%1$d reproducciones</item>
-        <item quantity="other">%1$d reproducciones</item>
-    </plurals>
 
     <!-- Ajustes: ecualizador -->
     <string name="settings_equalizer_mode_preset">Predefinido</string>
@@ -272,10 +268,6 @@
     <plurals name="settings_edits_confirm_selected">
         <item quantity="one">Se restaurará la información original de %1$d canción. Esta acción no se puede deshacer.</item>
         <item quantity="other">Se restaurará la información original de %1$d canciones. Esta acción no se puede deshacer.</item>
-    </plurals>
-    <plurals name="settings_edits_track_count">
-        <item quantity="one">%1$d canción</item>
-        <item quantity="other">%1$d canciones</item>
     </plurals>
     <plurals name="settings_edits_artist_count">
         <item quantity="one">%1$d artista</item>

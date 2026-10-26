@@ -1,7 +1,6 @@
 package com.catlytics.app.ui.sheet
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -11,8 +10,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -22,12 +19,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsSheetAction
 import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.Track
 
@@ -172,8 +169,8 @@ internal fun TrackOptionsSheet(
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
             )
             options.forEach { option ->
-                TrackOptionItem(
-                    textRes = option.textRes,
+                CatlyticsSheetAction(
+                    label = stringResource(option.textRes),
                     icon = option.icon,
                     enabled = option.enabled,
                     onClick = option.onClick,
@@ -220,7 +217,7 @@ internal fun TrackOptionsDropdownMenu(
             Icon(
                 painter = painterResource(id = R.drawable.ic_options),
                 contentDescription = stringResource(
-                    AppR.string.app_content_description_track_options,
+                    R.string.ds_options_content_description,
                     track.title.displayTrackTitle(),
                 ),
             )
@@ -251,41 +248,3 @@ internal fun TrackOptionsDropdownMenu(
     }
 }
 
-@Composable
-private fun TrackOptionItem(
-    @StringRes textRes: Int,
-    icon: Int,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
-    val color = if (enabled) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        MaterialTheme.colorScheme.onSurface.copy(alpha = DisabledAlpha)
-    }
-    ListItem(
-        headlineContent = {
-            Text(
-                text = stringResource(textRes),
-                color = color,
-            )
-        },
-        leadingContent = {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = color,
-            )
-        },
-        colors = ListItemDefaults.colors(
-            containerColor = Color.Transparent,
-        ),
-        modifier = modifier.clickable(
-            enabled = enabled,
-            onClick = onClick,
-        ),
-    )
-}
-
-private const val DisabledAlpha = 0.38f

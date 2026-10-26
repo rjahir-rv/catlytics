@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.request.ImageRequest
+import com.catlytics.core.designsystem.component.CatlyticsShuffleButton
 import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.layout.deferredPadding
@@ -211,7 +212,7 @@ private fun PlaylistMetaPills(tracks: List<Track>, centered: Boolean = true) {
     ) {
         MetaPill(
             pluralStringResource(
-                PlaylistsR.plurals.playlists_track_count,
+                R.plurals.ds_track_count,
                 tracks.size,
                 tracks.size,
             ),
@@ -247,19 +248,10 @@ private fun PlaylistPlaybackActions(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilledTonalIconButton(
+        CatlyticsShuffleButton(
             onClick = { onPlayShuffled(tracks) },
             enabled = tracks.isNotEmpty(),
-            modifier = Modifier.size(48.dp),
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_shuffle),
-                contentDescription = stringResource(
-                    PlaylistsR.string.playlist_detail_shuffle_content_description,
-                ),
-                modifier = Modifier.size(24.dp),
-            )
-        }
+        )
         Button(
             onClick = {
                 if (isThisPlaylistActive) {

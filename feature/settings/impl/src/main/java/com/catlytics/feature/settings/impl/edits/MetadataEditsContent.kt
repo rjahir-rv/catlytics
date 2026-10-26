@@ -464,7 +464,7 @@ private fun MetadataEditsDialogs(
         )
         is MetadataEditsDialog.ConfirmRevertFiltered -> {
             val tracks = pluralStringResource(
-                SettingsR.plurals.settings_edits_track_count,
+                R.plurals.ds_track_count,
                 dialog.trackCount,
                 dialog.trackCount,
             )

@@ -73,10 +73,23 @@ fun CatlyticsEmptyState(
     }
 }
 
-/**
- * Michi que contrasta con el fondo actual: el blanco sobre tema oscuro y el negro sobre claro.
- * Se decide por la luminancia del esquema para respetar el `ThemeMode` de la app y el color dinámico.
- */
+/** Panel de detalle vacío en las pantallas de lista y detalle, hasta que se elige un elemento. */
+@Composable
+fun CatlyticsDetailPlaceholder(
+    title: String,
+    message: String,
+    modifier: Modifier = Modifier,
+) {
+    CatlyticsEmptyState(
+        title = title,
+        message = message,
+        modifier = modifier,
+        messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        mascotSize = 160.dp,
+    )
+}
+
+
 @Composable
 private fun catlyticsMascot(): Int =
     if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {

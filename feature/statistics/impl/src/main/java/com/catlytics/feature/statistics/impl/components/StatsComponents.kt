@@ -1,5 +1,6 @@
 package com.catlytics.feature.statistics.impl.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -24,7 +25,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -65,8 +65,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -75,9 +73,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
-import coil3.request.crossfade
-import com.catlytics.core.designsystem.component.nameSeededGradient
+import com.catlytics.core.designsystem.R as DesignSystemR
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
+import com.catlytics.core.designsystem.component.rememberNameSeededGradient
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.displayAlbumTitle
 import com.catlytics.core.designsystem.text.displayArtistName
@@ -285,11 +283,7 @@ internal fun NarrativeSummaryCard(
     val artworkUri = narrative.topArtist?.artworkUri
         ?: narrative.topTrack?.artworkUri
     val seed = (narrative.topArtist?.name ?: narrative.topTrack?.title).orEmpty()
-    val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.surface.luminance() < 0.5f
-    val gradient = remember(seed, isDark, colorScheme.surface) {
-        nameSeededGradient(seed, isDark, colorScheme.surface)
-    }
+    val gradient = rememberNameSeededGradient(seed)
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -302,9 +296,14 @@ internal fun NarrativeSummaryCard(
                 .padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ArtworkBox(
+            StatsArtwork(
                 uri = artworkUri,
                 seed = seed,
+                placeholderIcon = if (narrative.topArtist != null) {
+                    DesignSystemR.drawable.ic_artist
+                } else {
+                    DesignSystemR.drawable.ic_audio
+                },
                 circular = true,
                 size = 72.dp,
                 contentDescription = seed.ifEmpty { null },
@@ -323,13 +322,21 @@ internal fun NarrativeSummaryCard(
                     narrative.topTrack?.let { track ->
                         NarrativeStatRow(
                             label = stringResource(StatsR.string.stats_narrative_top_track_label),
-                            value = "${track.title.displayTrackTitle()} · ${formatPlayCountLabel(track.playCount)}",
+                            value = stringResource(
+                                DesignSystemR.string.ds_metadata_pair,
+                                track.title.displayTrackTitle(),
+                                formatPlayCountLabel(track.playCount),
+                            ),
                         )
                     }
                     narrative.topArtist?.let { artist ->
                         NarrativeStatRow(
                             label = stringResource(StatsR.string.stats_narrative_top_artist_label),
-                            value = "${artist.name.displayArtistName()} · ${formatListeningDuration(artist.totalListenedMillis)}",
+                            value = stringResource(
+                                DesignSystemR.string.ds_metadata_pair,
+                                artist.name.displayArtistName(),
+                                formatListeningDuration(artist.totalListenedMillis),
+                            ),
                         )
                     }
                 }
@@ -990,48 +997,18 @@ internal fun TopTrackItem(
     modifier: Modifier = Modifier,
     showDivider: Boolean = false,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RankBadge(rank = rank)
-            Spacer(modifier = Modifier.width(12.dp))
-            ArtworkBox(uri = track.artworkUri, seed = track.title, circular = false)
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = track.title.displayTrackTitle(),
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = track.artistName.displayArtistName(),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = formatPlayCountLabel(track.playCount),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End,
-            )
-        }
-        if (showDivider) {
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            )
-        }
-    }
+    RankedRow(
+        rank = rank,
+        title = track.title.displayTrackTitle(),
+        subtitle = track.artistName.displayArtistName(),
+        value = formatPlayCountLabel(track.playCount),
+        artworkUri = track.artworkUri,
+        seed = track.title,
+        placeholderIcon = DesignSystemR.drawable.ic_audio,
+        circular = false,
+        showDivider = showDivider,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -1041,46 +1018,18 @@ internal fun TopArtistItem(
     modifier: Modifier = Modifier,
     showDivider: Boolean = false,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            RankBadge(rank = rank)
-            Spacer(modifier = Modifier.width(12.dp))
-            ArtworkBox(uri = artist.artworkUri, seed = artist.name, circular = true)
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = artist.name.displayArtistName(),
-                    fontWeight = FontWeight.SemiBold,
-                    style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = formatListeningDuration(artist.totalListenedMillis),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = formatPlayCountLabel(artist.playCount),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.End,
-            )
-        }
-        if (showDivider) {
-            HorizontalDivider(
-                modifier = Modifier.padding(start = 72.dp, end = 16.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-            )
-        }
-    }
+    RankedRow(
+        rank = rank,
+        title = artist.name.displayArtistName(),
+        subtitle = formatListeningDuration(artist.totalListenedMillis),
+        value = formatPlayCountLabel(artist.playCount),
+        artworkUri = artist.artworkUri,
+        seed = artist.name,
+        placeholderIcon = DesignSystemR.drawable.ic_artist,
+        circular = true,
+        showDivider = showDivider,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -1089,6 +1038,34 @@ internal fun TopAlbumItem(
     album: TopAlbum,
     modifier: Modifier = Modifier,
     showDivider: Boolean = false,
+) {
+    RankedRow(
+        rank = rank,
+        title = album.title.displayAlbumTitle(),
+        subtitle = album.artistName.displayArtistName(),
+        value = formatListeningDuration(album.totalListenedMillis),
+        artworkUri = album.artworkUri,
+        seed = album.title,
+        placeholderIcon = DesignSystemR.drawable.ic_album,
+        circular = false,
+        showDivider = showDivider,
+        modifier = modifier,
+    )
+}
+
+/** Fila de un ranking: posición, carátula, título, subtítulo y el valor a la derecha. */
+@Composable
+private fun RankedRow(
+    rank: Int,
+    title: String,
+    subtitle: String,
+    value: String,
+    artworkUri: String?,
+    seed: String,
+    @DrawableRes placeholderIcon: Int,
+    circular: Boolean,
+    showDivider: Boolean,
+    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -1099,18 +1076,23 @@ internal fun TopAlbumItem(
         ) {
             RankBadge(rank = rank)
             Spacer(modifier = Modifier.width(12.dp))
-            ArtworkBox(uri = album.artworkUri, seed = album.title, circular = false)
+            StatsArtwork(
+                uri = artworkUri,
+                seed = seed,
+                placeholderIcon = placeholderIcon,
+                circular = circular,
+            )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = album.title.displayAlbumTitle(),
+                    text = title,
                     fontWeight = FontWeight.SemiBold,
                     style = MaterialTheme.typography.bodyLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = album.artistName.displayArtistName(),
+                    text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -1119,7 +1101,7 @@ internal fun TopAlbumItem(
             }
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = formatListeningDuration(album.totalListenedMillis),
+                text = value,
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.End,
@@ -1153,48 +1135,23 @@ private fun RankBadge(rank: Int) {
 }
 
 @Composable
-private fun ArtworkBox(
+private fun StatsArtwork(
     uri: String?,
     seed: String,
+    @DrawableRes placeholderIcon: Int,
     circular: Boolean,
     size: Dp = 48.dp,
     contentDescription: String? = null,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-    val isDark = colorScheme.surface.luminance() < 0.5f
-    val gradient = remember(seed, isDark, colorScheme.surface) {
-        nameSeededGradient(seed, isDark, colorScheme.surface)
-    }
-    // El degradado con la inicial queda debajo: se ve mientras carga o si no hay carátula.
-    Box(
+    CatlyticsArtwork(
+        model = uri,
+        seed = seed,
+        placeholderIcon = placeholderIcon,
+        contentDescription = contentDescription,
         modifier = Modifier
             .size(size)
-            .clip(if (circular) CircleShape else CatlyticsCorners.Small)
-            .background(Brush.linearGradient(listOf(gradient.start, gradient.center))),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = seed.trim().firstOrNull()?.uppercase().orEmpty(),
-            style = if (size > 56.dp) {
-                MaterialTheme.typography.headlineSmall
-            } else {
-                MaterialTheme.typography.titleMedium
-            },
-            fontWeight = FontWeight.Bold,
-            color = colorScheme.onSurface.copy(alpha = 0.7f),
-        )
-        if (uri != null) {
-            AsyncImage(
-                model = coil3.request.ImageRequest.Builder(coil3.compose.LocalPlatformContext.current)
-                    .data(uri)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = contentDescription,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-    }
+            .clip(if (circular) CircleShape else CatlyticsCorners.Small),
+    )
 }
 
 @Composable

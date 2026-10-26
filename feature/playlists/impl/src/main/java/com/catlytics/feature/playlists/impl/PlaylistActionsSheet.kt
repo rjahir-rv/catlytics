@@ -1,6 +1,5 @@
 package com.catlytics.feature.playlists.impl
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,8 +12,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -30,15 +27,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsSheetAction
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaylistSummary
@@ -103,37 +99,37 @@ internal fun PlaylistActionsSheet(
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         Column(modifier = Modifier.padding(bottom = 16.dp)) {
             if (summary.trackCount > 0) {
-                SheetAction(
-                    iconRes = R.drawable.ic_play_fill,
+                CatlyticsSheetAction(
+                    icon = R.drawable.ic_play_fill,
                     label = stringResource(R.string.ds_action_play),
                     onClick = { dismissThen(onPlay) },
                 )
-                SheetAction(
-                    iconRes = R.drawable.ic_shuffle,
+                CatlyticsSheetAction(
+                    icon = R.drawable.ic_shuffle,
                     label = stringResource(PlaylistsR.string.playlists_action_shuffle),
                     onClick = { dismissThen(onShuffle) },
                 )
             }
             if (!isLiked) {
-                SheetAction(
-                    iconRes = R.drawable.ic_edit,
+                CatlyticsSheetAction(
+                    icon = R.drawable.ic_edit,
                     label = stringResource(PlaylistsR.string.playlists_action_rename),
                     onClick = { dismissThen(onRename) },
                 )
-                SheetAction(
-                    iconRes = R.drawable.ic_album,
+                CatlyticsSheetAction(
+                    icon = R.drawable.ic_album,
                     label = stringResource(PlaylistsR.string.playlists_change_cover),
                     onClick = { dismissThen(onChangeCover) },
                 )
                 if (playlist.artworkUri != null) {
-                    SheetAction(
-                        iconRes = R.drawable.ic_close,
+                    CatlyticsSheetAction(
+                        icon = R.drawable.ic_close,
                         label = stringResource(PlaylistsR.string.playlists_remove_cover),
                         onClick = { dismissThen(onClearCover) },
                     )
                 }
-                SheetAction(
-                    iconRes = R.drawable.ic_delete,
+                CatlyticsSheetAction(
+                    icon = R.drawable.ic_delete,
                     label = stringResource(PlaylistsR.string.playlists_action_delete),
                     destructive = true,
                     onClick = { dismissThen(onDelete) },
@@ -141,30 +137,6 @@ internal fun PlaylistActionsSheet(
             }
         }
     }
-}
-
-@Composable
-private fun SheetAction(
-    iconRes: Int,
-    label: String,
-    onClick: () -> Unit,
-    destructive: Boolean = false,
-) {
-    val contentColor = if (destructive) {
-        MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-    ListItem(
-        headlineContent = { Text(label) },
-        leadingContent = { Icon(painter = painterResource(iconRes), contentDescription = null) },
-        colors = ListItemDefaults.colors(
-            containerColor = Color.Transparent,
-            headlineColor = contentColor,
-            leadingIconColor = contentColor,
-        ),
-        modifier = Modifier.clickable(role = Role.Button, onClick = onClick),
-    )
 }
 
 /** Pide un nombre; marca el error en vivo cuando [isNameTaken] lo rechaza. */
