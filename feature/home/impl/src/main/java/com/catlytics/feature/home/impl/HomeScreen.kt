@@ -17,19 +17,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.isSearching
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.text.UiText
-import com.catlytics.core.designsystem.theme.CatlyticsTheme
-import com.catlytics.core.model.Artist
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 
@@ -266,66 +262,3 @@ internal fun HomeScreen(
 }
 
 private const val STATE_FADE_MILLIS = 220
-
-@FormFactorPreviews
-@Composable
-internal fun HomeScreenPreview() {
-    CatlyticsTheme {
-        HomeScreen(
-            uiState = HomeUiState.Success(
-                tracks = listOf(
-                    Track(
-                        id = "track-current",
-                        title = "Electric Feel",
-                        artist = Artist(id = "artist-preview", name = "MGMT"),
-                        durationMillis = 186_000,
-                        mediaUri = "content://media/external/audio/media/1",
-                    ),
-                    Track(
-                        id = "track-preview",
-                        title = "Canción local con un título bastante largo",
-                        artist = Artist(id = "artist-local", name = "Artista local"),
-                        durationMillis = 242_000,
-                        mediaUri = "content://media/external/audio/media/2",
-                    ),
-                ),
-                currentTrackId = "track-current",
-            ),
-            searchQuery = "",
-            hasAudioPermission = true,
-            onRequestPermission = {},
-            onTrackSelected = { _, _ -> },
-            onTrackOptions = {},
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun HomeScreenPermissionRequiredPreview() {
-    CatlyticsTheme {
-        HomeScreen(
-            uiState = HomeUiState.Empty,
-            searchQuery = "",
-            hasAudioPermission = false,
-            onRequestPermission = {},
-            onTrackSelected = { _, _ -> },
-            onTrackOptions = {},
-        )
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun HomeScreenEmptyLibraryPreview() {
-    CatlyticsTheme {
-        HomeScreen(
-            uiState = HomeUiState.Empty,
-            searchQuery = "",
-            hasAudioPermission = true,
-            onRequestPermission = {},
-            onTrackSelected = { _, _ -> },
-            onTrackOptions = {},
-        )
-    }
-}

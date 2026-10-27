@@ -5,7 +5,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.GridCells
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.annotation.StringRes
@@ -392,7 +391,7 @@ internal fun ScanFoldersContent(
                 )
             }
         }
-        items(sortedFolders, key = LibraryFolder::id) { folder ->
+        items(sortedFolders, key = LibraryFolder::id, contentType = { "folder" }) { folder ->
             FolderSelectionRow(
                 folder = folder,
                 onVisibilityChange = { visible ->

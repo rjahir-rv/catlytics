@@ -226,7 +226,7 @@ internal fun MetadataEditsContent(
                     ),
                 )
             }
-            items(state.tracks, key = { "track-${it.trackId}" }) { item ->
+            items(state.tracks, key = { "track-${it.trackId}" }, contentType = { "track" }) { item ->
                 TrackEditRow(
                     item = item,
                     selected = item.trackId in state.selectedTrackIds,
@@ -248,7 +248,7 @@ internal fun MetadataEditsContent(
                     ),
                 )
             }
-            items(state.artists, key = { "artist-${it.alias.source.name}" }) { item ->
+            items(state.artists, key = { "artist-${it.alias.source.name}" }, contentType = { "artist" }) { item ->
                 ArtistEditRow(
                     item = item,
                     enabled = !state.isBusy && !state.selectionActive,
@@ -266,7 +266,11 @@ internal fun MetadataEditsContent(
                     ),
                 )
             }
-            items(state.artistImages, key = { "artist-image-${it.artistKey}" }) { item ->
+            items(
+                state.artistImages,
+                key = { "artist-image-${it.artistKey}" },
+                contentType = { "artist-image" },
+            ) { item ->
                 ArtistImageEditRow(
                     item = item,
                     enabled = !state.isBusy && !state.selectionActive,

@@ -310,13 +310,11 @@ internal fun PlaybackQueueBottomSheet(
                 }
                 reorder.visibleQueue.forEachIndexed { index, track ->
                 if (isHistoryCollapsed && index < currentIndex) return@forEachIndexed
-                item(key = track.id) {
+                item(key = track.id, contentType = "track") {
                     val isDragging = track.id == reorder.draggedTrackId
                     val isSettling = track.id == reorder.settlingTrackId
                     val isLifted = isDragging || isSettling
                     val isCurrentTrack = track.id == currentTrackId
-                    // Durante una mezcla solo la canción actual conserva su animación de posición; el
-                    // resto entra con el escalonado en lugar de viajar desde su sitio anterior.
                     val revealsOnReshuffle = isReshuffling && !isCurrentTrack
                     val revealDistance = if (currentIndex >= 0) abs(index - currentIndex) - 1 else index
                     val placementModifier = if (isLifted || revealsOnReshuffle) {

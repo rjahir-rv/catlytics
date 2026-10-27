@@ -15,6 +15,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -100,15 +101,16 @@ fun animateArtworkGradientColors(
 fun animateArtworkChromeColor(target: Color?, fallback: Color): Color {
     val color = remember { Animatable(target ?: fallback) }
     var hadTarget by remember { mutableStateOf(target != null) }
-    LaunchedEffect(target, fallback) {
+    val currentFallback by rememberUpdatedState(fallback)
+    LaunchedEffect(target) {
         if (target != null && !hadTarget) {
             color.snapTo(target)
         } else {
-            color.animateTo(target ?: fallback, tween(ARTWORK_GRADIENT_ANIMATION_MILLIS))
+            color.animateTo(target ?: currentFallback, tween(ARTWORK_GRADIENT_ANIMATION_MILLIS))
         }
         hadTarget = target != null
     }
-    return color.value
+    return if (target == null && !color.isRunning) fallback else color.value
 }
 
 fun nameSeededGradient(

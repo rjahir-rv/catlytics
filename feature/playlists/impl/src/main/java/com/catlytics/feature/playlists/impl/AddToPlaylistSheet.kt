@@ -139,6 +139,7 @@ fun AddToPlaylistSheet(
             items(
                 items = playlists.filterNot { it.id in excludedPlaylistIds },
                 key = Playlist::id,
+                contentType = { "playlist" },
             ) { playlist ->
                 val isSelected = playlist.id in selectedPlaylistIds
                 val isFullyAdded = isPlaylistFullyAdded(playlist, sourceTrackIds)

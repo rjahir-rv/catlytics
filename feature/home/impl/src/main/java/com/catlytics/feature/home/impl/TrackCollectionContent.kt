@@ -95,7 +95,7 @@ internal fun TrackCollectionContent(
                     onPlayAll = onPlayAll,
                 )
             }
-            items(items = tracks, key = Track::id) { track ->
+            items(items = tracks, key = Track::id, contentType = { "track" }) { track ->
                 TrackListRow(
                     track = track,
                     isCurrent = track.id == currentTrackId,

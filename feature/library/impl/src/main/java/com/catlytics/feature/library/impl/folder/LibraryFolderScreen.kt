@@ -32,7 +32,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.TrackListRow
 import com.catlytics.core.designsystem.component.TrackSelectionHost
@@ -40,8 +39,6 @@ import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
-import com.catlytics.core.designsystem.theme.CatlyticsTheme
-import com.catlytics.core.model.Artist
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.PlaylistSource
@@ -128,7 +125,7 @@ internal fun LibraryFolderScreen(
                                 modifier = Modifier.padding(bottom = 8.dp),
                             )
                         }
-                        items(content.subfolders, key = LibraryFolder::id) { folder ->
+                        items(content.subfolders, key = LibraryFolder::id, contentType = { "folder" }) { folder ->
                             SubfolderRow(
                                 folder = folder,
                                 onClick = { onFolderSelected(folder) },
@@ -137,7 +134,7 @@ internal fun LibraryFolderScreen(
                                 },
                             )
                         }
-                        items(content.tracks, key = Track::id) { track ->
+                        items(content.tracks, key = Track::id, contentType = { "track" }) { track ->
                             val isCurrent = track.id == currentTrackId
                             TrackListRow(
                                 track = track,
@@ -264,49 +261,6 @@ private fun SubfolderRow(
             painter = painterResource(R.drawable.ic_chevron_right),
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@FormFactorPreviews
-@Composable
-internal fun LibraryFolderScreenPreview() {
-    CatlyticsTheme {
-        LibraryFolderScreen(
-            uiState = LibraryFolderUiState.Success(
-                LibraryFolderContent(
-                    folder = LibraryFolder(
-                        id = "external:Music",
-                        name = "Music",
-                        path = "Music",
-                        trackCount = 3,
-                        isVisible = true,
-                    ),
-                    subfolders = listOf(
-                        LibraryFolder(
-                            id = "external:Music/Live",
-                            name = "Live",
-                            path = "Music/Live",
-                            trackCount = 12,
-                            isVisible = true,
-                        ),
-                    ),
-                    tracks = listOf(
-                        Track(
-                            id = "track-1",
-                            title = "Midnight Signals",
-                            artist = Artist("artist-1", "Catlytics"),
-                            durationMillis = 215_000,
-                            mediaUri = "content://media/track-1",
-                        ),
-                    ),
-                ),
-            ),
-            onFolderSelected = {},
-            onTrackSelected = { _, _ -> },
-            onAddToPlaylist = {},
-            onTrackOptions = {},
-            currentTrackId = "track-1",
         )
     }
 }

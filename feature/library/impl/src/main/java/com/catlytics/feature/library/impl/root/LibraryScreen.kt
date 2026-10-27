@@ -60,15 +60,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
-import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Album
-import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
@@ -582,58 +579,3 @@ private val ControlHeight = 36.dp
 /** Altura aproximada del header antes de la primera medición (tabs 48dp + controles 48dp + paddings). */
 private val HeaderHeightEstimate = 108.dp
 private const val ENTRANCE_SETTLE_MILLIS = 900L
-
-@FormFactorPreviews
-@Composable
-internal fun LibraryScreenPreview() {
-    CatlyticsTheme {
-        LibraryScreen(
-            uiState = LibraryUiState.Success(
-                albums = listOf(
-                    Album(
-                        id = "album-1",
-                        title = "Midnight Signals",
-                        artist = Artist("artist-1", "Catlytics"),
-                        trackCount = 10,
-                    ),
-                ),
-                artists = listOf(
-                    ArtistSummary(
-                        artist = Artist("artist-1", "Catlytics"),
-                        albumCount = 2,
-                        trackCount = 10,
-                    ),
-                ),
-                artistViewMode = ArtistViewMode.List,
-                sortDirection = SortDirection.Ascending,
-                folders = listOf(
-                    LibraryFolder(
-                        id = "external:Music",
-                        name = "Music",
-                        path = "Music",
-                        trackCount = 24,
-                        isVisible = true,
-                    ),
-                    LibraryFolder(
-                        id = "external:Android",
-                        name = "Android",
-                        path = "Android",
-                        trackCount = 128,
-                        isVisible = false,
-                    ),
-                ),
-            ),
-            hasAudioPermission = true,
-            onRequestPermission = {},
-            onAlbumSelected = {},
-            onArtistSelected = {},
-            onArtistViewModeChange = {},
-            onFolderVisibilityChange = { _, _ -> },
-            onFolderSelected = {},
-            onAddToPlaylist = {},
-            searchQuery = "",
-            sortDirection = SortDirection.Ascending,
-            onSortDirectionChange = {},
-        )
-    }
-}

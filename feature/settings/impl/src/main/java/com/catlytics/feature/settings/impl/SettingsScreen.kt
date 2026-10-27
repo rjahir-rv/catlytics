@@ -53,17 +53,13 @@ import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
 import com.catlytics.core.model.HomeRecommendationsSettings
-import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.MusicScanDurationFilter
-import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
-import com.catlytics.core.model.UnifiedBackupPreview
-import com.catlytics.core.model.UnifiedBackupSummary
 import com.catlytics.feature.settings.impl.R as SettingsR
 import com.catlytics.core.navigation.navigationBackTransition
 import com.catlytics.core.navigation.navigationForwardTransition
@@ -80,20 +76,9 @@ import com.catlytics.feature.settings.impl.equalizer.EqualizerSettingsContent
 internal fun SettingsScreen(
     appVersion: String,
     @RawRes librariesRes: Int,
-    modifier: Modifier = Modifier,
-    themeMode: ThemeMode,
-    appLanguage: AppLanguage,
-    homeRecommendationsSettings: HomeRecommendationsSettings,
-    equalizerState: EqualizerState,
-    crossfadeDurationSeconds: Int,
-    sleepTimerState: SleepTimerState,
-    libraryFolders: List<LibraryFolder>,
-    musicScanSettings: MusicScanSettings,
-    musicScanStatus: MusicScanStatus,
+    uiState: SettingsUiState,
     hasAudioPermission: Boolean,
-    unifiedBackupSummary: UnifiedBackupSummary = UnifiedBackupSummary(),
-    unifiedBackupStatus: UnifiedBackupStatus = UnifiedBackupStatus.Idle,
-    unifiedImportPreview: UnifiedBackupPreview? = null,
+    modifier: Modifier = Modifier,
     onRequestAudioPermission: () -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
     onAppLanguageChange: (AppLanguage) -> Unit,
@@ -202,12 +187,12 @@ internal fun SettingsScreen(
             appVersion = appVersion,
             animateEntrance = !hasPlayedEntrance,
             onEntranceStarted = { hasPlayedEntrance = true },
-            themeMode = themeMode,
-            appLanguage = appLanguage,
-            homeRecommendationsSettings = homeRecommendationsSettings,
-            equalizerState = equalizerState,
-            crossfadeDurationSeconds = crossfadeDurationSeconds,
-            sleepTimerState = sleepTimerState,
+            themeMode = uiState.themeMode,
+            appLanguage = uiState.appLanguage,
+            homeRecommendationsSettings = uiState.homeRecommendationsSettings,
+            equalizerState = uiState.equalizerState,
+            crossfadeDurationSeconds = uiState.crossfadeDurationSeconds,
+            sleepTimerState = uiState.sleepTimerState,
             onThemeModeChange = onThemeModeChange,
             onAppLanguageChange = onAppLanguageChange,
             onShowRecommendedPlaylistsChange = onShowRecommendedPlaylistsChange,
@@ -239,7 +224,7 @@ internal fun SettingsScreen(
             modifier = modifier,
         )
         SettingsDestination.Equalizer -> EqualizerSettingsContent(
-            equalizerState = equalizerState,
+            equalizerState = uiState.equalizerState,
             onEqualizerEnabledChange = onEqualizerEnabledChange,
             onEqualizerModeChange = onEqualizerModeChange,
             onEqualizerPresetSelected = onEqualizerPresetSelected,
@@ -249,9 +234,9 @@ internal fun SettingsScreen(
             modifier = modifier,
         )
         SettingsDestination.MusicScan -> MusicScanSettingsContent(
-            folders = libraryFolders,
-            settings = musicScanSettings,
-            scanStatus = musicScanStatus,
+            folders = uiState.libraryFolders,
+            settings = uiState.musicScanSettings,
+            scanStatus = uiState.musicScanStatus,
             hasAudioPermission = hasAudioPermission,
             onRequestAudioPermission = onRequestAudioPermission,
             onFoldersClick = { destination = SettingsDestination.ScanFolders },
@@ -263,16 +248,16 @@ internal fun SettingsScreen(
             modifier = modifier,
         )
         SettingsDestination.ScanFolders -> ScanFoldersContent(
-            folders = libraryFolders,
+            folders = uiState.libraryFolders,
             onFolderVisibilityChange = onFolderVisibilityChange,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = scaffoldContentPadding,
             modifier = modifier,
         )
         SettingsDestination.Backup -> UnifiedBackupContent(
-            summary = unifiedBackupSummary,
-            operationStatus = unifiedBackupStatus,
-            importPreview = unifiedImportPreview,
+            summary = uiState.unifiedBackupSummary,
+            operationStatus = uiState.unifiedBackupStatus,
+            importPreview = uiState.unifiedImportPreview,
             onExportClick = onExportBackupClick,
             onImportClick = onImportBackupClick,
             onConfirmImport = onConfirmImport,
@@ -293,7 +278,7 @@ internal fun SettingsScreen(
 
     if (showSleepTimerSheet) {
         SleepTimerBottomSheet(
-            state = sleepTimerState,
+            state = uiState.sleepTimerState,
             onStart = { minutes ->
                 onSleepTimerStart(minutes)
                 showSleepTimerSheet = false

@@ -1,6 +1,5 @@
 package com.catlytics.feature.playlists.impl
 
-import com.catlytics.core.designsystem.layout.FormFactorPreviews
 import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -41,7 +40,6 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
@@ -49,7 +47,6 @@ import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
-import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistSummary
 import com.catlytics.core.model.PlaylistViewMode
@@ -369,95 +366,6 @@ internal fun PlaylistsScreen(
                 deleting = null
                 onDelete(target.playlist.id)
             },
-        )
-    }
-}
-
-private fun previewSummary(
-    id: String,
-    name: String,
-    trackCount: Int,
-    artworks: List<String> = emptyList(),
-) = PlaylistSummary(
-    playlist = Playlist(id = id, name = name, trackIds = List(trackCount) { "$id-$it" }),
-    trackCount = trackCount,
-    totalDurationMillis = trackCount * 210_000L,
-    coverArtworkUris = artworks,
-)
-
-private val previewContent = PlaylistsUiState.Content(
-    listOf(
-        previewSummary("p1", "Focus", 12),
-        previewSummary("p2", "Gym", 1),
-        previewSummary("p3", "Road trip 2025", 0),
-    ),
-)
-
-@FormFactorPreviews
-@Composable
-internal fun PlaylistsScreenListPreview() {
-    CatlyticsTheme {
-        PlaylistsScreen(
-            uiState = previewContent,
-            viewMode = PlaylistViewMode.List,
-            activePlaylist = ActivePlaylist(id = "p1", isPlaying = true),
-            onViewModeChange = {},
-            onPlaylistSelected = {},
-            onCreateClick = {},
-            onRename = { _, _ -> },
-            onDelete = {},
-            onSetCover = { _, _ -> },
-        )
-    }
-}
-
-@FormFactorPreviews
-@Composable
-internal fun PlaylistsScreenMosaicPreview() {
-    CatlyticsTheme {
-        PlaylistsScreen(
-            uiState = previewContent,
-            viewMode = PlaylistViewMode.Mosaic,
-            onViewModeChange = {},
-            onPlaylistSelected = {},
-            onCreateClick = {},
-            onRename = { _, _ -> },
-            onDelete = {},
-            onSetCover = { _, _ -> },
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Empty")
-@Composable
-private fun PlaylistsScreenEmptyPreview() {
-    CatlyticsTheme {
-        PlaylistsScreen(
-            uiState = PlaylistsUiState.Content(emptyList()),
-            viewMode = PlaylistViewMode.List,
-            onViewModeChange = {},
-            onPlaylistSelected = {},
-            onCreateClick = {},
-            onRename = { _, _ -> },
-            onDelete = {},
-            onSetCover = { _, _ -> },
-        )
-    }
-}
-
-@Preview(showBackground = true, name = "Loading")
-@Composable
-private fun PlaylistsScreenLoadingPreview() {
-    CatlyticsTheme {
-        PlaylistsScreen(
-            uiState = PlaylistsUiState.Loading,
-            viewMode = PlaylistViewMode.List,
-            onViewModeChange = {},
-            onPlaylistSelected = {},
-            onCreateClick = {},
-            onRename = { _, _ -> },
-            onDelete = {},
-            onSetCover = { _, _ -> },
         )
     }
 }

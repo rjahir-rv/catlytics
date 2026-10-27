@@ -107,6 +107,7 @@ internal fun LibraryFolderList(
             itemsIndexed(
                 items = sortedFolders,
                 key = { _, folder -> "${sortDirection.name}:${folder.id}" },
+                contentType = { _, _ -> "folder" },
             ) { index, folder ->
                 FolderRow(
                     folder = folder,

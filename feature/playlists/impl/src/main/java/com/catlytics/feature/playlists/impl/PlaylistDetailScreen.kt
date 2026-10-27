@@ -344,7 +344,11 @@ internal fun PlaylistDetailScreen(
                         )
                     }
                 } else {
-                    itemsIndexed(displayedTracks, key = { _, track -> track.id }) { index, track ->
+                    itemsIndexed(
+                        displayedTracks,
+                        key = { _, track -> track.id },
+                        contentType = { _, _ -> "track" },
+                    ) { index, track ->
                         PlaylistTrackRow(
                             modifier = Modifier
                                 .animateItem()

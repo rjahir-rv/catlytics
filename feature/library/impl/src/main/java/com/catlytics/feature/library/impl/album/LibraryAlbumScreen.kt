@@ -194,6 +194,7 @@ internal fun LibraryAlbumScreen(
                         itemsIndexed(
                             items = content.tracks,
                             key = { _, track -> track.id },
+                            contentType = { _, _ -> "track" },
                         ) { index, track ->
                             Column {
                                 AlbumTrackRow(
