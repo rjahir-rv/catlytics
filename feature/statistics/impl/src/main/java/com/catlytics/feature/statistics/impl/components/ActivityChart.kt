@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -173,16 +174,25 @@ internal fun ActivityChart(
 
             if (resolvedLabels.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(6.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(barSpacing),
+                ) {
                     resolvedLabels.forEach { day ->
+                        // En el mes las columnas son más angostas que "10": la etiqueta se centra y desborda.
                         Text(
                             text = day,
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .wrapContentWidth(unbounded = true),
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1,
-                            overflow = TextOverflow.Clip,
+                            softWrap = false,
+                            overflow = TextOverflow.Visible,
                         )
                     }
                 }
@@ -262,7 +272,8 @@ private fun defaultDayLabels(dayCount: Int, weekDayLabels: List<String>): List<S
     return List(dayCount) { index ->
         val day = index + 1
         when {
-            day == 1 || day == dayCount || day % step == 0 -> day.toString()
+            day == 1 || day == dayCount -> day.toString()
+            day % step == 0 && dayCount - day > step / 2 -> day.toString()
             else -> ""
         }
     }
