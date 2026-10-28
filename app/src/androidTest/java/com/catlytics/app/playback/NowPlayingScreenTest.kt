@@ -7,6 +7,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.catlytics.app.SpanishLocaleRule
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
@@ -16,7 +17,10 @@ import org.junit.Rule
 import org.junit.Test
 
 class NowPlayingScreenTest {
-    @get:Rule
+    @get:Rule(order = 0)
+    val spanishLocale = SpanishLocaleRule()
+
+    @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
     @Test

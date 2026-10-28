@@ -25,7 +25,10 @@ import org.junit.Rule
 import org.junit.Test
 
 class CatlyticsLetterFastScrollerTest {
-    @get:Rule
+    @get:Rule(order = 0)
+    val spanishLocale = SpanishLocaleRule()
+
+    @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
     @Test
@@ -94,7 +97,7 @@ class CatlyticsLetterFastScrollerTest {
             }
         }
 
-        composeRule.onNodeWithTag(LIST_TAG).performScrollToIndex(36)
+        composeRule.onNodeWithTag(LIST_TAG).performScrollToIndex(SONGS_PER_LETTER * ('S' - 'A'))
         composeRule.waitForIdle()
 
         composeRule
@@ -167,10 +170,13 @@ class CatlyticsLetterFastScrollerTest {
 
     private fun letteredTitles(): List<String> =
         ('A'..'Z').flatMap { letter ->
-            List(2) { index -> "$letter song $index" }
+            List(SONGS_PER_LETTER) { index -> "$letter song $index" }
         }
 
     private companion object {
         const val LIST_TAG = "letter-fast-scroller-list"
+
+        // Suficientes filas después de la "S" para que pueda quedar arriba en pantallas altas.
+        const val SONGS_PER_LETTER = 4
     }
 }

@@ -39,6 +39,8 @@ dependencies {
     "implementation"(libs.findLibrary("androidx-compose-ui-tooling-preview").get())
     "implementation"(libs.findLibrary("androidx-navigation3-runtime").get())
     "androidTestImplementation"(platform(libs.findLibrary("androidx-compose-bom").get()))
+    // ui-test trae espresso-core 3.5.0, que falla en API 37 (InputManager.getInstance).
+    "androidTestImplementation"(libs.findLibrary("androidx-espresso-core").get())
     "debugImplementation"(libs.findLibrary("androidx-compose-ui-test-manifest").get())
     "debugImplementation"(libs.findLibrary("androidx-compose-ui-tooling").get())
 }

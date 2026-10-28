@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
+import com.catlytics.app.SpanishLocaleRule
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.SleepTimerState
@@ -18,7 +19,10 @@ import org.junit.Rule
 import org.junit.Test
 
 class PlaybackQueueBottomSheetTest {
-    @get:Rule
+    @get:Rule(order = 0)
+    val spanishLocale = SpanishLocaleRule()
+
+    @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
     @Test

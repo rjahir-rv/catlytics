@@ -10,12 +10,16 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import com.catlytics.app.SpanishLocaleRule
 import com.catlytics.core.designsystem.theme.CatlyticsTheme
 import org.junit.Rule
 import org.junit.Test
 
 class StartupLoadingScreenTest {
-    @get:Rule
+    @get:Rule(order = 0)
+    val spanishLocale = SpanishLocaleRule()
+
+    @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
     @Test

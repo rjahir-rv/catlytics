@@ -5,12 +5,16 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import com.catlytics.app.SpanishLocaleRule
 import org.junit.Rule
 import org.junit.Test
 
 class QueueTracksLabelTest {
 
-    @get:Rule
+    @get:Rule(order = 0)
+    val spanishLocale = SpanishLocaleRule()
+
+    @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
     @Test

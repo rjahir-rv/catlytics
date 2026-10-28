@@ -29,7 +29,10 @@ import org.junit.Test
 import androidx.compose.foundation.lazy.grid.items as gridItems
 
 class CatlyticsTopAppBarTest {
-    @get:Rule
+    @get:Rule(order = 0)
+    val spanishLocale = SpanishLocaleRule()
+
+    @get:Rule(order = 1)
     val composeRule = createComposeRule()
 
     private lateinit var scrollBehavior: TopAppBarScrollBehavior
