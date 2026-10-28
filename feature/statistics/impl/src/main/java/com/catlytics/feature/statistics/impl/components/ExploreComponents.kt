@@ -14,9 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -29,11 +26,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.R as DesignSystemR
 import com.catlytics.core.model.StatsGranularity
 import com.catlytics.feature.statistics.impl.R as StatsR
 import com.catlytics.feature.statistics.impl.formatListeningDuration
@@ -84,7 +83,7 @@ internal fun PeriodSelectorHeader(
                 enabled = canGoBack,
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    painter = painterResource(DesignSystemR.drawable.ic_arrow_back),
                     contentDescription = stringResource(
                         StatsR.string.stats_period_previous_content_description,
                     ),
@@ -134,7 +133,7 @@ internal fun PeriodSelectorHeader(
                 enabled = canGoForward,
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    painter = painterResource(DesignSystemR.drawable.ic_arrow_forward),
                     contentDescription = stringResource(
                         StatsR.string.stats_period_next_content_description,
                     ),

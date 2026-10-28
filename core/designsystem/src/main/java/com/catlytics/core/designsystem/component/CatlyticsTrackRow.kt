@@ -21,8 +21,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -304,7 +302,7 @@ fun TrackSelectionMark(
     ) {
         if (selected) {
             Icon(
-                imageVector = Icons.Filled.Check,
+                painter = painterResource(R.drawable.ic_check),
                 contentDescription = stringResource(R.string.ds_track_row_selected_content_description),
                 tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier

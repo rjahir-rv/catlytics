@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     ],
     views = [ResolvedPlaybackEventView::class],
     version = 5,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class CatlyticsDatabase : RoomDatabase() {
     abstract fun playbackEventDao(): PlaybackEventDao

@@ -11,9 +11,7 @@ android {
 
 dependencies {
     api(project(path = ":core:domain"))
-    implementation(project(path = ":core:model"))
     implementation(libs.androidx.datastore.preferences)
-    implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.taglib)
     testImplementation(libs.junit)

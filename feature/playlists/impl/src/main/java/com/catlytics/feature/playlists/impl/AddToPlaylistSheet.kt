@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.TriStateCheckbox
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -129,7 +127,7 @@ fun AddToPlaylistSheet(
                         headlineContent = {
                             Text(stringResource(PlaylistsR.string.playlists_new_playlist))
                         },
-                        leadingContent = { Icon(Icons.Default.Add, contentDescription = null) },
+                        leadingContent = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable(enabled = preview != null) { onCreatePlaylist(sourceTrackIds) },
