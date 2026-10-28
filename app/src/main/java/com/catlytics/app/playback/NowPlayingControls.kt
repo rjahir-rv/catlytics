@@ -47,7 +47,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.displayTrackTitle
@@ -55,6 +54,7 @@ import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
+import com.catlytics.app.R as AppR
 
 @Composable
 internal fun NowPlayingTransportControls(

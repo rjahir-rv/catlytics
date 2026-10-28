@@ -13,8 +13,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -23,16 +23,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.text.displayArtistName
-import com.catlytics.core.model.Artist
 import com.catlytics.core.designsystem.component.CollapsibleHint
 import com.catlytics.core.designsystem.component.InfoToggleButton
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.feature.library.impl.R as LibraryR
 
@@ -54,8 +54,12 @@ internal fun ArtistMergeDialogs(
         is ArtistMergeDialog.SelectTarget -> {
             val candidates = remember(state.mergeCandidates, dialog.query) {
                 val query = dialog.query.trim()
-                if (query.isEmpty()) state.mergeCandidates else state.mergeCandidates.filter {
-                    it.name.contains(query, ignoreCase = true)
+                if (query.isEmpty()) {
+                    state.mergeCandidates
+                } else {
+                    state.mergeCandidates.filter {
+                        it.name.contains(query, ignoreCase = true)
+                    }
                 }
             }
             ModalBottomSheet(onDismissRequest = onDismiss) {

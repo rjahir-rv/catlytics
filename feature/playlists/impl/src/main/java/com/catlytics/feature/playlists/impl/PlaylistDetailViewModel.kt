@@ -17,13 +17,12 @@ import com.catlytics.core.domain.usecase.playlist.ReorderPlaylistTracksUseCase
 import com.catlytics.core.domain.usecase.playlist.RestorePlaylistTracksUseCase
 import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
 import com.catlytics.core.domain.usecase.playlist.UpdatePlaylistDetailsUseCase
-import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.NowPlaying
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaylistContent
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,6 +34,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 internal sealed interface PlaylistDetailUiState {
     data object Loading : PlaylistDetailUiState

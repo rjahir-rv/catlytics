@@ -1,9 +1,9 @@
 package com.catlytics.core.domain.repository
 
-import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.PeriodUniqueCounts
+import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.TopAlbum
@@ -25,6 +25,7 @@ interface PlaybackEventRepository {
     fun observeTopArtists(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopArtist>>
     fun observeTopAlbums(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopAlbum>>
     fun observeTotalListeningTime(startMillis: Long, endMillis: Long): Flow<Long>
+
     /**
      * Daily totals for [[startMillis], [endMillis]). [DailyListeningStat.dayIndex] is 1-based
      * from the local calendar day of [startMillis].

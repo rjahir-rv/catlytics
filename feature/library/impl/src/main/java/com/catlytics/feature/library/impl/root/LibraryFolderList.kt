@@ -1,12 +1,5 @@
 package com.catlytics.feature.library.impl.root
 
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.lazy.grid.LazyGridState
-import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -24,6 +17,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -50,19 +49,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.CatlyticsMenuItem
 import com.catlytics.core.designsystem.component.CatlyticsOptionsMenu
-import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.TrackBadge
 import com.catlytics.core.designsystem.component.sectionLetter
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.SortDirection
 import com.catlytics.feature.library.impl.LibraryDimens
-import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.sortedFoldersByDirection
+import com.catlytics.feature.library.impl.R as LibraryR
 
 @Composable
 internal fun LibraryFolderList(
@@ -118,7 +118,7 @@ internal fun LibraryFolderList(
                     onAddToPlaylist = { onAddToPlaylist(folder) },
                     modifier = Modifier.animateItem().staggeredEntrance(
                         index = index + 1,
-                        animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
+                        animate = animateEntrance && index < LibraryDimens.ENTRANCE_MAX_STAGGERED_ITEMS,
                     ),
                 )
             }

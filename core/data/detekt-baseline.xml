@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:DataStorePlaylistRepository.kt:DataStorePlaylistRepository$override suspend fun restorePlaylists</ID>
+    <ID>Filename:CatlyticsEntities.kt:com.catlytics.core.data.model.CatlyticsEntities.kt</ID>
+    <ID>Filename:TrackMetadataBackup.kt:com.catlytics.core.data.repository.TrackMetadataBackup.kt</ID>
+    <ID>LongMethod:MediaStoreLibraryDataSource.kt:AndroidMediaStoreLibraryDataSource$override suspend fun loadTracks: List&lt;TrackEntity&gt;</ID>
+    <ID>LoopWithTooManyJumpStatements:RoomArtistIdentityRepository.kt:while</ID>
+    <ID>MagicNumber:OfflineFirstLibraryRepository.kt:3</ID>
+    <ID>MagicNumber:OfflineFirstLibraryRepository.kt:4</ID>
+    <ID>MagicNumber:PlaylistBackupSection.kt:PlaylistBackupSection$50</ID>
+    <ID>MagicNumber:TrackMetadataOverrideDao.kt:TrackMetadataOverrideDao$500</ID>
+    <ID>MatchingDeclarationName:CatlyticsEntities.kt:TrackEntity</ID>
+    <ID>MatchingDeclarationName:TrackMetadataBackup.kt:TrackMetadataOverrideDto</ID>
+    <ID>MatchingDeclarationName:TrackMetadataOverrides.kt:OverrideIdResolver</ID>
+    <ID>ReturnCount:PlaylistBackupSection.kt:TrackReconciler$fun reconcile: TrackEntity?</ID>
+    <ID>TooGenericExceptionCaught:BackupCodec.kt:BackupCodec$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:BackupStreams.kt:throwable: Throwable</ID>
+  </CurrentIssues>
+</SmellBaseline>

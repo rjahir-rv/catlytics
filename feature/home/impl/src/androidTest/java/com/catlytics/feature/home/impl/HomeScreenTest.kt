@@ -13,8 +13,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.catlytics.core.model.Artist
-import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopTrack
+import com.catlytics.core.model.Track
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test

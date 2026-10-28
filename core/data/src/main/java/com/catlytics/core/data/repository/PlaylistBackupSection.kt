@@ -17,12 +17,12 @@ import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
 import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 import com.catlytics.core.model.artistIdentityKey
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.Base64
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.util.Base64
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class PlaylistBackupSection @Inject constructor(

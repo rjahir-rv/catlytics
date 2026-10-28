@@ -8,9 +8,9 @@ import androidx.core.net.toUri
 import com.kyant.taglib.Picture
 import com.kyant.taglib.TagLib
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 data class AudioTags(
     val title: String,

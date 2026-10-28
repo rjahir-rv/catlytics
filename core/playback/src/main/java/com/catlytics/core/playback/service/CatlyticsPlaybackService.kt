@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.media.AudioManager
 import androidx.annotation.OptIn
+import androidx.core.net.toUri
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
@@ -14,12 +15,11 @@ import androidx.media3.session.MediaSessionService
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
 import com.catlytics.core.playback.AndroidEqualizerRepository
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import androidx.core.net.toUri
+import javax.inject.Inject
 
 @OptIn(UnstableApi::class)
 @AndroidEntryPoint
@@ -61,7 +61,6 @@ class CatlyticsPlaybackService : MediaSessionService() {
             }
         }
     }
-
 
     override fun onCreate() {
         super.onCreate()
@@ -110,7 +109,7 @@ class CatlyticsPlaybackService : MediaSessionService() {
             this,
             0,
             intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
 
         mediaSession = MediaSession.Builder(this, exoPlayer)

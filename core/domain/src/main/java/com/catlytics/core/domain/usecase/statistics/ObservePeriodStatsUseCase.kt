@@ -8,9 +8,9 @@ import com.catlytics.core.model.StatsGranularity
 import com.catlytics.core.model.TopAlbum
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
-import java.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import java.time.Clock
 
 class ObservePeriodStatsUseCase(
     private val playbackEventRepository: PlaybackEventRepository,

@@ -1,10 +1,5 @@
 package com.catlytics.feature.library.impl.folder
 
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -15,6 +10,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +35,7 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.TrackListRow
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.asString
@@ -45,9 +45,9 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.impl.LibraryDimens
-import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.collection.LibraryMessage
 import com.catlytics.feature.library.impl.root.FolderIcon
+import com.catlytics.feature.library.impl.R as LibraryR
 
 @Composable
 internal fun LibraryFolderScreen(

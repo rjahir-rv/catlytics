@@ -4,8 +4,10 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -17,11 +19,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.platform.LocalDensity
 import com.catlytics.core.model.Track
-import kotlin.math.sign
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.runtime.Stable
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlin.math.sign
 
 @Stable
 internal class QueueReorderState(
@@ -111,7 +111,7 @@ internal class QueueReorderState(
     suspend fun autoScrollWhileDragging() {
         val trackId = draggedTrackId ?: return
         val itemHeight = itemHeightPx()
-        val maxStepPx = itemHeight * QueueAutoScrollMaxStepFraction
+        val maxStepPx = itemHeight * QUEUE_AUTO_SCROLL_MAX_STEP_FRACTION
         while (true) {
             withFrameNanos { }
             val layoutInfo = listState.layoutInfo
@@ -142,7 +142,7 @@ internal class QueueReorderState(
 
     private fun applyDragSwaps(trackId: String) {
         val itemHeight = itemHeightPx()
-        val swapThreshold = itemHeight * QueueSwapThresholdFraction
+        val swapThreshold = itemHeight * QUEUE_SWAP_THRESHOLD_FRACTION
         while (true) {
             val direction = when {
                 dragOffsetSync > swapThreshold -> 1
@@ -209,8 +209,8 @@ internal fun rememberQueueReorderState(
     return state
 }
 
-private const val QueueAutoScrollMaxStepFraction = 0.2f
-private const val QueueSwapThresholdFraction = 0.55f
+private const val QUEUE_AUTO_SCROLL_MAX_STEP_FRACTION = 0.2f
+private const val QUEUE_SWAP_THRESHOLD_FRACTION = 0.55f
 internal fun queueDragIndexRange(draggedIndex: Int, currentIndex: Int, size: Int): IntRange = when {
     size <= 0 -> IntRange.EMPTY
     currentIndex !in 0 until size -> 0 until size

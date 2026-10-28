@@ -2,9 +2,9 @@ package com.catlytics.core.playback
 
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.Artist
-import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
@@ -70,7 +70,7 @@ class PlaybackTrackerTest {
         mediaUri = "uri",
         artworkUri = null,
         albumId = null,
-        albumTitle = null
+        albumTitle = null,
     )
 
     @Test
@@ -137,7 +137,7 @@ class PlaybackTrackerTest {
             mediaUri = "uri2",
             artworkUri = null,
             albumId = null,
-            albumTitle = null
+            albumTitle = null,
         )
 
         // Play track-1 for 35s

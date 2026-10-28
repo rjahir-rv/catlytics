@@ -16,36 +16,36 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.component.rememberArtworkGradient
-import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
+import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
 import com.catlytics.core.designsystem.component.TrackSelectionHost
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
+import com.catlytics.core.designsystem.component.rememberArtworkGradient
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistTrackSort
-import com.catlytics.feature.library.impl.collection.LibraryMessage
-import com.catlytics.feature.library.impl.collection.SortOption
-import com.catlytics.feature.library.impl.collection.SortOptionsSheet
-import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
-import com.catlytics.feature.library.impl.R as LibraryR
+import com.catlytics.feature.library.impl.collection.LibraryMessage
+import com.catlytics.feature.library.impl.collection.SortOption
+import com.catlytics.feature.library.impl.collection.SortOptionsSheet
 import kotlinx.coroutines.launch
+import com.catlytics.feature.library.impl.R as LibraryR
 
 @Composable
 internal fun LibraryArtistScreen(
@@ -239,96 +239,96 @@ internal fun ArtistContent(
             onAction = onTrackSelectionAction,
             modifier = Modifier.fillMaxSize(),
         ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    deferredPadding(
-                        top = { scaffoldContentPadding.calculateTopPadding() },
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        deferredPadding(
+                            top = { scaffoldContentPadding.calculateTopPadding() },
+                        ),
                     ),
-                ),
-        ) {
-            SearchCollapsibleHeader(isSearching = isSearching) {
-                ArtistHeader(
-                    content = content,
-                    artworkModel = artworkGradient.artworkRequest,
-                    onArtworkLoaded = artworkGradient::onArtworkLoaded,
-                    sortLabel = when (ArtistDetailSection.entries[pagerState.currentPage]) {
-                        ArtistDetailSection.Songs -> trackSort.takeIf { it != ArtistTrackSort.Album }?.label()
-                        ArtistDetailSection.Albums -> albumSort.takeIf { it != ArtistAlbumSort.Title }?.label()
-                    },
-                    playbackQueue = playbackQueue,
-                    onPlayAll = { playbackQueue.firstOrNull()?.let { onTrackSelected(it, playbackQueue) } },
-                    onPlayShuffled = { onPlayShuffled(playbackQueue) },
-                    menuEntries = artistMenuEntries(
+            ) {
+                SearchCollapsibleHeader(isSearching = isSearching) {
+                    ArtistHeader(
                         content = content,
-                        tracks = playbackQueue,
-                        likedTrackIds = likedTrackIds,
-                        section = ArtistDetailSection.entries[pagerState.currentPage],
-                        aliasCount = aliases.size,
-                        canRename = canRename,
-                        onTrackSelectionAction = onTrackSelectionAction,
-                        onAddToPlaylist = onAddToPlaylist,
-                        onSort = { section -> sortSheet = section },
-                        onShowRename = onShowRename,
-                        onChangeArtwork = onChangeArtwork,
-                        onRestoreArtwork = onRestoreArtwork,
-                        onShowMergePicker = onShowMergePicker,
-                        onShowAliasManager = onShowAliasManager,
-                    ),
-                    modifier = Modifier.padding(
-                        start = 20.dp,
-                        top = 20.dp,
-                        end = 20.dp,
-                        bottom = 8.dp,
-                    ),
-                )
-            }
-            ArtistSectionTabs(
-                selectedIndex = pagerState.currentPage,
-                onSectionSelected = { index ->
-                    selectedSectionIndex.intValue = index
-                    coroutineScope.launch {
-                        pagerState.animateScrollToPage(index)
-                    }
-                },
-            )
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.weight(1f),
-            ) { page ->
-                when (ArtistDetailSection.entries[page]) {
-                    ArtistDetailSection.Songs -> ArtistSongsPage(
-                        tracks = content.tracks,
-                        state = songsListState,
-                        onTrackSelected = { track ->
-                            if (selection.active) {
-                                selectionState.value = selection.onTrackLongClick(track.id)
-                            } else {
-                                onTrackSelected(track, playbackQueue)
-                            }
+                        artworkModel = artworkGradient.artworkRequest,
+                        onArtworkLoaded = artworkGradient::onArtworkLoaded,
+                        sortLabel = when (ArtistDetailSection.entries[pagerState.currentPage]) {
+                            ArtistDetailSection.Songs -> trackSort.takeIf { it != ArtistTrackSort.Album }?.label()
+                            ArtistDetailSection.Albums -> albumSort.takeIf { it != ArtistAlbumSort.Title }?.label()
                         },
-                        onTrackOptions = onTrackOptions,
-                        bottomPadding = bottomPadding,
-                        currentTrackId = currentTrackId,
-                        isCurrentTrackPlaying = isCurrentTrackPlaying,
-                        selection = selection,
-                        onTrackLongClick = { track ->
-                            selectionState.value = selection.onTrackLongClick(track.id)
-                        },
-                    )
-                    ArtistDetailSection.Albums -> ArtistAlbumsPage(
-                        albums = content.albums,
-                        state = albumsGridState,
-                        onAlbumSelected = onAlbumSelected,
-                        onAddToPlaylist = { album ->
-                            onAddToPlaylist(PlaylistSource.AlbumSource(album.id))
-                        },
-                        bottomPadding = bottomPadding,
+                        playbackQueue = playbackQueue,
+                        onPlayAll = { playbackQueue.firstOrNull()?.let { onTrackSelected(it, playbackQueue) } },
+                        onPlayShuffled = { onPlayShuffled(playbackQueue) },
+                        menuEntries = artistMenuEntries(
+                            content = content,
+                            tracks = playbackQueue,
+                            likedTrackIds = likedTrackIds,
+                            section = ArtistDetailSection.entries[pagerState.currentPage],
+                            aliasCount = aliases.size,
+                            canRename = canRename,
+                            onTrackSelectionAction = onTrackSelectionAction,
+                            onAddToPlaylist = onAddToPlaylist,
+                            onSort = { section -> sortSheet = section },
+                            onShowRename = onShowRename,
+                            onChangeArtwork = onChangeArtwork,
+                            onRestoreArtwork = onRestoreArtwork,
+                            onShowMergePicker = onShowMergePicker,
+                            onShowAliasManager = onShowAliasManager,
+                        ),
+                        modifier = Modifier.padding(
+                            start = 20.dp,
+                            top = 20.dp,
+                            end = 20.dp,
+                            bottom = 8.dp,
+                        ),
                     )
                 }
+                ArtistSectionTabs(
+                    selectedIndex = pagerState.currentPage,
+                    onSectionSelected = { index ->
+                        selectedSectionIndex.intValue = index
+                        coroutineScope.launch {
+                            pagerState.animateScrollToPage(index)
+                        }
+                    },
+                )
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier.weight(1f),
+                ) { page ->
+                    when (ArtistDetailSection.entries[page]) {
+                        ArtistDetailSection.Songs -> ArtistSongsPage(
+                            tracks = content.tracks,
+                            state = songsListState,
+                            onTrackSelected = { track ->
+                                if (selection.active) {
+                                    selectionState.value = selection.onTrackLongClick(track.id)
+                                } else {
+                                    onTrackSelected(track, playbackQueue)
+                                }
+                            },
+                            onTrackOptions = onTrackOptions,
+                            bottomPadding = bottomPadding,
+                            currentTrackId = currentTrackId,
+                            isCurrentTrackPlaying = isCurrentTrackPlaying,
+                            selection = selection,
+                            onTrackLongClick = { track ->
+                                selectionState.value = selection.onTrackLongClick(track.id)
+                            },
+                        )
+                        ArtistDetailSection.Albums -> ArtistAlbumsPage(
+                            albums = content.albums,
+                            state = albumsGridState,
+                            onAlbumSelected = onAlbumSelected,
+                            onAddToPlaylist = { album ->
+                                onAddToPlaylist(PlaylistSource.AlbumSource(album.id))
+                            },
+                            bottomPadding = bottomPadding,
+                        )
+                    }
+                }
             }
-        }
         }
     }
 }

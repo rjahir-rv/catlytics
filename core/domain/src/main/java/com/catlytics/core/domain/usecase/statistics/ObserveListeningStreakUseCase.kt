@@ -2,10 +2,10 @@ package com.catlytics.core.domain.usecase.statistics
 
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.ListeningStreak
-import java.time.Clock
-import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.Clock
+import java.time.LocalDate
 
 class ObserveListeningStreakUseCase(
     private val playbackEventRepository: PlaybackEventRepository,

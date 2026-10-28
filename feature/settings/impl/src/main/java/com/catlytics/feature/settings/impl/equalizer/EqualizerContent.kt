@@ -100,7 +100,7 @@ private fun EqualizerVisualizerPanel(
             )
             EqualizerFrequencyScale(equalizerState = equalizerState)
             HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
             )
             EqualizerOutputRow(
                 equalizerState = equalizerState,

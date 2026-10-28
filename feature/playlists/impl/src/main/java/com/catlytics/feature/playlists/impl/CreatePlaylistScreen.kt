@@ -81,8 +81,6 @@ import coil3.request.ImageRequest
 import coil3.request.SuccessResult
 import coil3.request.allowHardware
 import coil3.toBitmap
-import com.catlytics.core.designsystem.layout.centeredContentMaxWidth
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientBackground
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
@@ -90,6 +88,8 @@ import com.catlytics.core.designsystem.component.ArtworkPlaceholder
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
 import com.catlytics.core.designsystem.component.extractArtworkGradientColors
 import com.catlytics.core.designsystem.component.nameSeededGradient
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.layout.centeredContentMaxWidth
 import com.catlytics.core.model.Playlist
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
 

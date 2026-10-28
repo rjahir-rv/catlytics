@@ -6,13 +6,13 @@ import com.catlytics.core.domain.usecase.playlist.CreatePlaylistUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
 import com.catlytics.core.model.Playlist
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 internal class CreatePlaylistViewModel @Inject constructor(
@@ -60,7 +60,7 @@ internal fun isPlaylistNameTaken(name: String, playlists: List<Playlist>): Boole
         playlists.any { it.name.equals(normalized, ignoreCase = true) }
 }
 
-//Siguiente número libre para el nombre por defecto
+// Siguiente número libre para el nombre por defecto
 internal fun nextDefaultPlaylistNumber(
     playlists: List<Playlist>,
     formatName: (Int) -> String,

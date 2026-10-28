@@ -1,11 +1,11 @@
 package com.catlytics.core.domain.usecase.statistics
 
 import com.catlytics.core.domain.repository.PlaybackEventRepository
-import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningNarrativeKind
 import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.PeriodUniqueCounts
+import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.TopAlbum
 import com.catlytics.core.model.TopArtist
@@ -64,7 +64,7 @@ class FakePlaybackEventRepository2 : PlaybackEventRepository {
         startMillis: Long,
         endMillis: Long,
     ): Flow<List<DailyListeningStat>> = flowOf(
-        listOf(DailyListeningStat(dayIndex = 1, totalListenedMillis = 120_000L))
+        listOf(DailyListeningStat(dayIndex = 1, totalListenedMillis = 120_000L)),
     )
 
     override fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int> = flowOf(3)
@@ -86,7 +86,6 @@ class FakePlaybackEventRepository2 : PlaybackEventRepository {
 
     override fun observeBackupSummary(): Flow<com.catlytics.core.model.StatisticsBackupSummary> =
         flowOf(com.catlytics.core.model.StatisticsBackupSummary(0, null, null))
-
 }
 
 class ObserveRecentlyPlayedTracksUseCaseTest {
@@ -115,7 +114,7 @@ class ObserveWeeklyStatsUseCaseTest {
     // Fixed clock: Wednesday, June 24, 2026 (local time or UTC)
     private val clock = Clock.fixed(
         Instant.parse("2026-06-24T12:00:00Z"),
-        ZoneId.of("UTC")
+        ZoneId.of("UTC"),
     )
 
     private val useCase = ObserveWeeklyStatsUseCase(repository, clock)

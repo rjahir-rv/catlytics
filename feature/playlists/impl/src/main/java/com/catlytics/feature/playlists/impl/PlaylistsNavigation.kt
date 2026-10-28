@@ -1,8 +1,5 @@
 package com.catlytics.feature.playlists.impl
 
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import com.catlytics.core.designsystem.layout.LocalPaneChrome
-import com.catlytics.core.designsystem.component.CatlyticsDetailPlaceholder
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
 import androidx.compose.runtime.Composable
@@ -17,6 +14,9 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.metadata
 import androidx.navigation3.ui.NavDisplay
+import com.catlytics.core.designsystem.component.CatlyticsDetailPlaceholder
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.layout.LocalPaneChrome
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
@@ -24,8 +24,8 @@ import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.navigation.verticalSheetEnterTransition
 import com.catlytics.core.navigation.verticalSheetExitTransition
 import com.catlytics.feature.playlists.api.CreatePlaylistRoute
-import com.catlytics.feature.playlists.api.PlaylistsRoute
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
+import com.catlytics.feature.playlists.api.PlaylistsRoute
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
 fun EntryProviderScope<NavKey>.playlistsEntry(

@@ -441,6 +441,7 @@ data class StatisticsImportResult(
 enum class StatisticsImportMode {
     /** Keep existing events and only insert non-duplicates from the file. */
     Merge,
+
     /** Delete all local events, then insert the file contents. */
     Replace,
 }
@@ -501,5 +502,3 @@ data class UnifiedImportResult(
     val statistics: StatisticsImportResult? = null,
     val playlists: PlaylistImportResult? = null,
 )
-
-

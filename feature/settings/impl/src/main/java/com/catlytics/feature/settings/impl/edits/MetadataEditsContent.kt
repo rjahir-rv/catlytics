@@ -1,15 +1,5 @@
 package com.catlytics.feature.settings.impl.edits
 
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import com.catlytics.core.designsystem.component.CatlyticsArtwork
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.GridCells
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.horizontalScroll
@@ -22,7 +12,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -46,6 +42,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
@@ -57,19 +55,21 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.component.CatlyticsTrackRow
 import com.catlytics.core.designsystem.component.CollapsibleHint
 import com.catlytics.core.designsystem.component.InfoToggleButton
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.designsystem.text.resolve
-import com.catlytics.feature.settings.impl.R as SettingsR
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import com.catlytics.feature.settings.impl.R as SettingsR
 
 @Composable
 internal fun MetadataEditsRoute(

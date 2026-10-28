@@ -8,13 +8,12 @@ import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtworkEdit
-import com.catlytics.core.model.TrackMetadataEdit
 import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.StatisticsImportMode
-import java.io.File
+import com.catlytics.core.model.TrackMetadataEdit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -31,6 +30,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class UnifiedBackupLogicTest {
@@ -219,7 +219,9 @@ class UnifiedBackupLogicTest {
     }
 
     @Test
-    fun `Option B missing tracks in unified import are omitted and returned in warning list`() = runTest(testDispatcher) {
+    fun `Option B missing tracks in unified import are omitted and returned in warning list`() = runTest(
+        testDispatcher,
+    ) {
         val tracks = listOf(track(id = "ms-1", title = "Song A", artist = "Artist A"))
         localDataSource.replaceTracks(tracks)
         val playlist = playlistRepository.createPlaylist("Mix")

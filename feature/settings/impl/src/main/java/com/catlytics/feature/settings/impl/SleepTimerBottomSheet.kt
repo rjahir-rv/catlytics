@@ -37,12 +37,12 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.layout.isCompactWindowHeight
 import com.catlytics.core.designsystem.format.SleepTimerFormat
+import com.catlytics.core.designsystem.layout.isCompactWindowHeight
 import com.catlytics.core.model.SleepTimerState
 import kotlin.math.PI
 import kotlin.math.atan2

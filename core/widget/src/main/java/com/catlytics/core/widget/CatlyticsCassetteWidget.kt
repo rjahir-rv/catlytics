@@ -53,13 +53,13 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.flow.first
 import com.catlytics.core.designsystem.locale.resolveLocale
 import com.catlytics.core.designsystem.locale.withAppLocale
 import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.AppLanguage
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.flow.first
 import com.catlytics.core.designsystem.R as DesignR
 
 private val COMPACT_SIZE = DpSize(250.dp, 60.dp)
@@ -263,7 +263,6 @@ private fun ScrewRow(palette: WidgetPalette) {
     }
 }
 
-
 @Composable
 private fun LabelStripe(hasTrack: Boolean, isPlaying: Boolean, palette: WidgetPalette) {
     val context = LocalContext.current
@@ -366,6 +365,7 @@ private fun TransportKeys(
     modifier: GlanceModifier,
 ) {
     val context = LocalContext.current
+
     // Sin cinta no hay nada que controlar: las teclas abren la app para elegir música.
     fun actionOrOpen(action: Action) = if (state.hasTrack) action else openApp
 

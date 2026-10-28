@@ -3,12 +3,12 @@ package com.catlytics.app.navigation
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.navigation3.runtime.NavKey
-import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.feature.home.api.HomeRoute
 import com.catlytics.feature.library.api.LibraryRoute
 import com.catlytics.feature.playlists.api.PlaylistsRoute
 import com.catlytics.feature.statistics.api.StatisticsRoute
+import com.catlytics.app.R as AppR
 
 enum class TopLevelDestination(
     val route: NavKey,

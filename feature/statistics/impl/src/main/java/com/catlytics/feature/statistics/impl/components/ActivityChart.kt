@@ -31,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -75,7 +76,7 @@ internal fun ActivityChart(
     val resolvedLabels = dayLabels ?: defaultDayLabels(safeDayCount, weekDayLabels.toList())
     var selectedIndex by remember(safeDayCount) { mutableStateOf<Int?>(null) }
     // Mantiene el último día tocado para que el texto no desaparezca de golpe al ocultarse.
-    var lastSelectedIndex by remember(safeDayCount) { mutableStateOf(0) }
+    var lastSelectedIndex by remember(safeDayCount) { mutableIntStateOf(0) }
     val entrance = remember { Animatable(0f) }
     LaunchedEffect(Unit) {
         entrance.animateTo(

@@ -1,8 +1,8 @@
 package com.catlytics.core.data.local.room
 
 import androidx.room.Database
-import androidx.room.migration.Migration
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
@@ -14,7 +14,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
     ],
     views = [ResolvedPlaybackEventView::class],
     version = 5,
-    exportSchema = true
+    exportSchema = true,
 )
 abstract class CatlyticsDatabase : RoomDatabase() {
     abstract fun playbackEventDao(): PlaybackEventDao

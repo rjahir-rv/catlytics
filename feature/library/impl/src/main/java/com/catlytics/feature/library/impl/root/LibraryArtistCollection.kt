@@ -1,6 +1,5 @@
 package com.catlytics.feature.library.impl.root
 
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.clickable
@@ -45,6 +44,7 @@ import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.sectionLetter
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
@@ -53,8 +53,8 @@ import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.SortDirection
 import com.catlytics.feature.library.impl.LibraryDimens
-import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.sortedArtistsByDirection
+import com.catlytics.feature.library.impl.R as LibraryR
 
 @Composable
 internal fun LibraryArtistCollection(
@@ -137,7 +137,7 @@ private fun ArtistList(
                     onOptions = { onAddToPlaylist(artist) },
                     modifier = Modifier.animateItem().staggeredEntrance(
                         index = index,
-                        animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
+                        animate = animateEntrance && index < LibraryDimens.ENTRANCE_MAX_STAGGERED_ITEMS,
                     ),
                 )
             }
@@ -224,7 +224,7 @@ private fun ArtistGrid(
                 onOptions = { onAddToPlaylist(artist) },
                 modifier = Modifier.animateItem().staggeredEntrance(
                     index = index,
-                    animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
+                    animate = animateEntrance && index < LibraryDimens.ENTRANCE_MAX_STAGGERED_ITEMS,
                 ),
             )
         }

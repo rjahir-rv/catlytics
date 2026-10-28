@@ -8,13 +8,13 @@ import com.catlytics.core.domain.usecase.playlist.ResolvePlaylistSourcePreviewUs
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.PlaylistSourcePreview
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 internal data class PlaylistRef(
     val id: String,

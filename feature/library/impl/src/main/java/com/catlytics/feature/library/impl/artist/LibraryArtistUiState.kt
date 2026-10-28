@@ -1,11 +1,11 @@
 package com.catlytics.feature.library.impl.artist
 
 import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistTrackSort
-import com.catlytics.core.model.Artist
-import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
 import com.catlytics.core.model.artistIdentityKey

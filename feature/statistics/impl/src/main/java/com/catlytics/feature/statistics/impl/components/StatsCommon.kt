@@ -17,8 +17,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ripple
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -30,9 +30,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.R as DesignSystemR
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
+import com.catlytics.core.designsystem.R as DesignSystemR
 
 internal val CardShape = CatlyticsCorners.Large
 internal val SoftShape = CatlyticsCorners.Medium

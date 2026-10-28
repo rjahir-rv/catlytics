@@ -3,19 +3,18 @@ package com.catlytics.feature.playlists.impl
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.res.stringResource
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -24,6 +23,7 @@ import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import kotlinx.coroutines.launch
 
 @Composable
 internal fun PlaylistDetailRoute(

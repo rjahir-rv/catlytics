@@ -2,11 +2,11 @@ package com.catlytics.core.domain.usecase.home
 
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.Track
-import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.LocalDate
 
 class GenerateDailyPlaylistUseCaseTest {
     @Test

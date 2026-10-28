@@ -67,7 +67,8 @@ interface PlaybackEventDao {
     @Query("SELECT track_id AS trackId, COUNT(*) AS playCount FROM playback_events GROUP BY track_id")
     fun observeTrackPlayCounts(): Flow<List<TrackPlayCountRow>>
 
-    @Query("""
+    @Query(
+        """
         SELECT track_id AS trackId,
                track_title AS title,
                COALESCE(MAX(alias.target_artist_name), MAX(artist_name)) AS artistName,
@@ -77,10 +78,12 @@ interface PlaybackEventDao {
         GROUP BY track_id
         ORDER BY lastListenedAtMillis DESC
         LIMIT :limit
-    """)
+    """,
+    )
     fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>>
 
-    @Query("""
+    @Query(
+        """
         SELECT track_id AS trackId, 
                track_title AS title, 
                COALESCE(MAX(alias.target_artist_name), MAX(artist_name)) AS artistName,
@@ -92,10 +95,12 @@ interface PlaybackEventDao {
         GROUP BY track_id
         ORDER BY playCount DESC, totalListenedMillis DESC
         LIMIT :limit
-    """)
+    """,
+    )
     fun observeTopTracks(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopTrack>>
 
-    @Query("""
+    @Query(
+        """
         SELECT MAX(COALESCE(alias.target_artist_id, artist_id)) AS artistId,
                MAX(COALESCE(alias.target_artist_name, artist_name)) AS name,
                MAX(artwork_uri) AS artworkUri, 
@@ -106,10 +111,12 @@ interface PlaybackEventDao {
         GROUP BY COALESCE(alias.target_key, artist_key)
         ORDER BY totalListenedMillis DESC
         LIMIT :limit
-    """)
+    """,
+    )
     fun observeTopArtists(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopArtist>>
 
-    @Query("""
+    @Query(
+        """
         SELECT album_id AS albumId,
                album_title AS title,
                COALESCE(MAX(alias.target_artist_name), MAX(artist_name)) AS artistName,
@@ -122,14 +129,17 @@ interface PlaybackEventDao {
         GROUP BY album_id
         ORDER BY totalListenedMillis DESC, playCount DESC
         LIMIT :limit
-    """)
+    """,
+    )
     fun observeTopAlbums(startMillis: Long, endMillis: Long, limit: Int): Flow<List<TopAlbum>>
 
-    @Query("""
+    @Query(
+        """
         SELECT COALESCE(SUM(duration_listened_millis), 0)
         FROM playback_events
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
-    """)
+    """,
+    )
     fun observeTotalListeningTime(startMillis: Long, endMillis: Long): Flow<Long>
 
     /**
@@ -137,7 +147,8 @@ interface PlaybackEventDao {
      * 1-based from the local calendar day of [startMillis] (1 = first day of the period).
      * Works for both week and month ranges.
      */
-    @Query("""
+    @Query(
+        """
         SELECT CAST(
                    ROUND(
                        julianday(date(timestamp / 1000, 'unixepoch', 'localtime'))
@@ -150,44 +161,53 @@ interface PlaybackEventDao {
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
         GROUP BY 1
         ORDER BY 1
-    """)
+    """,
+    )
     fun observeDailyListening(startMillis: Long, endMillis: Long): Flow<List<DailyListeningStat>>
 
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(*)
         FROM playback_events
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
-    """)
+    """,
+    )
     fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int>
 
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(DISTINCT track_id) AS trackCount,
                COUNT(DISTINCT COALESCE(alias.target_key, artist_key)) AS artistCount,
                COUNT(DISTINCT album_id) AS albumCount
         FROM $EVENTS_WITH_ARTIST_ALIASES
         WHERE timestamp >= :startMillis AND timestamp < :endMillis
-    """)
+    """,
+    )
     fun observePeriodUniqueCounts(
         startMillis: Long,
         endMillis: Long,
     ): Flow<PeriodUniqueCounts>
 
-    @Query("""
+    @Query(
+        """
         SELECT COUNT(DISTINCT track_id) AS trackCount,
                COUNT(DISTINCT COALESCE(alias.target_key, artist_key)) AS artistCount,
                COUNT(DISTINCT album_id) AS albumCount
         FROM $EVENTS_WITH_ARTIST_ALIASES
-    """)
+    """,
+    )
     fun observeListeningTotals(): Flow<ListeningTotals>
 
     /**
      * Distinct local calendar days with at least one event, newest first (yyyy-MM-dd).
      */
-    @Query("""
+    @Query(
+        """
         SELECT DISTINCT date(timestamp / 1000, 'unixepoch', 'localtime') AS day
         FROM playback_events
         ORDER BY day DESC
-    """)
+    """,
+    )
     fun observeActiveListeningDays(): Flow<List<String>>
 
     @Query("SELECT * FROM playback_events ORDER BY timestamp ASC")

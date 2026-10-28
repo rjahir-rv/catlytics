@@ -8,15 +8,15 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.ShuffleOrder
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
 internal class CrossfadeCoordinator(

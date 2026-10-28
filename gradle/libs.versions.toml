@@ -29,6 +29,8 @@ errorProneAnnotations = "2.50.0"
 haze = "2.0.1"
 taglib = "1.0.6"
 aboutLibraries = "15.3.0"
+detekt = "2.0.0-alpha.6"
+composeRules = "0.6.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -87,6 +89,9 @@ haze = { group = "dev.chrisbanes.haze", name = "haze", version.ref = "haze" }
 haze-blur = { group = "dev.chrisbanes.haze", name = "haze-blur", version.ref = "haze" }
 taglib = { group = "io.github.kyant0", name = "taglib", version.ref = "taglib" }
 aboutlibraries-compose-m3 = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutLibraries" }
+detekt-gradle-plugin = { group = "dev.detekt", name = "detekt-gradle-plugin", version.ref = "detekt" }
+detekt-rules-ktlint-wrapper = { group = "dev.detekt", name = "detekt-rules-ktlint-wrapper", version.ref = "detekt" }
+compose-rules-detekt = { group = "io.nlopez.compose.rules", name = "detekt", version.ref = "composeRules" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

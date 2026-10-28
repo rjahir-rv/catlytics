@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComposableParamOrder:CatlyticsMiniPlayer.kt:@Composable fun CatlyticsMiniPlayer</ID>
+    <ID>ComposableParamOrder:CatlyticsTrackRow.kt:@Composable private fun TrackArtwork</ID>
+    <ID>ContentSlotReused:CatlyticsLayout.kt:artwork: @Composable (isWide: Boolean) -&gt; Unit</ID>
+    <ID>ContentSlotReused:CatlyticsLayout.kt:details: @Composable ColumnScope.(isWide: Boolean) -&gt; Unit</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:0.22f</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:0.40f</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:0.45f</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:0.55f</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:0.65f</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:0.74f</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:0.87f</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:28</ID>
+    <ID>MagicNumber:ArtworkGradient.kt:360</ID>
+    <ID>MagicNumber:TrackDurationFormat.kt:TrackDurationFormat$1_000L</ID>
+    <ID>MatchingDeclarationName:CatlyticsLayout.kt:CatlyticsLayoutTokens</ID>
+    <ID>ModifierWithoutDefault:CatlyticsLetterFastScroller.kt:modifier: Modifier</ID>
+    <ID>ModifierWithoutDefault:CatlyticsTopAppBar.kt:modifier: Modifier</ID>
+    <ID>PreviewAnnotationNaming:FormFactorPreviews.kt:FormFactorPreviews</ID>
+  </CurrentIssues>
+</SmellBaseline>

@@ -13,16 +13,16 @@ import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
-import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopTrack
+import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 internal class HomeViewModel @Inject constructor(
@@ -128,5 +128,4 @@ internal class HomeViewModel @Inject constructor(
         const val TOP_TRACKS_LIMIT = 3
         const val MIN_SHUFFLE_TRACK_COUNT = 2
     }
-
 }

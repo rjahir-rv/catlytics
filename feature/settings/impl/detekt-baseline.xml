@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>BackingPropertyNaming:SettingsViewModel.kt:SettingsViewModel$private val _musicScanStatus = MutableStateFlow&lt;MusicScanStatus&gt;(MusicScanStatus.Idle)</ID>
+    <ID>BackingPropertyNaming:SettingsViewModel.kt:SettingsViewModel$private val _unifiedBackupStatus = MutableStateFlow&lt;UnifiedBackupStatus&gt;(UnifiedBackupStatus.Idle)</ID>
+    <ID>BackingPropertyNaming:SettingsViewModel.kt:SettingsViewModel$private val _unifiedImportPreview = MutableStateFlow&lt;UnifiedBackupPreview?&gt;(null)</ID>
+    <ID>ComposableParamOrder:SettingsScreen.kt:@Composable internal fun SettingsScreen</ID>
+    <ID>CyclomaticComplexMethod:EqualizerGraph.kt:@Composable internal fun EqualizerGraph</ID>
+    <ID>CyclomaticComplexMethod:UnifiedBackupContent.kt:@Composable internal fun UnifiedBackupContent</ID>
+    <ID>LambdaParameterInRestartableEffect:SettingsScreen.kt:onEntranceStarted: () -&gt; Unit</ID>
+    <ID>LambdaParameterInRestartableEffect:SettingsScreen.kt:onTopBarBackActionChange: ((() -&gt; Unit)?) -&gt; Unit = {}</ID>
+    <ID>LambdaParameterInRestartableEffect:SettingsScreen.kt:onTopBarTitleChange: (String) -&gt; Unit = {}</ID>
+    <ID>LoopWithTooManyJumpStatements:EqualizerGraph.kt:while</ID>
+    <ID>ModifierMissing:SettingsComponents.kt:@Composable fun SettingsDivider</ID>
+    <ID>MultipleEmitters:MetadataEditsContent.kt:@Composable internal fun MetadataEditsContent</ID>
+    <ID>TooManyFunctions:SettingsViewModel.kt:SettingsViewModel : ViewModel</ID>
+  </CurrentIssues>
+</SmellBaseline>

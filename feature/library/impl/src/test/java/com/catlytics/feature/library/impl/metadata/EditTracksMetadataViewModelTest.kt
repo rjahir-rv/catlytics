@@ -3,10 +3,10 @@ package com.catlytics.feature.library.impl.metadata
 import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
-import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTracksWithOverridesUseCase
 import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.library.WriteTracksTagsToFilesUseCase
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias

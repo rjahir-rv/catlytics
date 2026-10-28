@@ -12,16 +12,16 @@ import com.catlytics.core.model.EqualizerLevelRange
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class AndroidEqualizerRepository @Inject constructor(

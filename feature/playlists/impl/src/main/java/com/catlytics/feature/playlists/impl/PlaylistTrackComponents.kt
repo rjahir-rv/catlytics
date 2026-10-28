@@ -40,12 +40,12 @@ import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
-import com.catlytics.feature.playlists.impl.R as PlaylistsR
 import java.text.Collator
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
 @Composable
 internal fun PlaylistTrackRow(
@@ -178,10 +178,14 @@ internal fun List<Track>.alphabeticalOrder(): List<Track> {
     }
     return sortedWith { first, second ->
         val titleComparison = collator.compare(first.title, second.title)
-        if (titleComparison != 0) titleComparison else collator.compare(
-            first.artist.name,
-            second.artist.name,
-        )
+        if (titleComparison != 0) {
+            titleComparison
+        } else {
+            collator.compare(
+                first.artist.name,
+                second.artist.name,
+            )
+        }
     }
 }
 

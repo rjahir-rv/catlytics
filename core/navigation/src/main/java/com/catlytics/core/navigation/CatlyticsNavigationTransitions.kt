@@ -11,42 +11,50 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 
 fun navigationForwardTransition() =
-    (slideInHorizontally(
-        animationSpec = tween(
-            durationMillis = NAVIGATION_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        initialOffsetX = { fullWidth -> fullWidth / 8 },
-    ) + fadeIn(
-        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
-    )) togetherWith (slideOutHorizontally(
-        animationSpec = tween(
-            durationMillis = NAVIGATION_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        targetOffsetX = { fullWidth -> -fullWidth / 16 },
-    ) + fadeOut(
-        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
-    ))
+    (
+        slideInHorizontally(
+            animationSpec = tween(
+                durationMillis = NAVIGATION_TRANSITION_MILLIS,
+                easing = FastOutSlowInEasing,
+            ),
+            initialOffsetX = { fullWidth -> fullWidth / 8 },
+        ) + fadeIn(
+            animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
+        )
+        ) togetherWith (
+        slideOutHorizontally(
+            animationSpec = tween(
+                durationMillis = NAVIGATION_TRANSITION_MILLIS,
+                easing = FastOutSlowInEasing,
+            ),
+            targetOffsetX = { fullWidth -> -fullWidth / 16 },
+        ) + fadeOut(
+            animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
+        )
+        )
 
 fun navigationBackTransition() =
-    (slideInHorizontally(
-        animationSpec = tween(
-            durationMillis = NAVIGATION_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        initialOffsetX = { fullWidth -> -fullWidth / 16 },
-    ) + fadeIn(
-        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
-    )) togetherWith (slideOutHorizontally(
-        animationSpec = tween(
-            durationMillis = NAVIGATION_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        targetOffsetX = { fullWidth -> fullWidth / 8 },
-    ) + fadeOut(
-        animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
-    ))
+    (
+        slideInHorizontally(
+            animationSpec = tween(
+                durationMillis = NAVIGATION_TRANSITION_MILLIS,
+                easing = FastOutSlowInEasing,
+            ),
+            initialOffsetX = { fullWidth -> -fullWidth / 16 },
+        ) + fadeIn(
+            animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
+        )
+        ) togetherWith (
+        slideOutHorizontally(
+            animationSpec = tween(
+                durationMillis = NAVIGATION_TRANSITION_MILLIS,
+                easing = FastOutSlowInEasing,
+            ),
+            targetOffsetX = { fullWidth -> fullWidth / 8 },
+        ) + fadeOut(
+            animationSpec = tween(durationMillis = NAVIGATION_TRANSITION_MILLIS),
+        )
+        )
 
 fun verticalSheetEnterTransition() =
     slideInVertically(
@@ -68,18 +76,20 @@ fun verticalSheetEnterTransition() =
     )
 
 fun verticalSheetExitTransition() =
-    (fadeIn(
-        animationSpec = tween(
-            durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-    ) togetherWith slideOutVertically(
-        animationSpec = tween(
-            durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
-            easing = FastOutSlowInEasing,
-        ),
-        targetOffsetY = { fullHeight -> fullHeight },
-    )).apply {
+    (
+        fadeIn(
+            animationSpec = tween(
+                durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
+                easing = FastOutSlowInEasing,
+            ),
+        ) togetherWith slideOutVertically(
+            animationSpec = tween(
+                durationMillis = VERTICAL_SHEET_TRANSITION_MILLIS,
+                easing = FastOutSlowInEasing,
+            ),
+            targetOffsetY = { fullHeight -> fullHeight },
+        )
+        ).apply {
         targetContentZIndex = -1f
     }
 

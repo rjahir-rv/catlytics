@@ -5,12 +5,12 @@ import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackSessionSnapshot
 import com.catlytics.core.model.Track
-import kotlin.random.Random
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.random.Random
 
 class PlaybackQueueModelTest {
     private val model = PlaybackQueueModel(Random(7))

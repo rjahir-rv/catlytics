@@ -31,7 +31,13 @@ class SleepTimerEndIndexTest {
     fun repeatOneAlwaysEndsOnCurrentTrack() {
         assertEquals(
             1,
-            sleepTimerEndIndex(queue, currentIndex = 1, positionMillis = 0L, remainingMillis = 3_600_000L, PlaybackRepeatMode.One),
+            sleepTimerEndIndex(
+                queue,
+                currentIndex = 1,
+                positionMillis = 0L,
+                remainingMillis = 3_600_000L,
+                PlaybackRepeatMode.One,
+            ),
         )
     }
 
@@ -40,7 +46,13 @@ class SleepTimerEndIndexTest {
         // Desde el inicio de "c": 3 min de "c" + 3 min de "a" + 1 min de "b".
         assertEquals(
             1,
-            sleepTimerEndIndex(queue, currentIndex = 2, positionMillis = 0L, remainingMillis = 420_000L, PlaybackRepeatMode.All),
+            sleepTimerEndIndex(
+                queue,
+                currentIndex = 2,
+                positionMillis = 0L,
+                remainingMillis = 420_000L,
+                PlaybackRepeatMode.All,
+            ),
         )
     }
 

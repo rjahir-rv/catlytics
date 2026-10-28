@@ -2,13 +2,13 @@ package com.catlytics.app.playback
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,13 +43,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.Track
+import com.catlytics.app.R as AppR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -80,7 +80,7 @@ internal fun QueueSwipeableItem(
         swipeProgress,
     )
     val deleteIconProgress =
-        ((swipeProgress - DeleteIconRevealProgress) / (1f - DeleteIconRevealProgress)).coerceIn(0f, 1f)
+        ((swipeProgress - DELETE_ICON_REVEAL_PROGRESS) / (1f - DELETE_ICON_REVEAL_PROGRESS)).coerceIn(0f, 1f)
     val iconScale = 0.7f + (0.3f * deleteIconProgress)
 
     SwipeToDismissBox(
@@ -142,7 +142,7 @@ internal fun QueueTrackRow(
     modifier: Modifier = Modifier,
 ) {
     val currentHighlight by animateColorAsState(
-        targetValue = if (isCurrent) accent.copy(alpha = CurrentRowHighlightAlpha) else Color.Transparent,
+        targetValue = if (isCurrent) accent.copy(alpha = CURRENT_ROW_HIGHLIGHT_ALPHA) else Color.Transparent,
         animationSpec = tween(durationMillis = 300),
         label = "queueCurrentHighlight",
     )
@@ -257,5 +257,5 @@ internal fun QueueTrackRow(
 private val QueueArtworkSize = 40.dp
 private val QueueArtworkShape = RoundedCornerShape(10.dp)
 private val QueueActionTouchTarget = 48.dp
-private const val CurrentRowHighlightAlpha = 0.12f
-private const val DeleteIconRevealProgress = 0.08f
+private const val CURRENT_ROW_HIGHLIGHT_ALPHA = 0.12f
+private const val DELETE_ICON_REVEAL_PROGRESS = 0.08f

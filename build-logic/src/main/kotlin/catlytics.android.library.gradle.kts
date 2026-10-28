@@ -1,6 +1,7 @@
 import com.android.build.api.dsl.LibraryExtension
 
 apply(plugin = "com.android.library")
+apply(plugin = "catlytics.android.lint")
 
 extensions.configure<LibraryExtension>("android") {
     compileSdk {

@@ -1,11 +1,11 @@
 package com.catlytics.feature.library.impl.artist
 
 import android.graphics.Bitmap
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -17,19 +17,19 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
-import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.designsystem.component.CatlyticsMenuDivider
 import com.catlytics.core.designsystem.component.CatlyticsMenuEntry
 import com.catlytics.core.designsystem.component.CatlyticsMenuItem
+import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
+import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.model.ArtistContent
-import com.catlytics.feature.library.impl.collection.CollectionPlaybackRow
-import com.catlytics.feature.library.impl.collection.collectionMenuEntries
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.feature.library.impl.collection.CollectionPlaybackRow
+import com.catlytics.feature.library.impl.collection.collectionMenuEntries
 import com.catlytics.feature.library.impl.R as LibraryR
 
 @Composable

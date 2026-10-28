@@ -8,12 +8,12 @@ import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveAlbumContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
-import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
-import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveEditableTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.ResetTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.SaveTrackMetadataUseCase
+import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
 import com.catlytics.core.domain.usecase.library.WriteTrackTagsToFileUseCase
 import com.catlytics.core.domain.usecase.library.WriteTracksTagsToFilesUseCase
 import com.catlytics.core.model.Album
@@ -132,7 +132,12 @@ class EditTrackMetadataViewModelTest {
     @Test
     fun `a new cover can be applied to the whole album as one shared edit`() = runTest {
         libraryRepository.albumContent.value = AlbumContent(
-            album = Album("album-unknown", "Álbum desconocido", Artist("unknown", "Artista desconocido"), trackCount = 2),
+            album = Album(
+                "album-unknown",
+                "Álbum desconocido",
+                Artist("unknown", "Artista desconocido"),
+                trackCount = 2,
+            ),
             tracks = listOf(track(), track().copy(id = "track-2")),
         )
         val viewModel = openedViewModel()
@@ -180,7 +185,12 @@ class EditTrackMetadataViewModelTest {
     fun `a cover applied to the album writes every album file`() = runTest {
         val second = track().copy(id = "track-2", mediaUri = "content://media/2")
         libraryRepository.albumContent.value = AlbumContent(
-            album = Album("album-unknown", "Álbum desconocido", Artist("unknown", "Artista desconocido"), trackCount = 2),
+            album = Album(
+                "album-unknown",
+                "Álbum desconocido",
+                Artist("unknown", "Artista desconocido"),
+                trackCount = 2,
+            ),
             tracks = listOf(track(), second),
         )
         val viewModel = openedViewModel()

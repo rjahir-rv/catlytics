@@ -9,7 +9,6 @@ import com.catlytics.core.model.PlaybackEvent
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.Serializable
 
-
 @Serializable
 internal data class BackupDocument(
     val format: String,

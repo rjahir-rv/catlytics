@@ -33,11 +33,11 @@ import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.ThemeMode
 import com.catlytics.core.widget.NowPlayingWidgetSync
 import dagger.hilt.android.AndroidEntryPoint
-import java.util.Locale
-import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.util.Locale
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

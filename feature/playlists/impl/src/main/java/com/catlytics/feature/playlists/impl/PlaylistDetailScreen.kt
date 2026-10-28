@@ -1,11 +1,5 @@
 package com.catlytics.feature.playlists.impl
 
-import com.catlytics.core.designsystem.component.rememberArtworkGradient
-import com.catlytics.core.designsystem.layout.deferredPadding
-import com.catlytics.core.designsystem.layout.plusHorizontal
-import com.catlytics.core.designsystem.layout.withDeferredBottom
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import androidx.compose.foundation.layout.BoxWithConstraints
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -15,6 +9,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,8 +19,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -44,10 +39,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -58,10 +53,15 @@ import com.catlytics.core.designsystem.component.ArtworkGradientColors
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
 import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
 import com.catlytics.core.designsystem.component.TrackSelectionHost
-import com.catlytics.core.designsystem.component.isSearching
 import com.catlytics.core.designsystem.component.animateArtworkGradientColors
+import com.catlytics.core.designsystem.component.isSearching
+import com.catlytics.core.designsystem.component.rememberArtworkGradient
 import com.catlytics.core.designsystem.component.rememberFallbackArtworkGradientColors
 import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.layout.deferredPadding
+import com.catlytics.core.designsystem.layout.plusHorizontal
+import com.catlytics.core.designsystem.layout.withDeferredBottom
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.NowPlaying
@@ -69,8 +69,8 @@ import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.core.navigation.ViewModelStoreScope
-import com.catlytics.core.designsystem.R as DsR
 import kotlinx.coroutines.delay
+import com.catlytics.core.designsystem.R as DsR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -241,179 +241,181 @@ internal fun PlaylistDetailScreen(
             },
             modifier = Modifier.fillMaxSize(),
         ) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val horizontalInset =
-                ((maxWidth - CatlyticsLayoutTokens.ListContentMaxWidth) / 2).coerceAtLeast(0.dp)
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .nestedScroll(scrollConnection),
-                contentPadding = deferredPadding(
-                    top = {
-                        scaffoldContentPadding.calculateTopPadding() +
-                            if (searchVisible && content.tracks.isNotEmpty() && !customOrdering && !selection.active) {
-                                72.dp
-                            } else if (selection.active) {
-                                72.dp
-                            } else {
-                                0.dp
-                            }
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                val horizontalInset =
+                    ((maxWidth - CatlyticsLayoutTokens.ListContentMaxWidth) / 2).coerceAtLeast(0.dp)
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(scrollConnection),
+                    contentPadding = deferredPadding(
+                        top = {
+                            scaffoldContentPadding.calculateTopPadding() +
+                                if (searchVisible && content.tracks.isNotEmpty() && !customOrdering &&
+                                    !selection.active
+                                ) {
+                                    72.dp
+                                } else if (selection.active) {
+                                    72.dp
+                                } else {
+                                    0.dp
+                                }
+                        },
+                    ).plusHorizontal(horizontalInset).withDeferredBottom {
+                        bottomPadding() + 20.dp + if (selection.active) 72.dp else 0.dp
                     },
-                ).plusHorizontal(horizontalInset).withDeferredBottom {
-                    bottomPadding() + 20.dp + if (selection.active) 72.dp else 0.dp
-                },
-            ) {
-                item(key = "playlist-header") {
-                    SearchCollapsibleHeader(isSearching = hidePlaylistHeader) {
-                        PlaylistHeader(
-                            playlist = playlist,
-                            tracks = content.tracks,
-                            artworkRequest = artworkGradient.artworkRequest,
-                            nowPlaying = nowPlaying,
-                            customOrdering = customOrdering,
-                            onArtworkLoaded = artworkGradient::onArtworkLoaded,
-                            onPlay = onPlay,
-                            onPlayShuffled = onPlayShuffled,
-                            onTogglePlayback = onTogglePlayback,
-                            onAddTracksClick = { showAddTracksSheet = true },
-                            onOptionsClick = { optionsExpanded = true },
-                            optionsMenu = {
-                                PlaylistOptionsMenu(
-                                    expanded = optionsExpanded,
-                                    canEdit = playlist.id != LIKED_PLAYLIST_ID,
-                                    onDismiss = { optionsExpanded = false },
-                                    onOrder = { showOrderSheet = true },
-                                    onEdit = {
-                                        editName = playlist.name
-                                        editDescription = playlist.description
-                                        editArtworkUri = playlist.artworkUri
-                                        artworkChanged = false
-                                        showEditSheet = true
-                                    },
-                                    onAddTracks = { showAddTracksSheet = true },
-                                    onAddToPlaylist = { showAddSheet = true },
-                                    onExportM3u = onExportM3u,
-                                    onDelete = { showDeleteDialog = true },
-                                )
-                            },
-                            onCancelOrdering = {
-                                customOrdering = false
-                                customTracks = emptyList()
-                            },
-                            onSaveOrdering = {
-                                onSaveOrder(customTracks.map(Track::id)) {
+                ) {
+                    item(key = "playlist-header") {
+                        SearchCollapsibleHeader(isSearching = hidePlaylistHeader) {
+                            PlaylistHeader(
+                                playlist = playlist,
+                                tracks = content.tracks,
+                                artworkRequest = artworkGradient.artworkRequest,
+                                nowPlaying = nowPlaying,
+                                customOrdering = customOrdering,
+                                onArtworkLoaded = artworkGradient::onArtworkLoaded,
+                                onPlay = onPlay,
+                                onPlayShuffled = onPlayShuffled,
+                                onTogglePlayback = onTogglePlayback,
+                                onAddTracksClick = { showAddTracksSheet = true },
+                                onOptionsClick = { optionsExpanded = true },
+                                optionsMenu = {
+                                    PlaylistOptionsMenu(
+                                        expanded = optionsExpanded,
+                                        canEdit = playlist.id != LIKED_PLAYLIST_ID,
+                                        onDismiss = { optionsExpanded = false },
+                                        onOrder = { showOrderSheet = true },
+                                        onEdit = {
+                                            editName = playlist.name
+                                            editDescription = playlist.description
+                                            editArtworkUri = playlist.artworkUri
+                                            artworkChanged = false
+                                            showEditSheet = true
+                                        },
+                                        onAddTracks = { showAddTracksSheet = true },
+                                        onAddToPlaylist = { showAddSheet = true },
+                                        onExportM3u = onExportM3u,
+                                        onDelete = { showDeleteDialog = true },
+                                    )
+                                },
+                                onCancelOrdering = {
                                     customOrdering = false
                                     customTracks = emptyList()
-                                }
-                            },
-                        )
+                                },
+                                onSaveOrdering = {
+                                    onSaveOrder(customTracks.map(Track::id)) {
+                                        customOrdering = false
+                                        customTracks = emptyList()
+                                    }
+                                },
+                            )
+                        }
+                    }
+
+                    if (content.tracks.isEmpty()) {
+                        item(key = "empty") {
+                            CatlyticsEmptyState(
+                                message = stringResource(R.string.playlist_detail_empty),
+                                mascotSize = 112.dp,
+                                fillMaxSize = false,
+                                modifier = Modifier.padding(vertical = 16.dp),
+                                action = {
+                                    Button(onClick = { showAddTracksSheet = true }) {
+                                        Icon(
+                                            painter = painterResource(DsR.drawable.ic_add),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                        )
+                                        Text(
+                                            text = stringResource(R.string.playlist_detail_add_tracks),
+                                            modifier = Modifier.padding(start = 8.dp),
+                                        )
+                                    }
+                                },
+                            )
+                        }
+                    } else if (displayedTracks.isEmpty()) {
+                        item(key = "no-results") {
+                            CatlyticsEmptyState(
+                                message = stringResource(R.string.playlist_detail_no_search_results),
+                                messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                mascotSize = 120.dp,
+                                fillMaxSize = false,
+                                modifier = Modifier.padding(vertical = 16.dp),
+                            )
+                        }
+                    } else {
+                        itemsIndexed(
+                            displayedTracks,
+                            key = { _, track -> track.id },
+                            contentType = { _, _ -> "track" },
+                        ) { index, track ->
+                            PlaylistTrackRow(
+                                modifier = Modifier
+                                    .animateItem()
+                                    .staggeredEntrance(
+                                        index = index,
+                                        animate = !entranceDone && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                                    ),
+                                track = track,
+                                customOrdering = customOrdering,
+                                isCurrent = track.id == nowPlaying.trackId,
+                                isPlaying = track.id == nowPlaying.trackId &&
+                                    nowPlaying.isPlaying,
+                                onClick = {
+                                    if (selection.active && !customOrdering) {
+                                        selectionState.value = selection.onTrackLongClick(track.id)
+                                    } else {
+                                        onPlay(track, content.tracks)
+                                    }
+                                },
+                                onOptions = { onTrackOptions(track) },
+                                onMove = { direction ->
+                                    customTracks = customTracks.moveTrack(track.id, direction)
+                                },
+                                selected = track.id in selection.selectedIds,
+                                selectionActive = selection.active,
+                                onLongClick = {
+                                    if (!customOrdering) {
+                                        selectionState.value = selection.onTrackLongClick(track.id)
+                                    }
+                                },
+                            )
+                        }
                     }
                 }
 
-                if (content.tracks.isEmpty()) {
-                    item(key = "empty") {
-                        CatlyticsEmptyState(
-                            message = stringResource(R.string.playlist_detail_empty),
-                            mascotSize = 112.dp,
-                            fillMaxSize = false,
-                            modifier = Modifier.padding(vertical = 16.dp),
-                            action = {
-                                Button(onClick = { showAddTracksSheet = true }) {
-                                    Icon(
-                                        painter = painterResource(DsR.drawable.ic_add),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp),
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.playlist_detail_add_tracks),
-                                        modifier = Modifier.padding(start = 8.dp),
-                                    )
-                                }
-                            },
-                        )
-                    }
-                } else if (displayedTracks.isEmpty()) {
-                    item(key = "no-results") {
-                        CatlyticsEmptyState(
-                            message = stringResource(R.string.playlist_detail_no_search_results),
-                            messageColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            mascotSize = 120.dp,
-                            fillMaxSize = false,
-                            modifier = Modifier.padding(vertical = 16.dp),
-                        )
-                    }
-                } else {
-                    itemsIndexed(
-                        displayedTracks,
-                        key = { _, track -> track.id },
-                        contentType = { _, _ -> "track" },
-                    ) { index, track ->
-                        PlaylistTrackRow(
-                            modifier = Modifier
-                                .animateItem()
-                                .staggeredEntrance(
-                                    index = index,
-                                    animate = !entranceDone && index < ENTRANCE_MAX_STAGGERED_ITEMS,
+                AnimatedVisibility(
+                    visible = searchVisible && content.tracks.isNotEmpty() && !customOrdering && !selection.active,
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    enter = slideInVertically { -it } + fadeIn(),
+                    exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
+                ) {
+                    PlaylistTrackSearchBar(
+                        query = searchQuery,
+                        onQueryChange = { searchQuery = it },
+                        onFocusChange = { searchFocused = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(
+                                deferredPadding(
+                                    start = 20.dp,
+                                    top = { scaffoldContentPadding.calculateTopPadding() + 8.dp },
+                                    end = 20.dp,
+                                    bottom = { 8.dp },
                                 ),
-                            track = track,
-                            customOrdering = customOrdering,
-                            isCurrent = track.id == nowPlaying.trackId,
-                            isPlaying = track.id == nowPlaying.trackId &&
-                                nowPlaying.isPlaying,
-                            onClick = {
-                                if (selection.active && !customOrdering) {
-                                    selectionState.value = selection.onTrackLongClick(track.id)
-                                } else {
-                                    onPlay(track, content.tracks)
-                                }
-                            },
-                            onOptions = { onTrackOptions(track) },
-                            onMove = { direction ->
-                                customTracks = customTracks.moveTrack(track.id, direction)
-                            },
-                            selected = track.id in selection.selectedIds,
-                            selectionActive = selection.active,
-                            onLongClick = {
-                                if (!customOrdering) {
-                                    selectionState.value = selection.onTrackLongClick(track.id)
-                                }
-                            },
-                        )
-                    }
-                }
-            }
-
-            AnimatedVisibility(
-                visible = searchVisible && content.tracks.isNotEmpty() && !customOrdering && !selection.active,
-                modifier = Modifier.align(Alignment.TopCenter),
-                enter = slideInVertically { -it } + fadeIn(),
-                exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut(),
-            ) {
-                PlaylistTrackSearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onFocusChange = { searchFocused = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(
-                            deferredPadding(
-                                start = 20.dp,
-                                top = { scaffoldContentPadding.calculateTopPadding() + 8.dp },
-                                end = 20.dp,
-                                bottom = { 8.dp },
                             ),
-                        ),
+                    )
+                }
+
+                SnackbarHost(
+                    hostState = snackbarHostState,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .offset { IntOffset(0, -(bottomPadding() + 8.dp).roundToPx()) },
                 )
             }
-
-            SnackbarHost(
-                hostState = snackbarHostState,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .offset { IntOffset(0, -(bottomPadding() + 8.dp).roundToPx()) },
-            )
-        }
         }
     }
 

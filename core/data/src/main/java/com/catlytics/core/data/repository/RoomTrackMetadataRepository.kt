@@ -19,15 +19,15 @@ import com.catlytics.core.model.TrackMetadataEdit
 import com.catlytics.core.model.TrackMetadataOverride
 import com.catlytics.core.model.artistIdentityKey
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.Base64
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import java.util.Base64
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class RoomTrackMetadataRepository internal constructor(

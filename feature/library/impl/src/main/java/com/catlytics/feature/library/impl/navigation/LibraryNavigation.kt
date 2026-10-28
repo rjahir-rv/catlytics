@@ -1,28 +1,28 @@
 package com.catlytics.feature.library.impl.navigation
 
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import com.catlytics.core.designsystem.layout.LocalPaneChrome
-import com.catlytics.feature.library.impl.R
-import com.catlytics.core.designsystem.component.CatlyticsDetailPlaceholder
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
-import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.catlytics.core.designsystem.component.CatlyticsDetailPlaceholder
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
+import com.catlytics.core.designsystem.layout.LocalPaneChrome
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
-import com.catlytics.feature.library.api.LibraryAlbumRoute as LibraryAlbumDestination
-import com.catlytics.feature.library.api.LibraryArtistRoute as LibraryArtistDestination
-import com.catlytics.feature.library.api.LibraryFolderRoute as LibraryFolderDestination
 import com.catlytics.feature.library.api.LibraryRoute
+import com.catlytics.feature.library.impl.R
 import com.catlytics.feature.library.impl.album.LibraryAlbumRoute
 import com.catlytics.feature.library.impl.artist.LibraryArtistRoute
 import com.catlytics.feature.library.impl.folder.LibraryFolderRoute
+import com.catlytics.feature.library.api.LibraryAlbumRoute as LibraryAlbumDestination
+import com.catlytics.feature.library.api.LibraryArtistRoute as LibraryArtistDestination
+import com.catlytics.feature.library.api.LibraryFolderRoute as LibraryFolderDestination
 import com.catlytics.feature.library.impl.root.LibraryRoute as LibraryRootRoute
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -30,7 +30,6 @@ fun EntryProviderScope<NavKey>.libraryEntry(
     searchQuery: () -> String,
     artistSearchQuery: () -> String,
     isArtistSearchActive: () -> Boolean = { false },
-    onArtistSearchQueryChange: (String) -> Unit,
     onDestinationSelected: (NavKey) -> Unit,
     onListDestinationSelected: (NavKey) -> Unit = onDestinationSelected,
     onAddToPlaylist: (PlaylistSource) -> Unit,
@@ -107,7 +106,6 @@ fun EntryProviderScope<NavKey>.libraryEntry(
             },
             searchQuery = artistSearchQuery(),
             isSearchActive = isArtistSearchActive(),
-            onSearchQueryChange = onArtistSearchQueryChange,
             bottomPadding = bottomPadding,
             scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
         )

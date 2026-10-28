@@ -9,12 +9,12 @@ import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.StatisticsExportResult
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.StatisticsImportResult
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class StatisticsBackupSection @Inject constructor(

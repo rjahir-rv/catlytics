@@ -1,28 +1,28 @@
 package com.catlytics.feature.library.impl.artist
 
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
-import android.widget.Toast
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.designsystem.component.isSearching
 import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionAction
 import com.catlytics.feature.library.api.LibraryArtistRoute
-import com.catlytics.core.designsystem.component.isSearching
 
 @Composable
 internal fun LibraryArtistRoute(
@@ -36,7 +36,6 @@ internal fun LibraryArtistRoute(
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     onTopBarColorChange: (Color) -> Unit,
     searchQuery: String,
-    onSearchQueryChange: (String) -> Unit,
     isSearchActive: Boolean = false,
     bottomPadding: () -> Dp = { 0.dp },
     scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),

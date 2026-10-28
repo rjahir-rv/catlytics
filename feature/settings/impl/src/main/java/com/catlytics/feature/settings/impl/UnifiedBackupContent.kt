@@ -1,8 +1,5 @@
 package com.catlytics.feature.settings.impl
 
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -16,6 +13,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -34,16 +33,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.UnifiedBackupPreview
 import com.catlytics.core.model.UnifiedBackupSummary
-import com.catlytics.feature.settings.impl.R as SettingsR
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsSection
 import com.catlytics.feature.settings.impl.components.SettingsValueRow
+import com.catlytics.feature.settings.impl.R as SettingsR
 
 @Composable
 internal fun UnifiedBackupContent(

@@ -2,10 +2,10 @@ package com.catlytics.feature.playlists.impl
 
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.Track
-import kotlin.random.Random
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
+import kotlin.random.Random
 
 class PlaylistDetailOrderingTest {
     @Test

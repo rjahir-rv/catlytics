@@ -1,14 +1,14 @@
 package com.catlytics.feature.library.impl.root
 
-import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
-import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibrarySortDirectionUseCase
-import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetLibrarySortDirectionUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
@@ -16,8 +16,8 @@ import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
-import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.LibraryFolderContent
+import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers

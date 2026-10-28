@@ -2,44 +2,44 @@ package com.catlytics.feature.home.impl
 
 import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
-import com.catlytics.core.model.Album
-import com.catlytics.core.model.AlbumContent
-import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
 import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
 import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
-import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
+import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
 import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
+import com.catlytics.core.model.Album
+import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.HomeRecommendationsSettings
-import com.catlytics.core.model.LibraryFolder
-import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
+import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.LibraryFolderContent
+import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Playlist
-import com.catlytics.core.model.PlaybackEvent
-import com.catlytics.core.model.DailyListeningStat
-import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.RecentlyPlayedTrack
-import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopArtist
 import com.catlytics.core.model.TopTrack
-import kotlinx.coroutines.flow.Flow
+import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
@@ -593,7 +593,6 @@ private class FakeHomePlaybackEventRepository : PlaybackEventRepository {
 
     override fun observeBackupSummary(): Flow<com.catlytics.core.model.StatisticsBackupSummary> =
         flowOf(com.catlytics.core.model.StatisticsBackupSummary(0, null, null))
-
 }
 
 private class FakeHomePreferencesRepository(

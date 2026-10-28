@@ -32,8 +32,8 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
@@ -42,13 +42,13 @@ import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.SortDirection
 import com.catlytics.feature.library.impl.LibraryDimens
-import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.sortedAlbumsByDirection
+import com.catlytics.feature.library.impl.R as LibraryR
 
 @Composable
 internal fun LibraryAlbumGrid(
     albums: List<Album>,
-    modifier : Modifier = Modifier,
+    modifier: Modifier = Modifier,
     state: LazyGridState = rememberLazyGridState(),
     sortDirection: SortDirection,
     onAlbumSelected: (Album) -> Unit,
@@ -84,7 +84,7 @@ internal fun LibraryAlbumGrid(
                 onAddToPlaylist = { onAddToPlaylist(album) },
                 modifier = Modifier.animateItem().staggeredEntrance(
                     index = index,
-                    animate = animateEntrance && index < LibraryDimens.EntranceMaxStaggeredItems,
+                    animate = animateEntrance && index < LibraryDimens.ENTRANCE_MAX_STAGGERED_ITEMS,
                 ),
             )
         }

@@ -2,11 +2,11 @@ package com.catlytics.feature.home.impl
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -35,17 +35,17 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.component.TrackListRow
-import com.catlytics.core.designsystem.layout.plusHorizontal
-import com.catlytics.core.designsystem.layout.CenteredListContainer
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsLetterFastScroller
 import com.catlytics.core.designsystem.component.SearchCollapsibleHeader
+import com.catlytics.core.designsystem.component.TrackListRow
 import com.catlytics.core.designsystem.component.sectionLetter
+import com.catlytics.core.designsystem.layout.CenteredListContainer
+import com.catlytics.core.designsystem.layout.plusHorizontal
 import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.Track
-import com.catlytics.feature.home.impl.R as HomeR
 import kotlinx.coroutines.delay
+import com.catlytics.feature.home.impl.R as HomeR
 
 @Composable
 internal fun HomeTrackList(

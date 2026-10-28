@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComposableParamOrder:ActivityChart.kt:@Composable internal fun ActivityChart</ID>
+    <ID>ComposableParamOrder:DashboardCards.kt:@Composable internal fun ExploreStatsCta</ID>
+    <ID>ComposableParamOrder:DashboardCards.kt:@Composable internal fun NarrativeProgressHint</ID>
+    <ID>ComposableParamOrder:DashboardCards.kt:@Composable internal fun NarrativeSummaryCard</ID>
+    <ID>MagicNumber:ActivityChart.kt:7</ID>
+  </CurrentIssues>
+</SmellBaseline>

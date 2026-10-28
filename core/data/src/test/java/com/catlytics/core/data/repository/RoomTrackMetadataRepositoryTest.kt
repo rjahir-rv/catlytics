@@ -13,7 +13,6 @@ import com.catlytics.core.model.BulkTrackMetadataEdit
 import com.catlytics.core.model.FieldEdit
 import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.TrackMetadataEdit
-import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -26,6 +25,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class RoomTrackMetadataRepositoryTest {

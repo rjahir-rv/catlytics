@@ -89,7 +89,6 @@ fun CatlyticsDetailPlaceholder(
     )
 }
 
-
 @Composable
 private fun catlyticsMascot(): Int =
     if (MaterialTheme.colorScheme.background.luminance() < 0.5f) {

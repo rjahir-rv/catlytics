@@ -6,10 +6,10 @@ import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.ThemeMode
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import javax.inject.Inject
 
 @HiltViewModel
 class ThemeViewModel @Inject constructor(

@@ -7,12 +7,12 @@ import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.domain.repository.PlaylistExportRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.Locale
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import java.util.Locale
+import javax.inject.Inject
 
 class M3uPlaylistExportRepository @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -51,7 +51,6 @@ class M3uPlaylistExportRepository @Inject constructor(
         }
     }
 }
-
 
 internal fun TrackEntity.m3uLocation(): String {
     val key = fileKey ?: return mediaUri

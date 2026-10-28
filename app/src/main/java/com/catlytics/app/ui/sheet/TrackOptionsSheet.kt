@@ -22,11 +22,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsSheetAction
 import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.Track
+import com.catlytics.app.R as AppR
 
 internal data class TrackOption(
     @param:StringRes val textRes: Int,
@@ -247,4 +247,3 @@ internal fun TrackOptionsDropdownMenu(
         }
     }
 }
-

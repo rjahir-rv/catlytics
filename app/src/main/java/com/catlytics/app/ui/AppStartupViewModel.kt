@@ -7,7 +7,6 @@ import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.domain.usecase.library.ObserveLibraryChangesUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
 internal sealed interface AppStartupUiState {

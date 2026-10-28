@@ -8,8 +8,8 @@ import com.catlytics.core.domain.usecase.library.SetAlbumTrackSortUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistAlbumSortUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistTrackSortUseCase
 import com.catlytics.core.model.DetailSortSettings
-import java.lang.reflect.Proxy
 import kotlinx.coroutines.flow.MutableStateFlow
+import java.lang.reflect.Proxy
 
 internal class SortTestFakes {
     val settings = MutableStateFlow(DetailSortSettings())
@@ -18,9 +18,15 @@ internal class SortTestFakes {
     private val preferences: LibraryPreferencesRepository = proxy { name, args ->
         when (name) {
             "observeDetailSortSettings" -> settings
-            "setAlbumTrackSort" -> settings.value = settings.value.copy(albumTracks = args[0] as com.catlytics.core.model.AlbumTrackSort)
-            "setArtistTrackSort" -> settings.value = settings.value.copy(artistTracks = args[0] as com.catlytics.core.model.ArtistTrackSort)
-            "setArtistAlbumSort" -> settings.value = settings.value.copy(artistAlbums = args[0] as com.catlytics.core.model.ArtistAlbumSort)
+            "setAlbumTrackSort" -> settings.value = settings.value.copy(
+                albumTracks = args[0] as com.catlytics.core.model.AlbumTrackSort,
+            )
+            "setArtistTrackSort" -> settings.value = settings.value.copy(
+                artistTracks = args[0] as com.catlytics.core.model.ArtistTrackSort,
+            )
+            "setArtistAlbumSort" -> settings.value = settings.value.copy(
+                artistAlbums = args[0] as com.catlytics.core.model.ArtistAlbumSort,
+            )
             else -> error("Unexpected call $name")
         }
     }

@@ -71,13 +71,13 @@ import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.SortDirection
-import com.catlytics.feature.library.impl.R as LibraryR
 import com.catlytics.feature.library.impl.filterAlbumsByQuery
 import com.catlytics.feature.library.impl.filterArtistsByQuery
 import com.catlytics.feature.library.impl.filterFoldersByQuery
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.milliseconds
+import com.catlytics.feature.library.impl.R as LibraryR
 
 @Composable
 internal fun LibraryScreen(
@@ -334,7 +334,7 @@ private fun LibraryContent(
                                 translationY = -f * headerHeightPx
                                 alpha = 1f - f
                             }
-                        }
+                        },
                     )
                     .background(MaterialTheme.colorScheme.background),
             )

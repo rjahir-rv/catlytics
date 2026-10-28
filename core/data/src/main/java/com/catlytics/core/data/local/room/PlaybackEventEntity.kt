@@ -10,8 +10,8 @@ import androidx.room.PrimaryKey
     indices = [
         Index(value = ["timestamp"]),
         Index(value = ["track_id", "timestamp"]),
-        Index(value = ["artist_id", "timestamp"])
-    ]
+        Index(value = ["artist_id", "timestamp"]),
+    ],
 )
 data class PlaybackEventEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -25,5 +25,5 @@ data class PlaybackEventEntity(
     @ColumnInfo(name = "artwork_uri") val artworkUri: String?,
     @ColumnInfo(name = "duration_listened_millis") val durationListenedMillis: Long,
     @ColumnInfo(name = "track_duration_millis") val trackDurationMillis: Long,
-    @ColumnInfo(name = "timestamp") val timestamp: Long
+    @ColumnInfo(name = "timestamp") val timestamp: Long,
 )

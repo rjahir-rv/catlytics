@@ -4,25 +4,23 @@ import com.catlytics.core.data.local.LocalDataSource
 import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.data.model.toDomain
-import com.catlytics.core.domain.repository.LibraryPreferencesRepository
-import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.ArtistArtworkRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
+import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.LibraryFolderContent
 import com.catlytics.core.model.PlaylistSource
 import com.catlytics.core.model.Track
-import com.catlytics.core.model.ArtistAlias
-import com.catlytics.core.model.artistIdentityKey
 import com.catlytics.core.model.TrackMetadataOverride
-import javax.inject.Inject
-import javax.inject.Singleton
+import com.catlytics.core.model.artistIdentityKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -30,6 +28,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class OfflineFirstLibraryRepository @Inject constructor(

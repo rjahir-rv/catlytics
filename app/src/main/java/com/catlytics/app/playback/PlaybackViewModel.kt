@@ -15,8 +15,8 @@ import com.catlytics.core.domain.usecase.playback.RemoveQueueItemUseCase
 import com.catlytics.core.domain.usecase.playback.RestorePlaybackSessionUseCase
 import com.catlytics.core.domain.usecase.playback.SeekPlaybackUseCase
 import com.catlytics.core.domain.usecase.playback.SkipPlaybackUseCase
-import com.catlytics.core.domain.usecase.playback.ToggleShuffleUseCase
 import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
+import com.catlytics.core.domain.usecase.playback.ToggleShuffleUseCase
 import com.catlytics.core.domain.usecase.playlist.AddTracksToLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ObserveIsTrackLikedUseCase
 import com.catlytics.core.domain.usecase.playlist.ObservePlaylistsUseCase
@@ -29,20 +29,20 @@ import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.Track
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel

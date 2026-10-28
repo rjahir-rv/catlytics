@@ -1,11 +1,11 @@
 package com.catlytics.feature.library.impl.folder
 
 import com.catlytics.core.domain.repository.LibraryRepository
-import com.catlytics.core.model.Album
-import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.usecase.library.ObserveFolderContentUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
+import com.catlytics.core.model.Album
+import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
@@ -16,10 +16,10 @@ import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
 import com.catlytics.feature.library.impl.root.MainDispatcherRule
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals

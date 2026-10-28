@@ -32,11 +32,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.R as DesignSystemR
 import com.catlytics.core.model.StatsGranularity
-import com.catlytics.feature.statistics.impl.R as StatsR
 import com.catlytics.feature.statistics.impl.formatListeningDuration
 import com.catlytics.feature.statistics.impl.formatPlayCountLabel
+import com.catlytics.core.designsystem.R as DesignSystemR
+import com.catlytics.feature.statistics.impl.R as StatsR
 
 @Composable
 internal fun PeriodSelectorHeader(

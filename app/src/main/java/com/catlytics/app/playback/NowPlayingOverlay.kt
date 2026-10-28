@@ -20,7 +20,6 @@ import com.catlytics.core.navigation.ViewModelStoreScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
-
 @Composable
 internal fun NowPlayingOverlay(
     isOpen: Boolean,

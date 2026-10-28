@@ -94,10 +94,11 @@ private fun navigationItemColors(
     unselectedTextColor = unselectedColor,
 )
 
-
 private fun navigationContainerColor(background: Color): Color {
-    val lightness = ((background.luminance() - DARK_BACKGROUND_LUMINANCE) /
-        (LIGHT_BACKGROUND_LUMINANCE - DARK_BACKGROUND_LUMINANCE)).coerceIn(0f, 1f)
+    val lightness = (
+        (background.luminance() - DARK_BACKGROUND_LUMINANCE) /
+            (LIGHT_BACKGROUND_LUMINANCE - DARK_BACKGROUND_LUMINANCE)
+        ).coerceIn(0f, 1f)
     return lerp(Color.Black, Color.White, lightness)
 }
 

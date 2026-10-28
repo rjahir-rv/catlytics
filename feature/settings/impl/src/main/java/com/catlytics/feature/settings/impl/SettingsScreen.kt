@@ -1,8 +1,5 @@
 package com.catlytics.feature.settings.impl
 
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.activity.compose.BackHandler
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
@@ -19,6 +16,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.AlertDialog
@@ -38,29 +38,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.format.SleepTimerFormat
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MAX_CROSSFADE_DURATION_SECONDS
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.MIN_CROSSFADE_DURATION_SECONDS
-import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.AppLanguage
+import com.catlytics.core.model.BackupOptions
+import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
 import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSizeFilter
-import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.ThemeMode
-import com.catlytics.feature.settings.impl.R as SettingsR
 import com.catlytics.core.navigation.navigationBackTransition
 import com.catlytics.core.navigation.navigationForwardTransition
 import com.catlytics.feature.settings.impl.components.SettingsAnimatedValue
@@ -71,6 +70,7 @@ import com.catlytics.feature.settings.impl.components.SettingsToggleRow
 import com.catlytics.feature.settings.impl.components.SettingsValueRow
 import com.catlytics.feature.settings.impl.edits.MetadataEditsRoute
 import com.catlytics.feature.settings.impl.equalizer.EqualizerSettingsContent
+import com.catlytics.feature.settings.impl.R as SettingsR
 
 @Composable
 internal fun SettingsScreen(
@@ -118,7 +118,8 @@ internal fun SettingsScreen(
             SettingsDestination.Equalizer,
             SettingsDestination.MusicScan,
             SettingsDestination.Backup,
-            SettingsDestination.MetadataEdits -> SettingsDestination.Main
+            SettingsDestination.MetadataEdits,
+            -> SettingsDestination.Main
             SettingsDestination.Main -> SettingsDestination.Main
         }
     }
@@ -182,98 +183,98 @@ internal fun SettingsScreen(
         },
         label = "settingsDestination",
     ) { currentDestination ->
-    when (currentDestination) {
-        SettingsDestination.Main -> SettingsMainContent(
-            appVersion = appVersion,
-            animateEntrance = !hasPlayedEntrance,
-            onEntranceStarted = { hasPlayedEntrance = true },
-            themeMode = uiState.themeMode,
-            appLanguage = uiState.appLanguage,
-            homeRecommendationsSettings = uiState.homeRecommendationsSettings,
-            equalizerState = uiState.equalizerState,
-            crossfadeDurationSeconds = uiState.crossfadeDurationSeconds,
-            sleepTimerState = uiState.sleepTimerState,
-            onThemeModeChange = onThemeModeChange,
-            onAppLanguageChange = onAppLanguageChange,
-            onShowRecommendedPlaylistsChange = onShowRecommendedPlaylistsChange,
-            onRecentAddedWindowChange = onRecentAddedWindowChange,
-            onShowNewTrackBadgeChange = onShowNewTrackBadgeChange,
-            onCrossfadeDurationChange = onCrossfadeDurationChange,
-            onSleepTimerClick = { showSleepTimerSheet = true },
-            onEqualizerClick = { destination = SettingsDestination.Equalizer },
-            onMusicScanClick = { destination = SettingsDestination.MusicScan },
-            onBackupClick = { destination = SettingsDestination.Backup },
-            onMetadataEditsClick = { destination = SettingsDestination.MetadataEdits },
-            onAboutClick = { destination = SettingsDestination.About },
-            bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding,
-            modifier = modifier,
-        )
-        SettingsDestination.About -> AboutSettingsContent(
-            appVersion = appVersion,
-            onMetadataEditsClick = { destination = SettingsDestination.MetadataEdits },
-            onLicensesClick = { destination = SettingsDestination.Licenses },
-            bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding,
-            modifier = modifier,
-        )
-        SettingsDestination.Licenses -> LicensesSettingsContent(
-            librariesRes = librariesRes,
-            bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding,
-            modifier = modifier,
-        )
-        SettingsDestination.Equalizer -> EqualizerSettingsContent(
-            equalizerState = uiState.equalizerState,
-            onEqualizerEnabledChange = onEqualizerEnabledChange,
-            onEqualizerModeChange = onEqualizerModeChange,
-            onEqualizerPresetSelected = onEqualizerPresetSelected,
-            onCustomBandLevelChange = onCustomBandLevelChange,
-            bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding,
-            modifier = modifier,
-        )
-        SettingsDestination.MusicScan -> MusicScanSettingsContent(
-            folders = uiState.libraryFolders,
-            settings = uiState.musicScanSettings,
-            scanStatus = uiState.musicScanStatus,
-            hasAudioPermission = hasAudioPermission,
-            onRequestAudioPermission = onRequestAudioPermission,
-            onFoldersClick = { destination = SettingsDestination.ScanFolders },
-            onDurationFilterChange = onMusicScanDurationFilterChange,
-            onSizeFilterChange = onMusicScanSizeFilterChange,
-            onScanMusic = onScanMusic,
-            bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding,
-            modifier = modifier,
-        )
-        SettingsDestination.ScanFolders -> ScanFoldersContent(
-            folders = uiState.libraryFolders,
-            onFolderVisibilityChange = onFolderVisibilityChange,
-            bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding,
-            modifier = modifier,
-        )
-        SettingsDestination.Backup -> UnifiedBackupContent(
-            summary = uiState.unifiedBackupSummary,
-            operationStatus = uiState.unifiedBackupStatus,
-            importPreview = uiState.unifiedImportPreview,
-            onExportClick = onExportBackupClick,
-            onImportClick = onImportBackupClick,
-            onConfirmImport = onConfirmImport,
-            onDismissImportPreview = onDismissImportPreview,
-            onDismissStatus = onDismissBackupStatus,
-            onViewMetadataEdits = { destination = SettingsDestination.MetadataEdits },
-            bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding,
-            modifier = modifier,
-        )
-        SettingsDestination.MetadataEdits -> MetadataEditsRoute(
-            bottomPadding = bottomPadding,
-            scaffoldContentPadding = scaffoldContentPadding,
-            modifier = modifier,
-        )
-    }
+        when (currentDestination) {
+            SettingsDestination.Main -> SettingsMainContent(
+                appVersion = appVersion,
+                animateEntrance = !hasPlayedEntrance,
+                onEntranceStarted = { hasPlayedEntrance = true },
+                themeMode = uiState.themeMode,
+                appLanguage = uiState.appLanguage,
+                homeRecommendationsSettings = uiState.homeRecommendationsSettings,
+                equalizerState = uiState.equalizerState,
+                crossfadeDurationSeconds = uiState.crossfadeDurationSeconds,
+                sleepTimerState = uiState.sleepTimerState,
+                onThemeModeChange = onThemeModeChange,
+                onAppLanguageChange = onAppLanguageChange,
+                onShowRecommendedPlaylistsChange = onShowRecommendedPlaylistsChange,
+                onRecentAddedWindowChange = onRecentAddedWindowChange,
+                onShowNewTrackBadgeChange = onShowNewTrackBadgeChange,
+                onCrossfadeDurationChange = onCrossfadeDurationChange,
+                onSleepTimerClick = { showSleepTimerSheet = true },
+                onEqualizerClick = { destination = SettingsDestination.Equalizer },
+                onMusicScanClick = { destination = SettingsDestination.MusicScan },
+                onBackupClick = { destination = SettingsDestination.Backup },
+                onMetadataEditsClick = { destination = SettingsDestination.MetadataEdits },
+                onAboutClick = { destination = SettingsDestination.About },
+                bottomPadding = bottomPadding,
+                scaffoldContentPadding = scaffoldContentPadding,
+                modifier = modifier,
+            )
+            SettingsDestination.About -> AboutSettingsContent(
+                appVersion = appVersion,
+                onMetadataEditsClick = { destination = SettingsDestination.MetadataEdits },
+                onLicensesClick = { destination = SettingsDestination.Licenses },
+                bottomPadding = bottomPadding,
+                scaffoldContentPadding = scaffoldContentPadding,
+                modifier = modifier,
+            )
+            SettingsDestination.Licenses -> LicensesSettingsContent(
+                librariesRes = librariesRes,
+                bottomPadding = bottomPadding,
+                scaffoldContentPadding = scaffoldContentPadding,
+                modifier = modifier,
+            )
+            SettingsDestination.Equalizer -> EqualizerSettingsContent(
+                equalizerState = uiState.equalizerState,
+                onEqualizerEnabledChange = onEqualizerEnabledChange,
+                onEqualizerModeChange = onEqualizerModeChange,
+                onEqualizerPresetSelected = onEqualizerPresetSelected,
+                onCustomBandLevelChange = onCustomBandLevelChange,
+                bottomPadding = bottomPadding,
+                scaffoldContentPadding = scaffoldContentPadding,
+                modifier = modifier,
+            )
+            SettingsDestination.MusicScan -> MusicScanSettingsContent(
+                folders = uiState.libraryFolders,
+                settings = uiState.musicScanSettings,
+                scanStatus = uiState.musicScanStatus,
+                hasAudioPermission = hasAudioPermission,
+                onRequestAudioPermission = onRequestAudioPermission,
+                onFoldersClick = { destination = SettingsDestination.ScanFolders },
+                onDurationFilterChange = onMusicScanDurationFilterChange,
+                onSizeFilterChange = onMusicScanSizeFilterChange,
+                onScanMusic = onScanMusic,
+                bottomPadding = bottomPadding,
+                scaffoldContentPadding = scaffoldContentPadding,
+                modifier = modifier,
+            )
+            SettingsDestination.ScanFolders -> ScanFoldersContent(
+                folders = uiState.libraryFolders,
+                onFolderVisibilityChange = onFolderVisibilityChange,
+                bottomPadding = bottomPadding,
+                scaffoldContentPadding = scaffoldContentPadding,
+                modifier = modifier,
+            )
+            SettingsDestination.Backup -> UnifiedBackupContent(
+                summary = uiState.unifiedBackupSummary,
+                operationStatus = uiState.unifiedBackupStatus,
+                importPreview = uiState.unifiedImportPreview,
+                onExportClick = onExportBackupClick,
+                onImportClick = onImportBackupClick,
+                onConfirmImport = onConfirmImport,
+                onDismissImportPreview = onDismissImportPreview,
+                onDismissStatus = onDismissBackupStatus,
+                onViewMetadataEdits = { destination = SettingsDestination.MetadataEdits },
+                bottomPadding = bottomPadding,
+                scaffoldContentPadding = scaffoldContentPadding,
+                modifier = modifier,
+            )
+            SettingsDestination.MetadataEdits -> MetadataEditsRoute(
+                bottomPadding = bottomPadding,
+                scaffoldContentPadding = scaffoldContentPadding,
+                modifier = modifier,
+            )
+        }
     }
 
     if (showSleepTimerSheet) {
@@ -503,8 +504,7 @@ private fun CrossfadeDurationSlider(
             value = sliderValue,
             onValueChange = { sliderValue = it.toInt().toFloat() },
             onValueChangeFinished = { onDurationChange(selectedSeconds) },
-            valueRange = MIN_CROSSFADE_DURATION_SECONDS.toFloat()..
-                MAX_CROSSFADE_DURATION_SECONDS.toFloat(),
+            valueRange = MIN_CROSSFADE_DURATION_SECONDS.toFloat()..MAX_CROSSFADE_DURATION_SECONDS.toFloat(),
             steps = MAX_CROSSFADE_DURATION_SECONDS - MIN_CROSSFADE_DURATION_SECONDS - 1,
             modifier = Modifier
                 .fillMaxWidth()

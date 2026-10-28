@@ -3,17 +3,16 @@ package com.catlytics.feature.library.impl.root
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.usecase.library.ObserveAlbumsUseCase
-import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibrarySortDirectionUseCase
-import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistViewModeUseCase
+import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetLibrarySortDirectionUseCase
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.SortDirection
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -21,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.collections.emptyList
 
 @HiltViewModel

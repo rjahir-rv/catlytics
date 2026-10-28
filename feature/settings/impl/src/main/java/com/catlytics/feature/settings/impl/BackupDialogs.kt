@@ -34,11 +34,11 @@ import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.StatisticsImportMode
 import com.catlytics.core.model.UnifiedBackupPreview
 import com.catlytics.core.model.UnifiedBackupSummary
-import com.catlytics.feature.settings.impl.R as SettingsR
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+import com.catlytics.feature.settings.impl.R as SettingsR
 
 @Composable
 internal fun ExportSelectionDialog(
@@ -339,7 +339,9 @@ internal fun ImportConfirmDialog(
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                             Text(
-                                text = stringResource(SettingsR.string.settings_backup_restore_mode_replace_description),
+                                text = stringResource(
+                                    SettingsR.string.settings_backup_restore_mode_replace_description,
+                                ),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )

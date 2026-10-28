@@ -9,7 +9,6 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.catlytics.core.designsystem.R as DesignSystemR
 import com.catlytics.core.designsystem.locale.resolveLocale
 import com.catlytics.core.designsystem.locale.withAppLocale
 import com.catlytics.core.domain.repository.AppPreferencesRepository
@@ -25,8 +24,6 @@ import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Track
 import com.catlytics.core.playback.service.CatlyticsPlaybackService
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -45,7 +42,10 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.time.Duration.Companion.milliseconds
+import com.catlytics.core.designsystem.R as DesignSystemR
 
 /**
  * Traslada [PlaybackQueueModel] al `MediaController` del servicio. Todo corre en el hilo principal,

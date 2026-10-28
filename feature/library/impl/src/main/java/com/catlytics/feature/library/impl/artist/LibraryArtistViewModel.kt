@@ -3,51 +3,51 @@ package com.catlytics.feature.library.impl.artist
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
+import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistContentUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistsUseCase
-import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
-import com.catlytics.core.domain.usecase.library.MergeArtistsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveDetailSortSettingsUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryTrackUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTrackPlayCountsUseCase
-import com.catlytics.core.domain.usecase.library.SetArtistAlbumSortUseCase
-import com.catlytics.core.domain.usecase.library.SetArtistTrackSortUseCase
-import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.library.RenameArtistUseCase
 import com.catlytics.core.domain.usecase.library.RestoreArtistArtworkUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistAlbumSortUseCase
 import com.catlytics.core.domain.usecase.library.SetArtistArtworkUseCase
+import com.catlytics.core.domain.usecase.library.SetArtistTrackSortUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
+import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlbumSort
 import com.catlytics.core.model.ArtistTrackSort
 import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.Track
-import com.catlytics.core.model.Artist
 import com.catlytics.core.model.artistIdentityKey
 import com.catlytics.feature.library.impl.R
 import com.catlytics.feature.library.impl.collection.needsPlayCounts
 import com.catlytics.feature.library.impl.collection.sortedFor
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.CancellationException
+import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -126,10 +126,10 @@ internal class LibraryArtistViewModel @Inject constructor(
                 content = content.copy(
                     summary = content.summary.copy(
                         albumCount = filteredAlbums.size,
-                        trackCount = filteredTracks.size
+                        trackCount = filteredTracks.size,
                     ),
                     tracks = filteredTracks,
-                    albums = filteredAlbums
+                    albums = filteredAlbums,
                 ),
                 searchQuery = query,
                 playbackQueue = content.tracks,

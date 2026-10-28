@@ -48,13 +48,13 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.text.displayTrackTitle
 import com.catlytics.core.model.Track
-import kotlin.math.abs
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import com.catlytics.app.R as AppR
 
 @Composable
 internal fun NowPlayingArtwork(
@@ -104,10 +104,22 @@ internal fun NowPlayingArtwork(
             .semantics {
                 if (enabled) {
                     customActions = listOf(
-                        CustomAccessibilityAction(previousLabel) { onSkipPrevious(); true },
-                        CustomAccessibilityAction(nextLabel) { onSkipNext(); true },
-                        CustomAccessibilityAction(seekBackLabel) { onSeekBackward10Seconds(); true },
-                        CustomAccessibilityAction(seekForwardLabel) { onSeekForward10Seconds(); true },
+                        CustomAccessibilityAction(previousLabel) {
+                            onSkipPrevious()
+                            true
+                        },
+                        CustomAccessibilityAction(nextLabel) {
+                            onSkipNext()
+                            true
+                        },
+                        CustomAccessibilityAction(seekBackLabel) {
+                            onSeekBackward10Seconds()
+                            true
+                        },
+                        CustomAccessibilityAction(seekForwardLabel) {
+                            onSeekForward10Seconds()
+                            true
+                        },
                     )
                 }
             }

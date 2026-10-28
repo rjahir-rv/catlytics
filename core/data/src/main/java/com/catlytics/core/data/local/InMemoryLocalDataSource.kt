@@ -14,5 +14,4 @@ class InMemoryLocalDataSource @Inject constructor() : LocalDataSource {
     override suspend fun replaceTracks(tracks: List<TrackEntity>) {
         this.tracks.value = tracks
     }
-
 }

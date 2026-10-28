@@ -4,8 +4,8 @@ import com.catlytics.core.data.local.LocalDataSource
 import com.catlytics.core.data.local.MediaStoreLibraryDataSource
 import com.catlytics.core.data.repository.RoomTrackMetadataRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
-import javax.inject.Inject
 import kotlinx.coroutines.flow.first
+import javax.inject.Inject
 
 class OfflineFirstDataMediator @Inject constructor(
     private val localDataSource: LocalDataSource,

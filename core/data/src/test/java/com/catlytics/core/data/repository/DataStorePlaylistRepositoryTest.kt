@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.LIKED_PLAYLIST_NAME
-import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -20,6 +19,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class DataStorePlaylistRepositoryTest {

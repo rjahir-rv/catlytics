@@ -13,9 +13,6 @@ import com.catlytics.core.model.LIKED_PLAYLIST_NAME
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.StatisticsImportMode
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.util.UUID
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
@@ -23,6 +20,9 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.jsonArray
+import java.util.UUID
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private val Context.playlistsDataStore: DataStore<Preferences> by preferencesDataStore("playlists")
 
@@ -281,7 +281,6 @@ private fun List<Playlist>.withLikedPlaylist(): List<Playlist> {
         ?: emptyLikedPlaylist()
     return listOf(liked) + filterNot { it.id == LIKED_PLAYLIST_ID }
 }
-
 
 private fun String.decodePlaylists(): List<Playlist>? {
     val elements = runCatching { playlistJson.parseToJsonElement(this).jsonArray }.getOrNull() ?: return null

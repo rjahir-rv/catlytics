@@ -9,7 +9,6 @@ import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
 import com.catlytics.core.model.Album
 import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.AlbumTrackSort
-import com.catlytics.feature.library.impl.collection.SortTestFakes
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistContent
 import com.catlytics.core.model.ArtistSummary
@@ -19,6 +18,7 @@ import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
+import com.catlytics.feature.library.impl.collection.SortTestFakes
 import com.catlytics.feature.library.impl.root.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

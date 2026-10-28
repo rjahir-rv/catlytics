@@ -1,6 +1,5 @@
 package com.catlytics.feature.playlists.impl
 
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -19,8 +18,8 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +43,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsEmptyState
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
@@ -51,9 +51,9 @@ import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistSummary
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
-import com.catlytics.feature.playlists.impl.R as PlaylistsR
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
 // La fila de controles (orden y modo de vista) va superpuesta sobre las listas,
 // por lo que el contenido reserva su altura completa para no quedar tapado.

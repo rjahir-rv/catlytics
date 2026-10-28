@@ -1,14 +1,14 @@
 package com.catlytics.core.domain.repository
 
+import com.catlytics.core.model.AlbumTrackSort
+import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistTrackSort
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.PlaylistViewMode
-import com.catlytics.core.model.AlbumTrackSort
-import com.catlytics.core.model.ArtistAlbumSort
-import com.catlytics.core.model.ArtistTrackSort
-import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.SortDirection
 import kotlinx.coroutines.flow.Flow
 

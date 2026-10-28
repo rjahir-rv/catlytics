@@ -124,12 +124,12 @@ internal fun EqualizerGraph(
                 drawCircle(
                     color = primary,
                     radius = circleRadius,
-                    center = Offset(x = centerX, y = top)
+                    center = Offset(x = centerX, y = top),
                 )
                 drawCircle(
                     color = Color.White,
                     radius = circleRadius * 0.4f,
-                    center = Offset(x = centerX, y = top)
+                    center = Offset(x = centerX, y = top),
                 )
             }
         }

@@ -54,20 +54,20 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.catlytics.core.designsystem.R as DesignR
-import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.component.CollapsibleHint
 import com.catlytics.core.designsystem.component.InfoToggleButton
+import com.catlytics.core.designsystem.text.resolve
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.feature.library.impl.R
+import com.catlytics.core.designsystem.R as DesignR
 
 /** Bottom sheet that edits the title, artist, album and artwork of one track. */
 @OptIn(ExperimentalMaterial3Api::class)

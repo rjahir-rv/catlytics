@@ -1,8 +1,8 @@
 package com.catlytics.core.domain.repository
 
-import com.catlytics.core.model.PlaybackState
-import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackQueueSource
+import com.catlytics.core.model.PlaybackRepeatMode
+import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.flow.Flow
 

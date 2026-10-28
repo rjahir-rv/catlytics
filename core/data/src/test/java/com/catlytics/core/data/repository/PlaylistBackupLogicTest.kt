@@ -9,7 +9,6 @@ import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.model.BackupOptions
 import com.catlytics.core.model.LIKED_PLAYLIST_ID
 import com.catlytics.core.model.StatisticsImportMode
-import java.io.File
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -22,6 +21,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class PlaylistBackupLogicTest {

@@ -4,8 +4,6 @@ import android.os.SystemClock
 import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.SleepTimerController
 import com.catlytics.core.model.SleepTimerState
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -15,6 +13,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton

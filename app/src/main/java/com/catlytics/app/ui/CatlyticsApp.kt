@@ -89,11 +89,11 @@ import com.catlytics.feature.library.api.LibraryRoute
 import com.catlytics.feature.playlists.api.CreatePlaylistRoute
 import com.catlytics.feature.playlists.api.PlaylistDetailRoute
 import com.catlytics.feature.playlists.api.PlaylistsRoute
-import com.catlytics.feature.playlists.impl.R as PlaylistsR
 import com.catlytics.feature.settings.api.SettingsRoute
 import com.catlytics.feature.statistics.api.StatisticsExploreRoute
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
 @Composable
@@ -130,7 +130,7 @@ fun CatlyticsApp(
     val isLibraryRefreshRunning = hasAudioPermission && (
         startupUiState == AppStartupUiState.WaitingForPermission ||
             startupUiState == AppStartupUiState.Loading
-    )
+        )
     LaunchedEffect(hasAudioPermission) {
         startupViewModel.onAudioPermissionState(hasAudioPermission)
     }

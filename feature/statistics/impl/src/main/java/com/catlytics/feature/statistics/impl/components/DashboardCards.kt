@@ -36,7 +36,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.R as DesignSystemR
 import com.catlytics.core.designsystem.component.rememberNameSeededGradient
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.displayArtistName
@@ -46,9 +45,10 @@ import com.catlytics.core.model.ListeningNarrative
 import com.catlytics.core.model.ListeningNarrativeKind
 import com.catlytics.core.model.ListeningStreak
 import com.catlytics.core.model.ListeningTotals
-import com.catlytics.feature.statistics.impl.R as StatsR
 import com.catlytics.feature.statistics.impl.formatListeningDuration
 import com.catlytics.feature.statistics.impl.formatPlayCountLabel
+import com.catlytics.core.designsystem.R as DesignSystemR
+import com.catlytics.feature.statistics.impl.R as StatsR
 
 @Composable
 internal fun DashboardHeroCard(
@@ -228,7 +228,7 @@ private fun ListeningTotalItem(
 internal fun NarrativeSummaryCard(
     modifier: Modifier = Modifier,
     narrative: ListeningNarrative,
-    title: String = stringResource(StatsR.string.stats_summary_title)
+    title: String = stringResource(StatsR.string.stats_summary_title),
 ) {
     if (!narrative.eligible) return
 
@@ -303,8 +303,10 @@ private fun NarrativeHeadline(narrative: ListeningNarrative) {
         ListeningNarrativeKind.TimeWithArtist -> {
             NarrativeHeadlineText(
                 label = stringResource(StatsR.string.stats_narrative_time_with_artist),
-                value = (narrative.topArtist?.name?.displayArtistName()
-                    ?: narrative.topTrack?.title?.displayTrackTitle()).orEmpty(),
+                value = (
+                    narrative.topArtist?.name?.displayArtistName()
+                        ?: narrative.topTrack?.title?.displayTrackTitle()
+                    ).orEmpty(),
             )
         }
         ListeningNarrativeKind.FavoriteTrack -> {
@@ -434,7 +436,7 @@ internal fun NarrativeProgressHint(
 internal fun ExploreStatsCta(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     Card(

@@ -7,8 +7,6 @@ import com.catlytics.core.domain.repository.PlaybackController
 import com.catlytics.core.domain.repository.PlaybackSessionRepository
 import dagger.Lazy
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -19,6 +17,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class NowPlayingWidgetSync @Inject constructor(

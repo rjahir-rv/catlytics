@@ -11,5 +11,5 @@ internal object LibraryDimens {
     val CardShape = RoundedCornerShape(20.dp)
     val RowShape = RoundedCornerShape(16.dp)
     val IconContainerShape = RoundedCornerShape(16.dp)
-    const val EntranceMaxStaggeredItems = 6
+    const val ENTRANCE_MAX_STAGGERED_ITEMS = 6
 }

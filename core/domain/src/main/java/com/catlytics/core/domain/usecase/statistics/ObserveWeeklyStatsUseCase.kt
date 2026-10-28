@@ -3,9 +3,9 @@ package com.catlytics.core.domain.usecase.statistics
 import com.catlytics.core.domain.repository.PlaybackEventRepository
 import com.catlytics.core.model.StatsGranularity
 import com.catlytics.core.model.WeeklyStats
-import java.time.Clock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.Clock
 
 class ObserveWeeklyStatsUseCase(
     private val playbackEventRepository: PlaybackEventRepository,

@@ -17,4 +17,3 @@ internal fun TrackEntity.toDomain() = Track(
     albumId = albumId,
     albumTitle = albumTitle,
 )
-

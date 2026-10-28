@@ -61,7 +61,6 @@ internal fun EntryProviderScope<NavKey>.appEntries(
         searchQuery = { search.library.query },
         artistSearchQuery = { search.artist.query },
         isArtistSearchActive = { search.artist.isExpanded },
-        onArtistSearchQueryChange = { search.artist.query = it },
         onDestinationSelected = navigator::add,
         onListDestinationSelected = navigator::openFromListPane,
         onAddToPlaylist = onAddToPlaylist,

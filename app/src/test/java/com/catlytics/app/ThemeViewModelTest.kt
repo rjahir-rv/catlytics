@@ -63,7 +63,6 @@ class ThemeViewModelTest {
 
         assertEquals(AppLanguage.English, viewModel.appLanguage.value)
     }
-
 }
 
 private class FakeAppPreferencesRepository : AppPreferencesRepository {

@@ -10,11 +10,11 @@ import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.artistIdentityKey
 import com.catlytics.core.model.isRenamed
 import com.catlytics.core.model.renamedArtistId
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 class RoomArtistIdentityRepository @Inject constructor(
     private val database: CatlyticsDatabase,

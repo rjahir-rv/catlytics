@@ -20,7 +20,6 @@ import com.catlytics.core.model.TrackWithOverride
 import com.catlytics.core.model.isRenamed
 import com.catlytics.feature.settings.impl.R
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -35,6 +34,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /** Lists every metadata edit, artist merge/rename and artist image, and reverts them one by one or in bulk. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -83,7 +83,13 @@ internal class MetadataEditsViewModel @Inject constructor(
 
     private val selection = combine(selectedTrackIds, selectionMode, ::Pair)
 
-    private val controls = combine(query, filter, selection, dialog, isBusy) { query, filter, (selected, mode), dialog, busy ->
+    private val controls = combine(
+        query,
+        filter,
+        selection,
+        dialog,
+        isBusy,
+    ) { query, filter, (selected, mode), dialog, busy ->
         MetadataEditsUiState(
             isLoading = false,
             query = query,

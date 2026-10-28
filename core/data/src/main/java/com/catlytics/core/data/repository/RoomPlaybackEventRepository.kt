@@ -7,10 +7,10 @@ import com.catlytics.core.data.local.room.ArtistArtworkOverrideEntity
 import com.catlytics.core.data.local.room.PlaybackEventDao
 import com.catlytics.core.data.local.room.PlaybackEventEntity
 import com.catlytics.core.domain.repository.PlaybackEventRepository
-import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.DailyListeningStat
 import com.catlytics.core.model.ListeningTotals
 import com.catlytics.core.model.PeriodUniqueCounts
+import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.RecentlyPlayedTrack
 import com.catlytics.core.model.StatisticsBackupSummary
 import com.catlytics.core.model.TopAlbum
@@ -69,7 +69,7 @@ class RoomPlaybackEventRepository @Inject constructor(
 
     override fun observeDailyListening(
         startMillis: Long,
-        endMillis: Long
+        endMillis: Long,
     ): Flow<List<DailyListeningStat>> {
         return dao.observeDailyListening(startMillis, endMillis)
     }
@@ -129,7 +129,7 @@ private fun PlaybackEvent.toEntity(): PlaybackEventEntity {
         artworkUri = artworkUri,
         durationListenedMillis = durationListenedMillis,
         trackDurationMillis = trackDurationMillis,
-        timestamp = timestamp
+        timestamp = timestamp,
     )
 }
 

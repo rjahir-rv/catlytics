@@ -131,7 +131,7 @@ private fun PlaylistCoverMosaic(
             Column(Modifier.weight(1f).fillMaxSize().padding(start = gap)) {
                 CoverImage(
                     model = artworkUris[1],
-                onError = { onTileError(artworkUris[1]) },
+                    onError = { onTileError(artworkUris[1]) },
                     contentDescription = null,
                     modifier = Modifier.weight(1f).fillMaxWidth().padding(bottom = gap),
                 )

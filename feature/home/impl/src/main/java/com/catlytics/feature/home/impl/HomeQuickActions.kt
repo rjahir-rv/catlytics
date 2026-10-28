@@ -1,9 +1,9 @@
 package com.catlytics.feature.home.impl
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -41,6 +41,7 @@ import com.catlytics.core.designsystem.modifier.staggeredEntrance
 import com.catlytics.feature.home.impl.R as HomeR
 
 private val QUICK_ACTION_CARD_HEIGHT = 116.dp
+
 @Composable
 internal fun HomeQuickActions(
     dailyPlaylistTrackCount: Int,

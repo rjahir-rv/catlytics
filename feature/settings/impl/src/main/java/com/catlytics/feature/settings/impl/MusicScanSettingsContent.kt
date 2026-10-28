@@ -1,12 +1,5 @@
 package com.catlytics.feature.settings.impl
 
-import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.GridCells
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
-import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
-import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -24,6 +17,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
@@ -52,17 +51,18 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.text.asString
 import com.catlytics.core.model.LibraryFolder
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
-import com.catlytics.feature.settings.impl.R as SettingsR
 import com.catlytics.feature.settings.impl.components.SettingsDivider
 import com.catlytics.feature.settings.impl.components.SettingsRowText
 import com.catlytics.feature.settings.impl.components.SettingsSection
 import com.catlytics.feature.settings.impl.components.SettingsValueRow
+import com.catlytics.feature.settings.impl.R as SettingsR
 
 @Composable
 internal fun MusicScanSettingsContent(

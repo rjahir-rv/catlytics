@@ -13,7 +13,7 @@ import javax.inject.Singleton
 
 @Singleton
 class PlaybackTracker @Inject constructor(
-    private val playbackEventRepository: PlaybackEventRepository
+    private val playbackEventRepository: PlaybackEventRepository,
 ) {
     internal var trackerScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
@@ -93,8 +93,8 @@ class PlaybackTracker @Inject constructor(
                         artworkUri = track.artworkUri,
                         durationListenedMillis = listened,
                         trackDurationMillis = track.durationMillis,
-                        timestamp = eventTime
-                    )
+                        timestamp = eventTime,
+                    ),
                 )
             }
         }

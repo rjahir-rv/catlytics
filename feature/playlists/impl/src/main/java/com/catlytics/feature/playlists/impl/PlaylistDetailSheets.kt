@@ -41,11 +41,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.R
-import com.catlytics.core.designsystem.theme.CatlyticsCorners
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
 import com.catlytics.core.designsystem.text.displayArtistName
 import com.catlytics.core.designsystem.text.displayTrackTitle
+import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.model.Track
 import com.catlytics.feature.playlists.impl.R as PlaylistsR
 

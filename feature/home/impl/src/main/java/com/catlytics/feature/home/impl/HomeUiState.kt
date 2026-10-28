@@ -1,8 +1,8 @@
 package com.catlytics.feature.home.impl
 
 import com.catlytics.core.designsystem.text.UiText
-import com.catlytics.core.model.Track
 import com.catlytics.core.model.TopTrack
+import com.catlytics.core.model.Track
 
 internal sealed interface HomeUiState {
     data object Loading : HomeUiState

@@ -4,24 +4,24 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.model.AlbumTrackSort
+import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistTrackSort
 import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.MusicScanDurationFilter
 import com.catlytics.core.model.MusicScanSettings
 import com.catlytics.core.model.MusicScanSizeFilter
 import com.catlytics.core.model.PlaylistViewMode
-import com.catlytics.core.model.AlbumTrackSort
-import com.catlytics.core.model.ArtistAlbumSort
-import com.catlytics.core.model.ArtistTrackSort
-import com.catlytics.core.model.DetailSortSettings
 import com.catlytics.core.model.SortDirection
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.Flow
 
 private val Context.libraryPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "library_preferences",

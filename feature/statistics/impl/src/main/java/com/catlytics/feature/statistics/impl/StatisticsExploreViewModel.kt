@@ -10,7 +10,6 @@ import com.catlytics.core.model.ListeningNarrative
 import com.catlytics.core.model.PeriodStats
 import com.catlytics.core.model.StatsGranularity
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,6 +20,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import javax.inject.Inject
 
 data class ExplorePeriodSelection(
     val granularity: StatsGranularity = StatsGranularity.WEEK,
@@ -82,16 +82,22 @@ class StatisticsExploreViewModel @Inject constructor(
 
     fun setGranularity(granularity: StatsGranularity) {
         selection.update { current ->
-            if (current.granularity == granularity) current
-            else ExplorePeriodSelection(granularity = granularity, offset = 0)
+            if (current.granularity == granularity) {
+                current
+            } else {
+                ExplorePeriodSelection(granularity = granularity, offset = 0)
+            }
         }
     }
 
     fun shiftPeriod(delta: Int) {
         selection.update { current ->
             val nextOffset = (current.offset + delta).coerceAtMost(0)
-            if (nextOffset == current.offset) current
-            else current.copy(offset = nextOffset)
+            if (nextOffset == current.offset) {
+                current
+            } else {
+                current.copy(offset = nextOffset)
+            }
         }
     }
 }

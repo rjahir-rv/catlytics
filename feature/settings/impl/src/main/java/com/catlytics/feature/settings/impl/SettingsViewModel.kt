@@ -8,21 +8,21 @@ import com.catlytics.core.domain.repository.AppPreferencesRepository
 import com.catlytics.core.domain.repository.EqualizerRepository
 import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
-import com.catlytics.core.domain.repository.SleepTimerController
 import com.catlytics.core.domain.repository.PlaybackPreferencesRepository.Companion.DEFAULT_CROSSFADE_DURATION_SECONDS
+import com.catlytics.core.domain.repository.SleepTimerController
+import com.catlytics.core.domain.usecase.backup.ExportUnifiedBackupUseCase
+import com.catlytics.core.domain.usecase.backup.ImportUnifiedBackupUseCase
+import com.catlytics.core.domain.usecase.backup.ObserveUnifiedBackupSummaryUseCase
+import com.catlytics.core.domain.usecase.backup.PreviewUnifiedBackupUseCase
 import com.catlytics.core.domain.usecase.library.ObserveLibraryFoldersUseCase
 import com.catlytics.core.domain.usecase.library.ObserveMusicScanSettingsUseCase
 import com.catlytics.core.domain.usecase.library.RefreshLibraryUseCase
 import com.catlytics.core.domain.usecase.library.SetFolderVisibilityUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanDurationFilterUseCase
 import com.catlytics.core.domain.usecase.library.SetMusicScanSizeFilterUseCase
-import com.catlytics.core.domain.usecase.backup.ExportUnifiedBackupUseCase
-import com.catlytics.core.domain.usecase.backup.ImportUnifiedBackupUseCase
-import com.catlytics.core.domain.usecase.backup.ObserveUnifiedBackupSummaryUseCase
-import com.catlytics.core.domain.usecase.backup.PreviewUnifiedBackupUseCase
+import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.BackupException
 import com.catlytics.core.model.BackupOptions
-import com.catlytics.core.model.AppLanguage
 import com.catlytics.core.model.EqualizerMode
 import com.catlytics.core.model.EqualizerPreset
 import com.catlytics.core.model.EqualizerState
@@ -40,7 +40,8 @@ import com.catlytics.core.model.UnifiedBackupSummary
 import com.catlytics.core.model.UnifiedExportResult
 import com.catlytics.core.model.UnifiedImportResult
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -48,10 +49,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @HiltViewModel
 internal class SettingsViewModel @Inject constructor(
@@ -248,7 +248,6 @@ internal class SettingsViewModel @Inject constructor(
         }
     }
 
-
     fun exportUnifiedBackup(
         uri: String,
         options: BackupOptions,
@@ -378,4 +377,3 @@ internal sealed interface UnifiedBackupStatus {
     data class ImportSuccess(val result: UnifiedImportResult) : UnifiedBackupStatus
     data class Error(val message: UiText) : UnifiedBackupStatus
 }
-

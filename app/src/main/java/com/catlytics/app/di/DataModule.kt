@@ -2,37 +2,37 @@ package com.catlytics.app.di
 
 import com.catlytics.core.data.local.AndroidMediaStoreLibraryDataSource
 import com.catlytics.core.data.local.AudioTagWriter
-import com.catlytics.core.data.local.TagLibAudioTagWriter
-import com.catlytics.core.data.repository.RoomTrackMetadataRepository
-import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.local.LocalDataSource
 import com.catlytics.core.data.local.MediaStoreLibraryChangeObserver
 import com.catlytics.core.data.local.MediaStoreLibraryDataSource
+import com.catlytics.core.data.local.TagLibAudioTagWriter
 import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.mediator.OfflineFirstDataMediator
 import com.catlytics.core.data.repository.DataStoreAppPreferencesRepository
 import com.catlytics.core.data.repository.DataStoreLibraryPreferencesRepository
 import com.catlytics.core.data.repository.DataStorePlaybackSessionRepository
-import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
 import com.catlytics.core.data.repository.DataStorePlaylistRepository
+import com.catlytics.core.data.repository.M3uPlaylistExportRepository
+import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
+import com.catlytics.core.data.repository.RoomArtistArtworkRepository
+import com.catlytics.core.data.repository.RoomArtistIdentityRepository
+import com.catlytics.core.data.repository.RoomPlaybackEventRepository
+import com.catlytics.core.data.repository.RoomTrackMetadataRepository
 import com.catlytics.core.domain.repository.AppPreferencesRepository
+import com.catlytics.core.domain.repository.ArtistArtworkRepository
+import com.catlytics.core.domain.repository.ArtistIdentityRepository
 import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
 import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryChangeObserver
-import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.LibraryPreferencesRepository
-import com.catlytics.core.domain.repository.PlaybackSessionRepository
-import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
-import com.catlytics.core.domain.repository.PlaylistRepository
+import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.PlaybackEventRepository
-import com.catlytics.core.data.repository.RoomPlaybackEventRepository
-import com.catlytics.core.data.repository.RoomArtistArtworkRepository
-import com.catlytics.core.data.repository.RoomArtistIdentityRepository
-import com.catlytics.core.domain.repository.ArtistArtworkRepository
-import com.catlytics.core.domain.repository.ArtistIdentityRepository
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
+import com.catlytics.core.domain.repository.PlaybackSessionRepository
 import com.catlytics.core.domain.repository.PlaylistExportRepository
-import com.catlytics.core.data.repository.M3uPlaylistExportRepository
+import com.catlytics.core.domain.repository.PlaylistRepository
+import com.catlytics.core.domain.repository.TrackMetadataRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -148,4 +148,3 @@ interface DataModule {
         repository: com.catlytics.core.data.repository.DefaultUnifiedBackupRepository,
     ): com.catlytics.core.domain.repository.UnifiedBackupRepository
 }
-

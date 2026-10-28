@@ -3,19 +3,19 @@ package com.catlytics.core.data.repository
 import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.mediator.DataMediator
 import com.catlytics.core.data.model.TrackEntity
-import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.ArtistArtworkRepository
 import com.catlytics.core.domain.repository.ArtistIdentityRepository
+import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.TrackMetadataRepository
-import com.catlytics.core.model.Track
-import com.catlytics.core.model.TrackMetadataEdit
-import com.catlytics.core.model.TrackMetadataOverride
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.ArtistAlias
 import com.catlytics.core.model.ArtistArtworkOverride
 import com.catlytics.core.model.ArtistViewMode
 import com.catlytics.core.model.PlaylistViewMode
 import com.catlytics.core.model.SortDirection
+import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackMetadataEdit
+import com.catlytics.core.model.TrackMetadataOverride
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -324,7 +324,10 @@ class OfflineFirstLibraryRepositoryTest {
 
         // Display rename: same artist, new spelling, merged tracks included.
         artistIdentityRepository.replaceAliases(
-            listOf(ArtistAlias(main, Artist(main.id, "Artista")), ArtistAlias(collaboration, Artist(main.id, "Artista"))),
+            listOf(
+                ArtistAlias(main, Artist(main.id, "Artista")),
+                ArtistAlias(collaboration, Artist(main.id, "Artista")),
+            ),
         )
         assertEquals(Artist(main.id, "Artista"), repository.observeArtists().first().single().artist)
         assertEquals(setOf("Artista"), repository.observeTracks().first().map { it.artist.name }.toSet())

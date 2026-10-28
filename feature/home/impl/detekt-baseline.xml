@@ -1,0 +1,16 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:HomeTrackList.kt:showRecommendedPlaylists &amp;&amp; ( recentlyAddedTrackCount &gt; 0 || dailyPlaylistTrackCount &gt; 0 || canShuffleAll || favoriteTrackCount &gt; 0 )</ID>
+    <ID>ComposableParamOrder:DailyPlaylistScreen.kt:@Composable internal fun DailyPlaylistRoute</ID>
+    <ID>ComposableParamOrder:DailyPlaylistScreen.kt:@Composable internal fun DailyPlaylistScreen</ID>
+    <ID>ComposableParamOrder:HomeScreen.kt:@Composable internal fun HomeRoute</ID>
+    <ID>ComposableParamOrder:HomeScreen.kt:@Composable internal fun HomeScreen</ID>
+    <ID>ComposableParamOrder:HomeTrackList.kt:@Composable internal fun HomeTrackList</ID>
+    <ID>ComposableParamOrder:RecentlyAddedScreen.kt:@Composable internal fun RecentlyAddedRoute</ID>
+    <ID>ComposableParamOrder:RecentlyAddedScreen.kt:@Composable internal fun RecentlyAddedScreen</ID>
+    <ID>LambdaParameterEventTrailing:HomeTrackList.kt:onToggleFeaturedSections: () -&gt; Unit</ID>
+    <ID>LambdaParameterInRestartableEffect:HomeScreen.kt:onContentReady: () -&gt; Unit = {}</ID>
+  </CurrentIssues>
+</SmellBaseline>

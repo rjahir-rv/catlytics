@@ -3,8 +3,8 @@ package com.catlytics.core.data.local
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
-import android.os.Bundle
 import android.os.Build
+import android.os.Bundle
 import android.provider.MediaStore
 import com.catlytics.core.data.model.TrackEntity
 import com.catlytics.core.model.MusicScanSettings
@@ -12,10 +12,10 @@ import com.catlytics.core.model.UNKNOWN_ALBUM_TITLE
 import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
 import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.io.File
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import javax.inject.Inject
 
 interface MediaStoreLibraryDataSource {
     suspend fun loadTracks(settings: MusicScanSettings): List<TrackEntity>
@@ -67,6 +67,7 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             } else {
                 -1
             }
+
             @Suppress("DEPRECATION")
             val dataColumn = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                 cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)

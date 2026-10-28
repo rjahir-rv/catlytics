@@ -8,11 +8,11 @@ import android.os.Looper
 import android.provider.MediaStore
 import com.catlytics.core.domain.repository.LibraryChangeObserver
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import javax.inject.Inject
+import javax.inject.Singleton
 
 @Singleton
 class MediaStoreLibraryChangeObserver @Inject constructor(
@@ -28,7 +28,8 @@ class MediaStoreLibraryChangeObserver @Inject constructor(
         }
         contentResolver.registerContentObserver(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            /* notifyForDescendants = */ true,
+            /* notifyForDescendants = */
+            true,
             observer,
         )
         awaitClose { contentResolver.unregisterContentObserver(observer) }

@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:CrossfadeCoordinator.kt:CrossfadeCoordinator$private fun update</ID>
+    <ID>MagicNumber:CrossfadeCoordinator.kt:CrossfadeCoordinator$1_000L</ID>
+    <ID>MatchingDeclarationName:Media3Mappers.kt:MissingMetadataLabels</ID>
+  </CurrentIssues>
+</SmellBaseline>

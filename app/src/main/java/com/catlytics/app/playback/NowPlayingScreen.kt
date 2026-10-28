@@ -64,7 +64,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
-import com.catlytics.app.R as AppR
 import com.catlytics.app.ui.sheet.TrackOptionsDropdownMenu
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsTopAppBar
@@ -80,6 +79,7 @@ import com.catlytics.core.model.PlaybackState
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.Track
+import com.catlytics.app.R as AppR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

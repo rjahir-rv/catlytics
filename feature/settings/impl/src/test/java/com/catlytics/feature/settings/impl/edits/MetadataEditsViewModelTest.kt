@@ -7,9 +7,9 @@ import com.catlytics.core.domain.repository.LibraryRepository
 import com.catlytics.core.domain.repository.TrackMetadataRepository
 import com.catlytics.core.domain.usecase.library.ObserveArtistAliasesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveArtistArtworkOverridesUseCase
-import com.catlytics.core.domain.usecase.library.RemoveArtistArtworkUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTrackMetadataOverridesUseCase
 import com.catlytics.core.domain.usecase.library.ObserveTracksWithOverridesUseCase
+import com.catlytics.core.domain.usecase.library.RemoveArtistArtworkUseCase
 import com.catlytics.core.domain.usecase.library.ResetTracksMetadataUseCase
 import com.catlytics.core.domain.usecase.library.SaveBulkTrackMetadataUseCase
 import com.catlytics.core.domain.usecase.library.UnmergeArtistUseCase

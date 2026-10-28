@@ -39,8 +39,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.app.R as AppR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

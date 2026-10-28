@@ -6,9 +6,9 @@ import com.catlytics.core.model.BulkEditResult
 import com.catlytics.core.model.BulkTrackMetadataEdit
 import com.catlytics.core.model.EditableTrackMetadata
 import com.catlytics.core.model.FieldEdit
+import com.catlytics.core.model.TrackMetadataEdit
 import com.catlytics.core.model.TrackMetadataOverride
 import com.catlytics.core.model.TrackWithOverride
-import com.catlytics.core.model.TrackMetadataEdit
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject

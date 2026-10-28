@@ -62,13 +62,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
-import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.format.SleepTimerFormat
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.Track
+import com.catlytics.app.R as AppR
 
 /** Barra fija al fondo del modal de la fila: aleatorio, repetir y temporizador (estilo Spotify). */
 @Composable

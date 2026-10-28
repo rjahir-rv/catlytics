@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:LibraryScreen.kt:searchQuery.isNotBlank() &amp;&amp; filteredAlbums.isEmpty() &amp;&amp; filteredArtists.isEmpty() &amp;&amp; filteredFolders.isEmpty()</ID>
+    <ID>ComposableParamOrder:LibraryAlbumGrid.kt:@Composable internal fun LibraryAlbumGrid</ID>
+    <ID>ComposableParamOrder:LibraryAlbumRoute.kt:@Composable internal fun LibraryAlbumRoute</ID>
+    <ID>ComposableParamOrder:LibraryAlbumScreen.kt:@Composable internal fun LibraryAlbumScreen</ID>
+    <ID>ComposableParamOrder:LibraryArtistCollection.kt:@Composable internal fun LibraryArtistCollection</ID>
+    <ID>ComposableParamOrder:LibraryArtistCollection.kt:@Composable private fun ArtistGrid</ID>
+    <ID>ComposableParamOrder:LibraryArtistCollection.kt:@Composable private fun ArtistList</ID>
+    <ID>ComposableParamOrder:LibraryArtistRoute.kt:@Composable internal fun LibraryArtistRoute</ID>
+    <ID>ComposableParamOrder:LibraryArtistScreen.kt:@Composable internal fun ArtistContent</ID>
+    <ID>ComposableParamOrder:LibraryArtistScreen.kt:@Composable internal fun LibraryArtistScreen</ID>
+    <ID>ComposableParamOrder:LibraryFolderList.kt:@Composable internal fun LibraryFolderList</ID>
+    <ID>ComposableParamOrder:LibraryFolderScreen.kt:@Composable internal fun LibraryFolderScreen</ID>
+    <ID>ComposableParamOrder:LibraryRoute.kt:@Composable internal fun LibraryRoute</ID>
+    <ID>ComposableParamOrder:LibraryScreen.kt:@Composable internal fun LibraryScreen</ID>
+    <ID>CyclomaticComplexMethod:LibraryScreen.kt:@Composable private fun LibraryContent</ID>
+    <ID>LambdaParameterEventTrailing:LibraryArtistScreen.kt:onAlbumSortChange: (ArtistAlbumSort) -&gt; Unit</ID>
+    <ID>LambdaParameterInRestartableEffect:EditTrackMetadataSheet.kt:onDismiss: () -&gt; Unit</ID>
+    <ID>LambdaParameterInRestartableEffect:EditTracksMetadataSheet.kt:onDismiss: () -&gt; Unit</ID>
+    <ID>LambdaParameterInRestartableEffect:LibraryAlbumRoute.kt:onTitleChange: (String) -&gt; Unit = {}</ID>
+    <ID>LambdaParameterInRestartableEffect:LibraryAlbumScreen.kt:onTopBarColorChange: (Color) -&gt; Unit</ID>
+    <ID>LambdaParameterInRestartableEffect:LibraryArtistScreen.kt:onTopBarColorChange: (Color) -&gt; Unit</ID>
+    <ID>LongMethod:LibraryArtistScreenPreviews.kt:private fun previewArtistContent: ArtistContent</ID>
+    <ID>LongMethod:LibraryNavigation.kt:@OptIn(ExperimentalMaterial3AdaptiveApi::class) fun EntryProviderScope&lt;NavKey&gt;.libraryEntry</ID>
+    <ID>MagicNumber:LibraryScreen.kt:180f</ID>
+    <ID>MatchingDeclarationName:EditTracksMetadataSheet.kt:BulkEditMode</ID>
+    <ID>SwallowedException:LibraryArtistViewModel.kt:LibraryArtistViewModel$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:LibraryArtistViewModel.kt:LibraryArtistViewModel$error: Exception</ID>
+    <ID>ViewModelInjection:EditTrackMetadataSheet.kt:val viewModel: EditTrackMetadataViewModel = hiltViewModel()</ID>
+    <ID>ViewModelInjection:EditTracksMetadataSheet.kt:val viewModel: EditTracksMetadataViewModel = hiltViewModel()</ID>
+  </CurrentIssues>
+</SmellBaseline>

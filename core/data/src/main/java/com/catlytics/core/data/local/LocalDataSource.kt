@@ -6,7 +6,5 @@ import kotlinx.coroutines.flow.Flow
 interface LocalDataSource {
     fun observeTracks(): Flow<List<TrackEntity>>
 
-
     suspend fun replaceTracks(tracks: List<TrackEntity>)
-
 }

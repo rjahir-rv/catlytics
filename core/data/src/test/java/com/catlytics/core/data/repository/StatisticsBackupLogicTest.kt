@@ -6,17 +6,16 @@ import androidx.room.Room
 import com.catlytics.core.data.local.InMemoryLocalDataSource
 import com.catlytics.core.data.local.room.CatlyticsDatabase
 import com.catlytics.core.domain.repository.PlaybackEventRepository
-import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.Artist
 import com.catlytics.core.model.BackupOptions
+import com.catlytics.core.model.PlaybackEvent
 import com.catlytics.core.model.StatisticsImportMode
-import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.fail
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -24,6 +23,7 @@ import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import java.io.File
 
 @RunWith(RobolectricTestRunner::class)
 class StatisticsBackupLogicTest {

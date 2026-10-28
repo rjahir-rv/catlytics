@@ -14,9 +14,9 @@ import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackRepeatMode
 import com.catlytics.core.model.PlaybackSessionSnapshot
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.flow.Flow
 
 private val Context.playbackSessionDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "playback_session",

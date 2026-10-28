@@ -1,8 +1,8 @@
 package com.catlytics.feature.library.impl.artist
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -11,11 +11,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,10 +38,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.catlytics.core.designsystem.component.TrackListRow
-import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsArtwork
+import com.catlytics.core.designsystem.component.TrackListRow
+import com.catlytics.core.designsystem.layout.CatlyticsLayoutTokens
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.modifier.pressScale
 import com.catlytics.core.designsystem.text.displayAlbumTitle
@@ -50,6 +49,7 @@ import com.catlytics.core.model.Album
 import com.catlytics.core.model.Track
 import com.catlytics.core.model.TrackSelectionSnapshot
 import com.catlytics.feature.library.impl.LibraryDimens
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import com.catlytics.feature.library.impl.R as LibraryR
 
 @OptIn(ExperimentalMaterial3Api::class)

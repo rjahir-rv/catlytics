@@ -22,10 +22,10 @@ import com.catlytics.core.model.HomeRecommendationsSettings
 import com.catlytics.core.model.RecentAddedWindow
 import com.catlytics.core.model.ThemeMode
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
 
 private val Context.appPreferencesDataStore: DataStore<Preferences> by preferencesDataStore(
     name = "app_preferences",
@@ -77,9 +77,11 @@ class DataStoreAppPreferencesRepository internal constructor(
         }
     }
 
-    override fun observeEqualizerEnabled(): Flow<Boolean> = dataStore.observe { preferences -> preferences[EQUALIZER_ENABLED] ?: false }
+    override fun observeEqualizerEnabled(): Flow<Boolean> =
+        dataStore.observe { preferences -> preferences[EQUALIZER_ENABLED] ?: false }
 
-    override fun observeEqualizerPresetName(): Flow<String?> = dataStore.observe { preferences -> preferences[EQUALIZER_PRESET_NAME] }
+    override fun observeEqualizerPresetName(): Flow<String?> =
+        dataStore.observe { preferences -> preferences[EQUALIZER_PRESET_NAME] }
 
     override fun observeEqualizerMode(): Flow<EqualizerMode> = dataStore.observe { preferences ->
         preferences[EQUALIZER_MODE].toEnumOr(EqualizerMode.Preset)
@@ -146,7 +148,6 @@ class DataStoreAppPreferencesRepository internal constructor(
             preferences[EQUALIZER_CUSTOM_BANDS] = map.map { "${it.key}:${it.value}" }.toSet()
         }
     }
-
 
     private fun Set<String>?.toBandLevels(): Map<Short, Int> = orEmpty()
         .mapNotNull { entry ->

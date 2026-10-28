@@ -72,7 +72,10 @@ class AddToPlaylistSheetTest {
             ToggleableState.Indeterminate,
             playlistCheckboxState(playlist, listOf("track-1", "track-3"), isSelected = false),
         )
-        assertEquals(ToggleableState.On, playlistCheckboxState(playlist, listOf("track-1", "track-3"), isSelected = true))
+        assertEquals(
+            ToggleableState.On,
+            playlistCheckboxState(playlist, listOf("track-1", "track-3"), isSelected = true),
+        )
         assertEquals(ToggleableState.Off, playlistCheckboxState(playlist, listOf("track-3"), isSelected = false))
         assertEquals(ToggleableState.Off, playlistCheckboxState(playlist, emptyList(), isSelected = false))
     }

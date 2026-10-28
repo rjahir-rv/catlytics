@@ -56,14 +56,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.request.ImageRequest
+import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.CatlyticsShuffleButton
 import com.catlytics.core.designsystem.layout.ArtworkHeaderLayout
-import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.layout.deferredPadding
 import com.catlytics.core.designsystem.theme.CatlyticsCorners
 import com.catlytics.core.domain.usecase.playlist.PLAYLIST_COVER_MOSAIC_SIZE
-import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.NowPlaying
+import com.catlytics.core.model.PlaybackQueueSource
 import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
@@ -240,8 +240,10 @@ private fun PlaylistPlaybackActions(
     val isThisPlaylistActive = source is PlaybackQueueSource.Playlist &&
         source.playlistId == playlist.id
     val isPlayingThis = isThisPlaylistActive &&
-        (nowPlaying.status == PlaybackStatus.Playing ||
-            nowPlaying.status == PlaybackStatus.Buffering)
+        (
+            nowPlaying.status == PlaybackStatus.Playing ||
+                nowPlaying.status == PlaybackStatus.Buffering
+            )
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -372,29 +374,44 @@ internal fun PlaylistOptionsMenu(
         DropdownMenuItem(
             text = { Text(stringResource(PlaylistsR.string.playlist_detail_order)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_filter), null) },
-            onClick = { onDismiss(); onOrder() },
+            onClick = {
+                onDismiss()
+                onOrder()
+            },
         )
         if (canEdit) {
             DropdownMenuItem(
                 text = { Text(stringResource(PlaylistsR.string.playlist_detail_edit)) },
                 leadingIcon = { Icon(painterResource(R.drawable.ic_edit), null) },
-                onClick = { onDismiss(); onEdit() },
+                onClick = {
+                    onDismiss()
+                    onEdit()
+                },
             )
         }
         DropdownMenuItem(
             text = { Text(stringResource(PlaylistsR.string.playlist_detail_add_tracks)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_add), null) },
-            onClick = { onDismiss(); onAddTracks() },
+            onClick = {
+                onDismiss()
+                onAddTracks()
+            },
         )
         DropdownMenuItem(
             text = { Text(stringResource(PlaylistsR.string.playlist_detail_add_to_playlist)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_add_playlist), null) },
-            onClick = { onDismiss(); onAddToPlaylist() },
+            onClick = {
+                onDismiss()
+                onAddToPlaylist()
+            },
         )
         DropdownMenuItem(
             text = { Text(stringResource(PlaylistsR.string.playlist_detail_export_m3u8)) },
             leadingIcon = { Icon(painterResource(R.drawable.ic_share), null) },
-            onClick = { onDismiss(); onExportM3u() },
+            onClick = {
+                onDismiss()
+                onExportM3u()
+            },
         )
         if (canEdit) {
             DropdownMenuItem(
@@ -411,7 +428,10 @@ internal fun PlaylistOptionsMenu(
                         tint = MaterialTheme.colorScheme.error,
                     )
                 },
-                onClick = { onDismiss(); onDelete() },
+                onClick = {
+                    onDismiss()
+                    onDelete()
+                },
             )
         }
     }

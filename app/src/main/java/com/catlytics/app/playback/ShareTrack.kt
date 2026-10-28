@@ -3,9 +3,9 @@ package com.catlytics.app.playback
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import androidx.core.net.toUri
 import com.catlytics.app.R
 import com.catlytics.core.model.Track
-import androidx.core.net.toUri
 
 internal fun Context.shareTrack(track: Track) {
     val mediaUri = track.mediaUri.toUri()

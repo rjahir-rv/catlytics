@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.4.1" type="baseline" client="gradle" dependencies="false" name="AGP (9.4.1)" variant="all" version="9.4.1">
+
+    <issue
+        id="ModifierFactoryExtensionFunction"
+        message="Modifier factory functions should be extensions on Modifier"
+        errorLine1="internal fun LazyStaggeredGridItemScope.statsEntrance(index: Int, entranceDone: Boolean): Modifier ="
+        errorLine2="                                        ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/catlytics/feature/statistics/impl/StatisticsScreen.kt"
+            line="175"
+            column="41"/>
+    </issue>
+
+</issues>

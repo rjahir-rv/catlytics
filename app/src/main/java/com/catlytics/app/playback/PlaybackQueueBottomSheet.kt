@@ -2,21 +2,18 @@ package com.catlytics.app.playback
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.core.VisibilityThreshold
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.ui.unit.IntOffset
-import com.catlytics.core.model.PlaybackRepeatMode
-import com.catlytics.core.model.SleepTimerState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -72,13 +69,16 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import com.catlytics.app.R as AppR
 import com.catlytics.core.designsystem.R
 import com.catlytics.core.designsystem.component.ArtworkGradientColors
+import com.catlytics.core.model.PlaybackRepeatMode
+import com.catlytics.core.model.SleepTimerState
 import com.catlytics.core.model.Track
 import kotlin.math.abs
+import com.catlytics.app.R as AppR
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,7 +147,7 @@ internal fun PlaybackQueueBottomSheet(
         currentTrackScrollIndex()?.let { listState.scrollToItem(it) }
         reshuffleProgress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = ReshuffleRevealMillis, easing = LinearEasing),
+            animationSpec = tween(durationMillis = RESHUFFLE_REVEAL_MILLIS, easing = LinearEasing),
         )
     }
 
@@ -165,7 +165,13 @@ internal fun PlaybackQueueBottomSheet(
     }
 
     val currentIndex = reorder.visibleQueue.indexOfFirst { it.id == currentTrackId }
-    val upcomingCount = if (currentIndex >= 0) reorder.visibleQueue.size - currentIndex - 1 else reorder.visibleQueue.size
+    val upcomingCount = if (currentIndex >=
+        0
+    ) {
+        reorder.visibleQueue.size - currentIndex - 1
+    } else {
+        reorder.visibleQueue.size
+    }
     val historyCount = currentIndex.coerceAtLeast(0)
     val sleepTimerEnd = (sleepTimerState as? SleepTimerState.Active)?.let { timer ->
         sleepTimerEndIndex(
@@ -181,10 +187,10 @@ internal fun PlaybackQueueBottomSheet(
     val density = LocalDensity.current
     val containerHeightPx = LocalWindowInfo.current.containerSize.height
     val maxSheetHeight = remember(density, containerHeightPx) {
-        with(density) { (containerHeightPx * QueueSheetMaxHeightFraction).toDp() }
+        with(density) { (containerHeightPx * QUEUE_SHEET_MAX_HEIGHT_FRACTION).toDp() }
     }
     val collapsedSheetHeight = remember(density, containerHeightPx) {
-        with(density) { (containerHeightPx * QueueSheetCollapsedHeightFraction).toDp() }
+        with(density) { (containerHeightPx * QUEUE_SHEET_COLLAPSED_HEIGHT_FRACTION).toDp() }
     }
     var isSheetFullyOpen by rememberSaveable { mutableStateOf(false) }
     val sheetHeightLimit by animateDpAsState(
@@ -288,169 +294,169 @@ internal fun PlaybackQueueBottomSheet(
                     .weight(1f, fill = false)
                     .nestedScroll(expandOnScrollConnection),
             ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                state = listState,
-                userScrollEnabled = !reorder.isDragging,
-                contentPadding = PaddingValues(bottom = QueueListBottomPadding),
-            ) {
-                if (historyCount > 0) {
-                    item(key = HistoryHeaderKey) {
-                        QueueHistoryHeader(
-                            count = historyCount,
-                            isExpanded = !isHistoryCollapsed,
-                            onToggle = { isHistoryCollapsed = !isHistoryCollapsed },
-                            modifier = Modifier.animateItem(
-                                fadeInSpec = tween(durationMillis = 220),
-                                placementSpec = queuePlacementSpec,
-                                fadeOutSpec = tween(durationMillis = 180),
-                            ),
-                        )
-                    }
-                }
-                reorder.visibleQueue.forEachIndexed { index, track ->
-                if (isHistoryCollapsed && index < currentIndex) return@forEachIndexed
-                item(key = track.id, contentType = "track") {
-                    val isDragging = track.id == reorder.draggedTrackId
-                    val isSettling = track.id == reorder.settlingTrackId
-                    val isLifted = isDragging || isSettling
-                    val isCurrentTrack = track.id == currentTrackId
-                    val revealsOnReshuffle = isReshuffling && !isCurrentTrack
-                    val revealDistance = if (currentIndex >= 0) abs(index - currentIndex) - 1 else index
-                    val placementModifier = if (isLifted || revealsOnReshuffle) {
-                        Modifier
-                    } else {
-                        Modifier.animateItem(
-                            fadeInSpec = tween(durationMillis = 220),
-                            placementSpec = queuePlacementSpec,
-                            fadeOutSpec = tween(durationMillis = 220),
-                        )
-                    }
-                    val lift by animateFloatAsState(
-                        targetValue = if (isDragging) 1f else 0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioNoBouncy,
-                            stiffness = Spring.StiffnessMediumLow,
-                        ),
-                        label = "queueItemLift",
-                    )
-
-                    QueueSwipeableItem(
-                        track = track,
-                        gradientColors = gradientColors,
-                        enabled = !isLifted,
-                        onRemove = {
-                            reorder.visibleQueue.indexOfFirst { it.id == track.id }
-                                .takeIf { it >= 0 }
-                                ?.let(onRemoveQueueItem)
-                        },
-                        modifier = placementModifier
-                            .padding(horizontal = 8.dp)
-                            .zIndex(if (isLifted) 1f else 0f)
-                            .graphicsLayer {
-                                val reveal = if (revealsOnReshuffle) {
-                                    queueRevealFraction(reshuffleProgress.value, revealDistance)
-                                } else {
-                                    1f
-                                }
-                                alpha = reveal
-                                translationY = reorder.translationOf(track.id) +
-                                    (1f - reveal) * ReshuffleRevealOffset.toPx()
-                                val scale = 1f + QueueDragLiftScale * lift
-                                scaleX = scale
-                                scaleY = scale
-                            },
-                    ) {
-                        val isDimmed = currentIndex >= 0 && (
-                            index < currentIndex ||
-                                (repeatMode == PlaybackRepeatMode.One && index > currentIndex) ||
-                                (sleepTimerEnd != null && index > sleepTimerEnd)
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth(),
+                    state = listState,
+                    userScrollEnabled = !reorder.isDragging,
+                    contentPadding = PaddingValues(bottom = QueueListBottomPadding),
+                ) {
+                    if (historyCount > 0) {
+                        item(key = HISTORY_HEADER_KEY) {
+                            QueueHistoryHeader(
+                                count = historyCount,
+                                isExpanded = !isHistoryCollapsed,
+                                onToggle = { isHistoryCollapsed = !isHistoryCollapsed },
+                                modifier = Modifier.animateItem(
+                                    fadeInSpec = tween(durationMillis = 220),
+                                    placementSpec = queuePlacementSpec,
+                                    fadeOutSpec = tween(durationMillis = 180),
+                                ),
                             )
-                        val contentAlpha by animateFloatAsState(
-                            targetValue = if (isDimmed && !isLifted) DimmedRowAlpha else 1f,
-                            animationSpec = tween(durationMillis = 260),
-                            label = "queueItemAlpha",
-                        )
-                        QueueTrackRow(
-                            track = track,
-                            isCurrent = track.id == currentTrackId,
-                            isPlaying = isPlaying,
-                            isRepeatingOne = repeatMode == PlaybackRepeatMode.One,
-                            accent = accent,
-                            contentAlpha = contentAlpha,
-                            isDragging = isDragging,
-                            liftProgress = lift,
-                            onClick = {
-                                reorder.visibleQueue.indexOfFirst { it.id == track.id }
-                                    .takeIf { it >= 0 }
-                                    ?.let(onPlayQueueItem)
-                            },
-                            dragModifier = Modifier.pointerInput(track.id, itemHeightPx) {
-                                detectVerticalDragGestures(
-                                    onDragStart = {
-                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        reorder.startDrag(track.id)
-                                    },
-                                    onVerticalDrag = { change, amount ->
-                                        change.consume()
-                                        reorder.dragBy(track.id, amount)
-                                    },
-                                    onDragEnd = { reorder.endDrag(track.id, onMoveQueueItem) },
-                                    onDragCancel = { reorder.cancelDrag(queue) },
-                                )
-                            },
-                            onTrackOptions = {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onTrackOptions(track)
-                            },
-                        )
+                        }
                     }
-                }
-                if (index == sleepTimerEnd) {
-                    item(key = SleepTimerMarkerKey) {
-                        SleepTimerMarker(
-                            accent = accent,
-                            modifier = if (isReshuffling) {
+                    reorder.visibleQueue.forEachIndexed { index, track ->
+                        if (isHistoryCollapsed && index < currentIndex) return@forEachIndexed
+                        item(key = track.id, contentType = "track") {
+                            val isDragging = track.id == reorder.draggedTrackId
+                            val isSettling = track.id == reorder.settlingTrackId
+                            val isLifted = isDragging || isSettling
+                            val isCurrentTrack = track.id == currentTrackId
+                            val revealsOnReshuffle = isReshuffling && !isCurrentTrack
+                            val revealDistance = if (currentIndex >= 0) abs(index - currentIndex) - 1 else index
+                            val placementModifier = if (isLifted || revealsOnReshuffle) {
                                 Modifier
                             } else {
                                 Modifier.animateItem(
-                                    fadeInSpec = tween(durationMillis = 260),
+                                    fadeInSpec = tween(durationMillis = 220),
                                     placementSpec = queuePlacementSpec,
-                                    fadeOutSpec = tween(durationMillis = 180),
+                                    fadeOutSpec = tween(durationMillis = 220),
                                 )
-                            },
-                        )
+                            }
+                            val lift by animateFloatAsState(
+                                targetValue = if (isDragging) 1f else 0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioNoBouncy,
+                                    stiffness = Spring.StiffnessMediumLow,
+                                ),
+                                label = "queueItemLift",
+                            )
+
+                            QueueSwipeableItem(
+                                track = track,
+                                gradientColors = gradientColors,
+                                enabled = !isLifted,
+                                onRemove = {
+                                    reorder.visibleQueue.indexOfFirst { it.id == track.id }
+                                        .takeIf { it >= 0 }
+                                        ?.let(onRemoveQueueItem)
+                                },
+                                modifier = placementModifier
+                                    .padding(horizontal = 8.dp)
+                                    .zIndex(if (isLifted) 1f else 0f)
+                                    .graphicsLayer {
+                                        val reveal = if (revealsOnReshuffle) {
+                                            queueRevealFraction(reshuffleProgress.value, revealDistance)
+                                        } else {
+                                            1f
+                                        }
+                                        alpha = reveal
+                                        translationY = reorder.translationOf(track.id) +
+                                            (1f - reveal) * ReshuffleRevealOffset.toPx()
+                                        val scale = 1f + QUEUE_DRAG_LIFT_SCALE * lift
+                                        scaleX = scale
+                                        scaleY = scale
+                                    },
+                            ) {
+                                val isDimmed = currentIndex >= 0 && (
+                                    index < currentIndex ||
+                                        (repeatMode == PlaybackRepeatMode.One && index > currentIndex) ||
+                                        (sleepTimerEnd != null && index > sleepTimerEnd)
+                                    )
+                                val contentAlpha by animateFloatAsState(
+                                    targetValue = if (isDimmed && !isLifted) DIMMED_ROW_ALPHA else 1f,
+                                    animationSpec = tween(durationMillis = 260),
+                                    label = "queueItemAlpha",
+                                )
+                                QueueTrackRow(
+                                    track = track,
+                                    isCurrent = track.id == currentTrackId,
+                                    isPlaying = isPlaying,
+                                    isRepeatingOne = repeatMode == PlaybackRepeatMode.One,
+                                    accent = accent,
+                                    contentAlpha = contentAlpha,
+                                    isDragging = isDragging,
+                                    liftProgress = lift,
+                                    onClick = {
+                                        reorder.visibleQueue.indexOfFirst { it.id == track.id }
+                                            .takeIf { it >= 0 }
+                                            ?.let(onPlayQueueItem)
+                                    },
+                                    dragModifier = Modifier.pointerInput(track.id, itemHeightPx) {
+                                        detectVerticalDragGestures(
+                                            onDragStart = {
+                                                hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                                reorder.startDrag(track.id)
+                                            },
+                                            onVerticalDrag = { change, amount ->
+                                                change.consume()
+                                                reorder.dragBy(track.id, amount)
+                                            },
+                                            onDragEnd = { reorder.endDrag(track.id, onMoveQueueItem) },
+                                            onDragCancel = { reorder.cancelDrag(queue) },
+                                        )
+                                    },
+                                    onTrackOptions = {
+                                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onTrackOptions(track)
+                                    },
+                                )
+                            }
+                        }
+                        if (index == sleepTimerEnd) {
+                            item(key = SLEEP_TIMER_MARKER_KEY) {
+                                SleepTimerMarker(
+                                    accent = accent,
+                                    modifier = if (isReshuffling) {
+                                        Modifier
+                                    } else {
+                                        Modifier.animateItem(
+                                            fadeInSpec = tween(durationMillis = 260),
+                                            placementSpec = queuePlacementSpec,
+                                            fadeOutSpec = tween(durationMillis = 180),
+                                        )
+                                    },
+                                )
+                            }
+                        }
                     }
-                }
-                }
-                item(key = RepeatAllFooterKey) {
-                    AnimatedContent(
-                        targetState = repeatMode == PlaybackRepeatMode.All && reorder.visibleQueue.size > 1,
-                        transitionSpec = {
-                            (fadeIn(tween(220)) togetherWith fadeOut(tween(160)))
-                                .using(SizeTransform(clip = false))
-                        },
-                        label = "QueueRepeatAllFooter",
-                    ) { showFooter ->
-                        if (showFooter) {
-                            RepeatAllFooter()
-                        } else {
-                            Spacer(modifier = Modifier.fillMaxWidth())
+                    item(key = REPEAT_ALL_FOOTER_KEY) {
+                        AnimatedContent(
+                            targetState = repeatMode == PlaybackRepeatMode.All && reorder.visibleQueue.size > 1,
+                            transitionSpec = {
+                                (fadeIn(tween(220)) togetherWith fadeOut(tween(160)))
+                                    .using(SizeTransform(clip = false))
+                            },
+                            label = "QueueRepeatAllFooter",
+                        ) { showFooter ->
+                            if (showFooter) {
+                                RepeatAllFooter()
+                            } else {
+                                Spacer(modifier = Modifier.fillMaxWidth())
+                            }
                         }
                     }
                 }
-            }
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .height(QueueFadeHeight)
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(Color.Transparent, gradientColors.end),
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(QueueFadeHeight)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color.Transparent, gradientColors.end),
+                            ),
                         ),
-                    ),
-            )
+                )
             }
             QueueControlsBar(
                 isShuffleEnabled = isShuffleEnabled,
@@ -482,18 +488,18 @@ private val queuePlacementSpec = spring(
     stiffness = Spring.StiffnessMediumLow,
     visibilityThreshold = IntOffset.VisibilityThreshold,
 )
-private const val SleepTimerMarkerKey = "queue_sleep_timer_marker"
-private const val RepeatAllFooterKey = "queue_repeat_all_footer"
-private const val HistoryHeaderKey = "queue_history_header"
-private const val DimmedRowAlpha = 0.5f
-private const val ReshuffleRevealMillis = 360
-private const val ReshuffleStaggerFraction = 0.07f
-private const val ReshuffleMaxStaggerSteps = 7
-private const val ReshuffleRowRevealFraction = 0.45f
+private const val SLEEP_TIMER_MARKER_KEY = "queue_sleep_timer_marker"
+private const val REPEAT_ALL_FOOTER_KEY = "queue_repeat_all_footer"
+private const val HISTORY_HEADER_KEY = "queue_history_header"
+private const val DIMMED_ROW_ALPHA = 0.5f
+private const val RESHUFFLE_REVEAL_MILLIS = 360
+private const val RESHUFFLE_STAGGER_FRACTION = 0.07f
+private const val RESHUFFLE_MAX_STAGGER_STEPS = 7
+private const val RESHUFFLE_ROW_REVEAL_FRACTION = 0.45f
 private val ReshuffleRevealOffset = 12.dp
-private const val QueueSheetMaxHeightFraction = 0.92f
-private const val QueueSheetCollapsedHeightFraction = 0.65f
-private const val QueueDragLiftScale = 0.02f
+private const val QUEUE_SHEET_MAX_HEIGHT_FRACTION = 0.92f
+private const val QUEUE_SHEET_COLLAPSED_HEIGHT_FRACTION = 0.65f
+private const val QUEUE_DRAG_LIFT_SCALE = 0.02f
 
 internal fun queueCurrentScrollIndex(currentIndex: Int, isHistoryCollapsed: Boolean): Int = when {
     currentIndex <= 0 -> 0
@@ -502,8 +508,8 @@ internal fun queueCurrentScrollIndex(currentIndex: Int, isHistoryCollapsed: Bool
 }
 
 internal fun queueRevealFraction(progress: Float, distance: Int): Float {
-    val start = distance.coerceIn(0, ReshuffleMaxStaggerSteps) * ReshuffleStaggerFraction
-    val raw = ((progress - start) / ReshuffleRowRevealFraction).coerceIn(0f, 1f)
+    val start = distance.coerceIn(0, RESHUFFLE_MAX_STAGGER_STEPS) * RESHUFFLE_STAGGER_FRACTION
+    val raw = ((progress - start) / RESHUFFLE_ROW_REVEAL_FRACTION).coerceIn(0f, 1f)
     return FastOutSlowInEasing.transform(raw)
 }
 
