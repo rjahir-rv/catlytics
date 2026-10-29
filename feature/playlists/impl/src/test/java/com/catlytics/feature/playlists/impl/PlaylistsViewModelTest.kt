@@ -1,5 +1,6 @@
 package com.catlytics.feature.playlists.impl
 
+import androidx.lifecycle.viewModelScope
 import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
 import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
 import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
@@ -19,12 +20,15 @@ import com.catlytics.core.model.PlaybackStatus
 import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.PlaylistViewMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -43,6 +47,13 @@ class PlaylistsViewModelTest {
     private val library = FakeLibraryRepository(track("a", 100_000L), track("b", 200_000L))
     private val controller = FakePlaybackController()
     private val preferences = FakeLibraryPreferencesRepository()
+    private val viewModels = mutableListOf<PlaylistsViewModel>()
+
+    // Espera a que termine el trabajo en Dispatchers.Default antes de que la regla restaure Main.
+    @After
+    fun cancelViewModels() = runTest {
+        viewModels.forEach { it.viewModelScope.coroutineContext.job.cancelAndJoin() }
+    }
 
     @Test
     fun `summaries count only the tracks still in the library`() = runTest {
@@ -164,5 +175,5 @@ class PlaylistsViewModelTest {
         setPlaylistViewModeUseCase = SetPlaylistViewModeUseCase(preferences),
         setPlaylistSortDirectionUseCase = SetPlaylistSortDirectionUseCase(preferences),
         setPlaylistCoverUseCase = SetPlaylistCoverUseCase(playlists),
-    )
+    ).also(viewModels::add)
 }

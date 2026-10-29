@@ -5,18 +5,42 @@ plugins {
     alias(libs.plugins.aboutlibraries.android)
 }
 
+val appVersion = "1.0.0" // x-release-please-version
+
+fun signingProperty(name: String, envName: String): String? =
+    providers.gradleProperty("catlytics.signing.$name")
+        .orElse(providers.environmentVariable(envName))
+        .orNull
+
+val releaseStoreFile = signingProperty("storeFile", "CATLYTICS_KEYSTORE_FILE")
+
 android {
     namespace = "com.catlytics.app"
 
     defaultConfig {
         applicationId = "com.catlytics.app"
-        versionCode = 1
-        versionName = "0.0.5"
+        versionCode = appVersion.split('.').map(String::toInt).let { (major, minor, patch) ->
+            major * 10_000 + minor * 100 + patch
+        }
+        versionName = appVersion
+    }
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = signingProperty("storePassword", "CATLYTICS_KEYSTORE_PASSWORD")
+                keyAlias = signingProperty("keyAlias", "CATLYTICS_KEY_ALIAS")
+                keyPassword = signingProperty("keyPassword", "CATLYTICS_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

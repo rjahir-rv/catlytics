@@ -1,5 +1,7 @@
 # Catlytics
 
+[![Release](https://img.shields.io/github/v/release/rjahir-rv/catlytics)](https://github.com/rjahir-rv/catlytics/releases/latest)
+[![Android CI](https://github.com/rjahir-rv/catlytics/actions/workflows/android-ci.yml/badge.svg)](https://github.com/rjahir-rv/catlytics/actions/workflows/android-ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![Android 9+](https://img.shields.io/badge/Android-9%2B%20%28API%2028%29-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white)
@@ -17,6 +19,10 @@ Catlytics is an offline-first music player for Android that plays the songs alre
   <img src="docs/screenshots/en/10-statistics.webp" width="200" alt="Statistics">
   <img src="docs/screenshots/en/11-explore.webp" width="200" alt="Explore statistics">
 </p>
+
+## Download
+
+Download the signed APK from the [latest release](https://github.com/rjahir-rv/catlytics/releases/latest) and open it on your phone (Android 9 or newer). Android will ask you to allow installing apps from your browser or file manager the first time.
 
 ## Features
 
@@ -117,14 +123,23 @@ Requirements:
 
 - JDK 21
 - Android SDK with API 37 (compileSdk/targetSdk 37; the app runs on Android 9, API 28, and newer)
-- An Android Studio version that supports Android Gradle Plugin 9.4
+- An Android Studio version that supports Android Gradle Plugin 9.5
 
 ```bash
 ./gradlew :app:assembleDebug    # debug APK
 ./gradlew :app:installDebug     # install on a connected device or emulator
 ```
 
-There are no published release builds yet.
+Release builds are minified with R8 and signed. To build one locally, add the keystore to `~/.gradle/gradle.properties`:
+
+```properties
+catlytics.signing.storeFile=/path/to/release.jks
+catlytics.signing.storePassword=…
+catlytics.signing.keyAlias=…
+catlytics.signing.keyPassword=…
+```
+
+Then run `./gradlew :app:assembleRelease`. Without those properties the release APK is built unsigned. Published releases are built by GitHub Actions when a Release Please pull request is merged.
 
 ## Testing and code quality
 

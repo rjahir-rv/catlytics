@@ -1,5 +1,7 @@
 # Catlytics
 
+[![Versión](https://img.shields.io/github/v/release/rjahir-rv/catlytics?label=versi%C3%B3n)](https://github.com/rjahir-rv/catlytics/releases/latest)
+[![Android CI](https://github.com/rjahir-rv/catlytics/actions/workflows/android-ci.yml/badge.svg)](https://github.com/rjahir-rv/catlytics/actions/workflows/android-ci.yml)
 [![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
 ![Android 9+](https://img.shields.io/badge/Android-9%2B%20%28API%2028%29-3DDC84?logo=android&logoColor=white)
 ![Kotlin](https://img.shields.io/badge/Kotlin-2.4-7F52FF?logo=kotlin&logoColor=white)
@@ -17,6 +19,10 @@ Catlytics es un reproductor de música para Android que funciona sin conexión: 
   <img src="docs/screenshots/es/10-statistics.webp" width="200" alt="Estadísticas">
   <img src="docs/screenshots/es/11-explore.webp" width="200" alt="Explorar estadísticas">
 </p>
+
+## Descargar
+
+Descarga el APK firmado de la [última versión](https://github.com/rjahir-rv/catlytics/releases/latest) y ábrelo en tu teléfono (Android 9 o superior). La primera vez, Android te pedirá permitir la instalación de apps desde tu navegador o gestor de archivos.
 
 ## Funcionalidades
 
@@ -117,14 +123,23 @@ Requisitos:
 
 - JDK 21
 - Android SDK con API 37 (compileSdk/targetSdk 37; la app funciona desde Android 9, API 28)
-- Una versión de Android Studio compatible con Android Gradle Plugin 9.4
+- Una versión de Android Studio compatible con Android Gradle Plugin 9.5
 
 ```bash
 ./gradlew :app:assembleDebug    # APK debug
 ./gradlew :app:installDebug     # instala en un dispositivo o emulador conectado
 ```
 
-Todavía no hay versiones release publicadas.
+Las builds release se reducen con R8 y se firman. Para compilar una en local, agrega la keystore a `~/.gradle/gradle.properties`:
+
+```properties
+catlytics.signing.storeFile=/ruta/a/release.jks
+catlytics.signing.storePassword=…
+catlytics.signing.keyAlias=…
+catlytics.signing.keyPassword=…
+```
+
+Después ejecuta `./gradlew :app:assembleRelease`. Sin esas propiedades, el APK release se genera sin firmar. Las versiones publicadas las compila GitHub Actions al fusionar el pull request de Release Please.
 
 ## Tests y calidad de código
 
