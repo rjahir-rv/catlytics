@@ -1,5 +1,8 @@
 package com.catlytics.core.data.local
 
+import com.catlytics.core.model.MusicScanDurationFilter
+import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.MusicScanSizeFilter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -7,13 +10,23 @@ import org.junit.Test
 class MediaStoreAudioMapperTest {
     @Test
     fun `toTrackEntity maps music row`() {
+        val folder = MediaStoreAudioMapper.folderFromRelativePath(
+            volumeName = "external_primary",
+            relativePath = "Music/Favorites/",
+        )
         val track = MediaStoreAudioMapper.toTrackEntity(
             id = 42L,
             title = "Local Song",
             artist = "Local Artist",
             artistId = 7L,
+            albumId = 9L,
+            album = "Local Album",
+            trackNumber = 3,
             durationMillis = 180_000L,
             isMusic = 1,
+            dateAddedSeconds = 1_750_000_000L,
+            mediaUri = "content://media/external/audio/media/42",
+            folder = folder,
         )
 
         requireNotNull(track)
@@ -22,6 +35,95 @@ class MediaStoreAudioMapperTest {
         assertEquals("mediastore-artist-7", track.artistId)
         assertEquals("Local Artist", track.artistName)
         assertEquals(180_000L, track.durationMillis)
+        assertEquals(1_750_000_000_000L, track.addedAtMillis)
+        assertEquals("content://media/external/audio/media/42", track.mediaUri)
+        assertEquals("content://media/external/audio/albumart/9", track.artworkUri)
+        assertEquals("mediastore-album-9", track.albumId)
+        assertEquals("Local Album", track.albumTitle)
+        assertEquals(3, track.trackNumber)
+        assertEquals("external_primary:Music/Favorites", track.folderId)
+        assertEquals("Favorites", track.folderName)
+        assertEquals("Music/Favorites", track.folderPath)
+    }
+
+    @Test
+    fun `file key combines folder and file name so it survives reindexing`() {
+        val folder = MediaStoreAudioMapper.folderFromRelativePath("external_primary", "Music/Rock/")
+        fun scan(id: Long) = MediaStoreAudioMapper.toTrackEntity(
+            id = id,
+            title = "Song",
+            artist = "Artist",
+            artistId = 1L,
+            albumId = 1L,
+            durationMillis = 180_000L,
+            isMusic = 1,
+            mediaUri = "content://media/external/audio/media/$id",
+            displayName = "song.mp3",
+            folder = folder,
+        )
+
+        assertEquals("external_primary:Music/Rock/song.mp3", scan(1L)?.fileKey)
+        assertEquals(scan(1L)?.fileKey, scan(999L)?.fileKey)
+        assertEquals(null, MediaStoreAudioMapper.fileKey(folder = null, displayName = "a.mp3"))
+    }
+
+    @Test
+    fun `toTrackEntity ignores missing date added`() {
+        val withoutDate = MediaStoreAudioMapper.toTrackEntity(
+            id = 42L,
+            title = "Local Song",
+            artist = "Local Artist",
+            artistId = 7L,
+            albumId = 9L,
+            durationMillis = 180_000L,
+            isMusic = 1,
+            dateAddedSeconds = 0L,
+            mediaUri = "content://media/external/audio/media/42",
+        )
+        val withNegativeDate = MediaStoreAudioMapper.toTrackEntity(
+            id = 43L,
+            title = "Local Song",
+            artist = "Local Artist",
+            artistId = 7L,
+            albumId = 9L,
+            durationMillis = 180_000L,
+            isMusic = 1,
+            dateAddedSeconds = -5L,
+            mediaUri = "content://media/external/audio/media/43",
+        )
+
+        assertNull(requireNotNull(withoutDate).addedAtMillis)
+        assertNull(requireNotNull(withNegativeDate).addedAtMillis)
+    }
+
+    @Test
+    fun `relative folders with the same name keep distinct ids`() {
+        val musicFolder = MediaStoreAudioMapper.folderFromRelativePath(
+            volumeName = "external_primary",
+            relativePath = "Music/Game/",
+        )
+        val downloadsFolder = MediaStoreAudioMapper.folderFromRelativePath(
+            volumeName = "external_primary",
+            relativePath = "Download/Game/",
+        )
+
+        requireNotNull(musicFolder)
+        requireNotNull(downloadsFolder)
+        assertEquals("Game", musicFolder.name)
+        assertEquals("Game", downloadsFolder.name)
+        assert(musicFolder.id != downloadsFolder.id)
+    }
+
+    @Test
+    fun `absolute path maps its parent folder`() {
+        val folder = MediaStoreAudioMapper.folderFromAbsolutePath(
+            absolutePath = "/storage/emulated/0/Music/Favorites/song.mp3",
+        )
+
+        requireNotNull(folder)
+        assertEquals("external:storage/emulated/0/Music/Favorites", folder.id)
+        assertEquals("Favorites", folder.name)
+        assertEquals("storage/emulated/0/Music/Favorites", folder.path)
     }
 
     @Test
@@ -31,12 +133,63 @@ class MediaStoreAudioMapperTest {
             title = "Local Song",
             artist = "<unknown>",
             artistId = 7L,
+            albumId = 9L,
             durationMillis = 180_000L,
             isMusic = 1,
+            mediaUri = "content://media/external/audio/media/42",
         )
 
         requireNotNull(track)
         assertEquals("Artista desconocido", track.artistName)
+        assertEquals("Álbum desconocido", track.albumTitle)
+    }
+
+    @Test
+    fun `tracks without album id share fallback album key by artist and title`() {
+        val first = MediaStoreAudioMapper.toTrackEntity(
+            id = 1L,
+            title = "First",
+            artist = "Local Artist",
+            artistId = 7L,
+            albumId = 0L,
+            album = "Local Album",
+            durationMillis = 180_000L,
+            isMusic = 1,
+            mediaUri = "content://media/1",
+        )
+        val second = MediaStoreAudioMapper.toTrackEntity(
+            id = 2L,
+            title = "Second",
+            artist = "Local Artist",
+            artistId = 7L,
+            albumId = 0L,
+            album = "Local Album",
+            durationMillis = 180_000L,
+            isMusic = 1,
+            mediaUri = "content://media/2",
+        )
+
+        assertEquals(requireNotNull(first).albumId, requireNotNull(second).albumId)
+    }
+
+    @Test
+    fun `toTrackEntity preserves media uri when metadata is normalized`() {
+        val track = MediaStoreAudioMapper.toTrackEntity(
+            id = 42L,
+            title = "",
+            artist = "<unknown>",
+            artistId = 7L,
+            albumId = 0L,
+            durationMillis = 180_000L,
+            isMusic = 1,
+            mediaUri = "content://media/external/audio/media/42",
+        )
+
+        requireNotNull(track)
+        assertEquals("Canción sin título", track.title)
+        assertEquals("Artista desconocido", track.artistName)
+        assertEquals("content://media/external/audio/media/42", track.mediaUri)
+        assertNull(track.artworkUri)
     }
 
     @Test
@@ -46,8 +199,10 @@ class MediaStoreAudioMapperTest {
             title = "Local Song",
             artist = "Local Artist",
             artistId = 7L,
+            albumId = 9L,
             durationMillis = 0L,
             isMusic = 1,
+            mediaUri = "content://media/external/audio/media/42",
         )
 
         assertNull(track)
@@ -60,10 +215,67 @@ class MediaStoreAudioMapperTest {
             title = "Local Song",
             artist = "Local Artist",
             artistId = 7L,
+            albumId = 9L,
             durationMillis = 180_000L,
             isMusic = 0,
+            mediaUri = "content://media/external/audio/media/42",
         )
 
         assertNull(track)
     }
+
+    @Test
+    fun `duration filter excludes only tracks below selected limit`() {
+        val settings = MusicScanSettings(
+            durationFilter = MusicScanDurationFilter.Seconds30,
+        )
+
+        val belowLimit = track(durationMillis = 29_999L, scanSettings = settings)
+        val atLimit = track(durationMillis = 30_000L, scanSettings = settings)
+
+        assertNull(belowLimit)
+        requireNotNull(atLimit)
+    }
+
+    @Test
+    fun `size filter excludes only files below selected limit`() {
+        val settings = MusicScanSettings(
+            sizeFilter = MusicScanSizeFilter.Kilobytes500,
+        )
+        val limit = requireNotNull(settings.sizeFilter.minimumSizeBytes)
+
+        val belowLimit = track(fileSizeBytes = limit - 1L, scanSettings = settings)
+        val atLimit = track(fileSizeBytes = limit, scanSettings = settings)
+
+        assertNull(belowLimit)
+        requireNotNull(atLimit)
+    }
+
+    @Test
+    fun `disabled scan filters keep valid music regardless of size`() {
+        val track = track(
+            durationMillis = 1L,
+            fileSizeBytes = 1L,
+            scanSettings = MusicScanSettings(),
+        )
+
+        requireNotNull(track)
+    }
+
+    private fun track(
+        durationMillis: Long = 180_000L,
+        fileSizeBytes: Long = 2L * 1_024L * 1_024L,
+        scanSettings: MusicScanSettings,
+    ) = MediaStoreAudioMapper.toTrackEntity(
+        id = 42L,
+        title = "Local Song",
+        artist = "Local Artist",
+        artistId = 7L,
+        albumId = 9L,
+        durationMillis = durationMillis,
+        fileSizeBytes = fileSizeBytes,
+        isMusic = 1,
+        mediaUri = "content://media/external/audio/media/42",
+        scanSettings = scanSettings,
+    )
 }

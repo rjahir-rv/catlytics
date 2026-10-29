@@ -1,0 +1,260 @@
+package com.catlytics.core.domain.usecase.playlist
+
+import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.PlaylistRepository
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.model.Playlist
+import com.catlytics.core.model.PlaylistContent
+import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.PlaylistSourceKind
+import com.catlytics.core.model.PlaylistSourcePreview
+import com.catlytics.core.model.PlaylistSummary
+import com.catlytics.core.model.Track
+import com.catlytics.core.model.distinctArtworkUris
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+
+class ObservePlaylistContentUseCase @Inject constructor(
+    private val playlistRepository: PlaylistRepository,
+    private val libraryRepository: LibraryRepository,
+) {
+    operator fun invoke(playlistId: String): Flow<PlaylistContent?> = combine(
+        playlistRepository.observePlaylists(),
+        libraryRepository.observeAllTracks(),
+    ) { playlists, tracks ->
+        val playlist = playlists.firstOrNull { it.id == playlistId } ?: return@combine null
+        val tracksById = tracks.associateBy { it.id }
+        PlaylistContent(
+            playlist = playlist,
+            tracks = playlist.trackIds.mapNotNull(tracksById::get),
+        )
+    }
+}
+
+const val PLAYLIST_COVER_MOSAIC_SIZE = 4
+
+class ObservePlaylistSummariesUseCase @Inject constructor(
+    private val playlistRepository: PlaylistRepository,
+    private val libraryRepository: LibraryRepository,
+) {
+    operator fun invoke(): Flow<List<PlaylistSummary>> = combine(
+        playlistRepository.observePlaylists(),
+        libraryRepository.observeAllTracks(),
+    ) { playlists, tracks ->
+        val tracksById = tracks.associateBy { it.id }
+        playlists.map { playlist -> playlist.toSummary(tracksById) }
+    }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+}
+
+internal fun Playlist.toSummary(tracksById: Map<String, Track>): PlaylistSummary {
+    val resolved = trackIds.mapNotNull(tracksById::get)
+    return PlaylistSummary(
+        playlist = this,
+        trackCount = resolved.size,
+        totalDurationMillis = resolved.sumOf { it.durationMillis },
+        coverArtworkUris = resolved.distinctArtworkUris(PLAYLIST_COVER_MOSAIC_SIZE),
+    )
+}
+
+class CreatePlaylistUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(
+        name: String,
+        trackIds: List<String> = emptyList(),
+        artworkUri: String? = null,
+        description: String = "",
+    ): Playlist {
+        val normalized = name.trim()
+        require(normalized.isNotEmpty()) { "El nombre no puede estar vacío." }
+        val normalizedDescription = description.trim()
+        var playlist = repository.createPlaylist(normalized, trackIds)
+        if (normalizedDescription.isNotEmpty()) {
+            repository.updatePlaylistDetails(playlist.id, normalized, normalizedDescription)
+            playlist = playlist.copy(description = normalizedDescription)
+        }
+        if (artworkUri != null) {
+            repository.setPlaylistArtwork(playlist.id, artworkUri)
+        }
+        return playlist
+    }
+}
+
+class RenamePlaylistUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(id: String, name: String) {
+        val normalized = name.trim()
+        require(normalized.isNotEmpty()) { "El nombre no puede estar vacío." }
+        repository.renamePlaylist(id, normalized)
+    }
+}
+
+class UpdatePlaylistDetailsUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(id: String, name: String, description: String) {
+        val normalizedName = name.trim()
+        require(normalizedName.isNotEmpty()) { "El nombre no puede estar vacío." }
+        repository.updatePlaylistDetails(id, normalizedName, description.trim())
+    }
+}
+
+class ReorderPlaylistTracksUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(playlistId: String, orderedTrackIds: List<String>) {
+        require(orderedTrackIds.size == orderedTrackIds.distinct().size) {
+            "El orden contiene canciones duplicadas."
+        }
+        repository.reorderTracks(playlistId, orderedTrackIds)
+    }
+}
+
+class DeletePlaylistUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(id: String) = repository.deletePlaylist(id)
+}
+
+class AddToPlaylistUseCase @Inject constructor(
+    private val playlistRepository: PlaylistRepository,
+    private val libraryRepository: LibraryRepository,
+) {
+    suspend operator fun invoke(playlistId: String, source: PlaylistSource): Int =
+        addToPlaylists(listOf(playlistId), source)[playlistId] ?: 0
+
+    suspend fun addToPlaylists(
+        playlistIds: Collection<String>,
+        source: PlaylistSource,
+    ): Map<String, Int> {
+        if (playlistIds.isEmpty()) return emptyMap()
+        val trackIds = libraryRepository.resolvePlaylistSource(source).map { it.id }
+        if (trackIds.isEmpty()) return emptyMap()
+        return playlistRepository.addTracksToPlaylists(playlistIds, trackIds)
+    }
+}
+
+class ResolvePlaylistSourcePreviewUseCase @Inject constructor(
+    private val libraryRepository: LibraryRepository,
+) {
+    suspend operator fun invoke(source: PlaylistSource): PlaylistSourcePreview {
+        val tracks = libraryRepository.resolvePlaylistSource(source)
+        val trackIds = tracks.map { it.id }
+        return when (source) {
+            is PlaylistSource.TrackSource -> {
+                val track = tracks.firstOrNull()
+                PlaylistSourcePreview(
+                    title = track?.title,
+                    kind = PlaylistSourceKind.Track,
+                    subtitle = track?.artist?.name,
+                    artworkUri = track?.artworkUri,
+                    itemCount = tracks.size,
+                    trackIds = trackIds,
+                )
+            }
+            is PlaylistSource.AlbumSource -> {
+                val album = libraryRepository.observeAlbums().first()
+                    .firstOrNull { it.id == source.albumId }
+                PlaylistSourcePreview(
+                    title = album?.title ?: tracks.firstOrNull()?.albumTitle,
+                    kind = PlaylistSourceKind.Album,
+                    subtitle = album?.artist?.name ?: tracks.firstOrNull()?.artist?.name,
+                    artworkUri = album?.artworkUri ?: tracks.firstNotNullOfOrNull { it.artworkUri },
+                    itemCount = tracks.size,
+                    trackIds = trackIds,
+                )
+            }
+            is PlaylistSource.ArtistSource -> {
+                val artist = libraryRepository.observeArtists().first()
+                    .firstOrNull { it.artist.id == source.artistId }
+                PlaylistSourcePreview(
+                    title = artist?.artist?.name ?: tracks.firstOrNull()?.artist?.name,
+                    kind = PlaylistSourceKind.Artist,
+                    albumCount = artist?.albumCount,
+                    artworkUri = artist?.artworkUri ?: tracks.firstNotNullOfOrNull { it.artworkUri },
+                    itemCount = tracks.size,
+                    trackIds = trackIds,
+                )
+            }
+            is PlaylistSource.FolderSource -> {
+                val folder = libraryRepository.observeFolders().first()
+                    .firstOrNull { it.id == source.folderId }
+                PlaylistSourcePreview(
+                    title = folder?.name,
+                    kind = PlaylistSourceKind.Folder,
+                    subtitle = folder?.path,
+                    artworkUri = tracks.firstNotNullOfOrNull { it.artworkUri },
+                    itemCount = tracks.size,
+                    trackIds = trackIds,
+                )
+            }
+            is PlaylistSource.TrackCollectionSource -> PlaylistSourcePreview(
+                title = source.title,
+                kind = PlaylistSourceKind.Collection,
+                artworkUri = source.artworkUri,
+                itemCount = tracks.size,
+                trackIds = trackIds,
+            )
+        }
+    }
+}
+
+enum class ToggleLikedTrackResult {
+    Added,
+    Removed,
+}
+
+class ToggleLikedTrackUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(trackId: String): ToggleLikedTrackResult {
+        val likedTrackIds = repository.observePlaylists()
+            .first()
+            .firstOrNull { it.id == LIKED_PLAYLIST_ID }
+            ?.trackIds
+            .orEmpty()
+
+        return if (trackId in likedTrackIds) {
+            repository.removeTrack(LIKED_PLAYLIST_ID, trackId)
+            ToggleLikedTrackResult.Removed
+        } else {
+            repository.addTracks(LIKED_PLAYLIST_ID, listOf(trackId))
+            ToggleLikedTrackResult.Added
+        }
+    }
+}
+
+class ObserveIsTrackLikedUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    operator fun invoke(trackId: String?): Flow<Boolean> = repository.observePlaylists()
+        .map { playlists ->
+            val likedTrackIds = playlists
+                .firstOrNull { it.id == LIKED_PLAYLIST_ID }
+                ?.trackIds
+                .orEmpty()
+            trackId != null && trackId in likedTrackIds
+        }
+}
+
+class RemoveTrackFromPlaylistUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(playlistId: String, trackId: String): Int =
+        invoke(playlistId, listOf(trackId))
+
+    suspend operator fun invoke(playlistId: String, trackIds: Collection<String>): Int =
+        repository.removeTracks(playlistId, trackIds)
+}
+
+class RestorePlaylistTracksUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(playlistId: String, previousTrackIds: List<String>) {
+        val ordered = previousTrackIds.distinct()
+        if (ordered.isEmpty()) return
+        repository.addTracks(playlistId, ordered)
+        repository.reorderTracks(playlistId, ordered)
+    }
+}
+
+class AddTracksToLikedUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(trackIds: Collection<String>): Int =
+        repository.addTracks(LIKED_PLAYLIST_ID, trackIds.toList())
+}
+
+class RemoveTracksFromLikedUseCase @Inject constructor(private val repository: PlaylistRepository) {
+    suspend operator fun invoke(trackIds: Collection<String>): Int =
+        repository.removeTracks(LIKED_PLAYLIST_ID, trackIds)
+}

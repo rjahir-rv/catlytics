@@ -1,0 +1,282 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Settings: main screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_app_config">App settings</string>
+    <string name="settings_music_scan_title">Scan music</string>
+    <string name="settings_music_scan_supporting">Folders and filters to find local music</string>
+    <string name="settings_section_home_recommendations">Home and recommendations</string>
+    <string name="settings_recommended_playlists_title">Recommended playlists</string>
+    <string name="settings_recommended_playlists_supporting">Quick actions cards on Home</string>
+    <string name="settings_new_track_badge_title">“New” badge</string>
+    <string name="settings_new_track_badge_supporting">Marks recently added songs</string>
+    <string name="settings_section_audio">Audio</string>
+    <string name="settings_sleep_timer_title">Sleep timer</string>
+    <string name="settings_sleep_timer_supporting">Pause music after a while</string>
+    <string name="settings_sleep_timer_remaining">%1$s left</string>
+    <string name="settings_sleep_timer_active">Active</string>
+    <string name="settings_crossfade_title">Crossfade</string>
+    <string name="settings_crossfade_supporting_inactive">Gapless playback will be used</string>
+    <string name="settings_crossfade_supporting_active">Blend at the end of a song</string>
+    <string name="settings_crossfade_value_off">Off</string>
+    <string name="settings_crossfade_value_seconds">%1$d s</string>
+    <string name="settings_equalizer_title">Equalizer</string>
+    <string name="settings_equalizer_supporting">Device presets</string>
+    <string name="settings_equalizer_status_unavailable">Unavailable</string>
+    <string name="settings_equalizer_status_active">Active</string>
+    <string name="settings_equalizer_status_disabled">Off</string>
+    <string name="settings_section_data_recovery">Data and recovery</string>
+    <string name="settings_backup_title">Backup</string>
+    <string name="settings_backup_supporting">Export or restore playlists and listening statistics</string>
+    <string name="settings_section_about">About</string>
+    <string name="settings_about_title">About Catlytics</string>
+    <string name="settings_about_supporting">Version, features, source code, and licenses</string>
+
+    <!-- Settings: theme and recent songs -->
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_system_short">System</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system_description">Use the device theme</string>
+    <string name="settings_theme_light_description">Always use the light theme</string>
+    <string name="settings_theme_dark_description">Always use the dark theme</string>
+    <string name="settings_language_title">Language</string>
+    <string name="settings_language_system">System</string>
+    <string name="settings_language_system_description">Use the device language</string>
+    <string name="settings_language_spanish_description">Show the app in Spanish</string>
+    <string name="settings_language_english_description">Show the app in English</string>
+    <string name="settings_recent_added_title">Recent songs</string>
+    <string name="settings_recent_added_supporting">Window for Recently added and the New badge</string>
+    <string name="settings_recent_added_window_days">%1$d days</string>
+
+    <!-- Settings: music scan -->
+    <string name="settings_scan_library_section">Music library</string>
+    <string name="settings_folders_title">Folders</string>
+    <string name="settings_folders_supporting">Choose which folders appear in your library</string>
+    <string name="settings_scan_filters_section">Scan filters</string>
+    <string name="settings_scan_duration_title">Ignore duration</string>
+    <string name="settings_scan_duration_supporting">Exclude songs shorter than the limit</string>
+    <string name="settings_scan_size_title">Ignore size</string>
+    <string name="settings_scan_size_supporting">Exclude files smaller than the limit</string>
+    <string name="settings_scan_button_scanning">Scanning…</string>
+    <string name="settings_scan_button_scan">Scan now</string>
+    <string name="settings_scan_button_permission">Allow music access</string>
+    <string name="settings_scan_filter_disabled">Don\'t ignore</string>
+    <string name="settings_scan_duration_30_seconds">30 seconds</string>
+    <string name="settings_scan_duration_60_seconds">60 seconds</string>
+    <string name="settings_scan_size_500_kb">500 KB</string>
+    <string name="settings_scan_size_1_mb">1 MB</string>
+    <string name="settings_scan_status_searching">Searching for music</string>
+    <string name="settings_scan_status_success">Scan complete</string>
+    <string name="settings_scan_status_error">Couldn\'t complete</string>
+    <string name="settings_scan_status_scanning_supporting">Checking folders and applying your filters…</string>
+    <string name="settings_scan_success_no_new_tracks">No new songs found.</string>
+    <plurals name="settings_scan_success_new_tracks">
+        <item quantity="one">1 new song added.</item>
+        <item quantity="other">%1$d new songs added.</item>
+    </plurals>
+    <string name="settings_folders_screen_title">Music folders</string>
+    <string name="settings_folders_screen_subtitle">Changes are also reflected in the Folders section of Library.</string>
+    <string name="settings_folders_empty">Scan the device to find folders with music.</string>
+    <string name="settings_folder_supporting">%1$s · %2$d songs</string>
+
+    <!-- Settings: generic errors -->
+    <string name="settings_error_scan_failed">Couldn\'t scan the device\'s music.</string>
+    <string name="settings_error_backup_export_failed">Couldn\'t export the backup.</string>
+    <string name="settings_error_backup_read_failed">Couldn\'t read the backup file.</string>
+    <string name="settings_error_backup_import_failed">Couldn\'t import the backup.</string>
+    <string name="settings_error_backup_too_large">The file exceeds the 64 MB limit.</string>
+    <string name="settings_error_backup_invalid_format">This file isn\'t a Catlytics backup.</string>
+    <string name="settings_error_backup_unsupported_version">This backup (v%1$d) isn\'t supported by this version of the app.</string>
+    <string name="settings_error_backup_invalid_content">The backup contains damaged or incomplete data.</string>
+
+    <!-- Settings: backup -->
+    <string name="settings_backup_description">Export a backup file to protect your playlists and listening history if you uninstall the app or move to a new phone.</string>
+    <string name="settings_backup_playlists_summary">🎵 Playlists: %1$d lists (%2$d songs, %3$d favorites)</string>
+    <string name="settings_backup_statistics_summary">📊 Statistics: %1$d plays recorded</string>
+    <string name="settings_backup_statistics_summary_artists">📊 Statistics: %1$d plays recorded, %2$d merged artists</string>
+    <string name="settings_backup_export_title">Export backup</string>
+    <string name="settings_backup_export_supporting">Choose whether to export playlists, statistics, or both to a JSON file</string>
+    <string name="settings_backup_restore_title">Restore backup</string>
+    <string name="settings_backup_restore_supporting">Load your data from a previously exported JSON file</string>
+    <string name="settings_backup_exporting">Creating backup…</string>
+    <string name="settings_backup_importing">Restoring data…</string>
+    <string name="settings_backup_reading_file">Reading file…</string>
+    <string name="settings_backup_import_success">Restore completed successfully: %1$s.</string>
+    <string name="settings_backup_import_part_playlists">%1$d playlists</string>
+    <string name="settings_backup_import_part_listens">%1$d plays</string>
+    <string name="settings_backup_export_dialog_description">Select which data to include in the backup file:</string>
+    <string name="settings_backup_export_playlists_option">Playlists</string>
+    <string name="settings_backup_export_playlists_count">%1$d lists (%2$d songs)</string>
+    <string name="settings_backup_export_statistics_option">Statistics and edited metadata</string>
+    <string name="settings_backup_statistics_with_metadata">%1$s, %2$d edited songs</string>
+    <string name="settings_backup_metadata_summary">✏️ Metadata: %1$d edited songs</string>
+    <string name="settings_backup_import_part_metadata">%1$d edited songs</string>
+    <string name="settings_backup_export_statistics_count">%1$d plays recorded</string>
+    <string name="settings_action_export">Export</string>
+    <string name="settings_action_cancel">Cancel</string>
+    <string name="settings_action_restore">Restore</string>
+    <string name="settings_action_close">Close</string>
+    <string name="settings_backup_exported_at">File exported on %1$s</string>
+    <string name="settings_backup_restore_content_title">Content to restore:</string>
+    <string name="settings_backup_restore_playlists_option">Playlists</string>
+    <string name="settings_backup_restore_playlists_count">%1$d playlists (%2$d tracks)</string>
+    <string name="settings_backup_restore_missing_warning">Warning: %1$d songs are not on this device.</string>
+    <string name="settings_backup_restore_statistics_count">%1$d listening events</string>
+    <string name="settings_backup_restore_mode_title">Restore mode:</string>
+    <string name="settings_backup_restore_mode_merge_title">Merge with current data</string>
+    <string name="settings_backup_restore_mode_merge_description">Keep what you have in the app and add or update the data from the file.</string>
+    <string name="settings_backup_restore_mode_replace_title">Replace current data</string>
+    <string name="settings_backup_restore_mode_replace_description">Delete the current data in the app and replace it with the file\'s data.</string>
+    <string name="settings_backup_missing_tracks_title">⚠️ Songs not found on the device (%1$d)</string>
+    <string name="settings_backup_missing_tracks_description">Playlists were imported skipping tracks that weren\'t found in your local storage:</string>
+    <string name="settings_backup_missing_track_name">• %1$s</string>
+
+    <!-- Settings: export (Toast) -->
+    <string name="settings_backup_export_toast_success">Backup exported successfully</string>
+    <string name="settings_backup_export_toast_detail">\u0020(%1$s)</string>
+    <plurals name="settings_backup_export_toast_playlists">
+        <item quantity="one">%1$d playlists</item>
+        <item quantity="other">%1$d playlists</item>
+    </plurals>
+
+    <!-- Settings: equalizer -->
+    <string name="settings_equalizer_mode_preset">Preset</string>
+    <string name="settings_equalizer_mode_custom">Custom</string>
+    <string name="settings_equalizer_output_label">OUTPUT</string>
+    <string name="settings_equalizer_enable_title">Enable equalizer</string>
+    <string name="settings_equalizer_presets_available">%1$d presets available</string>
+    <string name="settings_equalizer_session_ready">Session ready, no presets available</string>
+    <string name="settings_equalizer_not_available_hint">Play a song to enable the equalizer</string>
+    <string name="settings_equalizer_no_presets_for_session">The device doesn\'t expose presets for this session.</string>
+    <string name="settings_equalizer_device_preset_label">DEVICE PRESET</string>
+    <string name="settings_equalizer_select_curve">Select curve</string>
+    <string name="settings_equalizer_close_label">CLOSE</string>
+    <string name="settings_equalizer_presets_label">%1$d PRESETS</string>
+    <string name="settings_equalizer_preset_index">PRESET %1$02d</string>
+    <string name="settings_equalizer_active_label">ACTIVE</string>
+    <string name="settings_equalizer_load_label">LOAD</string>
+    <string name="settings_equalizer_error_audio_session">Audio session unavailable.</string>
+    <string name="settings_equalizer_error_unavailable">The equalizer is not available on this device.</string>
+    <string name="settings_equalizer_error_playback_required">Play a song to enable the equalizer.</string>
+    <string name="settings_equalizer_error_presets_unreadable">Couldn\'t read the device presets.</string>
+
+    <!-- Settings: sleep timer -->
+    <string name="settings_sleep_timer_sheet_description">Music will pause without losing your queue or position.</string>
+    <string name="settings_sleep_timer_sheet_active">Timer active</string>
+    <string name="settings_sleep_timer_start">Start timer</string>
+    <string name="settings_sleep_timer_restart">Restart timer</string>
+    <string name="settings_sleep_timer_cancel">Cancel timer</string>
+    <string name="settings_sleep_timer_minutes_unit">min</string>
+    <string name="settings_sleep_timer_dial_hint">Slide to adjust</string>
+    <plurals name="settings_sleep_timer_dial_state_description">
+        <item quantity="one">1 minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+
+    <!-- Settings: about -->
+    <string name="settings_about_app_title">Catlytics</string>
+    <string name="settings_about_tagline">Your local music and the story of what you listen to</string>
+    <string name="settings_about_version">Version %1$s</string>
+    <string name="settings_about_local_music_title">Your music, on your device</string>
+    <string name="settings_about_local_music_description">Catlytics plays the songs you already have saved on your phone. It works offline, doesn\'t need an account, and your data stays on the device.</string>
+    <string name="settings_about_statistics_title">Listening statistics</string>
+    <string name="settings_about_statistics_description">Every play is recorded so you can discover your most played songs, artists, and albums. You can take your history with you in a backup.</string>
+    <string name="settings_about_editing_title">Edit your library</string>
+    <string name="settings_about_editing_description">Fix your music\'s info without leaving the app.</string>
+    <string name="settings_about_editing_tracks_title">Songs</string>
+    <string name="settings_about_editing_tracks_description">Change title, artist, album, and artwork, one at a time or several at once.</string>
+    <string name="settings_about_editing_albums_title">Albums</string>
+    <string name="settings_about_editing_albums_description">Update the title, artist, and artwork of the whole album at once.</string>
+    <string name="settings_about_editing_artists_title">Artists</string>
+    <string name="settings_about_editing_artists_description">Rename an artist or merge its differently spelled variants into one.</string>
+    <string name="settings_about_editing_note">Your files are not modified unless you choose to save changes to them as well. Statistics regroup with the new data, and any edit can be reverted.</string>
+    <string name="settings_about_editing_action">View my edits</string>
+    <string name="settings_about_open_source_title">Open source and ad-free</string>
+    <string name="settings_about_open_source_description">Catlytics is free software under the MIT license and shows no ads. On GitHub you can review the code, report issues, or suggest improvements.</string>
+    <string name="settings_about_repository_action">View on GitHub</string>
+    <string name="settings_licenses_title">Open source licenses</string>
+    <string name="settings_licenses_description">Catlytics is built with third-party libraries such as AndroidX, Media3, and TagLib. Here you\'ll find each one with its license.</string>
+    <string name="settings_licenses_action">View licenses</string>
+    <string name="settings_licenses_action_source">Source</string>
+    <string name="settings_licenses_action_website">Website</string>
+    <string name="settings_licenses_action_view_license">View license</string>
+    <string name="settings_licenses_dialog_confirm">Accept</string>
+
+    <!-- Settings header -->
+    <string name="settings_profile_title">Catlytics</string>
+    <string name="settings_profile_version">Version %1$s</string>
+    <!-- Metadata edits -->
+    <string name="settings_edits_title">Metadata edits</string>
+    <string name="settings_edits_supporting">Review and revert changes to songs and artists</string>
+    <string name="settings_edits_description">Changes apply only inside Catlytics (except those also saved to files) and regroup your statistics history. Reverting them restores the original data.</string>
+    <string name="settings_edits_search">Search edits</string>
+    <string name="settings_edits_filter_all">All</string>
+    <string name="settings_edits_filter_missing">No song</string>
+    <string name="settings_edits_filter_artists">Artists</string>
+    <string name="settings_edits_field_title">Title</string>
+    <string name="settings_edits_field_artist">Artist</string>
+    <string name="settings_edits_field_album">Album</string>
+    <string name="settings_edits_field_artwork">Artwork</string>
+    <string name="settings_edits_change">%1$s → %2$s</string>
+    <string name="settings_edits_artwork_changed">custom</string>
+    <string name="settings_edits_updated_at">Edited on %1$s</string>
+    <string name="settings_edits_missing_track">%1$s · Not in library</string>
+    <string name="settings_edits_options_content_description">Options for the edit of %1$s</string>
+    <string name="settings_edits_restore_title">Restore title</string>
+    <string name="settings_edits_restore_artist">Restore artist</string>
+    <string name="settings_edits_restore_album">Restore album</string>
+    <string name="settings_edits_restore_artwork">Restore artwork</string>
+    <string name="settings_edits_restore_track">Restore the whole song</string>
+    <string name="settings_edits_artist_merged">Merged with %1$s</string>
+    <string name="settings_edits_artist_renamed">Renamed to %1$s</string>
+    <string name="settings_edits_artist_spelling">Spelled %1$s</string>
+    <string name="settings_edits_separate">Separate</string>
+    <string name="settings_edits_restore_name">Restore</string>
+    <string name="settings_edits_select">Select</string>
+    <string name="settings_edits_select_all">All</string>
+    <string name="settings_edits_cancel">Cancel</string>
+    <string name="settings_edits_revert">Revert</string>
+    <string name="settings_edits_revert_filtered">Revert all</string>
+    <string name="settings_edits_no_results">No edits match the search or filter.</string>
+    <string name="settings_edits_empty_title">No edits</string>
+    <string name="settings_edits_empty_message">Songs you edit, artists you merge or rename and artist images you change will appear here.</string>
+    <string name="settings_edits_confirm_title">Revert edits?</string>
+    <string name="settings_edits_confirm_filtered_one">The edits for %1$s shown now will be reverted. This can\'t be undone.</string>
+    <string name="settings_edits_confirm_filtered">%1$s and %2$s shown now will be reverted. This can\'t be undone.</string>
+    <string name="settings_edits_field_reverted">Field restored</string>
+    <string name="settings_edits_artist_reverted">“%1$s” will appear under its original name again</string>
+    <string name="settings_edits_artist_image_reverted">“%1$s” uses the artwork of its songs again</string>
+    <string name="settings_edits_artist_image_content_description">Image of %1$s</string>
+    <string name="settings_edits_filtered_reverted">Edits reverted</string>
+    <string name="settings_edits_error">Couldn\'t revert the edits.</string>
+    <string name="settings_backup_view_edits">View and revert edits</string>
+    <plurals name="settings_edits_tracks_section">
+        <item quantity="one">%1$d edited song</item>
+        <item quantity="other">%1$d edited songs</item>
+    </plurals>
+    <plurals name="settings_edits_artists_section">
+        <item quantity="one">%1$d merged or renamed artist</item>
+        <item quantity="other">%1$d merged or renamed artists</item>
+    </plurals>
+    <plurals name="settings_edits_artist_images_section">
+        <item quantity="one">%1$d artist image</item>
+        <item quantity="other">%1$d artist images</item>
+    </plurals>
+    <plurals name="settings_edits_selected">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <plurals name="settings_edits_confirm_selected">
+        <item quantity="one">The original info for %1$d song will be restored. This can\'t be undone.</item>
+        <item quantity="other">The original info for %1$d songs will be restored. This can\'t be undone.</item>
+    </plurals>
+    <plurals name="settings_edits_artist_count">
+        <item quantity="one">%1$d artist</item>
+        <item quantity="other">%1$d artists</item>
+    </plurals>
+    <plurals name="settings_edits_tracks_reverted">
+        <item quantity="one">Restored %1$d song</item>
+        <item quantity="other">Restored %1$d songs</item>
+    </plurals>
+</resources>

@@ -1,0 +1,96 @@
+package com.catlytics.app
+
+import com.catlytics.app.ui.ThemeViewModel
+import com.catlytics.core.domain.repository.AppPreferencesRepository
+import com.catlytics.core.model.AppLanguage
+import com.catlytics.core.model.ThemeMode
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TestWatcher
+import org.junit.runner.Description
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class ThemeViewModelTest {
+    @get:Rule
+    val mainDispatcherRule = MainDispatcherRule()
+
+    private lateinit var repository: FakeAppPreferencesRepository
+
+    @Before
+    fun setUp() {
+        repository = FakeAppPreferencesRepository()
+    }
+
+    @Test
+    fun `themeMode exposes repository changes`() = runTest {
+        val viewModel = ThemeViewModel(repository)
+        assertNull(viewModel.themeMode.value)
+
+        backgroundScope.launch { viewModel.themeMode.collect() }
+        advanceUntilIdle()
+
+        repository.themeMode.value = ThemeMode.Dark
+        advanceUntilIdle()
+
+        assertEquals(ThemeMode.Dark, viewModel.themeMode.value)
+    }
+
+    @Test
+    fun `appLanguage exposes repository changes`() = runTest {
+        val viewModel = ThemeViewModel(repository)
+        assertNull(viewModel.appLanguage.value)
+
+        backgroundScope.launch { viewModel.appLanguage.collect() }
+        advanceUntilIdle()
+
+        repository.appLanguage.value = AppLanguage.English
+        advanceUntilIdle()
+
+        assertEquals(AppLanguage.English, viewModel.appLanguage.value)
+    }
+}
+
+private class FakeAppPreferencesRepository : AppPreferencesRepository {
+    val themeMode = MutableStateFlow(ThemeMode.System)
+    val appLanguage = MutableStateFlow(AppLanguage.System)
+
+    override fun observeThemeMode(): Flow<ThemeMode> = themeMode
+
+    override suspend fun setThemeMode(themeMode: ThemeMode) {
+        this.themeMode.value = themeMode
+    }
+
+    override fun observeAppLanguage(): Flow<AppLanguage> = appLanguage
+
+    override suspend fun setAppLanguage(language: AppLanguage) {
+        this.appLanguage.value = language
+    }
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+class MainDispatcherRule(
+    private val testDispatcher: TestDispatcher = StandardTestDispatcher(),
+) : TestWatcher() {
+    override fun starting(description: Description) {
+        Dispatchers.setMain(testDispatcher)
+    }
+
+    override fun finished(description: Description) {
+        Dispatchers.resetMain()
+    }
+}

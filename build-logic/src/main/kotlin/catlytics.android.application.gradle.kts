@@ -2,6 +2,7 @@ import com.android.build.api.dsl.ApplicationExtension
 
 apply(plugin = "com.android.application")
 apply(plugin = "catlytics.android.compose")
+apply(plugin = "catlytics.android.lint")
 
 extensions.configure<ApplicationExtension>("android") {
     compileSdk {

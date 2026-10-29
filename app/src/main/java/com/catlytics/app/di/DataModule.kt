@@ -1,19 +1,38 @@
 package com.catlytics.app.di
 
 import com.catlytics.core.data.local.AndroidMediaStoreLibraryDataSource
-import com.catlytics.core.data.local.CatlyticsLocalDataSource
-import com.catlytics.core.data.local.InMemoryCatlyticsLocalDataSource
+import com.catlytics.core.data.local.AudioTagWriter
+import com.catlytics.core.data.local.InMemoryLocalDataSource
+import com.catlytics.core.data.local.LocalDataSource
+import com.catlytics.core.data.local.MediaStoreLibraryChangeObserver
 import com.catlytics.core.data.local.MediaStoreLibraryDataSource
-import com.catlytics.core.data.mediator.CatlyticsDataMediator
-import com.catlytics.core.data.mediator.OfflineFirstCatlyticsDataMediator
-import com.catlytics.core.data.remote.CatlyticsRemoteDataSource
-import com.catlytics.core.data.remote.NoOpCatlyticsRemoteDataSource
-import com.catlytics.core.data.repository.DefaultStatisticsRepository
+import com.catlytics.core.data.local.TagLibAudioTagWriter
+import com.catlytics.core.data.mediator.DataMediator
+import com.catlytics.core.data.mediator.OfflineFirstDataMediator
+import com.catlytics.core.data.repository.DataStoreAppPreferencesRepository
+import com.catlytics.core.data.repository.DataStoreLibraryPreferencesRepository
+import com.catlytics.core.data.repository.DataStorePlaybackSessionRepository
+import com.catlytics.core.data.repository.DataStorePlaylistRepository
+import com.catlytics.core.data.repository.M3uPlaylistExportRepository
 import com.catlytics.core.data.repository.OfflineFirstLibraryRepository
-import com.catlytics.core.data.repository.OfflineFirstPlaylistRepository
+import com.catlytics.core.data.repository.RoomArtistArtworkRepository
+import com.catlytics.core.data.repository.RoomArtistIdentityRepository
+import com.catlytics.core.data.repository.RoomPlaybackEventRepository
+import com.catlytics.core.data.repository.RoomTrackMetadataRepository
+import com.catlytics.core.domain.repository.AppPreferencesRepository
+import com.catlytics.core.domain.repository.ArtistArtworkRepository
+import com.catlytics.core.domain.repository.ArtistIdentityRepository
+import com.catlytics.core.domain.repository.EqualizerPreferencesRepository
+import com.catlytics.core.domain.repository.HomePreferencesRepository
+import com.catlytics.core.domain.repository.LibraryChangeObserver
+import com.catlytics.core.domain.repository.LibraryPreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
+import com.catlytics.core.domain.repository.PlaybackEventRepository
+import com.catlytics.core.domain.repository.PlaybackPreferencesRepository
+import com.catlytics.core.domain.repository.PlaybackSessionRepository
+import com.catlytics.core.domain.repository.PlaylistExportRepository
 import com.catlytics.core.domain.repository.PlaylistRepository
-import com.catlytics.core.domain.repository.StatisticsRepository
+import com.catlytics.core.domain.repository.TrackMetadataRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -25,9 +44,60 @@ import javax.inject.Singleton
 interface DataModule {
     @Binds
     @Singleton
+    fun bindTrackMetadataRepository(
+        repository: RoomTrackMetadataRepository,
+    ): TrackMetadataRepository
+
+    @Binds
+    fun bindAudioTagWriter(writer: TagLibAudioTagWriter): AudioTagWriter
+
+    @Binds
+    @Singleton
+    fun bindArtistIdentityRepository(
+        repository: RoomArtistIdentityRepository,
+    ): ArtistIdentityRepository
+
+    @Binds
+    @Singleton
+    fun bindArtistArtworkRepository(
+        repository: RoomArtistArtworkRepository,
+    ): ArtistArtworkRepository
+
+    @Binds
+    @Singleton
+    fun bindAppPreferencesRepository(
+        repository: DataStoreAppPreferencesRepository,
+    ): AppPreferencesRepository
+
+    @Binds
+    @Singleton
+    fun bindEqualizerPreferencesRepository(
+        repository: DataStoreAppPreferencesRepository,
+    ): EqualizerPreferencesRepository
+
+    @Binds
+    @Singleton
+    fun bindPlaybackPreferencesRepository(
+        repository: DataStoreAppPreferencesRepository,
+    ): PlaybackPreferencesRepository
+
+    @Binds
+    @Singleton
+    fun bindHomePreferencesRepository(
+        repository: DataStoreAppPreferencesRepository,
+    ): HomePreferencesRepository
+
+    @Binds
+    @Singleton
+    fun bindLibraryPreferencesRepository(
+        repository: DataStoreLibraryPreferencesRepository,
+    ): LibraryPreferencesRepository
+
+    @Binds
+    @Singleton
     fun bindLocalDataSource(
-        dataSource: InMemoryCatlyticsLocalDataSource,
-    ): CatlyticsLocalDataSource
+        dataSource: InMemoryLocalDataSource,
+    ): LocalDataSource
 
     @Binds
     fun bindMediaStoreLibraryDataSource(
@@ -35,27 +105,46 @@ interface DataModule {
     ): MediaStoreLibraryDataSource
 
     @Binds
-    fun bindRemoteDataSource(
-        dataSource: NoOpCatlyticsRemoteDataSource,
-    ): CatlyticsRemoteDataSource
+    @Singleton
+    fun bindLibraryChangeObserver(
+        observer: MediaStoreLibraryChangeObserver,
+    ): LibraryChangeObserver
 
     @Binds
     fun bindDataMediator(
-        mediator: OfflineFirstCatlyticsDataMediator,
-    ): CatlyticsDataMediator
+        mediator: OfflineFirstDataMediator,
+    ): DataMediator
 
     @Binds
+    @Singleton
     fun bindLibraryRepository(
         repository: OfflineFirstLibraryRepository,
     ): LibraryRepository
 
     @Binds
     fun bindPlaylistRepository(
-        repository: OfflineFirstPlaylistRepository,
+        repository: DataStorePlaylistRepository,
     ): PlaylistRepository
 
     @Binds
-    fun bindStatisticsRepository(
-        repository: DefaultStatisticsRepository,
-    ): StatisticsRepository
+    @Singleton
+    fun bindPlaybackSessionRepository(
+        repository: DataStorePlaybackSessionRepository,
+    ): PlaybackSessionRepository
+
+    @Binds
+    fun bindPlaybackEventRepository(
+        repository: RoomPlaybackEventRepository,
+    ): PlaybackEventRepository
+
+    @Binds
+    fun bindPlaylistExportRepository(
+        repository: M3uPlaylistExportRepository,
+    ): PlaylistExportRepository
+
+    @Binds
+    @Singleton
+    fun bindUnifiedBackupRepository(
+        repository: com.catlytics.core.data.repository.DefaultUnifiedBackupRepository,
+    ): com.catlytics.core.domain.repository.UnifiedBackupRepository
 }

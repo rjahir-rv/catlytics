@@ -1,0 +1,117 @@
+package com.catlytics.core.data.repository
+
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import com.catlytics.core.domain.repository.LibraryPreferencesRepository
+import com.catlytics.core.model.AlbumTrackSort
+import com.catlytics.core.model.ArtistAlbumSort
+import com.catlytics.core.model.ArtistTrackSort
+import com.catlytics.core.model.ArtistViewMode
+import com.catlytics.core.model.DetailSortSettings
+import com.catlytics.core.model.MusicScanDurationFilter
+import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.MusicScanSizeFilter
+import com.catlytics.core.model.PlaylistViewMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+
+class DataStoreLibraryPreferencesRepositoryTest {
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
+    @Test
+    fun `folders are visible by default`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(emptySet<String>(), repository.observeHiddenFolderIds().first())
+    }
+
+    @Test
+    fun `hidden folder remains persisted until shown again`() = runTest {
+        val repository = repository(backgroundScope)
+
+        repository.setFolderVisible(FOLDER_ID, visible = false)
+        assertEquals(setOf(FOLDER_ID), repository.observeHiddenFolderIds().first())
+
+        repository.setFolderVisible(FOLDER_ID, visible = true)
+        assertEquals(emptySet<String>(), repository.observeHiddenFolderIds().first())
+    }
+
+    @Test
+    fun `music scan filters are disabled by default and persist changes`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(MusicScanSettings(), repository.observeMusicScanSettings().first())
+
+        repository.setMusicScanDurationFilter(MusicScanDurationFilter.Seconds60)
+        repository.setMusicScanSizeFilter(MusicScanSizeFilter.Kilobytes500)
+
+        assertEquals(
+            MusicScanSettings(
+                durationFilter = MusicScanDurationFilter.Seconds60,
+                sizeFilter = MusicScanSizeFilter.Kilobytes500,
+            ),
+            repository.observeMusicScanSettings().first(),
+        )
+    }
+
+    @Test
+    fun `artist view mode defaults to list and persists changes`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(ArtistViewMode.List, repository.observeArtistViewMode().first())
+
+        repository.setArtistViewMode(ArtistViewMode.Grid)
+
+        assertEquals(ArtistViewMode.Grid, repository.observeArtistViewMode().first())
+    }
+
+    @Test
+    fun `playlist view mode defaults to list and persists changes`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(PlaylistViewMode.List, repository.observePlaylistViewMode().first())
+
+        repository.setPlaylistViewMode(PlaylistViewMode.Mosaic)
+
+        assertEquals(PlaylistViewMode.Mosaic, repository.observePlaylistViewMode().first())
+    }
+
+    @Test
+    fun `album and artist list orders default to the natural order and persist changes`() = runTest {
+        val repository = repository(backgroundScope)
+
+        assertEquals(DetailSortSettings(), repository.observeDetailSortSettings().first())
+
+        repository.setAlbumTrackSort(AlbumTrackSort.MostPlayed)
+        repository.setArtistTrackSort(ArtistTrackSort.Duration)
+        repository.setArtistAlbumSort(ArtistAlbumSort.TrackCount)
+
+        assertEquals(
+            DetailSortSettings(
+                albumTracks = AlbumTrackSort.MostPlayed,
+                artistTracks = ArtistTrackSort.Duration,
+                artistAlbums = ArtistAlbumSort.TrackCount,
+            ),
+            repository.observeDetailSortSettings().first(),
+        )
+    }
+
+    private fun repository(scope: CoroutineScope): LibraryPreferencesRepository =
+        DataStoreLibraryPreferencesRepository(
+            PreferenceDataStoreFactory.create(
+                scope = scope,
+                produceFile = {
+                    temporaryFolder.newFile("library-${System.nanoTime()}.preferences_pb")
+                },
+            ),
+        )
+
+    private companion object {
+        const val FOLDER_ID = "external_primary:Music/Game"
+    }
+}

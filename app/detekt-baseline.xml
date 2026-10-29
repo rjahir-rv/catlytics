@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>BackingPropertyNaming:AppStartupViewModel.kt:AppStartupViewModel$private val _uiState = MutableStateFlow&lt;AppStartupUiState&gt;( AppStartupUiState.WaitingForPermission, )</ID>
+    <ID>ComplexCondition:CatlyticsApp.kt:search.home.isExpanded || search.library.isExpanded || search.playlists.isExpanded || search.artist.isExpanded</ID>
+    <ID>ComposableParamOrder:NowPlayingScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun NowPlayingScreen</ID>
+    <ID>CyclomaticComplexMethod:CatlyticsApp.kt:@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class) @Composable fun CatlyticsApp</ID>
+    <ID>CyclomaticComplexMethod:NowPlayingScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable fun NowPlayingScreen</ID>
+    <ID>CyclomaticComplexMethod:PlaybackQueueBottomSheet.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun PlaybackQueueBottomSheet</ID>
+    <ID>CyclomaticComplexMethod:RouteTopBar.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun RouteTopBar</ID>
+    <ID>LambdaParameterInRestartableEffect:CatlyticsApp.kt:onDeepLinkHandled: () -&gt; Unit = {}</ID>
+    <ID>LambdaParameterInRestartableEffect:QueueTrackRow.kt:onRemove: () -&gt; Unit</ID>
+    <ID>LongMethod:AppNavGraph.kt:internal fun EntryProviderScope&lt;NavKey&gt;.appEntries</ID>
+    <ID>LongMethod:TrackOptionsSheet.kt:internal fun buildTrackOptions: List&lt;TrackOption&gt;</ID>
+    <ID>LoopWithTooManyJumpStatements:QueueReorderState.kt:QueueReorderState$while</ID>
+    <ID>MagicNumber:NowPlayingControls.kt:0.5f</ID>
+    <ID>MatchingDeclarationName:RoutePane.kt:DetailChromeState</ID>
+    <ID>ModifierWithoutDefault:QueueTrackRow.kt:dragModifier: Modifier</ID>
+    <ID>SwallowedException:AppStartupViewModel.kt:AppStartupViewModel$throwable: Throwable</ID>
+    <ID>TooGenericExceptionCaught:AppStartupViewModel.kt:AppStartupViewModel$throwable: Throwable</ID>
+    <ID>TooManyFunctions:PlaybackViewModel.kt:PlaybackViewModel : ViewModel</ID>
+    <ID>ViewModelForwarding:CatlyticsApp.kt:NowPlayingHost( isOpen = isNowPlayingOpen, playbackViewModel = playbackViewModel, playbackState = playbackState, progress = { playbackProgress.value }, onClose = navigator::closeNowPlaying, canAddTrackToQueue = ::canAddTrackToQueue, onTrackOptions = { track -&gt; openTrackOptions(track) }, onAddToPlaylist = { track -&gt; openAddToPlaylist(PlaylistSource.TrackSource(track.id)) }, onGoToAlbum = ::navigateToAlbum, onGoToArtist = ::navigateToArtist, onEditMetadata = { track -&gt; editMetadataTrackId = track.id }, )</ID>
+  </CurrentIssues>
+</SmellBaseline>

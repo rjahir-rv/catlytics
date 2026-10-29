@@ -1,0 +1,228 @@
+package com.catlytics.feature.playlists.impl
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
+import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
+import com.catlytics.core.domain.usecase.playback.TogglePlaybackUseCase
+import com.catlytics.core.domain.usecase.playlist.AddToPlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.DeletePlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.ExportPlaylistToM3uUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
+import com.catlytics.core.domain.usecase.playlist.RemoveTrackFromPlaylistUseCase
+import com.catlytics.core.domain.usecase.playlist.ReorderPlaylistTracksUseCase
+import com.catlytics.core.domain.usecase.playlist.RestorePlaylistTracksUseCase
+import com.catlytics.core.domain.usecase.playlist.SetPlaylistCoverUseCase
+import com.catlytics.core.domain.usecase.playlist.UpdatePlaylistDetailsUseCase
+import com.catlytics.core.model.NowPlaying
+import com.catlytics.core.model.PlaybackQueueSource
+import com.catlytics.core.model.PlaylistContent
+import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.Track
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+internal sealed interface PlaylistDetailUiState {
+    data object Loading : PlaylistDetailUiState
+    data object NotFound : PlaylistDetailUiState
+    data class Success(val content: PlaylistContent) : PlaylistDetailUiState
+}
+
+internal sealed interface PlaylistDetailEffect {
+    data class Message(val text: UiText) : PlaylistDetailEffect
+
+    /** [previousTrackIds] es el orden anterior completo, para poder deshacer el borrado. */
+    data class TracksRemoved(
+        val text: UiText,
+        val previousTrackIds: List<String>,
+    ) : PlaylistDetailEffect
+
+    data object Deleted : PlaylistDetailEffect
+}
+
+@OptIn(ExperimentalCoroutinesApi::class)
+@HiltViewModel
+internal class PlaylistDetailViewModel @Inject constructor(
+    private val observeContent: ObservePlaylistContentUseCase,
+    private val removeTrack: RemoveTrackFromPlaylistUseCase,
+    private val playTrack: PlayTrackUseCase,
+    private val playShuffledQueue: PlayShuffledQueueUseCase,
+    observeNowPlaying: ObserveNowPlayingUseCase,
+    private val togglePlaybackUseCase: TogglePlaybackUseCase,
+    private val updatePlaylistDetails: UpdatePlaylistDetailsUseCase,
+    private val setPlaylistCover: SetPlaylistCoverUseCase,
+    private val deletePlaylist: DeletePlaylistUseCase,
+    private val reorderPlaylistTracks: ReorderPlaylistTracksUseCase,
+    private val restorePlaylistTracks: RestorePlaylistTracksUseCase,
+    observeLibrary: ObserveLibraryUseCase,
+    private val addToPlaylist: AddToPlaylistUseCase,
+    private val exportPlaylistToM3u: ExportPlaylistToM3uUseCase,
+) : ViewModel() {
+    private val playlistId = MutableStateFlow<String?>(null)
+    private val _effects = MutableSharedFlow<PlaylistDetailEffect>()
+    val effects = _effects.asSharedFlow()
+
+    val uiState = playlistId
+        .filterNotNull()
+        .flatMapLatest(observeContent::invoke)
+        .map { content ->
+            content?.let(PlaylistDetailUiState::Success) ?: PlaylistDetailUiState.NotFound
+        }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            PlaylistDetailUiState.Loading,
+        )
+
+    val nowPlaying = observeNowPlaying().stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        NowPlaying(),
+    )
+
+    val allTracks = observeLibrary().stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        emptyList(),
+    )
+
+    fun open(id: String) {
+        playlistId.value = id
+    }
+
+    fun remove(trackId: String) = remove(listOf(trackId))
+
+    fun remove(trackIds: List<String>) = viewModelScope.launch {
+        val id = playlistId.value ?: return@launch
+        val previousTrackIds = (uiState.value as? PlaylistDetailUiState.Success)
+            ?.content?.playlist?.trackIds.orEmpty()
+        val removed = removeTrack(id, trackIds)
+        if (removed == 0) return@launch
+        _effects.emit(
+            PlaylistDetailEffect.TracksRemoved(
+                text = UiText.Plural(R.plurals.playlist_detail_tracks_removed, removed),
+                previousTrackIds = previousTrackIds,
+            ),
+        )
+    }
+
+    fun undoRemove(previousTrackIds: List<String>) =
+        launchOperation { id -> restorePlaylistTracks(id, previousTrackIds) }
+
+    fun play(track: Track, queue: List<Track>) = viewModelScope.launch {
+        val source = playlistId.value
+            ?.let(PlaybackQueueSource::Playlist)
+            ?: PlaybackQueueSource.Static
+        playTrack(track, queue, source)
+    }
+
+    fun playShuffled(queue: List<Track>) = viewModelScope.launch {
+        val source = playlistId.value
+            ?.let(PlaybackQueueSource::Playlist)
+            ?: PlaybackQueueSource.Static
+        playShuffledQueue(queue, source)
+    }
+
+    fun togglePlayback() = viewModelScope.launch { togglePlaybackUseCase() }
+
+    fun saveDetails(
+        name: String,
+        description: String,
+        artworkUri: String?,
+        artworkChanged: Boolean,
+        onSaved: () -> Unit,
+    ) = launchOperation(onSuccess = onSaved) { id ->
+        updatePlaylistDetails(id, name, description)
+        if (artworkChanged) setPlaylistCover(id, artworkUri)
+    }
+
+    fun saveOrder(trackIds: List<String>, onSaved: () -> Unit = {}) =
+        launchOperation(onSuccess = onSaved) { id -> reorderPlaylistTracks(id, trackIds) }
+
+    fun delete() = launchOperation(onSuccess = {
+        viewModelScope.launch { _effects.emit(PlaylistDetailEffect.Deleted) }
+    }) { id ->
+        deletePlaylist(id)
+    }
+
+    fun addTracks(trackIds: List<String>, title: String) =
+        viewModelScope.launch {
+            val id = playlistId.value ?: return@launch
+            try {
+                val added = addToPlaylist(
+                    playlistId = id,
+                    source = PlaylistSource.TrackCollectionSource(
+                        title = title,
+                        artworkUri = null,
+                        trackIds = trackIds,
+                    ),
+                )
+                _effects.emit(
+                    PlaylistDetailEffect.Message(
+                        UiText.Plural(R.plurals.playlist_detail_tracks_added, added),
+                    ),
+                )
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                _effects.emit(
+                    PlaylistDetailEffect.Message(
+                        UiText.Resource(R.string.playlist_detail_error_add_tracks),
+                    ),
+                )
+            }
+        }
+
+    private fun launchOperation(
+        onSuccess: () -> Unit = {},
+        operation: suspend (String) -> Unit,
+    ) = viewModelScope.launch {
+        val id = playlistId.value ?: return@launch
+        try {
+            operation(id)
+            onSuccess()
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (error: Exception) {
+            _effects.emit(
+                PlaylistDetailEffect.Message(
+                    UiText.Resource(R.string.playlist_detail_error_generic),
+                ),
+            )
+        }
+    }
+
+    fun exportM3u(uri: String) = viewModelScope.launch {
+        val id = playlistId.value ?: return@launch
+        exportPlaylistToM3u(id, uri).fold(
+            onSuccess = {
+                _effects.emit(
+                    PlaylistDetailEffect.Message(
+                        UiText.Resource(R.string.playlist_detail_export_success),
+                    ),
+                )
+            },
+            onFailure = { error ->
+                _effects.emit(
+                    PlaylistDetailEffect.Message(
+                        UiText.Resource(R.string.playlist_detail_error_export),
+                    ),
+                )
+            },
+        )
+    }
+}

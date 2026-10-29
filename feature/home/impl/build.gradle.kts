@@ -8,16 +8,15 @@ android {
 }
 
 dependencies {
-    api(project(":feature:home:api"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:model"))
-    implementation(project(":core:navigation"))
-    implementation(libs.androidx.activity.compose)
+    api(project(path = ":feature:home:api"))
+    implementation(project(path = ":core:domain"))
+    implementation(project(path = ":core:model"))
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.junit)
 }

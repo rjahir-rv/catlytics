@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Texts shared by :core:designsystem components -->
+
+    <!-- Compact player -->
+    <string name="ds_action_previous">Previous</string>
+    <string name="ds_action_next">Next</string>
+    <string name="ds_action_play">Play</string>
+    <string name="ds_action_pause">Pause</string>
+    <string name="ds_action_play_shuffled">Play shuffled</string>
+    <string name="ds_mini_player_progress_content_description">Playback progress</string>
+
+    <!-- Alphabetical index -->
+    <string name="ds_letter_fast_scroller_content_description">Alphabetical index, letter %1$s</string>
+
+    <!-- Track rows -->
+    <string name="ds_track_row_selected_content_description">Selected</string>
+    <string name="ds_track_row_playing_content_description">Playing %1$s</string>
+
+    <!-- Selection bar -->
+    <string name="ds_selection_exit_content_description">Exit selection</string>
+    <plurals name="ds_selection_count">
+        <item quantity="one">1 selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+    <string name="ds_selection_select_all">Select all</string>
+    <string name="ds_selection_add_to_playlist">Add to playlist</string>
+    <string name="ds_selection_remove_from_liked">Remove from Liked songs</string>
+    <string name="ds_selection_save_to_liked">Save to Liked songs</string>
+    <string name="ds_selection_play_next">Play next</string>
+    <string name="ds_selection_add_to_queue">Add to queue</string>
+    <string name="ds_hint_show">More info</string>
+    <string name="ds_hint_hide">Hide info</string>
+    <string name="ds_selection_edit_metadata">Edit info</string>
+    <string name="ds_selection_remove_from_playlist">Remove from playlist</string>
+
+    <!-- Unknown metadata (internal values live in :core:model) -->
+    <string name="ds_unknown_artist">Unknown artist</string>
+    <string name="ds_unknown_album">Unknown album</string>
+    <string name="ds_untitled_track">Untitled track</string>
+
+    <!-- Shared across screens -->
+    <string name="ds_options_content_description">Options for %1$s</string>
+    <string name="ds_add_to_playlist_content_description">Add %1$s to a playlist</string>
+    <string name="ds_metadata_pair">%1$s · %2$s</string>
+    <plurals name="ds_track_count">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+    <plurals name="ds_album_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
+    <plurals name="ds_play_count">
+        <item quantity="one">%1$d play</item>
+        <item quantity="other">%1$d plays</item>
+    </plurals>
+</resources>

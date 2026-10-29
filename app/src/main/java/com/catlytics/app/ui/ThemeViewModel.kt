@@ -1,0 +1,30 @@
+package com.catlytics.app.ui
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.catlytics.core.domain.repository.AppPreferencesRepository
+import com.catlytics.core.model.AppLanguage
+import com.catlytics.core.model.ThemeMode
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import javax.inject.Inject
+
+@HiltViewModel
+class ThemeViewModel @Inject constructor(
+    appPreferencesRepository: AppPreferencesRepository,
+) : ViewModel() {
+    val themeMode: StateFlow<ThemeMode?> = appPreferencesRepository.observeThemeMode()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null,
+        )
+    val appLanguage: StateFlow<AppLanguage?> = appPreferencesRepository.observeAppLanguage()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = null,
+        )
+}

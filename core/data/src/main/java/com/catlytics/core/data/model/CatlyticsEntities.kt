@@ -1,20 +1,20 @@
 package com.catlytics.core.data.model
 
-data class ArtistEntity(
-    val id: String,
-    val name: String,
-)
-
 data class TrackEntity(
     val id: String,
     val title: String,
     val artistId: String,
     val artistName: String,
     val durationMillis: Long,
-)
-
-data class PlaylistEntity(
-    val id: String,
-    val name: String,
-    val trackIds: List<String>,
+    val addedAtMillis: Long? = null,
+    val mediaUri: String,
+    val artworkUri: String? = null,
+    val albumId: String? = null,
+    val albumTitle: String? = null,
+    val trackNumber: Int? = null,
+    val folderId: String? = null,
+    val folderName: String? = null,
+    val folderPath: String? = null,
+    val fileKey: String? = null,
+    val hasArtworkOverride: Boolean = false,
 )

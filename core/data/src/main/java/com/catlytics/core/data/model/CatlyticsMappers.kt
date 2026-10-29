@@ -1,7 +1,6 @@
 package com.catlytics.core.data.model
 
 import com.catlytics.core.model.Artist
-import com.catlytics.core.model.Playlist
 import com.catlytics.core.model.Track
 
 internal fun TrackEntity.toDomain() = Track(
@@ -12,24 +11,9 @@ internal fun TrackEntity.toDomain() = Track(
         name = artistName,
     ),
     durationMillis = durationMillis,
-)
-
-internal fun Track.toEntity() = TrackEntity(
-    id = id,
-    title = title,
-    artistId = artist.id,
-    artistName = artist.name,
-    durationMillis = durationMillis,
-)
-
-internal fun PlaylistEntity.toDomain() = Playlist(
-    id = id,
-    name = name,
-    trackIds = trackIds,
-)
-
-internal fun Playlist.toEntity() = PlaylistEntity(
-    id = id,
-    name = name,
-    trackIds = trackIds,
+    addedAtMillis = addedAtMillis,
+    mediaUri = mediaUri,
+    artworkUri = artworkUri,
+    albumId = albumId,
+    albumTitle = albumTitle,
 )

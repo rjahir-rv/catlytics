@@ -1,15 +1,49 @@
 package com.catlytics.feature.home.impl
 
+import com.catlytics.core.domain.repository.HomePreferencesRepository
 import com.catlytics.core.domain.repository.LibraryRepository
-import com.catlytics.core.domain.usecase.ObserveLibraryUseCase
-import com.catlytics.core.domain.usecase.RefreshLibraryUseCase
+import com.catlytics.core.domain.repository.PlaybackController
+import com.catlytics.core.domain.repository.PlaybackEventRepository
+import com.catlytics.core.domain.repository.PlaylistRepository
+import com.catlytics.core.domain.usecase.home.GenerateDailyPlaylistUseCase
+import com.catlytics.core.domain.usecase.library.ObserveLibraryUseCase
+import com.catlytics.core.domain.usecase.library.ObserveRecentlyAddedTracksUseCase
+import com.catlytics.core.domain.usecase.playback.ObserveNowPlayingUseCase
+import com.catlytics.core.domain.usecase.playback.PlayShuffledQueueUseCase
+import com.catlytics.core.domain.usecase.playback.PlayTrackUseCase
+import com.catlytics.core.domain.usecase.playlist.ObservePlaylistContentUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveRecentlyPlayedTracksUseCase
+import com.catlytics.core.domain.usecase.statistics.ObserveWeeklyStatsUseCase
+import com.catlytics.core.model.Album
+import com.catlytics.core.model.AlbumContent
 import com.catlytics.core.model.Artist
+import com.catlytics.core.model.ArtistContent
+import com.catlytics.core.model.ArtistSummary
+import com.catlytics.core.model.DailyListeningStat
+import com.catlytics.core.model.HomeRecommendationsSettings
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.model.LIKED_PLAYLIST_NAME
+import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.LibraryFolderContent
+import com.catlytics.core.model.ListeningTotals
+import com.catlytics.core.model.PlaybackEvent
+import com.catlytics.core.model.PlaybackQueueSource
+import com.catlytics.core.model.PlaybackRepeatMode
+import com.catlytics.core.model.PlaybackState
+import com.catlytics.core.model.PlaybackStatus
+import com.catlytics.core.model.Playlist
+import com.catlytics.core.model.RecentAddedWindow
+import com.catlytics.core.model.RecentlyPlayedTrack
+import com.catlytics.core.model.TopArtist
+import com.catlytics.core.model.TopTrack
 import com.catlytics.core.model.Track
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -18,7 +52,6 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -33,10 +66,16 @@ class HomeViewModelTest {
     val mainDispatcherRule = MainDispatcherRule()
 
     private lateinit var repository: FakeLibraryRepository
+    private lateinit var playbackController: FakePlaybackController
+    private lateinit var playbackEventRepository: FakeHomePlaybackEventRepository
+    private lateinit var playlistRepository: FakeHomePlaylistRepository
 
     @Before
     fun setUp() {
         repository = FakeLibraryRepository()
+        playbackController = FakePlaybackController()
+        playbackEventRepository = FakeHomePlaybackEventRepository()
+        playlistRepository = FakeHomePlaylistRepository()
     }
 
     @Test
@@ -60,15 +99,68 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `refreshLibrary surfaces refresh errors`() = runTest {
-        repository.refreshResult = Result.failure(IllegalStateException("MediaStore failed"))
+    fun `uiState exposes current track id`() = runTest {
+        val tracks = listOf(track(id = "track-1"), track(id = "track-2"))
+        repository.setTracks(tracks)
         val viewModel = homeViewModel()
         backgroundScope.startCollecting(viewModel)
 
-        viewModel.refreshLibrary()
+        playbackController.setCurrentTrack(tracks[1])
         advanceUntilIdle()
 
-        assertEquals(HomeUiState.Error("MediaStore failed"), viewModel.uiState.value)
+        assertEquals(
+            HomeUiState.Success(
+                tracks = tracks,
+                canShuffleAll = true,
+                currentTrackId = "track-2",
+            ),
+            viewModel.uiState.value,
+        )
+
+        playbackController.setCurrentTrack(tracks[0])
+        advanceUntilIdle()
+
+        assertEquals(
+            HomeUiState.Success(
+                tracks = tracks,
+                canShuffleAll = true,
+                currentTrackId = "track-1",
+            ),
+            viewModel.uiState.value,
+        )
+    }
+
+    @Test
+    fun `uiState exposes whether current track is playing`() = runTest {
+        val tracks = listOf(track(id = "track-1"))
+        repository.setTracks(tracks)
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+
+        playbackController.setCurrentTrack(tracks.first())
+        playbackController.setPlaybackStatus(PlaybackStatus.Playing)
+        advanceUntilIdle()
+
+        assertEquals(
+            HomeUiState.Success(
+                tracks = tracks,
+                currentTrackId = "track-1",
+                isCurrentTrackPlaying = true,
+            ),
+            viewModel.uiState.value,
+        )
+
+        playbackController.setPlaybackStatus(PlaybackStatus.Paused)
+        advanceUntilIdle()
+
+        assertEquals(
+            HomeUiState.Success(
+                tracks = tracks,
+                currentTrackId = "track-1",
+                isCurrentTrackPlaying = false,
+            ),
+            viewModel.uiState.value,
+        )
     }
 
     @Test
@@ -78,9 +170,213 @@ class HomeViewModelTest {
         assertTrue(viewModel.uiState.first() is HomeUiState.Loading)
     }
 
-    private fun homeViewModel() = HomeViewModel(
+    @Test
+    fun `onTrackSelected dispatches playback with selected track and queue`() = runTest {
+        val queue = listOf(track("track-1"), track("track-2"), track("track-3"))
+        val viewModel = homeViewModel()
+
+        viewModel.onTrackSelected(queue[1], queue)
+        advanceUntilIdle()
+
+        assertEquals(queue[1], playbackController.playedTrack)
+        assertEquals(queue, playbackController.playedQueue)
+        assertEquals(1, playbackController.startIndex)
+    }
+
+    @Test
+    fun `onTopTrackSelected plays top three queue in ranking order`() = runTest {
+        val tracks = (1..4).map { track("track-$it") }
+        repository.setTracks(tracks)
+        playbackEventRepository.topTracks.value = listOf(
+            TopTrack("track-3", tracks[2].title, tracks[2].artist.name, null, 5, 1L),
+            TopTrack("track-1", tracks[0].title, tracks[0].artist.name, null, 4, 1L),
+            TopTrack("track-4", tracks[3].title, tracks[3].artist.name, null, 3, 1L),
+        )
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onTopTrackSelected("track-1")
+        advanceUntilIdle()
+
+        assertEquals(tracks[0], playbackController.playedTrack)
+        assertEquals(listOf(tracks[2], tracks[0], tracks[3]), playbackController.playedQueue)
+        assertEquals(1, playbackController.startIndex)
+    }
+
+    @Test
+    fun `uiState resolves recently played tracks and limits weekly top tracks to three`() = runTest {
+        val tracks = (1..4).map { track("track-$it") }
+        repository.setTracks(tracks)
+        playbackEventRepository.recentlyPlayedTracks.value = listOf(
+            RecentlyPlayedTrack("track-3", "Track track-3", "Artist track-3", null, 3L),
+            RecentlyPlayedTrack("missing", "Missing", "Missing", null, 2L),
+            RecentlyPlayedTrack("track-1", "Track track-1", "Artist track-1", null, 1L),
+        )
+        playbackEventRepository.topTracks.value = tracks.mapIndexed { index, track ->
+            TopTrack(track.id, track.title, track.artist.name, null, index + 1, 1L)
+        }
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(listOf("track-3", "track-1"), state.recentlyPlayedTracks.map(Track::id))
+        assertEquals(listOf("track-1", "track-2", "track-3"), state.topTracks.map(TopTrack::trackId))
+    }
+
+    @Test
+    fun `uiState exposes daily shuffle and favorite quick actions`() = runTest {
+        val tracks = (1..6).map { track("track-$it") }
+        repository.setTracks(tracks)
+        playlistRepository.setLikedTracks(listOf("track-2", "track-5"))
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(6, state.dailyPlaylistTrackCount)
+        assertTrue(state.canShuffleAll)
+        assertEquals(listOf("track-2", "track-5"), state.favoriteTracks.map(Track::id))
+    }
+
+    @Test
+    fun `quick action availability follows library size thresholds`() = runTest {
+        repository.setTracks(listOf(track("track-1")))
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        var state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(0, state.dailyPlaylistTrackCount)
+        assertEquals(false, state.canShuffleAll)
+
+        repository.setTracks((1..4).map { track("track-$it") })
+        advanceUntilIdle()
+        state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(0, state.dailyPlaylistTrackCount)
+        assertEquals(true, state.canShuffleAll)
+
+        repository.setTracks((1..5).map { track("track-$it") })
+        advanceUntilIdle()
+        state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(5, state.dailyPlaylistTrackCount)
+        assertEquals(true, state.canShuffleAll)
+    }
+
+    @Test
+    fun `quick action plays shuffled queue`() = runTest {
+        val tracks = (1..6).map { track("track-$it") }
+        repository.setTracks(tracks)
+        playlistRepository.setLikedTracks(listOf("track-2", "track-5"))
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onShuffleAll()
+        advanceUntilIdle()
+        assertEquals(tracks.size, playbackController.playedQueue.size)
+        assertEquals(tracks.toSet(), playbackController.playedQueue.toSet())
+        assertEquals(
+            playbackController.playedTrack,
+            playbackController.playedQueue[playbackController.startIndex],
+        )
+        assertEquals(true, playbackController.shuffleEnabled)
+    }
+
+    @Test
+    fun `uiState exposes recently added tracks and new track ids`() = runTest {
+        val recent = track(id = "track-1").copy(addedAtMillis = NOW_MILLIS - DAY_MILLIS)
+        val older = track(id = "track-2").copy(addedAtMillis = NOW_MILLIS - 30 * DAY_MILLIS)
+        repository.setTracks(listOf(recent, older))
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(listOf("track-1"), state.recentlyAddedTracks.map(Track::id))
+        assertEquals(setOf("track-1"), state.newTrackIds)
+    }
+
+    @Test
+    fun `recently added section disappears when no new tracks are added for twenty one days`() = runTest {
+        val expired = track(id = "track-1").copy(addedAtMillis = NOW_MILLIS - 25 * DAY_MILLIS)
+        repository.setTracks(listOf(expired))
+        val viewModel = homeViewModel()
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(emptyList<Track>(), state.recentlyAddedTracks)
+        assertEquals(emptySet<String>(), state.newTrackIds)
+    }
+
+    @Test
+    fun `quick action cards hide when recommended playlists are disabled`() = runTest {
+        repository.setTracks(listOf(track(id = "track-1")))
+        val homePreferencesRepository = FakeHomePreferencesRepository(
+            HomeRecommendationsSettings(showRecommendedPlaylists = false),
+        )
+        val viewModel = homeViewModel(homePreferencesRepository = homePreferencesRepository)
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(false, state.showRecommendedPlaylists)
+    }
+
+    @Test
+    fun `new track ids are empty when the new badge is disabled`() = runTest {
+        val recent = track(id = "track-1").copy(addedAtMillis = NOW_MILLIS - DAY_MILLIS)
+        repository.setTracks(listOf(recent))
+        val homePreferencesRepository = FakeHomePreferencesRepository(
+            HomeRecommendationsSettings(showNewTrackBadge = false),
+        )
+        val viewModel = homeViewModel(homePreferencesRepository = homePreferencesRepository)
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(listOf("track-1"), state.recentlyAddedTracks.map(Track::id))
+        assertEquals(emptySet<String>(), state.newTrackIds)
+    }
+
+    @Test
+    fun `recently added window follows the configured day count`() = runTest {
+        val recent = track(id = "track-1").copy(addedAtMillis = NOW_MILLIS - 12 * DAY_MILLIS)
+        repository.setTracks(listOf(recent))
+        val homePreferencesRepository = FakeHomePreferencesRepository(
+            HomeRecommendationsSettings(recentAddedWindow = RecentAddedWindow.Days10),
+        )
+        val viewModel = homeViewModel(homePreferencesRepository = homePreferencesRepository)
+        backgroundScope.startCollecting(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value as HomeUiState.Success
+        assertEquals(emptyList<Track>(), state.recentlyAddedTracks)
+        assertEquals(emptySet<String>(), state.newTrackIds)
+    }
+
+    private fun homeViewModel(
+        homePreferencesRepository: HomePreferencesRepository = FakeHomePreferencesRepository(),
+    ) = HomeViewModel(
         observeLibraryUseCase = ObserveLibraryUseCase(repository),
-        refreshLibraryUseCase = RefreshLibraryUseCase(repository),
+        observeNowPlayingUseCase = ObserveNowPlayingUseCase(playbackController),
+        observeRecentlyPlayedTracksUseCase = ObserveRecentlyPlayedTracksUseCase(playbackEventRepository),
+        observeWeeklyStatsUseCase = ObserveWeeklyStatsUseCase(playbackEventRepository),
+        observePlaylistContentUseCase = ObservePlaylistContentUseCase(
+            playlistRepository,
+            repository,
+        ),
+        observeRecentlyAddedTracksUseCase = ObserveRecentlyAddedTracksUseCase(
+            libraryRepository = repository,
+            homePreferencesRepository = homePreferencesRepository,
+            nowMillis = { NOW_MILLIS },
+        ),
+        homePreferencesRepository = homePreferencesRepository,
+        generateDailyPlaylistUseCase = GenerateDailyPlaylistUseCase(),
+        playShuffledQueueUseCase = PlayShuffledQueueUseCase(playbackController),
+        playTrackUseCase = PlayTrackUseCase(playbackController),
     )
 
     private fun kotlinx.coroutines.CoroutineScope.startCollecting(viewModel: HomeViewModel) {
@@ -97,7 +393,13 @@ class HomeViewModelTest {
             name = "Artist $id",
         ),
         durationMillis = 180_000L,
+        mediaUri = "content://media/external/audio/media/$id",
     )
+
+    private companion object {
+        const val DAY_MILLIS = 24L * 60L * 60L * 1_000L
+        const val NOW_MILLIS = 100 * DAY_MILLIS
+    }
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -114,16 +416,201 @@ class MainDispatcherRule(
 }
 
 private class FakeLibraryRepository : LibraryRepository {
+    override fun observeAlbums() = MutableStateFlow(emptyList<Album>())
+    override fun observeAlbumContent(albumId: String) = MutableStateFlow<AlbumContent?>(null)
+    override fun observeArtists() = MutableStateFlow(emptyList<ArtistSummary>())
+    override fun observeArtistContent(artistId: String) = MutableStateFlow<ArtistContent?>(null)
+
     private val tracks = MutableStateFlow(emptyList<Track>())
-    var refreshResult: Result<Unit> = Result.success(Unit)
+    private val folders = MutableStateFlow(emptyList<LibraryFolder>())
 
     override fun observeTracks() = tracks
 
-    override suspend fun refreshTracks() {
-        refreshResult.getOrThrow()
-    }
+    override fun observeAllTracks() = tracks
+
+    override fun observeFolders() = folders
+
+    override fun observeFolderContent(folderId: String) =
+        MutableStateFlow<LibraryFolderContent?>(null)
+
+    override suspend fun resolvePlaylistSource(source: com.catlytics.core.model.PlaylistSource) =
+        emptyList<Track>()
+
+    override suspend fun refreshTracks() = 0
+
+    override suspend fun setFolderVisible(folderId: String, visible: Boolean) = Unit
 
     fun setTracks(newTracks: List<Track>) {
         tracks.update { newTracks }
+    }
+}
+
+private class FakePlaybackController : PlaybackController {
+    private val mutablePlaybackState = MutableStateFlow(PlaybackState())
+    override val playbackState: Flow<PlaybackState> = mutablePlaybackState
+
+    lateinit var playedTrack: Track
+    lateinit var playedQueue: List<Track>
+    var startIndex: Int = -1
+    var queueSource: PlaybackQueueSource? = null
+    var shuffleEnabled: Boolean? = null
+
+    override suspend fun play(
+        track: Track,
+        queue: List<Track>,
+        startIndex: Int,
+        queueSource: PlaybackQueueSource,
+    ) {
+        playedTrack = track
+        playedQueue = queue
+        this.startIndex = startIndex
+        this.queueSource = queueSource
+    }
+
+    override suspend fun playQueueItem(index: Int) = Unit
+
+    override suspend fun addQueueItem(track: Track) = Unit
+
+    override suspend fun playNext(track: Track) = Unit
+
+    override suspend fun moveQueueItem(fromIndex: Int, toIndex: Int) = Unit
+
+    override suspend fun removeQueueItem(index: Int) = Unit
+
+    override suspend fun togglePlayPause() = Unit
+
+    override suspend fun pause() = Unit
+
+    override suspend fun skipNext() = Unit
+
+    override suspend fun skipPrevious() = Unit
+
+    override suspend fun seekTo(positionMillis: Long) = Unit
+
+    override suspend fun setShuffleEnabled(enabled: Boolean) {
+        shuffleEnabled = enabled
+    }
+
+    override suspend fun setRepeatMode(mode: PlaybackRepeatMode) = Unit
+
+    override suspend fun restoreLastSession() = Unit
+
+    override suspend fun stop() = Unit
+
+    fun setCurrentTrack(track: Track) {
+        mutablePlaybackState.update { it.copy(currentTrack = track) }
+    }
+
+    fun setPlaybackStatus(status: PlaybackStatus) {
+        mutablePlaybackState.update { it.copy(status = status) }
+    }
+}
+
+private class FakeHomePlaylistRepository : PlaylistRepository {
+    private val playlists = MutableStateFlow(
+        listOf(Playlist(LIKED_PLAYLIST_ID, LIKED_PLAYLIST_NAME, emptyList())),
+    )
+
+    override fun observePlaylists(): Flow<List<Playlist>> = playlists
+
+    fun setLikedTracks(trackIds: List<String>) {
+        playlists.value = listOf(Playlist(LIKED_PLAYLIST_ID, LIKED_PLAYLIST_NAME, trackIds))
+    }
+
+    override suspend fun createPlaylist(name: String, trackIds: List<String>) =
+        Playlist("created", name, trackIds)
+
+    override suspend fun renamePlaylist(playlistId: String, name: String) = Unit
+    override suspend fun updatePlaylistDetails(
+        playlistId: String,
+        name: String,
+        description: String,
+    ) = Unit
+    override suspend fun deletePlaylist(playlistId: String) = Unit
+    override suspend fun addTracks(playlistId: String, trackIds: List<String>) = 0
+    override suspend fun addTracksToPlaylists(
+        playlistIds: Collection<String>,
+        trackIds: List<String>,
+    ) = emptyMap<String, Int>()
+    override suspend fun removeTrack(playlistId: String, trackId: String) = Unit
+    override suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>) = Unit
+    override suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?) = Unit
+}
+
+private class FakeHomePlaybackEventRepository : PlaybackEventRepository {
+    val recentlyPlayedTracks = MutableStateFlow(emptyList<RecentlyPlayedTrack>())
+    val topTracks = MutableStateFlow(emptyList<TopTrack>())
+
+    override suspend fun recordEvent(event: PlaybackEvent) = Unit
+
+    override fun observeRecentlyPlayedTracks(limit: Int): Flow<List<RecentlyPlayedTrack>> =
+        recentlyPlayedTracks
+
+    override fun observeTopTracks(
+        startMillis: Long,
+        endMillis: Long,
+        limit: Int,
+    ): Flow<List<TopTrack>> = topTracks
+
+    override fun observeTopArtists(
+        startMillis: Long,
+        endMillis: Long,
+        limit: Int,
+    ): Flow<List<TopArtist>> = flowOf(emptyList())
+
+    override fun observeTopAlbums(
+        startMillis: Long,
+        endMillis: Long,
+        limit: Int,
+    ): Flow<List<com.catlytics.core.model.TopAlbum>> = flowOf(emptyList())
+
+    override fun observeTotalListeningTime(startMillis: Long, endMillis: Long): Flow<Long> = flowOf(0L)
+
+    override fun observeDailyListening(
+        startMillis: Long,
+        endMillis: Long,
+    ): Flow<List<DailyListeningStat>> = flowOf(emptyList())
+
+    override fun observePlayCount(startMillis: Long, endMillis: Long): Flow<Int> = flowOf(0)
+
+    override fun observePeriodUniqueCounts(
+        startMillis: Long,
+        endMillis: Long,
+    ): Flow<com.catlytics.core.model.PeriodUniqueCounts> =
+        flowOf(com.catlytics.core.model.PeriodUniqueCounts(0, 0, 0))
+
+    override fun observeListeningTotals(): Flow<ListeningTotals> =
+        flowOf(ListeningTotals(0, 0, 0))
+
+    override fun observeActiveListeningDays(): Flow<List<java.time.LocalDate>> =
+        flowOf(emptyList())
+
+    override suspend fun getAllEvents(): List<PlaybackEvent> = emptyList()
+
+    override suspend fun replaceEvents(events: List<PlaybackEvent>) = Unit
+
+    override suspend fun insertEventsIfAbsent(events: List<PlaybackEvent>): Int = 0
+
+    override fun observeBackupSummary(): Flow<com.catlytics.core.model.StatisticsBackupSummary> =
+        flowOf(com.catlytics.core.model.StatisticsBackupSummary(0, null, null))
+}
+
+private class FakeHomePreferencesRepository(
+    initialSettings: HomeRecommendationsSettings = HomeRecommendationsSettings(),
+) : HomePreferencesRepository {
+    val settings = MutableStateFlow(initialSettings)
+
+    override fun observeHomeRecommendationsSettings(): Flow<HomeRecommendationsSettings> = settings
+
+    override suspend fun setShowRecommendedPlaylists(show: Boolean) {
+        settings.update { it.copy(showRecommendedPlaylists = show) }
+    }
+
+    override suspend fun setRecentAddedWindow(window: RecentAddedWindow) {
+        settings.update { it.copy(recentAddedWindow = window) }
+    }
+
+    override suspend fun setShowNewTrackBadge(show: Boolean) {
+        settings.update { it.copy(showNewTrackBadge = show) }
     }
 }

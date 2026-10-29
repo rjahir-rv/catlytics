@@ -1,0 +1,20 @@
+{
+  "uniqueId": "org.taglib:taglib",
+  "name": "TagLib",
+  "artifactVersion": "1cbd910 (io.github.kyant0:taglib 1.0.6)",
+  "description": "Biblioteca C++ para leer y escribir metadatos de audio. Se distribuye sin modificar como libtaglib.so dentro de io.github.kyant0:taglib.",
+  "website": "https://taglib.org",
+  "scm": {
+    "url": "https://github.com/taglib/taglib"
+  },
+  "developers": [
+    {
+      "name": "TagLib contributors",
+      "organisationUrl": "https://github.com/taglib/taglib"
+    }
+  ],
+  "licenses": [
+    "LGPL-2.1-only",
+    "MPL-1.1"
+  ]
+}

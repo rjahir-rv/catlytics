@@ -52,11 +52,36 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
 
-      - name: Build release APK
-        run: ./gradlew :app:assembleRelease --configuration-cache
+      - name: Decode release keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::The KEYSTORE_BASE64 secret is not set."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+
+      - name: Build signed release APK
+        env:
+          CATLYTICS_KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          CATLYTICS_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          CATLYTICS_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          CATLYTICS_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease
+
+      - name: Verify signature and rename artifacts
+        env:
+          TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/catlytics-$TAG_NAME.apk"
+          cp app/build/outputs/mapping/release/mapping.txt "dist/catlytics-$TAG_NAME-mapping.txt"
 
       - name: Upload APK to GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG_NAME: ${{ needs.release-please.outputs.tag_name }}
-        run: gh release upload "$TAG_NAME" app/build/outputs/apk/release/*.apk --clobber
+        run: gh release upload "$TAG_NAME" dist/* --clobber

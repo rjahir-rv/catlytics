@@ -5,3 +5,7 @@ plugins {
 android {
     namespace = "com.catlytics.core.model"
 }
+
+dependencies {
+    testImplementation(libs.junit)
+}

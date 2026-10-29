@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:PlaylistDetailScreen.kt:searchVisible &amp;&amp; content.tracks.isNotEmpty() &amp;&amp; !customOrdering &amp;&amp; !selection.active</ID>
+    <ID>ComposableParamOrder:PlaylistDetail.kt:@Composable internal fun PlaylistDetailRoute</ID>
+    <ID>ComposableParamOrder:PlaylistDetailScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun PlaylistDetailScreen</ID>
+    <ID>ComposableParamOrder:PlaylistsScreen.kt:@Composable internal fun PlaylistsScreen</ID>
+    <ID>CyclomaticComplexMethod:PlaylistDetailScreen.kt:@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun PlaylistDetailScreen</ID>
+    <ID>CyclomaticComplexMethod:PlaylistsScreen.kt:@Composable internal fun PlaylistsScreen</ID>
+    <ID>LambdaParameterInRestartableEffect:PlaylistDetail.kt:onDeleted: () -&gt; Unit</ID>
+    <ID>LambdaParameterInRestartableEffect:PlaylistDetailScreen.kt:onTopBarColorChange: (Color) -&gt; Unit</ID>
+    <ID>LongMethod:PlaylistsNavigation.kt:@OptIn(ExperimentalMaterial3AdaptiveApi::class) fun EntryProviderScope&lt;NavKey&gt;.playlistsEntry</ID>
+    <ID>MagicNumber:PlaylistCover.kt:0.26f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:0.42f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:0.50f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:0.60f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:0.65f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:0.75f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:0.78f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:0.90f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:320f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:325f</ID>
+    <ID>MagicNumber:PlaylistCover.kt:340f</ID>
+    <ID>ModifierNotUsedAtRoot:CreatePlaylistScreen.kt:modifier = modifier .fillMaxWidth() .onFocusChanged { focused = it.isFocused }</ID>
+    <ID>SwallowedException:PlaylistDetailViewModel.kt:PlaylistDetailViewModel$error: Exception</ID>
+    <ID>TooGenericExceptionCaught:PlaylistDetailViewModel.kt:PlaylistDetailViewModel$error: Exception</ID>
+    <ID>ViewModelInjection:AddToPlaylistSheet.kt:val viewModel: AddToPlaylistViewModel = hiltViewModel()</ID>
+  </CurrentIssues>
+</SmellBaseline>

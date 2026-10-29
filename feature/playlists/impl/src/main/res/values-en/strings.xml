@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Playlists: shared -->
+    <string name="playlist_liked_name">Liked songs</string>
+    <string name="playlists_artwork_content_description">Cover of %1$s</string>
+    <string name="playlists_name_label">Name</string>
+    <string name="playlists_clear_search_content_description">Clear search</string>
+    <string name="playlists_already_added">Already added</string>
+    <string name="playlists_action_rename">Rename</string>
+    <string name="playlists_action_delete">Delete</string>
+    <string name="playlists_action_cancel">Cancel</string>
+    <string name="playlists_action_save">Save</string>
+
+    <string name="playlists_source_track">Song</string>
+    <string name="playlists_source_album">Album</string>
+    <string name="playlists_source_artist">Artist</string>
+    <string name="playlists_source_folder">Folder</string>
+
+    <!-- Playlists: list -->
+    <string name="playlists_sort_content_description">Sort alphabetically</string>
+    <string name="playlists_sort_ascending">A-Z</string>
+    <string name="playlists_sort_descending">Z-A</string>
+    <string name="playlists_show_grid_content_description">Show as grid</string>
+    <string name="playlists_show_list_content_description">Show as list</string>
+    <string name="playlists_add_content_description">Add</string>
+    <string name="playlists_new_playlist">New playlist</string>
+    <string name="playlists_rename_title">Rename playlist</string>
+    <string name="playlists_change_cover">Change cover</string>
+    <string name="playlists_remove_cover">Remove cover</string>
+    <string name="playlists_delete_title">Delete %1$s</string>
+    <string name="playlists_delete_message">This won\'t delete the songs from your device.</string>
+    <string name="playlists_empty_title">You don\'t have any playlists yet.</string>
+    <string name="playlists_empty_message">Create one to organize your music your way.</string>
+    <string name="playlists_create_action">Create playlist</string>
+    <string name="playlists_now_playing_content_description">Now playing</string>
+    <string name="playlists_action_shuffle">Shuffle</string>
+    <string name="playlists_play_content_description">Play %1$s</string>
+    <string name="playlists_no_search_results">We couldn\'t find playlists matching your search.</string>
+
+    <!-- Playlists: detail -->
+    <string name="playlist_detail_not_found">Playlist unavailable.</string>
+    <string name="playlist_detail_empty">This playlist is empty.</string>
+    <string name="playlist_detail_no_search_results">We couldn\'t find songs matching your search.</string>
+    <string name="playlist_detail_delete_message">This can\'t be undone. Songs will remain on your device.</string>
+    <string name="playlist_detail_options_content_description">Playlist options</string>
+    <string name="playlist_detail_pause_content_description">Pause</string>
+    <string name="playlist_detail_search_placeholder">Search songs</string>
+    <string name="playlist_detail_summary">%1$s · %2$s</string>
+    <string name="playlist_detail_drag_content_description">Drag %1$s</string>
+    <string name="playlist_detail_ordering_hint">Tap and hold the handle and drag</string>
+    <string name="playlist_detail_order">Sort songs</string>
+    <string name="playlist_detail_order_custom">Custom</string>
+    <string name="playlist_detail_order_custom_hint">Drag songs into the order you prefer</string>
+    <string name="playlist_detail_order_alphabetical">Alphabetical</string>
+    <string name="playlist_detail_order_alphabetical_hint">Sort by title and artist</string>
+    <string name="playlist_detail_order_random">Random</string>
+    <string name="playlist_detail_order_random_hint">Shuffle and save a new order</string>
+    <string name="playlist_detail_edit">Edit playlist</string>
+    <string name="playlist_detail_selection_title">Selected songs</string>
+    <string name="playlist_detail_add_tracks">Add songs</string>
+    <string name="playlist_detail_undo">Undo</string>
+    <string name="playlist_detail_add_to_playlist">Add to another playlist</string>
+    <string name="playlist_detail_export_m3u8">Export as M3U8</string>
+    <string name="playlist_detail_delete">Delete playlist</string>
+    <string name="playlist_detail_duration_hours_minutes">%1$s %2$s</string>
+    <plurals name="playlist_detail_duration_hours">
+        <item quantity="one">1 h</item>
+        <item quantity="other">%1$d h</item>
+    </plurals>
+    <plurals name="playlist_detail_duration_minutes">
+        <item quantity="one">1 min</item>
+        <item quantity="other">%1$d min</item>
+    </plurals>
+    <plurals name="playlist_detail_tracks_added">
+        <item quantity="one">1 song added</item>
+        <item quantity="other">%1$d songs added</item>
+    </plurals>
+    <plurals name="playlist_detail_tracks_removed">
+        <item quantity="one">1 song removed</item>
+        <item quantity="other">%1$d songs removed</item>
+    </plurals>
+    <string name="playlist_detail_export_success">Playlist exported as M3U8.</string>
+    <string name="playlist_detail_error_add_tracks">Couldn\'t add the songs.</string>
+    <string name="playlist_detail_error_generic">Couldn\'t complete the operation.</string>
+    <string name="playlist_detail_error_export">Couldn\'t export the playlist.</string>
+
+    <!-- Playlists: add songs to detail -->
+    <string name="playlist_detail_add_tracks_hint">Select songs from your library</string>
+    <string name="playlist_detail_add_tracks_search_placeholder">Search songs or artists</string>
+    <string name="playlist_detail_add_tracks_empty">No songs available.</string>
+    <string name="playlist_detail_add_tracks_no_search_results">We couldn\'t find songs for this search.</string>
+    <string name="playlist_detail_add_selected">Add (%1$d)</string>
+    <string name="playlist_detail_artwork_preview_content_description">Cover preview</string>
+    <string name="playlist_detail_change_artwork">Change image</string>
+    <string name="playlist_detail_remove_artwork">Remove</string>
+    <string name="playlist_detail_name_required">Name can\'t be empty</string>
+    <string name="playlist_detail_description_label">Description</string>
+
+    <!-- Playlists: add to playlist -->
+    <string name="add_to_playlist_title">Add to playlist</string>
+    <string name="add_to_playlist_multiselect_content_description">Multiple selection</string>
+    <string name="add_to_playlist_done">Done</string>
+    <plurals name="add_to_playlist_pending_track_count">
+        <item quantity="one">1 new song</item>
+        <item quantity="other">%1$d new songs</item>
+    </plurals>
+    <string name="add_to_playlist_toast_none">No new songs were added</string>
+    <string name="add_to_playlist_toast_playlist_none">No new songs were added to %1$s</string>
+    <plurals name="add_to_playlist_toast_added">
+        <item quantity="one">Song added</item>
+        <item quantity="other">%1$d songs added</item>
+    </plurals>
+    <plurals name="add_to_playlist_toast_playlist_added">
+        <item quantity="one">Song added to %2$s</item>
+        <item quantity="other">%1$d songs added to %2$s</item>
+    </plurals>
+    <string name="add_to_playlist_toast_multiple">%1$d songs added to %2$d playlists</string>
+
+    <!-- Create playlist -->
+    <string name="create_playlist_title">Name your playlist</string>
+    <string name="create_playlist_default_name">My playlist #%1$d</string>
+    <string name="create_playlist_action_create">Create</string>
+    <string name="create_playlist_close_content_description">Close</string>
+    <string name="create_playlist_add_cover">Add cover</string>
+    <string name="create_playlist_description_placeholder">Add a description (optional)</string>
+    <string name="create_playlist_name_taken">You already have a playlist with that name</string>
+    <plurals name="create_playlist_toast_created">
+        <item quantity="one">%2$s created with 1 song</item>
+        <item quantity="other">%2$s created with %1$d songs</item>
+    </plurals>
+    <string name="playlists_detail_placeholder_title">Your playlists</string>
+    <string name="playlists_detail_placeholder_message">Select a playlist to see its songs here.</string>
+</resources>

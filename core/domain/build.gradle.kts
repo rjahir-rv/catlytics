@@ -7,6 +7,9 @@ android {
 }
 
 dependencies {
-    api(project(":core:model"))
+    api(project(path = ":core:model"))
     api(libs.kotlinx.coroutines.core)
+    implementation(libs.javax.inject)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

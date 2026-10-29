@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Library: main screen -->
+    <string name="library_tab_albums">Albums</string>
+    <string name="library_tab_artists">Artists</string>
+    <string name="library_tab_folders">Folders</string>
+    <string name="library_sort_ascending">A-Z</string>
+    <string name="library_sort_descending">Z-A</string>
+    <string name="library_show_artists_grid_content_description">Show artists as grid</string>
+    <string name="library_show_artists_list_content_description">Show artists as list</string>
+    <string name="library_permission_message">Catlytics needs permission to find your music library.</string>
+    <string name="library_permission_request">Allow music access</string>
+    <string name="library_empty_message">We couldn\'t find music on this device.</string>
+    <string name="library_no_search_results">We couldn\'t find albums or artists matching your search.</string>
+    <string name="library_sort_current_content_description">Current order: %1$s. Change order</string>
+
+    <!-- Library: folders -->
+    <string name="library_folders_title">Music folders</string>
+    <string name="library_folders_subtitle">Choose which folders are part of your library.</string>
+    <string name="library_action_add_to_playlist">Add to playlist</string>
+    <string name="library_collection_play_next">Play next</string>
+    <string name="library_collection_add_to_queue">Add to queue</string>
+    <string name="library_collection_like">Save to Liked songs</string>
+    <string name="library_collection_unlike">Remove from Liked songs</string>
+    <string name="library_collection_sort_tracks">Sort songs</string>
+    <string name="library_collection_sort_albums">Sort albums</string>
+    <string name="library_collection_sorted_by">Sorted by %1$s</string>
+    <string name="library_sort_track_number">Track number</string>
+    <string name="library_sort_album">Album</string>
+    <string name="library_sort_title">Title (A-Z)</string>
+    <string name="library_sort_duration">Duration</string>
+    <string name="library_sort_most_played">Most played</string>
+    <string name="library_sort_track_count">Song count</string>
+    <string name="library_album_menu_edit">Edit album</string>
+    <string name="library_album_menu_go_to_artist">Go to artist</string>
+    <string name="library_action_show_folder">Show folder</string>
+    <string name="library_action_hide_folder">Hide folder</string>
+    <string name="library_folder_hidden_badge">Hidden</string>
+    <string name="library_folders_summary">%1$s · %2$s</string>
+    <plurals name="library_folders_visible_count">
+        <item quantity="one">1 visible</item>
+        <item quantity="other">%1$d visible</item>
+    </plurals>
+    <plurals name="library_folders_hidden_count">
+        <item quantity="one">1 hidden</item>
+        <item quantity="other">%1$d hidden</item>
+    </plurals>
+
+    <!-- Library: shared content -->
+    <string name="library_album_cover_content_description">Cover of %1$s</string>
+    <string name="library_track_selected_content_description">Selected</string>
+
+    <!-- Library: artists -->
+    <string name="library_artist_image_content_description">Image of %1$s</string>
+    <string name="library_artist_metadata">%1$s · %2$s</string>
+    <string name="library_artist_tab_songs">Songs</string>
+    <string name="library_artist_tab_albums">Albums</string>
+    <string name="library_artist_not_found_message">This artist is no longer available.</string>
+
+    <!-- Library: artist merging -->
+    <string name="library_artist_merge_open">Merge with…</string>
+    <string name="library_artist_merge_manage">Manage merges (%1$d)</string>
+    <string name="library_artist_merge_picker_title">Choose main artist</string>
+    <string name="library_artist_merge_picker_description">The chosen artist keeps its name throughout the app.</string>
+    <string name="library_artist_merge_search_hint">Search artist</string>
+    <string name="library_artist_merge_dialog_title">Merge artists</string>
+    <string name="library_artist_merge_confirm_message">%1$s will become part of %2$s. Library and statistics will use that name.</string>
+    <string name="library_artist_aliases_title">Merged artists</string>
+    <string name="library_artist_alias_target">Shown as %1$s</string>
+    <string name="library_artist_unmerge_dialog_title">Separate artist</string>
+    <string name="library_artist_unmerge_confirm_message">%1$s will appear as a separate artist again and its statistics will be split.</string>
+    <string name="library_artist_merge_success">Artists merged</string>
+    <string name="library_artist_unmerge_success">Artist separated</string>
+    <string name="library_artist_load_error">Couldn\'t load the artist content.</string>
+    <string name="library_artist_update_error">Couldn\'t update the artist.</string>
+    <string name="library_action_merge">Merge</string>
+    <string name="library_action_merging">Merging…</string>
+    <string name="library_action_unmerge">Separate</string>
+    <string name="library_action_rename">Rename</string>
+    <string name="library_action_renaming">Renaming…</string>
+    <string name="library_action_restore_name">Restore</string>
+    <string name="library_artist_rename_open">Rename</string>
+    <string name="library_artist_rename_title">Rename artist</string>
+    <string name="library_artist_rename_description">Affects all their songs and their statistics.</string>
+    <string name="library_artist_rename_details">It also changes the variants merged with this artist and any songs scanned in the future under its original name. Files are not modified. You can undo this from “Manage merges” or in Settings › Metadata edits.</string>
+    <string name="library_artist_rename_field">Name</string>
+    <string name="library_artist_rename_existing">“%1$s” already exists: it will be merged with it</string>
+    <string name="library_artist_rename_success">Artist renamed</string>
+    <string name="library_artist_image_change">Change image</string>
+    <string name="library_artist_image_restore">Restore image</string>
+    <string name="library_artist_image_changed">Artist image updated</string>
+    <string name="library_artist_image_restored">Original image restored</string>
+    <string name="library_artist_alias_original_name">Original name</string>
+    <string name="library_action_unmerging">Separating…</string>
+    <string name="library_action_cancel">Cancel</string>
+
+    <!-- Library: album -->
+    <string name="library_album_not_found_message">This album is no longer available.</string>
+    <string name="library_album_load_error">Couldn\'t load the album content.</string>
+
+    <!-- Library: folder -->
+    <string name="library_folder_not_found_message">This folder is no longer available.</string>
+    <string name="library_folder_empty_message">This folder doesn\'t contain music.</string>
+    <string name="library_folder_load_error">Couldn\'t load the folder content.</string>
+    <plurals name="library_subfolder_count">
+        <item quantity="one">1 subfolder</item>
+        <item quantity="other">%1$d subfolders</item>
+    </plurals>
+
+    <!-- Library: edit song info -->
+    <string name="library_edit_title">Edit info</string>
+    <string name="library_edit_artwork_content_description">Song artwork</string>
+    <string name="library_edit_change_artwork">Change artwork</string>
+    <string name="library_edit_restore_artwork">Restore original</string>
+    <string name="library_edit_field_title">Title</string>
+    <string name="library_edit_field_artist">Artist</string>
+    <string name="library_edit_field_album">Album</string>
+    <string name="library_edit_title_required">Title is required</string>
+    <string name="library_edit_original_value">Original: %1$s</string>
+    <string name="library_edit_restore_field">Restore original %1$s</string>
+    <string name="library_edit_unify_artist">Merge with “%1$s”</string>
+    <string name="library_edit_unify_artist_hint">All songs by “%1$s” will be shown as “%2$s”, including in your listening history. You can separate them later.</string>
+    <string name="library_edit_write_to_file">Also save to file</string>
+    <string name="library_edit_write_to_file_supporting">Other apps will see the changes</string>
+    <string name="library_edit_reset_all">Reset all</string>
+    <string name="library_edit_cancel">Cancel</string>
+    <string name="library_edit_save">Save</string>
+    <string name="library_edit_saving">Saving…</string>
+    <string name="library_edit_not_found">This song is no longer available.</string>
+    <string name="library_edit_saved">Info updated</string>
+    <string name="library_edit_reset_done">Original info restored</string>
+    <string name="library_edit_error">Couldn\'t save the info.</string>
+    <string name="library_edit_file_saved">Info updated and saved to the file</string>
+    <string name="library_edit_file_denied">Changes saved only in Catlytics: permission to modify the file was not granted.</string>
+    <string name="library_edit_file_error">Couldn\'t save to the file; changes are kept in Catlytics.</string>
+    <plurals name="library_bulk_edit_title">
+        <item quantity="one">Edit %1$d song</item>
+        <item quantity="other">Edit %1$d songs</item>
+    </plurals>
+    <plurals name="library_bulk_edit_saved">
+        <item quantity="one">%1$d song updated</item>
+        <item quantity="other">%1$d songs updated</item>
+    </plurals>
+    <string name="library_bulk_edit_artwork_content_description">Artwork of the songs</string>
+    <string name="library_bulk_edit_mixed_values">Multiple values</string>
+    <string name="library_bulk_edit_restoring_field">Each song\'s original value will be restored</string>
+    <string name="library_bulk_edit_restoring_artwork">Each song\'s original artwork will be restored</string>
+    <string name="library_bulk_edit_restore_artworks">Restore originals</string>
+    <string name="library_bulk_edit_write_to_files">Also save to the files</string>
+    <plurals name="library_bulk_edit_files_saved">
+        <item quantity="one">Changes saved to %1$d file</item>
+        <item quantity="other">Changes saved to %1$d files</item>
+    </plurals>
+    <plurals name="library_bulk_edit_files_failed">
+        <item quantity="one">%1$d file couldn\'t be modified; its changes are kept in Catlytics.</item>
+        <item quantity="other">%1$d files couldn\'t be modified; their changes are kept in Catlytics.</item>
+    </plurals>
+    <plurals name="library_edit_apply_artwork_to_album">
+        <item quantity="one">Apply to the whole album (%1$d song)</item>
+        <item quantity="other">Apply to the whole album (%1$d songs)</item>
+    </plurals>
+    <string name="library_album_edit_title">Edit album</string>
+    <plurals name="library_album_edit_supporting">
+        <item quantity="one">Changes apply to %1$d song on the album.</item>
+        <item quantity="other">Changes apply to the %1$d songs on the album.</item>
+    </plurals>
+    <string name="library_album_edit_field_title">Album title</string>
+    <string name="library_edit_separate_artist">Separate from “%1$s”</string>
+    <string name="library_edit_separate_artist_hint">“%1$s” is merged with “%2$s”. If you separate them, all their songs will appear under their own name again, including in your statistics.</string>
+    <string name="library_edit_artist_separated">“%1$s” is no longer merged with “%2$s”</string>
+    <string name="library_bulk_edit_no_changes">No changes</string>
+    <string name="library_bulk_edit_not_found">These songs are no longer available.</string>
+    <string name="library_detail_placeholder_title">Explore your library</string>
+    <string name="library_detail_placeholder_message">Select an album, artist, or folder to see its content here.</string>
+</resources>

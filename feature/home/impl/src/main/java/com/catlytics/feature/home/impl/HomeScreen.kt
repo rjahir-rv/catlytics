@@ -1,257 +1,264 @@
 package com.catlytics.feature.home.impl
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.catlytics.core.designsystem.theme.CatlyticsTheme
-import com.catlytics.core.model.Artist
+import com.catlytics.core.designsystem.component.TrackSelectionHost
+import com.catlytics.core.designsystem.component.isSearching
+import com.catlytics.core.designsystem.component.rememberTrackSelectionState
+import com.catlytics.core.designsystem.layout.deferredPadding
+import com.catlytics.core.designsystem.text.UiText
 import com.catlytics.core.model.Track
-import java.util.Locale
-import kotlin.time.Duration.Companion.milliseconds
+import com.catlytics.core.model.TrackSelectionAction
 
 @Composable
 internal fun HomeRoute(
+    modifier: Modifier = Modifier,
+    searchQuery: String,
+    isSearchActive: Boolean = false,
+    onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
+    onNavigateToStatistics: () -> Unit,
+    onNavigateToDailyPlaylist: () -> Unit,
+    onNavigateToFavorites: () -> Unit,
+    onNavigateToRecentlyAdded: () -> Unit,
+    hasAudioPermission: Boolean,
+    onRequestPermission: () -> Unit,
+    startupError: UiText? = null,
+    onContentReady: () -> Unit = {},
+    bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
-    val context = LocalContext.current
-    val permission = rememberRequiredAudioPermission()
-    var hasAudioPermission by remember(permission) {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                permission,
-            ) == android.content.pm.PackageManager.PERMISSION_GRANTED,
-        )
-    }
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-    ) { isGranted ->
-        hasAudioPermission = isGranted
-    }
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(hasAudioPermission) {
-        if (hasAudioPermission) {
-            viewModel.refreshLibrary()
-        }
-    }
 
     HomeScreen(
         uiState = uiState,
+        startupError = startupError,
+        searchQuery = searchQuery,
+        isSearchActive = isSearchActive,
         hasAudioPermission = hasAudioPermission,
-        onRequestPermission = { permissionLauncher.launch(permission) },
+        onRequestPermission = onRequestPermission,
+        onTrackSelected = viewModel::onTrackSelected,
+        onTopTrackSelected = viewModel::onTopTrackSelected,
+        onOpenDailyPlaylist = onNavigateToDailyPlaylist,
+        onShuffleAll = viewModel::onShuffleAll,
+        onOpenFavorites = onNavigateToFavorites,
+        onOpenRecentlyAdded = onNavigateToRecentlyAdded,
+        onTrackOptions = onTrackOptions,
+        likedTrackIds = likedTrackIds,
+        onTrackSelectionAction = onTrackSelectionAction,
+        onNavigateToStatistics = onNavigateToStatistics,
+        onContentReady = onContentReady,
+        bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
+        modifier = modifier,
     )
 }
 
 @Composable
 internal fun HomeScreen(
+    modifier: Modifier = Modifier,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
     uiState: HomeUiState,
+    startupError: UiText? = null,
+    searchQuery: String,
+    isSearchActive: Boolean = false,
     hasAudioPermission: Boolean,
     onRequestPermission: () -> Unit,
-    modifier: Modifier = Modifier,
+    onTrackSelected: (Track, List<Track>) -> Unit,
+    onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    onTopTrackSelected: (String) -> Unit = {},
+    onOpenDailyPlaylist: () -> Unit = {},
+    onShuffleAll: () -> Unit = {},
+    onOpenFavorites: () -> Unit = {},
+    onOpenRecentlyAdded: () -> Unit = {},
+    onNavigateToStatistics: () -> Unit = {},
+    onContentReady: () -> Unit = {},
+    bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Text(
-            text = "Inicio",
-            style = MaterialTheme.typography.headlineLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+    val displayedUiState = startupError?.let(HomeUiState::Error) ?: uiState
 
-        if (!hasAudioPermission) {
-            PermissionRequiredContent(onRequestPermission = onRequestPermission)
-            return@Column
-        }
-
-        when (uiState) {
-            HomeUiState.Empty -> EmptyLibraryContent()
-            is HomeUiState.Error -> ErrorContent(message = uiState.message)
-            HomeUiState.Loading -> LoadingContent()
-            is HomeUiState.Success -> TrackList(tracks = uiState.tracks)
+    LaunchedEffect(displayedUiState, hasAudioPermission) {
+        if (!hasAudioPermission || displayedUiState != HomeUiState.Loading) {
+            onContentReady()
         }
     }
-}
 
-@Composable
-private fun rememberRequiredAudioPermission(): String = remember {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        Manifest.permission.READ_MEDIA_AUDIO
-    } else {
-        Manifest.permission.READ_EXTERNAL_STORAGE
+    val trackListState = rememberSaveable(saver = LazyListState.Saver) {
+        LazyListState()
     }
-}
+    var areFeaturedSectionsVisible by rememberSaveable { mutableStateOf(true) }
+    val searching = isSearching(isSearchActive, searchQuery)
 
-@Composable
-private fun PermissionRequiredContent(
-    onRequestPermission: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(
-            text = "Catlytics necesita permiso para leer tu musica local.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-        )
-        Button(onClick = onRequestPermission) {
-            Text(text = "Permitir acceso a musica")
-        }
+    LaunchedEffect(searching) {
+        if (searching) trackListState.scrollToItem(0)
     }
-}
 
-@Composable
-private fun LoadingContent(
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier.fillMaxWidth()) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun EmptyLibraryContent(
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        modifier = modifier,
-        text = "No encontramos canciones en este dispositivo.",
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onBackground,
-    )
-}
-
-@Composable
-private fun ErrorContent(
-    message: String,
-    modifier: Modifier = Modifier,
-) {
-    Text(
-        modifier = modifier,
-        text = message,
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.error,
-    )
-}
-
-@Composable
-private fun TrackList(
-    tracks: List<Track>,
-    modifier: Modifier = Modifier,
-) {
-    LazyColumn(
-        modifier = modifier.fillMaxSize(),
-    ) {
-        items(
-            items = tracks,
-            key = { it.id },
-        ) { track ->
-            TrackRow(track = track)
-            HorizontalDivider()
-        }
-    }
-}
-
-@Composable
-private fun TrackRow(
-    track: Track,
-    modifier: Modifier = Modifier,
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = track.title,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground,
-            )
-            Text(
-                text = track.artist.name,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Text(
-            text = track.durationMillis.formatDuration(),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-private fun Long.formatDuration(): String {
-    val duration = milliseconds
-    val totalSeconds = duration.inWholeSeconds
-    val hours = totalSeconds / 3_600
-    val minutes = (totalSeconds % 3_600) / 60
-    val seconds = totalSeconds % 60
-    return if (hours > 0) {
-        String.format(Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format(Locale.US, "%d:%02d", minutes, seconds)
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun HomeScreenPreview() {
-    CatlyticsTheme {
-        HomeScreen(
-            uiState = HomeUiState.Success(
-                tracks = listOf(
-                    Track(
-                        id = "track-preview",
-                        title = "Cancion local",
-                        artist = Artist(
-                            id = "artist-preview",
-                            name = "Artista local",
-                        ),
-                        durationMillis = 186_000,
+    if (!hasAudioPermission) {
+        PermissionRequiredContent(
+            onRequestPermission = onRequestPermission,
+            modifier = modifier
+                .fillMaxSize()
+                .padding(
+                    deferredPadding(
+                        start = HomeDimens.ScreenPadding,
+                        top = { scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding },
+                        end = HomeDimens.ScreenPadding,
+                        bottom = { bottomPadding() },
                     ),
                 ),
-            ),
-            hasAudioPermission = true,
-            onRequestPermission = {},
         )
+        return
+    }
+
+    AnimatedContent(
+        targetState = displayedUiState,
+        transitionSpec = {
+            (fadeIn(tween(STATE_FADE_MILLIS)) togetherWith fadeOut(tween(STATE_FADE_MILLIS))).using(null)
+        },
+        contentKey = { it::class },
+        label = "homeState",
+    ) { state ->
+        when (state) {
+            HomeUiState.Empty -> EmptyLibraryContent(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(
+                        deferredPadding(
+                            start = HomeDimens.ScreenPadding,
+                            top = { scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding },
+                            end = HomeDimens.ScreenPadding,
+                            bottom = { bottomPadding() },
+                        ),
+                    ),
+            )
+            is HomeUiState.Error -> ErrorContent(
+                message = state.message,
+                modifier = modifier.padding(
+                    deferredPadding(
+                        start = HomeDimens.ScreenPadding,
+                        top = { scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding },
+                        end = HomeDimens.ScreenPadding,
+                    ),
+                ),
+            )
+            HomeUiState.Loading -> LoadingContent(
+                modifier = modifier.padding(
+                    deferredPadding(
+                        top = { scaffoldContentPadding.calculateTopPadding() },
+                    ),
+                ),
+            )
+            is HomeUiState.Success -> {
+                val filteredTracks = remember(state.tracks, searchQuery) {
+                    state.tracks.filterByQuery(searchQuery)
+                }
+                if (filteredTracks.isEmpty() && searchQuery.isNotBlank()) {
+                    NoSearchResultsContent(
+                        modifier = modifier.padding(
+                            deferredPadding(
+                                start = HomeDimens.ScreenPadding,
+                                top = {
+                                    scaffoldContentPadding.calculateTopPadding() + HomeDimens.ScreenPadding
+                                },
+                                end = HomeDimens.ScreenPadding,
+                                bottom = { bottomPadding() },
+                            ),
+                        ),
+                    )
+                } else {
+                    val selectionState = rememberTrackSelectionState()
+                    val selection = selectionState.value
+                    val selectedTracks = remember(selection, state.tracks) {
+                        selection.selectedTracks(state.tracks)
+                    }
+                    val visibleIds = remember(filteredTracks) { filteredTracks.map(Track::id) }
+                    TrackSelectionHost(
+                        selection = selection,
+                        onSelectionChange = { selectionState.value = it },
+                        visibleIds = visibleIds,
+                        selectedTracks = selectedTracks,
+                        likedTrackIds = likedTrackIds,
+                        currentTrackId = state.currentTrackId,
+                        topInset = { scaffoldContentPadding.calculateTopPadding() },
+                        bottomInset = bottomPadding,
+                        onAction = onTrackSelectionAction,
+                        modifier = modifier.fillMaxSize(),
+                    ) {
+                        HomeTrackList(
+                            tracks = filteredTracks,
+                            playbackQueue = state.tracks,
+                            dailyPlaylistTrackCount = state.dailyPlaylistTrackCount,
+                            canShuffleAll = state.canShuffleAll,
+                            favoriteTrackCount = state.favoriteTracks.size,
+                            recentlyAddedTrackCount = state.recentlyAddedTracks.size,
+                            newTrackIds = state.newTrackIds,
+                            showRecommendedPlaylists = state.showRecommendedPlaylists,
+                            recentlyPlayedTracks = state.recentlyPlayedTracks,
+                            topTracks = state.topTracks,
+                            currentTrackId = state.currentTrackId,
+                            isCurrentTrackPlaying = state.isCurrentTrackPlaying,
+                            onTrackSelected = onTrackSelected,
+                            onOpenDailyPlaylist = onOpenDailyPlaylist,
+                            onShuffleAll = onShuffleAll,
+                            onOpenFavorites = onOpenFavorites,
+                            onOpenRecentlyAdded = onOpenRecentlyAdded,
+                            modifier = Modifier.fillMaxSize(),
+                            state = trackListState,
+                            contentPadding = deferredPadding(
+                                top = {
+                                    scaffoldContentPadding.calculateTopPadding() + HomeDimens.TopContentInset +
+                                        if (selection.active) 64.dp else 0.dp
+                                },
+                                bottom = {
+                                    bottomPadding() + HomeDimens.ScreenPadding +
+                                        if (selection.active) 72.dp else 0.dp
+                                },
+                            ),
+                            onTrackOptions = onTrackOptions,
+                            selectedTrackIds = selection.selectedIds,
+                            selectionActive = selection.active,
+                            onTrackLongClick = { track ->
+                                selectionState.value = selection.onTrackLongClick(track.id)
+                            },
+                            onRecentlyPlayedTrackSelected = { track ->
+                                onTrackSelected(track, state.tracks)
+                            },
+                            onTopTrackSelected = onTopTrackSelected,
+                            onNavigateToStatistics = onNavigateToStatistics,
+                            isSearching = searching,
+                            areFeaturedSectionsVisible = areFeaturedSectionsVisible,
+                            onToggleFeaturedSections = {
+                                areFeaturedSectionsVisible = !areFeaturedSectionsVisible
+                            },
+                        )
+                    }
+                }
+            }
+        }
     }
 }
+
+private const val STATE_FADE_MILLIS = 220

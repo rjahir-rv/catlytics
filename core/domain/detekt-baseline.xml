@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:StatsPeriodCalculator.kt:StatsPeriodCalculator$7</ID>
+  </CurrentIssues>
+</SmellBaseline>

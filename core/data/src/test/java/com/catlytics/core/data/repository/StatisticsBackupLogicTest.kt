@@ -1,0 +1,292 @@
+package com.catlytics.core.data.repository
+
+import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.room.Room
+import com.catlytics.core.data.local.InMemoryLocalDataSource
+import com.catlytics.core.data.local.room.CatlyticsDatabase
+import com.catlytics.core.domain.repository.PlaybackEventRepository
+import com.catlytics.core.model.Artist
+import com.catlytics.core.model.BackupOptions
+import com.catlytics.core.model.PlaybackEvent
+import com.catlytics.core.model.StatisticsImportMode
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
+import org.junit.Before
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import java.io.File
+
+@RunWith(RobolectricTestRunner::class)
+class StatisticsBackupLogicTest {
+
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
+    private lateinit var context: Context
+    private lateinit var database: CatlyticsDatabase
+    private lateinit var eventRepository: RoomPlaybackEventRepository
+    private lateinit var playlistSection: PlaylistBackupSection
+    private lateinit var backupRepository: StatisticsBackupHarness
+    private lateinit var artistIdentityRepository: RoomArtistIdentityRepository
+    private val temporaryFiles = mutableListOf<File>()
+
+    @Before
+    fun setUp() {
+        context = RuntimeEnvironment.getApplication()
+        database = Room.inMemoryDatabaseBuilder(context, CatlyticsDatabase::class.java)
+            .allowMainThreadQueries()
+            .build()
+        eventRepository = RoomPlaybackEventRepository(
+            database.playbackEventDao(),
+            database.artistArtworkOverrideDao(),
+            database.artistAliasDao(),
+        )
+        artistIdentityRepository = RoomArtistIdentityRepository(database, database.artistAliasDao())
+        val dataStoreFile = temporaryFolder.newFile("playlists_test.preferences_pb")
+        playlistSection = PlaylistBackupSection(
+            context = context,
+            playlistRepository = DataStorePlaylistRepository(
+                dataStore = PreferenceDataStoreFactory.create(produceFile = { dataStoreFile }),
+                context = context,
+            ),
+            localDataSource = InMemoryLocalDataSource(),
+        )
+        backupRepository = statisticsBackup(eventRepository)
+    }
+
+    /** Respaldo solo de estadísticas, por la misma ruta unificada que usa la app. */
+    private fun statisticsBackup(events: PlaybackEventRepository) = StatisticsBackupHarness(
+        DefaultUnifiedBackupRepository(
+            context = context,
+            statisticsSection = StatisticsBackupSection(
+                playbackEventRepository = events,
+                artistIdentityRepository = artistIdentityRepository,
+                database = database,
+                trackMetadataRepository = metadataRepository(context, database),
+                artistArtworkRepository = RoomArtistArtworkRepository(
+                    database.artistArtworkOverrideDao(),
+                    database.artistAliasDao(),
+                    context,
+                ),
+            ),
+            playlistSection = playlistSection,
+        ),
+    )
+
+    @After
+    fun tearDown() {
+        database.close()
+        temporaryFiles.forEach(File::delete)
+    }
+
+    @Test
+    fun `export and replace import round-trip all statistics fields`() = runTest {
+        val original = listOf(
+            event(),
+            event(
+                trackId = "mediastore-2",
+                timestamp = 1_700_000_100_000L,
+                title = "Otra canción",
+            ),
+        )
+        original.forEach { eventRepository.recordEvent(it) }
+        val backupUri = newBackupUri()
+
+        val exportResult = backupRepository.exportToUri(backupUri, "0.0.5").getOrThrow()
+        assertEquals(original.size, exportResult.eventCount)
+
+        val preview = backupRepository.previewFromUri(backupUri).getOrThrow()
+        assertEquals(original.size, preview.eventCount)
+        assertEquals(original.first().timestamp, preview.firstEventMillis)
+        assertEquals(original.last().timestamp, preview.lastEventMillis)
+
+        eventRepository.replaceEvents(listOf(event(trackId = "temporary", timestamp = 2L)))
+        val importResult = backupRepository.importFromUri(
+            backupUri,
+            StatisticsImportMode.Replace,
+        ).getOrThrow()
+
+        assertEquals(original.size, importResult.importedCount)
+        assertEquals(original, eventRepository.getAllEvents())
+    }
+
+    @Test
+    fun `merge is idempotent and reports skipped duplicates`() = runTest {
+        val original = listOf(
+            event(),
+            event(trackId = "mediastore-2", timestamp = 1_700_000_100_000L),
+        )
+        original.forEach { eventRepository.recordEvent(it) }
+        val backupUri = newBackupUri()
+        backupRepository.exportToUri(backupUri, "0.0.5").getOrThrow()
+        eventRepository.replaceEvents(emptyList())
+
+        val firstImport = backupRepository.importFromUri(
+            backupUri,
+            StatisticsImportMode.Merge,
+        ).getOrThrow()
+        val secondImport = backupRepository.importFromUri(
+            backupUri,
+            StatisticsImportMode.Merge,
+        ).getOrThrow()
+
+        assertEquals(2, firstImport.importedCount)
+        assertEquals(0, firstImport.skippedDuplicateCount)
+        assertEquals(0, secondImport.importedCount)
+        assertEquals(2, secondImport.skippedDuplicateCount)
+        assertEquals(original, eventRepository.getAllEvents())
+    }
+
+    @Test
+    fun `version two backup restores artist aliases`() = runTest {
+        val source = Artist("collab", "Artista feat. Invitado")
+        val target = Artist("main", "Artista")
+        artistIdentityRepository.merge(source, target)
+        val backupUri = newBackupUri()
+
+        val export = backupRepository.exportToUri(backupUri, "0.0.5").getOrThrow()
+        assertEquals(1, export.artistAliasCount)
+        assertEquals(1, backupRepository.previewFromUri(backupUri).getOrThrow().artistAliasCount)
+
+        artistIdentityRepository.replaceAliases(emptyList())
+        val result = backupRepository.importFromUri(
+            backupUri,
+            StatisticsImportMode.Replace,
+        ).getOrThrow()
+
+        assertEquals(1, result.importedArtistAliasCount)
+        assertEquals(source, artistIdentityRepository.getAliases().single().source)
+        assertEquals(target, artistIdentityRepository.getAliases().single().target)
+    }
+
+    @Test
+    fun `merge skips duplicate fingerprints within backup file`() = runTest {
+        val first = event(title = "Título original")
+        val duplicateFingerprint = first.copy(trackTitle = "Título modificado")
+        eventRepository.recordEvent(first)
+        eventRepository.recordEvent(duplicateFingerprint)
+        val backupUri = newBackupUri()
+        backupRepository.exportToUri(backupUri, "0.0.5").getOrThrow()
+        eventRepository.replaceEvents(emptyList())
+
+        val result = backupRepository.importFromUri(
+            backupUri,
+            StatisticsImportMode.Merge,
+        ).getOrThrow()
+
+        assertEquals(1, result.importedCount)
+        assertEquals(1, result.skippedDuplicateCount)
+        assertEquals(listOf(first), eventRepository.getAllEvents())
+    }
+
+    @Test
+    fun `invalid document fails without changing existing events`() = runTest {
+        val existing = event()
+        eventRepository.recordEvent(existing)
+        val invalidFile = newBackupFile().apply {
+            writeText("""{"format":"otro.formato","schemaVersion":1}""")
+        }
+
+        val result = backupRepository.importFromUri(
+            invalidFile.toURI().toString(),
+            StatisticsImportMode.Replace,
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(listOf(existing), eventRepository.getAllEvents())
+    }
+
+    @Test
+    fun `replace rolls back deletion when an insert fails`() = runTest {
+        val existing = event()
+        eventRepository.recordEvent(existing)
+        database.openHelper.writableDatabase.execSQL(
+            """
+            CREATE TRIGGER reject_forced_import
+            BEFORE INSERT ON playback_events
+            WHEN NEW.track_id = 'force-failure'
+            BEGIN
+                SELECT RAISE(ABORT, 'forced import failure');
+            END
+            """.trimIndent(),
+        )
+
+        try {
+            eventRepository.replaceEvents(listOf(event(trackId = "force-failure")))
+            fail("La inserción forzada debía fallar")
+        } catch (_: Exception) {
+            // Expected: Room must roll the deletion back with the failed insert.
+        }
+
+        assertEquals(listOf(existing), eventRepository.getAllEvents())
+    }
+
+    @Test
+    fun `import propagates coroutine cancellation`() = runTest {
+        eventRepository.recordEvent(event())
+        val backupUri = newBackupUri()
+        backupRepository.exportToUri(backupUri, "0.0.5").getOrThrow()
+        val cancellingRepository = statisticsBackup(
+            object : PlaybackEventRepository by eventRepository {
+                override suspend fun replaceEvents(events: List<PlaybackEvent>) {
+                    throw CancellationException("test cancellation")
+                }
+            },
+        )
+
+        try {
+            cancellingRepository.importFromUri(backupUri, StatisticsImportMode.Replace)
+            fail("La cancelación debía propagarse")
+        } catch (_: CancellationException) {
+            // Expected: cancellation must not be converted into Result.failure.
+        }
+    }
+
+    private fun newBackupUri(): String = newBackupFile().toURI().toString()
+
+    private fun newBackupFile(): File = File.createTempFile(
+        "catlytics-statistics-",
+        ".json",
+        context.cacheDir,
+    ).also(temporaryFiles::add)
+
+    private fun event(
+        trackId: String = "mediastore-1",
+        timestamp: Long = 1_700_000_000_000L,
+        title: String = "Canción",
+    ) = PlaybackEvent(
+        trackId = trackId,
+        trackTitle = title,
+        artistId = "mediastore-artist-1",
+        artistName = "Artista",
+        albumId = "mediastore-album-1",
+        albumTitle = "Álbum",
+        artworkUri = "content://media/external/audio/albumart/1",
+        durationListenedMillis = 60_000L,
+        trackDurationMillis = 180_000L,
+        timestamp = timestamp,
+    )
+}
+
+/** Exporta, previsualiza e importa solo la sección de estadísticas del respaldo unificado. */
+private class StatisticsBackupHarness(private val unified: DefaultUnifiedBackupRepository) {
+    suspend fun exportToUri(uri: String, appVersion: String) =
+        unified.exportToUri(uri, STATISTICS_ONLY, appVersion).map { checkNotNull(it.statistics) }
+
+    suspend fun previewFromUri(uri: String) =
+        unified.previewFromUri(uri).map { checkNotNull(it.statistics) }
+
+    suspend fun importFromUri(uri: String, mode: StatisticsImportMode) =
+        unified.importFromUri(uri, STATISTICS_ONLY, mode).map { checkNotNull(it.statistics) }
+}
+
+private val STATISTICS_ONLY = BackupOptions(includeStatistics = true, includePlaylists = false)

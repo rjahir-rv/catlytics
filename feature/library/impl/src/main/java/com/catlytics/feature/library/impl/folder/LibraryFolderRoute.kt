@@ -1,0 +1,50 @@
+package com.catlytics.feature.library.impl.folder
+
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.model.LibraryFolder
+import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.feature.library.api.LibraryFolderRoute
+
+@Composable
+internal fun LibraryFolderRoute(
+    route: LibraryFolderRoute,
+    onFolderSelected: (LibraryFolder) -> Unit,
+    onAddToPlaylist: (PlaylistSource) -> Unit,
+    onTrackOptions: (Track) -> Unit,
+    likedTrackIds: Set<String> = emptySet(),
+    currentTrackId: String? = null,
+    isCurrentTrackPlaying: Boolean = false,
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
+    bottomPadding: () -> Dp = { 0.dp },
+    scaffoldContentPadding: PaddingValues = PaddingValues(0.dp),
+    viewModel: LibraryFolderViewModel = hiltViewModel(),
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(route.folderId) {
+        viewModel.openFolder(route.folderId)
+    }
+
+    LibraryFolderScreen(
+        uiState = uiState,
+        onFolderSelected = onFolderSelected,
+        onTrackSelected = viewModel::playTrack,
+        onAddToPlaylist = onAddToPlaylist,
+        onTrackOptions = onTrackOptions,
+        likedTrackIds = likedTrackIds,
+        currentTrackId = currentTrackId,
+        isCurrentTrackPlaying = isCurrentTrackPlaying,
+        onTrackSelectionAction = onTrackSelectionAction,
+        bottomPadding = bottomPadding,
+        scaffoldContentPadding = scaffoldContentPadding,
+    )
+}

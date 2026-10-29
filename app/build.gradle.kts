@@ -1,20 +1,46 @@
 plugins {
     id("catlytics.android.application")
     id("catlytics.android.hilt")
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.aboutlibraries.android)
 }
+
+val appVersion = "1.0.0" // x-release-please-version
+
+fun signingProperty(name: String, envName: String): String? =
+    providers.gradleProperty("catlytics.signing.$name")
+        .orElse(providers.environmentVariable(envName))
+        .orNull
+
+val releaseStoreFile = signingProperty("storeFile", "CATLYTICS_KEYSTORE_FILE")
 
 android {
     namespace = "com.catlytics.app"
 
     defaultConfig {
         applicationId = "com.catlytics.app"
-        versionCode = 1
-        versionName = "0.0.1"
+        versionCode = appVersion.split('.').map(String::toInt).let { (major, minor, patch) ->
+            major * 10_000 + minor * 100 + patch
+        }
+        versionName = appVersion
+    }
+
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = signingProperty("storePassword", "CATLYTICS_KEYSTORE_PASSWORD")
+                keyAlias = signingProperty("keyAlias", "CATLYTICS_KEY_ALIAS")
+                keyPassword = signingProperty("keyPassword", "CATLYTICS_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.findByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -23,29 +49,51 @@ android {
     }
 }
 
+aboutLibraries {
+    offlineMode = true
+    collect {
+        configPath = file("config/aboutlibraries")
+    }
+    license {
+        strictMode = com.mikepenz.aboutlibraries.plugin.StrictMode.FAIL
+        allowedLicenses.addAll("Apache-2.0", "BSD-3-Clause", "LGPL-2.1-only", "MPL-1.1")
+    }
+}
+
 dependencies {
-    implementation(project(":core:data"))
-    implementation(project(":core:designsystem"))
-    implementation(project(":core:domain"))
-    implementation(project(":core:navigation"))
-    implementation(project(":feature:home:api"))
-    implementation(project(":feature:home:impl"))
-    implementation(project(":feature:library:api"))
-    implementation(project(":feature:library:impl"))
-    implementation(project(":feature:playlists:api"))
-    implementation(project(":feature:playlists:impl"))
-    implementation(project(":feature:statistics:api"))
-    implementation(project(":feature:statistics:impl"))
+    implementation(project(path = ":core:data"))
+    implementation(project(path = ":core:designsystem"))
+    implementation(project(path = ":core:domain"))
+    implementation(project(path = ":core:navigation"))
+    implementation(project(path = ":core:playback"))
+    implementation(project(path = ":core:widget"))
+    implementation(project(path = ":feature:home:api"))
+    implementation(project(path = ":feature:home:impl"))
+    implementation(project(path = ":feature:library:api"))
+    implementation(project(path = ":feature:library:impl"))
+    implementation(project(path = ":feature:playlists:api"))
+    implementation(project(path = ":feature:playlists:impl"))
+    implementation(project(path = ":feature:settings:api"))
+    implementation(project(path = ":feature:settings:impl"))
+    implementation(project(path = ":feature:statistics:api"))
+    implementation(project(path = ":feature:statistics:impl"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material3.adaptive)
+    implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.navigationevent.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
-    implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.session)
-    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.coil.compose)
+    implementation(libs.haze.blur)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.kotlinx.serialization.json)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
 }

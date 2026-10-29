@@ -1,0 +1,237 @@
+package com.catlytics.core.data.repository
+
+import android.content.Context
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.model.LIKED_PLAYLIST_NAME
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.TemporaryFolder
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
+import java.io.File
+
+@RunWith(RobolectricTestRunner::class)
+class DataStorePlaylistRepositoryTest {
+    @get:Rule
+    val temporaryFolder = TemporaryFolder()
+
+    @Test
+    fun `playlist operations persist and ignore duplicate tracks`() = runTest {
+        val file = temporaryFolder.newFile("playlists.preferences_pb")
+        val repository = repository(backgroundScope, file)
+
+        val playlist = repository.createPlaylist("Favoritas")
+        assertEquals(2, repository.addTracks(playlist.id, listOf("one", "two", "one")))
+        assertEquals(0, repository.addTracks(playlist.id, listOf("one", "two")))
+        repository.renamePlaylist(playlist.id, "Viaje")
+        repository.updatePlaylistDetails(playlist.id, "Viaje", "Para manejar de noche")
+        repository.reorderTracks(playlist.id, listOf("two", "one"))
+        repository.removeTrack(playlist.id, "one")
+
+        val restored = repository.observePlaylists().first().single { it.id == playlist.id }
+        assertEquals("Viaje", restored.name)
+        assertEquals("Para manejar de noche", restored.description)
+        assertEquals(listOf("two"), restored.trackIds)
+
+        repository.deletePlaylist(playlist.id)
+        val playlists = repository.observePlaylists().first()
+        assertEquals(listOf(LIKED_PLAYLIST_ID), playlists.map { it.id })
+    }
+
+    @Test
+    fun `addTracksToPlaylists updates every target playlist in one write`() = runTest {
+        val file = temporaryFolder.newFile("playlists-batch.preferences_pb")
+        val repository = repository(backgroundScope, file)
+
+        val first = repository.createPlaylist("Focus")
+        val second = repository.createPlaylist("Chill")
+
+        val added = repository.addTracksToPlaylists(
+            playlistIds = listOf(first.id, second.id),
+            trackIds = listOf("track-1"),
+        )
+
+        assertEquals(1, added[first.id])
+        assertEquals(1, added[second.id])
+
+        val restored = repository.observePlaylists().first()
+        val focus = restored.single { it.id == first.id }
+        val chill = restored.single { it.id == second.id }
+        assertEquals(listOf("track-1"), focus.trackIds)
+        assertEquals(listOf("track-1"), chill.trackIds)
+    }
+
+    @Test
+    fun `setPlaylistArtwork persists custom uri (falls back in test without context)`() = runTest {
+        val file = temporaryFolder.newFile("playlists-art.preferences_pb")
+        val repository = repository(backgroundScope, file)
+
+        val playlist = repository.createPlaylist("Favoritas")
+        val custom = "content://media/external/images/media/999"
+        repository.setPlaylistArtwork(playlist.id, custom)
+
+        val restored = repository.observePlaylists().first().single { it.id == playlist.id }
+        assertEquals(custom, restored.artworkUri)
+
+        repository.setPlaylistArtwork(playlist.id, null)
+        val cleared = repository.observePlaylists().first().single { it.id == playlist.id }
+        assertEquals(null, cleared.artworkUri)
+    }
+
+    @Test
+    fun `replacing copied artwork changes its uri and removes the stale cover`() = runTest {
+        val preferencesFile = temporaryFolder.newFile("playlists-copied-art.preferences_pb")
+        val context: Context = RuntimeEnvironment.getApplication()
+        val repository = DataStorePlaylistRepository(
+            dataStore = PreferenceDataStoreFactory.create(
+                scope = backgroundScope,
+                produceFile = { preferencesFile },
+            ),
+            context = context,
+        )
+        val playlist = repository.createPlaylist("Favoritas")
+        val firstSource = temporaryFolder.newFile("first-cover.jpg").apply {
+            writeText("first cover")
+        }
+        val secondSource = temporaryFolder.newFile("second-cover.jpg").apply {
+            writeText("second cover")
+        }
+
+        repository.setPlaylistArtwork(playlist.id, firstSource.toURI().toString())
+        val firstArtwork = repository.observePlaylists().first()
+            .single { it.id == playlist.id }
+            .artworkUri
+        repository.setPlaylistArtwork(playlist.id, secondSource.toURI().toString())
+        val secondArtwork = repository.observePlaylists().first()
+            .single { it.id == playlist.id }
+            .artworkUri
+        val firstArtworkPath = requireNotNull(firstArtwork)
+        val secondArtworkPath = requireNotNull(secondArtwork)
+
+        assertNotEquals(firstArtworkPath, secondArtworkPath)
+        assertEquals("second cover", File(secondArtworkPath).readText())
+        assertFalse(File(firstArtworkPath).exists())
+
+        repository.setPlaylistArtwork(playlist.id, null)
+        assertFalse(File(secondArtworkPath).exists())
+    }
+
+    @Test
+    fun `reorder preserves unmentioned track ids at the end`() = runTest {
+        val file = temporaryFolder.newFile("playlists-order.preferences_pb")
+        val repository = repository(backgroundScope, file)
+        val playlist = repository.createPlaylist(
+            name = "Orden",
+            trackIds = listOf("one", "missing", "two"),
+        )
+
+        repository.reorderTracks(playlist.id, listOf("two", "one"))
+
+        val restored = repository.observePlaylists().first().single { it.id == playlist.id }
+        assertEquals(listOf("two", "one", "missing"), restored.trackIds)
+    }
+
+    @Test
+    fun `removeTracks deletes several ids in one write`() = runTest {
+        val file = temporaryFolder.newFile("playlists-remove-batch.preferences_pb")
+        val repository = repository(backgroundScope, file)
+        val playlist = repository.createPlaylist("Focus", listOf("one", "two", "three"))
+
+        val removed = repository.removeTracks(playlist.id, listOf("one", "missing", "three"))
+
+        assertEquals(2, removed)
+        val restored = repository.observePlaylists().first().single { it.id == playlist.id }
+        assertEquals(listOf("two"), restored.trackIds)
+    }
+
+    @Test
+    fun `liked playlist is available by default and first`() = runTest {
+        val file = temporaryFolder.newFile("liked-default.preferences_pb")
+        val repository = repository(backgroundScope, file)
+
+        val playlists = repository.observePlaylists().first()
+
+        assertTrue(playlists.isNotEmpty())
+        assertEquals(LIKED_PLAYLIST_ID, playlists.first().id)
+        assertEquals(LIKED_PLAYLIST_NAME, playlists.first().name)
+    }
+
+    @Test
+    fun `liked playlist cannot be deleted or renamed`() = runTest {
+        val file = temporaryFolder.newFile("liked-protected.preferences_pb")
+        val repository = repository(backgroundScope, file)
+
+        repository.renamePlaylist(LIKED_PLAYLIST_ID, "Otro nombre")
+        repository.deletePlaylist(LIKED_PLAYLIST_ID)
+
+        val liked = repository.observePlaylists().first().first()
+        assertEquals(LIKED_PLAYLIST_ID, liked.id)
+        assertEquals(LIKED_PLAYLIST_NAME, liked.name)
+    }
+
+    @Test
+    fun `liked playlist accepts tracks without duplicates`() = runTest {
+        val file = temporaryFolder.newFile("liked-tracks.preferences_pb")
+        val repository = repository(backgroundScope, file)
+
+        assertEquals(2, repository.addTracks(LIKED_PLAYLIST_ID, listOf("one", "two", "one")))
+        assertEquals(0, repository.addTracks(LIKED_PLAYLIST_ID, listOf("one", "two")))
+
+        val liked = repository.observePlaylists().first().first()
+        assertEquals(listOf("one", "two"), liked.trackIds)
+    }
+
+    @Test
+    fun `malformed entries are skipped without dropping valid playlists`() = runTest {
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { temporaryFolder.newFile("playlists-partial.preferences_pb") },
+        )
+        dataStore.edit {
+            it[PLAYLISTS_KEY] = """[{"id":"ok","name":"Buena","trackIds":["t1"]},""" +
+                """{"id":"bad","name":{"nested":true}},"texto"]"""
+        }
+        val repository = DataStorePlaylistRepository(dataStore)
+
+        assertEquals(listOf(LIKED_PLAYLIST_ID, "ok"), repository.observePlaylists().first().map { it.id })
+        repository.addTracks("ok", listOf("t2"))
+        val ok = repository.observePlaylists().first().single { it.id == "ok" }
+        assertEquals(listOf("t1", "t2"), ok.trackIds)
+    }
+
+    @Test
+    fun `unreadable stored value is never overwritten`() = runTest {
+        val dataStore = PreferenceDataStoreFactory.create(
+            scope = backgroundScope,
+            produceFile = { temporaryFolder.newFile("playlists-corrupt.preferences_pb") },
+        )
+        val corrupt = """{"not":"an array"""
+        dataStore.edit { it[PLAYLISTS_KEY] = corrupt }
+        val repository = DataStorePlaylistRepository(dataStore)
+
+        assertEquals(listOf(LIKED_PLAYLIST_ID), repository.observePlaylists().first().map { it.id })
+        val failure = runCatching { repository.createPlaylist("Nueva") }.exceptionOrNull()
+
+        assertTrue(failure is IllegalStateException)
+        assertEquals(corrupt, dataStore.data.first()[PLAYLISTS_KEY])
+    }
+
+    private fun repository(scope: CoroutineScope, file: File) = DataStorePlaylistRepository(
+        PreferenceDataStoreFactory.create(scope = scope, produceFile = { file }),
+    )
+
+    private companion object {
+        val PLAYLISTS_KEY = stringPreferencesKey("playlists_json")
+    }
+}

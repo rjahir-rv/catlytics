@@ -1,10 +1,38 @@
 package com.catlytics.core.domain.repository
 
 import com.catlytics.core.model.Playlist
+import com.catlytics.core.model.StatisticsImportMode
 import kotlinx.coroutines.flow.Flow
 
 interface PlaylistRepository {
     fun observePlaylists(): Flow<List<Playlist>>
 
-    suspend fun upsertPlaylist(playlist: Playlist)
+    suspend fun createPlaylist(name: String, trackIds: List<String> = emptyList()): Playlist
+
+    suspend fun renamePlaylist(playlistId: String, name: String)
+
+    suspend fun updatePlaylistDetails(playlistId: String, name: String, description: String)
+
+    suspend fun deletePlaylist(playlistId: String)
+
+    suspend fun addTracks(playlistId: String, trackIds: List<String>): Int
+
+    suspend fun addTracksToPlaylists(
+        playlistIds: Collection<String>,
+        trackIds: List<String>,
+    ): Map<String, Int>
+
+    suspend fun removeTrack(playlistId: String, trackId: String)
+
+    suspend fun removeTracks(playlistId: String, trackIds: Collection<String>): Int {
+        val distinctIds = trackIds.distinct()
+        distinctIds.forEach { removeTrack(playlistId, it) }
+        return distinctIds.size
+    }
+
+    suspend fun reorderTracks(playlistId: String, orderedTrackIds: List<String>)
+
+    suspend fun setPlaylistArtwork(playlistId: String, artworkUri: String?)
+
+    suspend fun restorePlaylists(playlists: List<Playlist>, mode: StatisticsImportMode) {}
 }

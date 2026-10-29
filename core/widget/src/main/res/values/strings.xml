@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_cassette_name">Casete Catlytics</string>
+    <string name="widget_cassette_description">La canción actual en un casete, con controles de reproducción</string>
+    <string name="widget_brand" translatable="false">CATLYTICS</string>
+    <string name="widget_status_playing">REPRODUCIENDO</string>
+    <string name="widget_status_paused">EN PAUSA</string>
+    <string name="widget_status_empty">SIN CINTA</string>
+    <string name="widget_empty_title">Nada en reproducción</string>
+    <string name="widget_empty_subtitle">Toca para elegir música</string>
+    <string name="widget_play">Reproducir</string>
+    <string name="widget_pause">Pausar</string>
+    <string name="widget_previous">Anterior</string>
+    <string name="widget_next">Siguiente</string>
+</resources>

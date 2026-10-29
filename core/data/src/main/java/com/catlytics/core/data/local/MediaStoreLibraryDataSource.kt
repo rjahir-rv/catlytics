@@ -1,17 +1,24 @@
 package com.catlytics.core.data.local
 
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import com.catlytics.core.data.model.TrackEntity
+import com.catlytics.core.model.MusicScanSettings
+import com.catlytics.core.model.UNKNOWN_ALBUM_TITLE
+import com.catlytics.core.model.UNKNOWN_ARTIST_NAME
+import com.catlytics.core.model.UNTITLED_TRACK_TITLE
 import dagger.hilt.android.qualifiers.ApplicationContext
-import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
+import javax.inject.Inject
 
 interface MediaStoreLibraryDataSource {
-    suspend fun loadTracks(): List<TrackEntity>
+    suspend fun loadTracks(settings: MusicScanSettings): List<TrackEntity>
 }
 
 class AndroidMediaStoreLibraryDataSource @Inject constructor(
@@ -19,11 +26,13 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
 ) : MediaStoreLibraryDataSource {
     private val contentResolver = context.contentResolver
 
-    override suspend fun loadTracks(): List<TrackEntity> = withContext(Dispatchers.IO) {
+    override suspend fun loadTracks(
+        settings: MusicScanSettings,
+    ): List<TrackEntity> = withContext(Dispatchers.IO) {
         val tracks = mutableListOf<TrackEntity>()
         contentResolver.query(
             MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            MediaStoreAudioMapper.projection,
+            MediaStoreAudioMapper.projection(),
             Bundle().apply {
                 putStringArray(
                     ContentResolver.QUERY_ARG_SORT_COLUMNS,
@@ -40,17 +49,63 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
             val titleColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val artistIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST_ID)
+            val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+            val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            val trackNumberColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val isMusicColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.IS_MUSIC)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+            val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+            val displayNameColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DISPLAY_NAME)
+            val relativePathColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.RELATIVE_PATH)
+            } else {
+                -1
+            }
+            val volumeNameColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.VOLUME_NAME)
+            } else {
+                -1
+            }
+
+            @Suppress("DEPRECATION")
+            val dataColumn = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+                cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
+            } else {
+                -1
+            }
 
             while (cursor.moveToNext()) {
+                val id = cursor.getLong(idColumn)
+                val mediaUri = ContentUris.withAppendedId(
+                    MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                    id,
+                ).toString()
                 MediaStoreAudioMapper.toTrackEntity(
-                    id = cursor.getLong(idColumn),
+                    id = id,
                     title = cursor.getString(titleColumn),
                     artist = cursor.getString(artistColumn),
                     artistId = cursor.getLong(artistIdColumn),
+                    albumId = cursor.getLong(albumIdColumn),
+                    album = cursor.getString(albumColumn),
+                    trackNumber = cursor.getInt(trackNumberColumn),
                     durationMillis = cursor.getLong(durationColumn),
+                    fileSizeBytes = cursor.getLong(sizeColumn),
                     isMusic = cursor.getInt(isMusicColumn),
+                    dateAddedSeconds = cursor.getLong(dateAddedColumn),
+                    mediaUri = mediaUri,
+                    displayName = cursor.getString(displayNameColumn),
+                    scanSettings = settings,
+                    folder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        MediaStoreAudioMapper.folderFromRelativePath(
+                            volumeName = cursor.getString(volumeNameColumn),
+                            relativePath = cursor.getString(relativePathColumn),
+                        )
+                    } else {
+                        MediaStoreAudioMapper.folderFromAbsolutePath(
+                            absolutePath = cursor.getString(dataColumn),
+                        )
+                    },
                 )?.let(tracks::add)
             }
         }
@@ -59,37 +114,149 @@ class AndroidMediaStoreLibraryDataSource @Inject constructor(
 }
 
 internal object MediaStoreAudioMapper {
-    val projection = arrayOf(
-        MediaStore.Audio.Media._ID,
-        MediaStore.Audio.Media.TITLE,
-        MediaStore.Audio.Media.ARTIST,
-        MediaStore.Audio.Media.ARTIST_ID,
-        MediaStore.Audio.Media.DURATION,
-        MediaStore.Audio.Media.IS_MUSIC,
-    )
+    fun projection(): Array<String> = buildList {
+        add(MediaStore.Audio.Media._ID)
+        add(MediaStore.Audio.Media.TITLE)
+        add(MediaStore.Audio.Media.ARTIST)
+        add(MediaStore.Audio.Media.ARTIST_ID)
+        add(MediaStore.Audio.Media.ALBUM_ID)
+        add(MediaStore.Audio.Media.ALBUM)
+        add(MediaStore.Audio.Media.TRACK)
+        add(MediaStore.Audio.Media.DURATION)
+        add(MediaStore.Audio.Media.IS_MUSIC)
+        add(MediaStore.Audio.Media.SIZE)
+        add(MediaStore.Audio.Media.DATE_ADDED)
+        add(MediaStore.Audio.Media.DISPLAY_NAME)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            add(MediaStore.Audio.Media.RELATIVE_PATH)
+            add(MediaStore.Audio.Media.VOLUME_NAME)
+        } else {
+            @Suppress("DEPRECATION")
+            add(MediaStore.Audio.Media.DATA)
+        }
+    }.toTypedArray()
 
     fun toTrackEntity(
         id: Long,
         title: String?,
         artist: String?,
         artistId: Long,
+        albumId: Long,
+        album: String? = null,
+        trackNumber: Int = 0,
         durationMillis: Long,
+        fileSizeBytes: Long = 0L,
         isMusic: Int,
+        dateAddedSeconds: Long = 0L,
+        mediaUri: String,
+        displayName: String? = null,
+        folder: MediaFolderMetadata? = null,
+        scanSettings: MusicScanSettings = MusicScanSettings(),
     ): TrackEntity? {
         if (isMusic == 0 || durationMillis <= 0L) return null
+        if (scanSettings.durationFilter.minimumDurationMillis?.let { durationMillis < it } == true) {
+            return null
+        }
+        if (scanSettings.sizeFilter.minimumSizeBytes?.let { fileSizeBytes < it } == true) {
+            return null
+        }
 
         val normalizedArtist = artist
             ?.takeUnless { it.isBlank() || it == UNKNOWN_ARTIST }
-            ?: "Artista desconocido"
+            ?: UNKNOWN_ARTIST_NAME
+        val normalizedAlbum = album
+            ?.takeUnless { it.isBlank() || it == UNKNOWN_ALBUM }
+            ?: UNKNOWN_ALBUM_TITLE
+        val normalizedAlbumId = if (albumId > 0L) {
+            "mediastore-album-$albumId"
+        } else {
+            "mediastore-album-${normalizedArtist.normalizedIdPart()}-${normalizedAlbum.normalizedIdPart()}"
+        }
 
         return TrackEntity(
             id = "mediastore-$id",
-            title = title?.takeUnless { it.isBlank() } ?: "Cancion sin titulo",
+            title = title?.takeUnless { it.isBlank() } ?: UNTITLED_TRACK_TITLE,
             artistId = "mediastore-artist-$artistId",
             artistName = normalizedArtist,
             durationMillis = durationMillis,
+            addedAtMillis = dateAddedSeconds.toAddedAtMillis(),
+            mediaUri = mediaUri,
+            artworkUri = albumId.toArtworkUri(),
+            albumId = normalizedAlbumId,
+            albumTitle = normalizedAlbum,
+            trackNumber = trackNumber
+                .rem(TRACK_NUMBER_DISC_MULTIPLIER)
+                .takeIf { it > 0 },
+            folderId = folder?.id,
+            folderName = folder?.name,
+            folderPath = folder?.path,
+            fileKey = fileKey(folder, displayName),
+        )
+    }
+
+    fun fileKey(folder: MediaFolderMetadata?, displayName: String?): String? {
+        val folderId = folder?.id ?: return null
+        val name = displayName?.takeUnless(String::isBlank) ?: return null
+        return "$folderId/$name"
+    }
+
+    fun folderFromRelativePath(
+        volumeName: String?,
+        relativePath: String?,
+    ): MediaFolderMetadata? {
+        val normalizedPath = relativePath.normalizePath() ?: return null
+        val normalizedVolume = volumeName?.takeUnless(String::isBlank) ?: "external"
+        return MediaFolderMetadata(
+            id = "$normalizedVolume:$normalizedPath",
+            name = normalizedPath.substringAfterLast('/'),
+            path = normalizedPath,
+        )
+    }
+
+    fun folderFromAbsolutePath(absolutePath: String?): MediaFolderMetadata? {
+        val parentPath = absolutePath
+            ?.takeUnless(String::isBlank)
+            ?.let(::File)
+            ?.parent
+            .normalizePath()
+            ?: return null
+        return MediaFolderMetadata(
+            id = "external:$parentPath",
+            name = parentPath.substringAfterLast('/'),
+            path = parentPath,
         )
     }
 
     private const val UNKNOWN_ARTIST = "<unknown>"
+    private const val UNKNOWN_ALBUM = "<unknown>"
+    private const val TRACK_NUMBER_DISC_MULTIPLIER = 1_000
+    private const val ARTWORK_BASE_URI = "content://media/external/audio/albumart"
+
+    private fun Long.toArtworkUri(): String? = takeIf { it > 0L }
+        ?.let { "$ARTWORK_BASE_URI/$it" }
+
+    private const val MILLIS_PER_SECOND = 1_000L
+
+    private fun Long.toAddedAtMillis(): Long? = takeIf { it > 0L }
+        ?.times(MILLIS_PER_SECOND)
+
+    private val NON_ID_CHARACTERS = Regex("[^a-z0-9]+")
+
+    private fun String.normalizedIdPart(): String = lowercase()
+        .replace(NON_ID_CHARACTERS, "-")
+        .trim('-')
+        .ifBlank { "unknown" }
+
+    private fun String?.normalizePath(): String? = this
+        ?.replace('\\', '/')
+        ?.split('/')
+        ?.filter(String::isNotBlank)
+        ?.joinToString("/")
+        ?.takeUnless(String::isBlank)
 }
+
+internal data class MediaFolderMetadata(
+    val id: String,
+    val name: String,
+    val path: String,
+)

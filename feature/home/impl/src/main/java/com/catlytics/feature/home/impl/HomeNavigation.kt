@@ -1,11 +1,67 @@
 package com.catlytics.feature.home.impl
 
+import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.catlytics.core.designsystem.layout.LocalPaneChrome
+import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackSelectionAction
+import com.catlytics.feature.home.api.DailyPlaylistRoute
 import com.catlytics.feature.home.api.HomeRoute
+import com.catlytics.feature.home.api.RecentlyAddedRoute
 
-fun EntryProviderScope<NavKey>.homeEntry() {
+fun EntryProviderScope<NavKey>.homeEntry(
+    searchQuery: () -> String,
+    isSearchActive: () -> Boolean = { false },
+    onTrackOptions: (Track) -> Unit,
+    likedTrackIds: () -> Set<String> = { emptySet() },
+    onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
+    onNavigateToStatistics: () -> Unit,
+    onNavigateToDailyPlaylist: () -> Unit,
+    onNavigateToFavorites: () -> Unit,
+    onNavigateToRecentlyAdded: () -> Unit,
+    hasAudioPermission: () -> Boolean,
+    onRequestAudioPermission: () -> Unit,
+    startupError: () -> UiText?,
+    onContentReady: () -> Unit,
+    bottomPadding: () -> androidx.compose.ui.unit.Dp = { 0.dp },
+) {
     entry<HomeRoute> {
-        HomeRoute()
+        HomeRoute(
+            searchQuery = searchQuery(),
+            isSearchActive = isSearchActive(),
+            onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            onTrackSelectionAction = onTrackSelectionAction,
+            onNavigateToStatistics = onNavigateToStatistics,
+            onNavigateToDailyPlaylist = onNavigateToDailyPlaylist,
+            onNavigateToFavorites = onNavigateToFavorites,
+            onNavigateToRecentlyAdded = onNavigateToRecentlyAdded,
+            hasAudioPermission = hasAudioPermission(),
+            onRequestPermission = onRequestAudioPermission,
+            startupError = startupError(),
+            onContentReady = onContentReady,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
+        )
+    }
+    entry<DailyPlaylistRoute> {
+        DailyPlaylistRoute(
+            onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            onTrackSelectionAction = onTrackSelectionAction,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
+        )
+    }
+    entry<RecentlyAddedRoute> {
+        RecentlyAddedRoute(
+            onTrackOptions = onTrackOptions,
+            likedTrackIds = likedTrackIds(),
+            onTrackSelectionAction = onTrackSelectionAction,
+            bottomPadding = bottomPadding,
+            scaffoldContentPadding = LocalPaneChrome.current.contentPadding,
+        )
     }
 }

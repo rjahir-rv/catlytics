@@ -1,0 +1,317 @@
+package com.catlytics.core.data.repository
+
+import android.content.Context
+import com.catlytics.core.data.local.AudioTagWriter
+import com.catlytics.core.data.local.AudioTags
+import com.catlytics.core.data.local.LocalDataSource
+import com.catlytics.core.data.local.ManagedImageStore
+import com.catlytics.core.data.local.room.TrackMetadataOverrideDao
+import com.catlytics.core.data.local.room.TrackMetadataOverrideEntity
+import com.catlytics.core.data.model.TrackEntity
+import com.catlytics.core.data.model.toDomain
+import com.catlytics.core.domain.repository.TrackMetadataRepository
+import com.catlytics.core.model.ArtworkEdit
+import com.catlytics.core.model.BulkEditResult
+import com.catlytics.core.model.BulkTrackMetadataEdit
+import com.catlytics.core.model.FieldEdit
+import com.catlytics.core.model.Track
+import com.catlytics.core.model.TrackMetadataEdit
+import com.catlytics.core.model.TrackMetadataOverride
+import com.catlytics.core.model.artistIdentityKey
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
+import java.util.Base64
+import javax.inject.Inject
+import javax.inject.Singleton
+
+@Singleton
+class RoomTrackMetadataRepository internal constructor(
+    private val dao: TrackMetadataOverrideDao,
+    private val localDataSource: LocalDataSource,
+    private val tagWriter: AudioTagWriter,
+    private val artworkStore: ManagedImageStore,
+    private val clock: () -> Long = System::currentTimeMillis,
+) : TrackMetadataRepository {
+    @Inject
+    constructor(
+        dao: TrackMetadataOverrideDao,
+        localDataSource: LocalDataSource,
+        tagWriter: AudioTagWriter,
+        @ApplicationContext context: Context,
+    ) : this(dao, localDataSource, tagWriter, ManagedImageStore(context, ARTWORK_DIRECTORY))
+
+    override fun observeOverrides(): Flow<List<TrackMetadataOverride>> = dao.observeAll()
+        .map { overrides -> overrides.map(TrackMetadataOverrideEntity::toDomain) }
+
+    override fun observeOriginalTrack(trackId: String): Flow<Track?> = localDataSource
+        .observeTracks()
+        .map { tracks -> tracks.firstOrNull { it.id == trackId }?.toDomain() }
+        .distinctUntilChanged()
+
+    override suspend fun saveEdit(trackId: String, edit: TrackMetadataEdit) {
+        val result = saveBulkEdit(
+            trackIds = listOf(trackId),
+            edit = BulkTrackMetadataEdit(
+                title = FieldEdit.Set(edit.title),
+                artistName = FieldEdit.Set(edit.artistName),
+                albumTitle = FieldEdit.Set(edit.albumTitle),
+                artwork = edit.artwork,
+            ),
+        )
+        check(result.skipped == 0) { "La canción ya no está en la biblioteca." }
+    }
+
+    override suspend fun saveBulkEdit(
+        trackIds: List<String>,
+        edit: BulkTrackMetadataEdit,
+    ): BulkEditResult = withContext(Dispatchers.IO) {
+        val tracks = localDataSource.observeTracks().first()
+        val tracksById = tracks.associateBy(TrackEntity::id)
+        val targets = trackIds.distinct().mapNotNull(tracksById::get)
+        if (targets.isEmpty()) {
+            return@withContext BulkEditResult(updated = 0, skipped = trackIds.distinct().size)
+        }
+
+        // A replaced cover is copied once and shared by every track of the batch.
+        val replacedArtwork = (edit.artwork as? ArtworkEdit.Replace)?.let { artwork ->
+            val ownerId = targets.singleOrNull()?.id ?: SHARED_ARTWORK_OWNER
+            checkNotNull(artworkStore.copyFrom(artwork.sourceUri, ownerId)) {
+                "No se pudo copiar la carátula."
+            }
+        }
+        val existingById = dao.getByTrackIdsChunked(targets.map(TrackEntity::id))
+            .associateBy(TrackMetadataOverrideEntity::trackId)
+        val resolver = OverrideIdResolver(tracks)
+        val upserts = mutableListOf<TrackMetadataOverrideEntity>()
+        val deletes = mutableListOf<String>()
+        val releasedArtwork = mutableSetOf<String>()
+        targets.forEach { original ->
+            val existing = existingById[original.id]
+            val artworkUri = when (edit.artwork) {
+                ArtworkEdit.Keep -> existing?.artworkUri
+                ArtworkEdit.Restore -> null
+                is ArtworkEdit.Replace -> replacedArtwork
+            }
+            existing?.artworkUri?.takeIf { it != artworkUri }?.let(releasedArtwork::add)
+            val override = TrackMetadataOverride(
+                trackId = original.id,
+                fileKey = original.fileKey,
+                title = edit.title.applyTo(existing?.title, original.title),
+                artistName = edit.artistName.applyTo(existing?.artistName, original.artistName),
+                albumTitle = edit.albumTitle.applyTo(existing?.albumTitle, original.albumTitle),
+                artworkUri = artworkUri,
+                originalTitle = original.title,
+                originalArtistName = original.artistName,
+                originalAlbumTitle = original.albumTitle,
+                durationMillis = original.durationMillis,
+                updatedAtMillis = clock(),
+            )
+            when {
+                override.isEmpty -> if (existing != null) deletes += original.id
+                override.copy(updatedAtMillis = existing?.updatedAtMillis ?: 0L) == existing?.toDomain() -> Unit
+                else -> upserts += override.toEntity(resolver, original)
+            }
+        }
+        dao.applyChanges(upserts = upserts, deletes = deletes)
+        releasedArtwork.forEach { releaseArtwork(it) }
+        BulkEditResult(
+            updated = upserts.size + deletes.size,
+            skipped = trackIds.distinct().size - targets.size,
+        )
+    }
+
+    override suspend fun reset(trackId: String) = resetMany(listOf(trackId))
+
+    override suspend fun resetMany(trackIds: List<String>) = withContext(Dispatchers.IO) {
+        val existing = dao.getByTrackIdsChunked(trackIds.distinct())
+        if (existing.isEmpty()) return@withContext
+        dao.applyChanges(upserts = emptyList(), deletes = existing.map(TrackMetadataOverrideEntity::trackId))
+        existing.mapNotNullTo(HashSet(), TrackMetadataOverrideEntity::artworkUri)
+            .forEach { releaseArtwork(it) }
+    }
+
+    override suspend fun writeTagsToFile(trackId: String) = withContext(Dispatchers.IO) {
+        val original = checkNotNull(
+            localDataSource.observeTracks().first().firstOrNull { it.id == trackId },
+        ) { "La canción ya no está en la biblioteca." }
+        writeTags(original)
+    }
+
+    override suspend fun writeTagsToFiles(trackIds: List<String>): Int = withContext(Dispatchers.IO) {
+        val tracksById = localDataSource.observeTracks().first().associateBy(TrackEntity::id)
+        trackIds.distinct().count { trackId ->
+            val original = tracksById[trackId] ?: return@count true
+            runSuspendCatching { writeTags(original) }.isFailure
+        }
+    }
+
+    private suspend fun writeTags(original: TrackEntity) {
+        val override = dao.getByTrackId(original.id)
+        tagWriter.write(
+            mediaUri = original.mediaUri,
+            tags = AudioTags(
+                title = override?.title ?: original.title,
+                artist = override?.artistName ?: original.artistName,
+                album = override?.albumTitle ?: original.albumTitle,
+                frontCover = artworkStore.read(override?.artworkUri, ManagedImageStore.MAX_IMAGE_BYTES),
+            ),
+        )
+    }
+    private suspend fun releaseArtwork(path: String) {
+        if (dao.countByArtworkUri(path) == 0) artworkStore.deleteManaged(path)
+    }
+
+    /** Re-points overrides whose MediaStore id changed (reindex) to the track with the same file. */
+    internal suspend fun reconcile(tracks: List<TrackEntity>) = withContext(Dispatchers.IO) {
+        val trackIds = tracks.mapTo(HashSet(), TrackEntity::id)
+        val trackIdsByFileKey = tracks
+            .mapNotNull { track -> track.fileKey?.let { it to track.id } }
+            .toMap()
+        val moves = dao.getAll().mapNotNull { override ->
+            if (override.trackId in trackIds) return@mapNotNull null
+            val newTrackId = override.fileKey?.let(trackIdsByFileKey::get) ?: return@mapNotNull null
+            override.trackId to newTrackId
+        }
+        if (moves.isNotEmpty()) dao.moveTrackIds(moves)
+    }
+
+    internal suspend fun exportForBackup(): List<TrackMetadataOverrideDto> =
+        withContext(Dispatchers.IO) {
+            dao.getAll().map { override ->
+                TrackMetadataOverrideDto(
+                    trackId = override.trackId,
+                    fileKey = override.fileKey,
+                    title = override.title,
+                    artistName = override.artistName,
+                    albumTitle = override.albumTitle,
+                    artworkBase64 = artworkStore.read(override.artworkUri, ManagedImageStore.MAX_IMAGE_BYTES)
+                        ?.let(Base64.getEncoder()::encodeToString),
+                    originalTitle = override.originalTitle,
+                    originalArtistName = override.originalArtistName,
+                    originalAlbumTitle = override.originalAlbumTitle,
+                    durationMillis = override.durationMillis,
+                    updatedAtMillis = override.updatedAtMillis,
+                )
+            }
+        }
+
+    internal suspend fun prepareBackupRestore(
+        dtos: List<TrackMetadataOverrideDto>,
+    ): List<TrackMetadataOverrideEntity> = withContext(Dispatchers.IO) {
+        val tracks = localDataSource.observeTracks().first()
+        val tracksByFileKey = tracks
+            .mapNotNull { track -> track.fileKey?.let { it to track } }
+            .toMap()
+        val reconciler = TrackReconciler(tracks)
+        val resolver = OverrideIdResolver(tracks)
+        dtos.filter(TrackMetadataOverrideDto::hasEdits).map { dto ->
+            val track = dto.fileKey?.let(tracksByFileKey::get)
+                ?: reconciler.reconcile(
+                    PlaylistTrackBackupDto(
+                        trackId = dto.trackId,
+                        title = dto.originalTitle,
+                        artistName = dto.originalArtistName,
+                        albumTitle = dto.originalAlbumTitle,
+                        durationMillis = dto.durationMillis,
+                    ),
+                )
+            val trackId = track?.id ?: dto.trackId
+            val artworkUri = dto.artworkBase64
+                ?.let { runCatching { Base64.getDecoder().decode(it) }.getOrNull() }
+                ?.takeIf { it.size in 1..ManagedImageStore.MAX_IMAGE_BYTES }
+                ?.let { artworkStore.write(it, trackId) }
+            TrackMetadataOverride(
+                trackId = trackId,
+                fileKey = track?.fileKey ?: dto.fileKey,
+                title = dto.title,
+                artistName = dto.artistName,
+                albumTitle = dto.albumTitle,
+                artworkUri = artworkUri,
+                originalTitle = dto.originalTitle,
+                originalArtistName = dto.originalArtistName,
+                originalAlbumTitle = dto.originalAlbumTitle,
+                durationMillis = dto.durationMillis,
+                updatedAtMillis = dto.updatedAtMillis,
+            ).toEntity(resolver, track)
+        }.distinctBy(TrackMetadataOverrideEntity::trackId)
+    }
+
+    internal suspend fun deleteUnreferencedArtwork() = withContext(Dispatchers.IO) {
+        val referenced = dao.getAll().mapNotNullTo(HashSet(), TrackMetadataOverrideEntity::artworkUri)
+        artworkStore.deleteAllExcept(referenced)
+    }
+
+    internal suspend fun replaceFromBackup(overrides: List<TrackMetadataOverrideEntity>) {
+        dao.replaceAll(overrides)
+    }
+
+    internal suspend fun mergeFromBackup(overrides: List<TrackMetadataOverrideEntity>): Int {
+        var imported = 0
+        overrides.forEach { incoming ->
+            val existing = dao.getByTrackId(incoming.trackId)
+                ?: incoming.fileKey?.let { dao.getByFileKey(it) }
+            if (existing != null && existing.updatedAtMillis >= incoming.updatedAtMillis) {
+                return@forEach
+            }
+            dao.upsertReplacingFileKey(incoming)
+            imported++
+        }
+        return imported
+    }
+
+    internal companion object {
+        const val ARTWORK_DIRECTORY = "track_artwork"
+        const val SHARED_ARTWORK_OWNER = "shared"
+    }
+}
+
+private fun String.overriding(original: String?): String? =
+    trim().takeUnless { it.isEmpty() || it == original }
+
+private fun FieldEdit.applyTo(current: String?, original: String?): String? = when (this) {
+    FieldEdit.Keep -> current
+    FieldEdit.Restore -> null
+    is FieldEdit.Set -> value.overriding(original)
+}
+
+internal fun TrackMetadataOverrideEntity.toDomain() = TrackMetadataOverride(
+    trackId = trackId,
+    fileKey = fileKey,
+    title = title,
+    artistName = artistName,
+    albumTitle = albumTitle,
+    artworkUri = artworkUri,
+    originalTitle = originalTitle,
+    originalArtistName = originalArtistName,
+    originalAlbumTitle = originalAlbumTitle,
+    durationMillis = durationMillis,
+    updatedAtMillis = updatedAtMillis,
+)
+
+internal fun TrackMetadataOverride.toEntity(
+    resolver: OverrideIdResolver,
+    original: TrackEntity?,
+): TrackMetadataOverrideEntity {
+    val effectiveArtistName = artistName ?: original?.artistName ?: originalArtistName
+    return TrackMetadataOverrideEntity(
+        trackId = trackId,
+        fileKey = fileKey,
+        title = title,
+        artistName = artistName,
+        artistKey = artistName?.let(::artistIdentityKey),
+        artistId = artistName?.let(resolver::artistId),
+        albumTitle = albumTitle,
+        albumId = albumTitle?.let { resolver.albumId(effectiveArtistName, it) },
+        artworkUri = artworkUri,
+        originalTitle = originalTitle,
+        originalArtistName = originalArtistName,
+        originalAlbumTitle = originalAlbumTitle,
+        durationMillis = durationMillis,
+        updatedAtMillis = updatedAtMillis,
+    )
+}

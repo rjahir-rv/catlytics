@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="@android:color/white"
+        android:fillType="evenOdd"
+        android:pathData="M24,2a22,22 0,1 1,0 44a22,22 0,1 1,0 -44zM24,5.5a18.5,18.5 0,1 0,0 37a18.5,18.5 0,1 0,0 -37z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:fillType="evenOdd"
+        android:pathData="M24,15a9,9 0,1 1,0 18a9,9 0,1 1,0 -18zM24,18.5a5.5,5.5 0,1 0,0 11a5.5,5.5 0,1 0,0 -11z" />
+    <group android:pivotX="24" android:pivotY="24" android:rotation="0">
+        <path android:fillColor="@android:color/white" android:pathData="M22.5,5h3v10.5h-3z" />
+    </group>
+    <group android:pivotX="24" android:pivotY="24" android:rotation="120">
+        <path android:fillColor="@android:color/white" android:pathData="M22.5,5h3v10.5h-3z" />
+    </group>
+    <group android:pivotX="24" android:pivotY="24" android:rotation="240">
+        <path android:fillColor="@android:color/white" android:pathData="M22.5,5h3v10.5h-3z" />
+    </group>
+    <group android:pivotX="24" android:pivotY="24" android:rotation="0">
+        <path android:fillColor="@android:color/white" android:pathData="M23,18h2v2.5h-2z" />
+    </group>
+    <group android:pivotX="24" android:pivotY="24" android:rotation="60">
+        <path android:fillColor="@android:color/white" android:pathData="M23,18h2v2.5h-2z" />
+    </group>
+    <group android:pivotX="24" android:pivotY="24" android:rotation="120">
+        <path android:fillColor="@android:color/white" android:pathData="M23,18h2v2.5h-2z" />
+    </group>
+    <group android:pivotX="24" android:pivotY="24" android:rotation="180">
+        <path android:fillColor="@android:color/white" android:pathData="M23,18h2v2.5h-2z" />
+    </group>
+    <group android:pivotX="24" android:pivotY="24" android:rotation="240">
+        <path android:fillColor="@android:color/white" android:pathData="M23,18h2v2.5h-2z" />
+    </group>
+    <group android:pivotX="24" android:pivotY="24" android:rotation="300">
+        <path android:fillColor="@android:color/white" android:pathData="M23,18h2v2.5h-2z" />
+    </group>
+</vector>

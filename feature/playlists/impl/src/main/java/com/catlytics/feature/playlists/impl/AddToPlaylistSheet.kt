@@ -1,0 +1,391 @@
+package com.catlytics.feature.playlists.impl
+
+import android.content.res.Resources
+import android.widget.Toast
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.TriStateCheckbox
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.state.ToggleableState
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.component.CatlyticsArtwork
+import com.catlytics.core.designsystem.text.UiText
+import com.catlytics.core.designsystem.text.resolve
+import com.catlytics.core.model.LIKED_PLAYLIST_ID
+import com.catlytics.core.model.Playlist
+import com.catlytics.core.model.PlaylistSource
+import com.catlytics.core.model.PlaylistSourceKind
+import com.catlytics.core.model.PlaylistSourcePreview
+import com.catlytics.feature.playlists.impl.R as PlaylistsR
+
+internal fun pendingTrackCount(playlist: Playlist, sourceTrackIds: List<String>): Int =
+    sourceTrackIds.count { it !in playlist.trackIds }
+
+internal fun isPlaylistFullyAdded(playlist: Playlist, sourceTrackIds: List<String>): Boolean =
+    sourceTrackIds.isNotEmpty() && pendingTrackCount(playlist, sourceTrackIds) == 0
+
+internal fun playlistCheckboxState(
+    playlist: Playlist,
+    sourceTrackIds: List<String>,
+    isSelected: Boolean,
+): ToggleableState {
+    val pendingCount = pendingTrackCount(playlist, sourceTrackIds)
+    return when {
+        isSelected || isPlaylistFullyAdded(playlist, sourceTrackIds) -> ToggleableState.On
+        pendingCount < sourceTrackIds.size -> ToggleableState.Indeterminate
+        else -> ToggleableState.Off
+    }
+}
+
+internal fun togglePlaylistSelectionState(
+    selectedIds: Set<String>,
+    playlistId: String,
+): Set<String> = if (playlistId in selectedIds) {
+    selectedIds - playlistId
+} else {
+    selectedIds + playlistId
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AddToPlaylistSheet(
+    source: PlaylistSource,
+    onDismiss: () -> Unit,
+    excludedPlaylistIds: Set<String> = emptySet(),
+    allowCreate: Boolean = true,
+    onCreatePlaylist: (trackIds: List<String>) -> Unit = {},
+) {
+    val viewModel: AddToPlaylistViewModel = hiltViewModel()
+    val context = LocalContext.current
+    val resources = LocalResources.current
+    val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val preview by viewModel.preview.collectAsStateWithLifecycle()
+    val sourceTrackIds = preview?.trackIds.orEmpty()
+    var selectedPlaylistIds by remember { mutableStateOf(emptySet<String>()) }
+
+    LaunchedEffect(source) {
+        viewModel.loadPreview(source)
+    }
+
+    fun togglePlaylistSelection(playlistId: String) {
+        val playlist = playlists.firstOrNull { it.id == playlistId } ?: return
+        if (isPlaylistFullyAdded(playlist, sourceTrackIds)) return
+        selectedPlaylistIds = togglePlaylistSelectionState(
+            selectedIds = selectedPlaylistIds,
+            playlistId = playlistId,
+        )
+    }
+
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        LazyColumn(
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            item {
+                AddToPlaylistHeader(preview = preview)
+            }
+            if (allowCreate) {
+                item {
+                    ListItem(
+                        headlineContent = {
+                            Text(stringResource(PlaylistsR.string.playlists_new_playlist))
+                        },
+                        leadingContent = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = preview != null) { onCreatePlaylist(sourceTrackIds) },
+                    )
+                }
+            }
+            items(
+                items = playlists.filterNot { it.id in excludedPlaylistIds },
+                key = Playlist::id,
+                contentType = { "playlist" },
+            ) { playlist ->
+                val isSelected = playlist.id in selectedPlaylistIds
+                val isFullyAdded = isPlaylistFullyAdded(playlist, sourceTrackIds)
+                val pendingCount = pendingTrackCount(playlist, sourceTrackIds)
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            text = playlist.displayName(),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    supportingContent = {
+                        Text(
+                            text = when {
+                                isFullyAdded -> stringResource(PlaylistsR.string.playlists_already_added)
+                                pendingCount < sourceTrackIds.size && sourceTrackIds.isNotEmpty() -> {
+                                    pluralStringResource(
+                                        PlaylistsR.plurals.add_to_playlist_pending_track_count,
+                                        pendingCount,
+                                        pendingCount,
+                                    )
+                                }
+                                else -> pluralStringResource(
+                                    R.plurals.ds_track_count,
+                                    playlist.trackIds.size,
+                                    playlist.trackIds.size,
+                                )
+                            },
+                        )
+                    },
+                    leadingContent = {
+                        PlaylistCoverImage(
+                            playlistId = playlist.id,
+                            artworkUri = playlist.artworkUri,
+                            name = playlist.displayName(),
+                        )
+                    },
+                    trailingContent = {
+                        TriStateCheckbox(
+                            state = playlistCheckboxState(playlist, sourceTrackIds, isSelected),
+                            onClick = if (isFullyAdded) {
+                                null
+                            } else {
+                                { togglePlaylistSelection(playlist.id) }
+                            },
+                            // Sin onClick pierde el área táctil mínima y queda más chica que las demás.
+                            modifier = Modifier.minimumInteractiveComponentSize(),
+                        )
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !isFullyAdded) {
+                            togglePlaylistSelection(playlist.id)
+                        },
+                )
+            }
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        viewModel.applyToPlaylists(
+                            playlistIds = selectedPlaylistIds,
+                            source = source,
+                            sourceTrackIds = sourceTrackIds,
+                        ) { result ->
+                            result?.let {
+                                Toast.makeText(
+                                    context,
+                                    addToPlaylistToastMessage(it, resources).resolve(resources),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                            onDismiss()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(PlaylistsR.string.add_to_playlist_done))
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaylistCoverImage(
+    playlistId: String,
+    artworkUri: String?,
+    name: String,
+    modifier: Modifier = Modifier,
+) {
+    PlaylistCover(
+        playlistId = playlistId,
+        name = name,
+        artworkModel = artworkUri,
+        mosaicArtworkUris = emptyList(),
+        shape = RoundedCornerShape(12.dp),
+        contentDescription = stringResource(
+            PlaylistsR.string.playlists_artwork_content_description,
+            name,
+        ),
+        modifier = modifier.size(48.dp),
+    )
+}
+
+@Composable
+private fun SourceCoverImage(
+    artworkUri: String?,
+    title: String?,
+    kind: PlaylistSourceKind?,
+    modifier: Modifier = Modifier,
+) {
+    CatlyticsArtwork(
+        model = artworkUri,
+        seed = title.orEmpty(),
+        placeholderIcon = kind.placeholderIconRes(),
+        contentDescription = title?.let {
+            stringResource(PlaylistsR.string.playlists_artwork_content_description, it)
+        },
+        modifier = modifier
+            .size(72.dp)
+            .clip(RoundedCornerShape(16.dp)),
+    )
+}
+
+@DrawableRes
+private fun PlaylistSourceKind?.placeholderIconRes(): Int = when (this) {
+    PlaylistSourceKind.Track -> R.drawable.ic_audio
+    PlaylistSourceKind.Artist -> R.drawable.ic_artist
+    PlaylistSourceKind.Folder -> R.drawable.ic_folder
+    PlaylistSourceKind.Album, PlaylistSourceKind.Collection, null -> R.drawable.ic_album
+}
+
+@StringRes
+private fun PlaylistSourceKind.fallbackTitleRes(): Int = when (this) {
+    PlaylistSourceKind.Track -> PlaylistsR.string.playlists_source_track
+    PlaylistSourceKind.Album -> PlaylistsR.string.playlists_source_album
+    PlaylistSourceKind.Artist -> PlaylistsR.string.playlists_source_artist
+    PlaylistSourceKind.Folder -> PlaylistsR.string.playlists_source_folder
+    PlaylistSourceKind.Collection -> PlaylistsR.string.add_to_playlist_title
+}
+
+@Composable
+private fun AddToPlaylistHeader(
+    preview: PlaylistSourcePreview?,
+    modifier: Modifier = Modifier,
+) {
+    val title = preview?.let { it.title ?: stringResource(it.kind.fallbackTitleRes()) }
+    val subtitle = preview?.albumCount
+        ?.let { pluralStringResource(R.plurals.ds_album_count, it, it) }
+        ?: preview?.subtitle
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SourceCoverImage(
+            artworkUri = preview?.artworkUri,
+            title = title,
+            kind = preview?.kind,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = title ?: stringResource(PlaylistsR.string.add_to_playlist_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            subtitle?.let { subtitle ->
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            preview?.itemCount?.takeIf { it > 0 }?.let { count ->
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.ds_track_count,
+                        count,
+                        count,
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Icon(
+            painter = painterResource(R.drawable.ic_check_list),
+            contentDescription = stringResource(
+                PlaylistsR.string.add_to_playlist_multiselect_content_description,
+            ),
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+private fun addToPlaylistToastMessage(result: AddToPlaylistResult, resources: Resources): UiText {
+    if (result.totalAdded == 0) {
+        return UiText.Resource(PlaylistsR.string.add_to_playlist_toast_none)
+    }
+    return when (result.playlists.size) {
+        0 -> UiText.Plural(PlaylistsR.plurals.add_to_playlist_toast_added, result.totalAdded)
+        1 -> playlistToastMessage(
+            playlist = result.playlists.first(),
+            addedCount = result.totalAdded,
+            resources = resources,
+        )
+        else -> UiText.Resource(
+            PlaylistsR.string.add_to_playlist_toast_multiple,
+            listOf(result.totalAdded, result.playlists.size),
+        )
+    }
+}
+
+private fun playlistToastMessage(
+    playlist: PlaylistRef,
+    addedCount: Int,
+    resources: Resources,
+): UiText {
+    val playlistName = playlist.displayName(resources)
+    return when (addedCount) {
+        0 -> UiText.Resource(
+            PlaylistsR.string.add_to_playlist_toast_playlist_none,
+            listOf(playlistName),
+        )
+        else -> UiText.Plural(
+            PlaylistsR.plurals.add_to_playlist_toast_playlist_added,
+            addedCount,
+            listOf(addedCount, playlistName),
+        )
+    }
+}
+
+private fun PlaylistRef.displayName(resources: Resources): String =
+    if (id == LIKED_PLAYLIST_ID) {
+        resources.getString(PlaylistsR.string.playlist_liked_name)
+    } else {
+        name
+    }

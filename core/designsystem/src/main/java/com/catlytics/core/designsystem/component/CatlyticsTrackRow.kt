@@ -1,0 +1,355 @@
+package com.catlytics.core.designsystem.component
+
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.catlytics.core.designsystem.R
+import com.catlytics.core.designsystem.format.TrackDurationFormat
+import com.catlytics.core.designsystem.text.displayArtistName
+import com.catlytics.core.designsystem.text.displayTrackTitle
+import com.catlytics.core.model.Track
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+fun CatlyticsTrackRow(
+    title: String,
+    subtitle: String,
+    artworkUri: String?,
+    isCurrent: Boolean,
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    trailing: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    badgeLabel: String? = null,
+    clickEnabled: Boolean = true,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+                } else {
+                    Color.Transparent
+                },
+            )
+            .combinedClickable(
+                enabled = clickEnabled || onLongClick != null,
+                onClick = { if (clickEnabled) onClick() },
+                onLongClick = onLongClick,
+            )
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TrackArtwork(
+            title = title,
+            artworkUri = artworkUri,
+            isCurrent = isCurrent,
+            isPlaying = isPlaying && !selectionActive,
+            selected = selected,
+            selectionActive = selectionActive,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (isCurrent && !selectionActive) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onBackground
+                    },
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                if (badgeLabel != null) {
+                    TrackBadge(label = badgeLabel)
+                }
+            }
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (!selectionActive) {
+            trailing()
+        }
+    }
+}
+
+/**
+ * [CatlyticsTrackRow] de una canción: título, "artista · duración" y, por defecto, el botón de
+ * opciones. [trailing] lo reemplaza, p. ej. por el asa para reordenar una playlist.
+ */
+@Composable
+fun TrackListRow(
+    track: Track,
+    isCurrent: Boolean,
+    isPlaying: Boolean,
+    onClick: () -> Unit,
+    onOptions: () -> Unit,
+    modifier: Modifier = Modifier,
+    badgeLabel: String? = null,
+    clickEnabled: Boolean = true,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    trailing: @Composable () -> Unit = {
+        CatlyticsOptionsButton(label = track.title.displayTrackTitle(), onClick = onOptions)
+    },
+) {
+    CatlyticsTrackRow(
+        title = track.title.displayTrackTitle(),
+        subtitle = stringResource(
+            R.string.ds_metadata_pair,
+            track.artist.name.displayArtistName(),
+            TrackDurationFormat.format(track.durationMillis),
+        ),
+        artworkUri = track.artworkUri,
+        isCurrent = isCurrent,
+        isPlaying = isPlaying,
+        onClick = onClick,
+        trailing = trailing,
+        modifier = modifier,
+        badgeLabel = badgeLabel,
+        clickEnabled = clickEnabled,
+        selected = selected,
+        selectionActive = selectionActive,
+        onLongClick = onLongClick,
+    )
+}
+
+@Composable
+fun CatlyticsOptionsButton(
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    IconButton(onClick = onClick, modifier = modifier) {
+        Icon(
+            painter = painterResource(R.drawable.ic_options),
+            contentDescription = stringResource(R.string.ds_options_content_description, label),
+        )
+    }
+}
+
+/** Botón de reproducir en orden aleatorio que acompaña a los de reproducir en las colecciones. */
+@Composable
+fun CatlyticsShuffleButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    FilledTonalIconButton(onClick = onClick, enabled = enabled, modifier = modifier.size(48.dp)) {
+        Icon(
+            painter = painterResource(R.drawable.ic_shuffle),
+            contentDescription = stringResource(R.string.ds_action_play_shuffled),
+            modifier = Modifier.size(24.dp),
+        )
+    }
+}
+
+@Composable
+fun TrackBadge(
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.85f))
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun TrackArtwork(
+    modifier: Modifier = Modifier,
+    title: String,
+    artworkUri: String?,
+    isCurrent: Boolean,
+    isPlaying: Boolean,
+    selected: Boolean = false,
+    selectionActive: Boolean = false,
+) {
+    val artworkShape = RoundedCornerShape(10.dp)
+    Box(
+        modifier = modifier.size(56.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (isCurrent) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .blur(radius = 16.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                        shape = artworkShape,
+                    ),
+            )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .blur(radius = 8.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                    .background(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                        shape = artworkShape,
+                    ),
+            )
+        }
+        Box(modifier = Modifier.size(48.dp).clip(artworkShape)) {
+            CatlyticsArtwork(
+                model = artworkUri,
+                seed = title,
+                placeholderIcon = R.drawable.ic_audio,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+            if (isPlaying) {
+                CatlyticsPlayingBarsOverlay(
+                    contentDescription = stringResource(
+                        R.string.ds_track_row_playing_content_description,
+                        title,
+                    ),
+                    modifier = Modifier.matchParentSize(),
+                )
+            }
+            if (selectionActive) {
+                TrackSelectionMark(selected = selected)
+            }
+        }
+    }
+}
+
+@Composable
+fun TrackSelectionMark(
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                if (selected) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.72f)
+                } else {
+                    Color.Black.copy(alpha = 0.28f)
+                },
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (selected) {
+            Icon(
+                painter = painterResource(R.drawable.ic_check),
+                contentDescription = stringResource(R.string.ds_track_row_selected_content_description),
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier
+                    .size(22.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                    .padding(3.dp),
+            )
+        }
+    }
+}
+
+@Composable
+fun CatlyticsPlayingBarsOverlay(
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    val transition = rememberInfiniteTransition(label = "playing bars")
+    val barHeights = listOf(0, 150, 300).mapIndexed { index, delayMillis ->
+        transition.animateFloat(
+            initialValue = if (index == 1) 0.35f else 0.75f,
+            targetValue = if (index == 1) 0.9f else 0.3f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 520, delayMillis = delayMillis),
+                repeatMode = RepeatMode.Reverse,
+            ),
+            label = "playing bar $index",
+        ).value
+    }
+    Box(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.38f))
+            .semantics { this.contentDescription = contentDescription },
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            modifier = Modifier.height(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            barHeights.forEach { heightFraction ->
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height((24.dp * heightFraction).coerceAtLeast(7.dp))
+                        .background(color = Color.White, shape = RoundedCornerShape(2.dp)),
+                )
+            }
+        }
+    }
+}
