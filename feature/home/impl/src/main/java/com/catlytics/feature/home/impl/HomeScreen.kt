@@ -31,9 +31,9 @@ import com.catlytics.core.model.TrackSelectionAction
 
 @Composable
 internal fun HomeRoute(
+    modifier: Modifier = Modifier,
     searchQuery: String,
     isSearchActive: Boolean = false,
-    modifier: Modifier = Modifier,
     onTrackOptions: (Track) -> Unit,
     likedTrackIds: Set<String> = emptySet(),
     onTrackSelectionAction: (TrackSelectionAction) -> Unit = {},
